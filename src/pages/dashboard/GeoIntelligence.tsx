@@ -86,6 +86,7 @@ export default function GeoIntelligence() {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        setMapReady(false);
       }
     };
   }, [loading]);
