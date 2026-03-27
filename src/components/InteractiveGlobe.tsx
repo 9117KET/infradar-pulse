@@ -262,11 +262,11 @@ function GlobeScene() {
       <ProjectMarkers />
       <mesh>
         <sphereGeometry args={[1.04, 64, 64]} />
-        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.03} side={THREE.BackSide} />
+        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.05} side={THREE.BackSide} />
       </mesh>
       <mesh>
         <sphereGeometry args={[1.09, 64, 64]} />
-        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.015} side={THREE.BackSide} />
+        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.03} side={THREE.BackSide} />
       </mesh>
     </group>
   );
