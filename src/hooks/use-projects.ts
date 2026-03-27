@@ -26,7 +26,7 @@ export interface DbProject {
 }
 
 function dbToProject(
-  p: DbProject,
+  p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
   stakeholders: string[],
   milestones: Milestone[],
   evidence: Evidence[]
@@ -51,6 +51,13 @@ function dbToProject(
     stakeholders,
     milestones,
     evidence,
+    detailedAnalysis: (p as any).detailed_analysis || '',
+    keyRisks: (p as any).key_risks || '',
+    fundingSources: (p as any).funding_sources || '',
+    environmentalImpact: (p as any).environmental_impact || '',
+    politicalContext: (p as any).political_context || '',
+    sourceUrl: (p as any).source_url || '',
+    dbId: p.id,
   };
 }
 
@@ -85,7 +92,7 @@ export function useProjects() {
       const evidenceMap: Record<string, Evidence[]> = {};
       (eData || []).forEach((e: any) => {
         if (!evidenceMap[e.project_id]) evidenceMap[e.project_id] = [];
-        evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date });
+        evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date, title: e.title || '', description: e.description || '', added_by: e.added_by || 'ai' });
       });
 
       const result = pData.map((p: any) =>

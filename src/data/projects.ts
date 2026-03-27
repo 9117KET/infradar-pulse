@@ -10,6 +10,9 @@ export interface Evidence {
   type: 'Satellite' | 'Filing' | 'News' | 'Registry' | 'Partner';
   verified: boolean;
   date: string;
+  title?: string;
+  description?: string;
+  added_by?: string;
 }
 
 export interface Milestone {
@@ -39,6 +42,13 @@ export interface Project {
   evidence: Evidence[];
   lastUpdated: string;
   timeline: string;
+  detailedAnalysis?: string;
+  keyRisks?: string;
+  fundingSources?: string;
+  environmentalImpact?: string;
+  politicalContext?: string;
+  sourceUrl?: string;
+  dbId?: string;
 }
 
 export const PROJECTS: Project[] = [
