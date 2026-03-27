@@ -26,7 +26,7 @@ export interface DbProject {
 }
 
 function dbToProject(
-  p: DbProject,
+  p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
   stakeholders: string[],
   milestones: Milestone[],
   evidence: Evidence[]
@@ -51,6 +51,13 @@ function dbToProject(
     stakeholders,
     milestones,
     evidence,
+    detailedAnalysis: (p as any).detailed_analysis || '',
+    keyRisks: (p as any).key_risks || '',
+    fundingSources: (p as any).funding_sources || '',
+    environmentalImpact: (p as any).environmental_impact || '',
+    politicalContext: (p as any).political_context || '',
+    sourceUrl: (p as any).source_url || '',
+    dbId: p.id,
   };
 }
 
