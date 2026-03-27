@@ -134,7 +134,71 @@ function NotificationBell() {
   );
 }
 
-export default function DashboardLayout() {
+function ProjectSearch() {
+  const { projects } = useProjects();
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setFocused(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const results = query.trim().length > 0
+    ? projects.filter(p => {
+        const q = query.toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.sector.toLowerCase().includes(q) || p.region.toLowerCase().includes(q);
+      }).slice(0, 6)
+    : [];
+
+  const showDropdown = focused && query.trim().length > 0;
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search projects…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          className="h-8 w-56 rounded-lg border border-border bg-background pl-8 pr-8 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        />
+        {query && (
+          <button onClick={() => { setQuery(''); setFocused(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
+            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+      {showDropdown && (
+        <div className="absolute left-0 top-10 z-50 w-80 rounded-xl border border-border bg-card shadow-xl">
+          {results.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No projects found</p>
+          ) : results.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { setQuery(''); setFocused(false); navigate(`/dashboard/projects/${p.id}`); }}
+              className="flex items-start gap-3 px-4 py-2.5 w-full text-left hover:bg-white/[0.02] border-b border-border/30 last:border-0"
+            >
+              <FolderSearch className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{p.name}</p>
+                <p className="text-[10px] text-muted-foreground">{p.country} · {p.sector} · {p.region}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
   const { user, loading } = useAuth();
 
   if (loading) {
