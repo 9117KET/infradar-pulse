@@ -29,6 +29,8 @@ import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
+import InsightDetail from "./pages/InsightDetail";
+import InsightsManagement from "./pages/dashboard/InsightsManagement";
 
 const queryClient = new QueryClient();
 
