@@ -28,6 +28,7 @@ import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
+import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/dashboard/users" element={<UsersPage />} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<ReviewQueue />} />
+              <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
