@@ -199,11 +199,11 @@ export default function GeoIntelligence() {
       </div>
 
       {/* Map */}
-      <div className="glass-panel rounded-xl overflow-hidden" style={{ height: 'calc(100vh - 300px)', minHeight: '400px' }}>
-        {loading ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground animate-pulse">Loading map…</div>
-        ) : (
-          <div ref={mapContainerRef} style={{ height: '100%', width: '100%', background: '#0a0f14' }} />
+      <div className="glass-panel rounded-xl overflow-hidden relative" style={{ height: 'calc(100vh - 300px)', minHeight: '400px' }}>
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground animate-pulse z-10">Loading map…</div>
+        )}
+        <div ref={mapContainerRef} style={{ height: '100%', width: '100%', background: '#0a0f14' }} />
         )}
       </div>
 
