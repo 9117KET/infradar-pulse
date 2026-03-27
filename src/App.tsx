@@ -20,6 +20,7 @@ import DataProtection from "./pages/DataProtection";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
 import Login from "./pages/Login";
+import Onboarding from "./pages/Onboarding";
 import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/press" element={<Press />} />
             </Route>
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/projects" element={<Projects />} />

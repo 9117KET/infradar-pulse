@@ -150,6 +150,45 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string
+          onboarded: boolean | null
+          regions: string[] | null
+          role: string | null
+          sectors: string[] | null
+          stages: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id: string
+          onboarded?: boolean | null
+          regions?: string[] | null
+          role?: string | null
+          sectors?: string[] | null
+          stages?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          id?: string
+          onboarded?: boolean | null
+          regions?: string[] | null
+          role?: string | null
+          sectors?: string[] | null
+          stages?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       project_milestones: {
         Row: {
           completed: boolean
