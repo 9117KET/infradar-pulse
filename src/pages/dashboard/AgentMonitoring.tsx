@@ -261,6 +261,61 @@ export default function AgentMonitoring() {
           );
         })}
       </div>
+
+      {/* Live Log Stream */}
+      <div className="glass-panel rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Radio className={`h-4 w-4 ${isStreaming ? 'text-emerald-400 animate-pulse' : 'text-muted-foreground'}`} />
+            Live Agent Log Stream
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => setIsStreaming(!isStreaming)}
+            >
+              {isStreaming ? 'Pause' : 'Resume'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => setLiveLogs([])}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="h-64 overflow-y-auto rounded-lg bg-background/80 border border-border font-mono text-[11px] p-3 space-y-0.5"
+        >
+          {liveLogs.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Waiting for agent activity…</p>
+          ) : (
+            liveLogs.map((log) => (
+              <div key={log.id} className="flex items-start gap-2 py-0.5 hover:bg-muted/30 rounded px-1">
+                {getStatusIcon(log.status)}
+                <span className="text-muted-foreground shrink-0">
+                  {new Date(log.created_at).toLocaleTimeString()}
+                </span>
+                <span className="text-primary font-medium shrink-0">
+                  [{agentNameMap[log.task_type] || log.task_type}]
+                </span>
+                <span className={getStatusColor(log.status)}>
+                  {log.status.toUpperCase()}
+                </span>
+                <span className="text-foreground truncate">
+                  {log.error ? `Error: ${log.error}` : log.query}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
