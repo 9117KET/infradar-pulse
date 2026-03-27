@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { formatValue } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
