@@ -140,7 +140,7 @@ export default function GeoIntelligence() {
       const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng] as [number, number]));
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
     }
-  }, [filtered, overlay]);
+  }, [filtered, overlay, mapReady]);
 
   // Stats
   const avgRisk = filtered.length ? Math.round(filtered.reduce((s, p) => s + p.riskScore, 0) / filtered.length) : 0;
