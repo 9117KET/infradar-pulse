@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, Satellite, ShieldCheck, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
