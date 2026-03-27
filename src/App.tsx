@@ -27,6 +27,7 @@ import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
+import ReviewQueue from "./pages/dashboard/ReviewQueue";
 
 const queryClient = new QueryClient();
 
