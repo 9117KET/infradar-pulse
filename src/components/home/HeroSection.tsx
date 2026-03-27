@@ -8,9 +8,9 @@ export function HeroSection() {
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(520px,0.95fr)] lg:gap-10 xl:max-w-[1500px]">
         {/* Left */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center">
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center lg:pr-6">
           <div className="mb-6 flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
@@ -44,8 +44,8 @@ export function HeroSection() {
         </motion.div>
 
         {/* Right — Globe */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center overflow-visible min-h-[560px] lg:min-h-[650px] -mr-8 lg:-mr-16">
-          <InteractiveGlobe className="w-[110%] h-full" />
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="relative flex items-center justify-center min-h-[620px] overflow-visible lg:min-h-[700px]">
+          <InteractiveGlobe className="h-full w-full max-w-[760px]" />
         </motion.div>
       </div>
     </section>
