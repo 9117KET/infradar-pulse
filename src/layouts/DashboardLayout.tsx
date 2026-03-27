@@ -62,7 +62,7 @@ function AppSidebar() {
 }
 
 function NotificationBell() {
-  const { alerts } = useAlerts();
+  const { alerts, markAsRead, markAllAsRead } = useAlerts();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const unreadCount = alerts.filter(a => !a.read).length;
@@ -93,22 +93,31 @@ function NotificationBell() {
         <div className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="text-sm font-semibold">Notifications</span>
-            {unreadCount > 0 && (
-              <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{unreadCount} new</Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <>
+                  <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline">Mark all read</button>
+                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{unreadCount} new</Badge>
+                </>
+              )}
+            </div>
           </div>
           <div className="max-h-72 overflow-y-auto">
             {alerts.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">No notifications</p>
             ) : alerts.slice(0, 8).map(a => (
-              <div key={a.id} className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-border/30 hover:bg-white/[0.02] ${!a.read ? 'bg-primary/[0.03]' : ''}`}>
+              <button
+                key={a.id}
+                onClick={() => !a.read && markAsRead(a.id)}
+                className={`flex items-start gap-2.5 px-4 py-2.5 border-b border-border/30 hover:bg-white/[0.02] w-full text-left transition-colors ${!a.read ? 'bg-primary/[0.03] cursor-pointer' : 'cursor-default'}`}
+              >
                 <AlertTriangle className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${severityColor(a.severity)}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs leading-snug truncate">{a.message}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{a.projectName} · {a.time}</p>
                 </div>
                 {!a.read && <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-              </div>
+              </button>
             ))}
           </div>
           <Link

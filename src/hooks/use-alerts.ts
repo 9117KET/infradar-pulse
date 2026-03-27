@@ -41,5 +41,13 @@ export function useAlerts() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { alerts, loading };
+  const markAsRead = async (id: string) => {
+    await supabase.from('alerts').update({ read: true }).eq('id', id);
+  };
+
+  const markAllAsRead = async () => {
+    await supabase.from('alerts').update({ read: true }).eq('read', false);
+  };
+
+  return { alerts, loading, markAsRead, markAllAsRead };
 }
