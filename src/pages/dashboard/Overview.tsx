@@ -4,7 +4,6 @@ import { useProjects } from '@/hooks/use-projects';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, ShieldCheck, Activity, Clock, AlertTriangle, Bot, Search, RefreshCw, ShieldAlert, CheckCircle2, XCircle, ClipboardCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
