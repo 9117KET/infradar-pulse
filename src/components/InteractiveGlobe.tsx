@@ -276,11 +276,11 @@ function GlobeScene() {
 
 export function InteractiveGlobe({ className }: { className?: string }) {
   return (
-    <div className={className} style={{ width: '100%', height: '100%', minHeight: 520 }}>
+    <div className={className} style={{ width: '100%', height: '100%', minHeight: 520, overflow: 'visible' }}>
       <Canvas
-        camera={{ position: [0, 0.3, 2.5], fov: 42 }}
+        camera={{ position: [0, 0.3, 2.8], fov: 38 }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: 'transparent', width: '100%', height: '100%' }}
+        style={{ background: 'transparent', width: '100%', height: '100%', overflow: 'visible' }}
       >
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 3, 5]} intensity={0.9} color="#d9fffa" />
