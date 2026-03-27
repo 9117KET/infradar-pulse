@@ -108,6 +108,87 @@ export default function DashboardOverview() {
         </div>
       </div>
 
+      {/* Research Activity Feed + Pending Review */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="glass-panel rounded-xl p-5 lg:col-span-2">
+          <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            Agent activity
+          </h3>
+          <div className="space-y-3">
+            {tasksLoading ? (
+              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+            ) : researchTasks.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No agent runs yet. Trigger one from Settings.</p>
+            ) : researchTasks.map(task => {
+              const isCompleted = task.status === 'completed';
+              const isFailed = task.status === 'failed';
+              const isRunning = task.status === 'running';
+              const result = task.result as Record<string, number> | null;
+              const taskIcon = task.task_type === 'discovery' ? Search : task.task_type === 'update_check' ? RefreshCw : ShieldAlert;
+              const TaskIcon = taskIcon;
+
+              return (
+                <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-border/30">
+                  <div className={`mt-0.5 rounded-full p-1.5 ${isCompleted ? 'bg-primary/20' : isFailed ? 'bg-destructive/20' : 'bg-amber-500/20'}`}>
+                    <TaskIcon className={`h-3.5 w-3.5 ${isCompleted ? 'text-primary' : isFailed ? 'text-destructive' : 'text-amber-500'}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium capitalize">
+                        {task.task_type === 'discovery' ? 'Research Agent' : task.task_type === 'update_check' ? 'Update Checker' : 'Risk Scorer'}
+                      </span>
+                      <Badge variant="outline" className={`text-[10px] ${isCompleted ? 'text-primary border-primary/30' : isFailed ? 'text-destructive border-destructive/30' : 'text-amber-500 border-amber-500/30'}`}>
+                        {isRunning ? 'Running…' : task.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {isCompleted && result ? (
+                        <>
+                          {result.extracted != null && <span>{result.extracted} extracted · </span>}
+                          {result.inserted != null && <span>{result.inserted} new · </span>}
+                          {result.updated != null && <span>{result.updated} updated</span>}
+                          {result.checked != null && <span>{result.checked} checked · {result.updated} updated</span>}
+                          {result.scored != null && <span>{result.scored} scored</span>}
+                        </>
+                      ) : isFailed ? (
+                        <span className="text-destructive/80">{task.error || 'Unknown error'}</span>
+                      ) : (
+                        <span>{task.query}</span>
+                      )}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                      {new Date(task.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pending review card */}
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5 text-primary" />
+            Pending review
+          </h3>
+          <div className="flex flex-col items-center justify-center py-6">
+            <div className="text-4xl font-serif font-bold text-primary">{pendingCount}</div>
+            <p className="text-sm text-muted-foreground mt-1">AI-discovered projects</p>
+            {pendingCount > 0 && (
+              <Link
+                to="/dashboard/review"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Review now
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Recent project updates */}
       <div className="glass-panel rounded-xl p-5">
         <h3 className="font-serif text-lg font-semibold mb-4">Recent project updates</h3>
