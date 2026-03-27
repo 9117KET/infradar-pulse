@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/contexts/AuthContext";
 import MarketingLayout from "@/layouts/MarketingLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import Index from "./pages/Index";
@@ -32,43 +33,39 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Marketing */}
-          <Route element={<MarketingLayout />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/insights" element={<Insights />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/waitlist" element={<Waitlist />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/data-protection" element={<DataProtection />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/press" element={<Press />} />
-          </Route>
-
-          {/* Auth */}
-          <Route path="/login" element={<Login />} />
-
-          {/* Dashboard */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<DashboardOverview />} />
-            <Route path="/dashboard/projects" element={<Projects />} />
-            <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
-            <Route path="/dashboard/analytics" element={<Analytics />} />
-            <Route path="/dashboard/alerts" element={<Alerts />} />
-            <Route path="/dashboard/users" element={<UsersPage />} />
-            <Route path="/dashboard/settings" element={<SettingsPage />} />
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<MarketingLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/waitlist" element={<Waitlist />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/data-protection" element={<DataProtection />} />
+              <Route path="/careers" element={<Careers />} />
+              <Route path="/press" element={<Press />} />
+            </Route>
+            <Route path="/login" element={<Login />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<DashboardOverview />} />
+              <Route path="/dashboard/projects" element={<Projects />} />
+              <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
+              <Route path="/dashboard/analytics" element={<Analytics />} />
+              <Route path="/dashboard/alerts" element={<Alerts />} />
+              <Route path="/dashboard/users" element={<UsersPage />} />
+              <Route path="/dashboard/settings" element={<SettingsPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

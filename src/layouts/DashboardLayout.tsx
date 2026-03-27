@@ -1,4 +1,4 @@
-import { Navigate, Outlet, Link, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
 import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NAV = [
   { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
@@ -20,7 +21,7 @@ const NAV = [
 function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
+  const { signOut } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -47,7 +48,7 @@ function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <div className="mt-auto p-4">
-          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={() => { localStorage.removeItem('infradar_auth'); window.location.href = '/'; }}>
+          <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />{!collapsed && 'Sign out'}
           </Button>
         </div>
@@ -57,8 +58,13 @@ function AppSidebar() {
 }
 
 export default function DashboardLayout() {
-  const isAuth = localStorage.getItem('infradar_auth') === 'true';
-  if (!isAuth) return <Navigate to="/login" replace />;
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
 
   return (
     <SidebarProvider>
