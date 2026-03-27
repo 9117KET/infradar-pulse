@@ -1,4 +1,5 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useState, useRef, useEffect } from 'react';
+import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 import {
@@ -6,8 +7,10 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAlerts } from '@/hooks/use-alerts';
+import { Badge } from '@/components/ui/badge';
 
 const NAV = [
   { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
