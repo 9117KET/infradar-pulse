@@ -288,6 +288,42 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          challenge: string | null
+          company: string | null
+          company_size: string | null
+          created_at: string
+          email: string
+          id: string
+          interest: string | null
+          name: string | null
+          role: string | null
+        }
+        Insert: {
+          challenge?: string | null
+          company?: string | null
+          company_size?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          interest?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Update: {
+          challenge?: string | null
+          company?: string | null
+          company_size?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          interest?: string | null
+          name?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
