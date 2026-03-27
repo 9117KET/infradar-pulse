@@ -93,9 +93,14 @@ function NotificationBell() {
         <div className="absolute right-0 top-10 z-50 w-80 rounded-xl border border-border bg-card shadow-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="text-sm font-semibold">Notifications</span>
-            {unreadCount > 0 && (
-              <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{unreadCount} new</Badge>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <>
+                  <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline">Mark all read</button>
+                  <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{unreadCount} new</Badge>
+                </>
+              )}
+            </div>
           </div>
           <div className="max-h-72 overflow-y-auto">
             {alerts.length === 0 ? (
