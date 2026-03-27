@@ -78,6 +78,9 @@ export default function DashboardLayout() {
           <header className="h-12 flex items-center border-b border-border px-4">
             <SidebarTrigger className="mr-4" />
             <span className="text-sm text-muted-foreground">InfraRadar AI — Intelligence Platform</span>
+            <div className="ml-auto">
+              <NotificationBell />
+            </div>
           </header>
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
