@@ -92,7 +92,7 @@ export function useProjects() {
       const evidenceMap: Record<string, Evidence[]> = {};
       (eData || []).forEach((e: any) => {
         if (!evidenceMap[e.project_id]) evidenceMap[e.project_id] = [];
-        evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date });
+        evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date, title: e.title || '', description: e.description || '', added_by: e.added_by || 'ai' });
       });
 
       const result = pData.map((p: any) =>
