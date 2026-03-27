@@ -255,7 +255,7 @@ function GlobeScene() {
     <group ref={groupRef}>
       <mesh>
         <sphereGeometry args={[1, 96, 96]} />
-        <meshPhongMaterial color="#060d16" emissive="#050a12" emissiveIntensity={0.3} shininess={12} />
+        <meshPhongMaterial color="#0b1e2e" emissive="#0a1a28" emissiveIntensity={0.5} shininess={20} />
       </mesh>
       <Graticule />
       <Countries />
