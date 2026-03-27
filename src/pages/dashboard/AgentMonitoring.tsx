@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const AGENTS = [
   { type: 'discovery', name: 'Research Agent', icon: Search, schedule: 'Every 30 min', fn: agentApi.runResearchAgent },
