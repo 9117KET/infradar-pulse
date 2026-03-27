@@ -216,13 +216,14 @@ function ProjectSearch() {
 }
 
 export default function DashboardLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, profile, profileLoading } = useAuth();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (profile && !profile.onboarded) return <Navigate to="/onboarding" replace />;
 
   return (
     <SidebarProvider>
