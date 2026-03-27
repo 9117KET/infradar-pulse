@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { formatValue } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +20,9 @@ const CONFIDENCE_TREND = [
 ];
 
 export default function DashboardOverview() {
-  const { projects, loading: projectsLoading } = useProjects();
+  const { profile } = useAuth();
+  const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
+  const { projects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading } = useAlerts();
 
   const { data: researchTasks = [], isLoading: tasksLoading } = useQuery({

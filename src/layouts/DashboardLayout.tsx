@@ -13,7 +13,10 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
-const NAV = [
+// admin-only nav items
+const ADMIN_ONLY = new Set(['/dashboard/waitlist', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
+
+const ALL_NAV = [
   { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
   { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
@@ -32,10 +35,14 @@ const NAV = [
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
 
+const ADMIN_ROLES = new Set(['investor', 'strategy', '']);
+
 function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
+  const isAdmin = !profile?.role || ADMIN_ROLES.has(profile.role);
+  const NAV = ALL_NAV.filter(item => isAdmin || !ADMIN_ONLY.has(item.url));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -209,13 +216,14 @@ function ProjectSearch() {
 }
 
 export default function DashboardLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, profile, profileLoading } = useAuth();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (profile && !profile.onboarded) return <Navigate to="/onboarding" replace />;
 
   return (
     <SidebarProvider>

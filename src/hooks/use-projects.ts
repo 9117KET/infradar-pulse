@@ -61,7 +61,7 @@ function dbToProject(
   };
 }
 
-export function useProjects() {
+export function useProjects(filters?: { regions?: string[]; sectors?: string[]; stages?: string[] }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -95,9 +95,20 @@ export function useProjects() {
         evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date, title: e.title || '', description: e.description || '', added_by: e.added_by || 'ai' });
       });
 
-      const result = pData.map((p: any) =>
+      let result = pData.map((p: any) =>
         dbToProject(p, stakeholderMap[p.id] || [], milestoneMap[p.id] || [], evidenceMap[p.id] || [])
       );
+
+      // Apply client-side filters from user preferences
+      if (filters?.regions && filters.regions.length > 0) {
+        result = result.filter(p => filters.regions!.includes(p.region));
+      }
+      if (filters?.sectors && filters.sectors.length > 0) {
+        result = result.filter(p => filters.sectors!.includes(p.sector));
+      }
+      if (filters?.stages && filters.stages.length > 0) {
+        result = result.filter(p => filters.stages!.includes(p.stage));
+      }
 
       setProjects(result);
       setLoading(false);
