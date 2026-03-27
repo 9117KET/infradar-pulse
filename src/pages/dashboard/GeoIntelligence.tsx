@@ -1,8 +1,6 @@
-import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaflet';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import L from 'leaflet';
 import { useProjects } from '@/hooks/use-projects';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Layers, Filter } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
@@ -21,21 +19,14 @@ function getRiskLevel(score: number) {
   return 'low';
 }
 
-function MapBoundsUpdater({ bounds }: { bounds: [number, number][] }) {
-  const map = useMap();
-  useMemo(() => {
-    if (bounds.length > 0) {
-      map.fitBounds(bounds as any, { padding: [50, 50], maxZoom: 6 });
-    }
-  }, [bounds, map]);
-  return null;
-}
-
 export default function GeoIntelligence() {
   const { projects, loading } = useProjects();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [overlay, setOverlay] = useState<'risk' | 'confidence' | 'value'>('risk');
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.CircleMarker[]>([]);
 
   const filtered = useMemo(() => {
     return projects.filter(p => {
@@ -44,11 +35,6 @@ export default function GeoIntelligence() {
       return true;
     });
   }, [projects, regionFilter, sectorFilter]);
-
-  const bounds = useMemo(() => {
-    if (filtered.length === 0) return [[20, 30]] as [number, number][];
-    return filtered.map(p => [p.lat, p.lng] as [number, number]);
-  }, [filtered]);
 
   const regions = [...new Set(projects.map(p => p.region))];
   const sectors = [...new Set(projects.map(p => p.sector))];
@@ -60,7 +46,6 @@ export default function GeoIntelligence() {
       if (p.confidence >= 60) return '#f59e0b';
       return '#ef4444';
     }
-    // value
     if (p.valueUsd >= 5_000_000_000) return '#22c55e';
     if (p.valueUsd >= 1_000_000_000) return '#3b82f6';
     return '#8b5cf6';
@@ -75,6 +60,75 @@ export default function GeoIntelligence() {
     }
     return 8;
   };
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return;
+    const map = L.map(mapContainerRef.current, {
+      center: [15, 35],
+      zoom: 4,
+      zoomControl: true,
+      attributionControl: false,
+    });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update markers when data/overlay/filters change
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    // Add new markers
+    filtered.forEach(p => {
+      const color = getColor(p);
+      const radius = getRadius(p);
+      const marker = L.circleMarker([p.lat, p.lng], {
+        radius,
+        fillColor: color,
+        fillOpacity: 0.7,
+        color,
+        weight: 1.5,
+        opacity: 0.9,
+      });
+
+      const popupHtml = `
+        <div style="font-size:12px;min-width:180px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:4px">${p.name}</div>
+          <div style="color:#888">${p.country} · ${p.region}</div>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <span style="border:1px solid #555;border-radius:4px;padding:1px 6px;font-size:10px">${p.sector}</span>
+            <span style="border:1px solid #555;border-radius:4px;padding:1px 6px;font-size:10px">${p.stage}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:8px;text-align:center">
+            <div><div style="font-weight:700">${p.riskScore}</div><div style="font-size:9px;color:#888">Risk</div></div>
+            <div><div style="font-weight:700">${p.confidence}%</div><div style="font-size:9px;color:#888">Confidence</div></div>
+            <div><div style="font-weight:700;font-size:11px">${p.valueLabel}</div><div style="font-size:9px;color:#888">Value</div></div>
+          </div>
+          <a href="/dashboard/projects/${p.id}" style="display:block;text-align:center;color:#6bd8cb;font-size:10px;margin-top:8px;text-decoration:none">View details →</a>
+        </div>
+      `;
+
+      marker.bindPopup(popupHtml);
+      marker.addTo(map);
+      markersRef.current.push(marker);
+    });
+
+    // Fit bounds
+    if (filtered.length > 0) {
+      const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng] as [number, number]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
+    }
+  }, [filtered, overlay]);
 
   // Stats
   const avgRisk = filtered.length ? Math.round(filtered.reduce((s, p) => s + p.riskScore, 0) / filtered.length) : 0;
@@ -138,47 +192,7 @@ export default function GeoIntelligence() {
         {loading ? (
           <div className="flex items-center justify-center h-full text-muted-foreground animate-pulse">Loading map…</div>
         ) : (
-          <MapContainer center={[15, 35]} zoom={4} style={{ height: '100%', width: '100%', background: '#0a0f14' }}
-            zoomControl={true} attributionControl={false}>
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution=""
-            />
-            <MapBoundsUpdater bounds={bounds} />
-            {filtered.map(p => (
-              <CircleMarker
-                key={p.id}
-                center={[p.lat, p.lng]}
-                radius={getRadius(p)}
-                pathOptions={{
-                  fillColor: getColor(p),
-                  fillOpacity: 0.7,
-                  color: getColor(p),
-                  weight: 1.5,
-                  opacity: 0.9,
-                }}
-              >
-                <Popup>
-                  <div style={{ fontSize: '12px', minWidth: '180px' }}>
-                    <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>{p.name}</div>
-                    <div style={{ color: '#888' }}>{p.country} · {p.region}</div>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-                      <span style={{ border: '1px solid #555', borderRadius: '4px', padding: '1px 6px', fontSize: '10px' }}>{p.sector}</span>
-                      <span style={{ border: '1px solid #555', borderRadius: '4px', padding: '1px 6px', fontSize: '10px' }}>{p.stage}</span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', marginTop: '8px', textAlign: 'center' }}>
-                      <div><div style={{ fontWeight: 700 }}>{p.riskScore}</div><div style={{ fontSize: '9px', color: '#888' }}>Risk</div></div>
-                      <div><div style={{ fontWeight: 700 }}>{p.confidence}%</div><div style={{ fontSize: '9px', color: '#888' }}>Confidence</div></div>
-                      <div><div style={{ fontWeight: 700, fontSize: '11px' }}>{p.valueLabel}</div><div style={{ fontSize: '9px', color: '#888' }}>Value</div></div>
-                    </div>
-                    <a href={`/dashboard/projects/${p.id}`} style={{ display: 'block', textAlign: 'center', color: '#6bd8cb', fontSize: '10px', marginTop: '8px', textDecoration: 'none' }}>
-                      View details →
-                    </a>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            ))}
-          </MapContainer>
+          <div ref={mapContainerRef} style={{ height: '100%', width: '100%', background: '#0a0f14' }} />
         )}
       </div>
 
