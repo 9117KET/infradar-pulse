@@ -28,6 +28,7 @@ const NAV = [
   { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
   { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
   { title: 'Users', url: '/dashboard/users', icon: Users },
+  { title: 'Agents', url: '/dashboard/agents', icon: Bot },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
 
