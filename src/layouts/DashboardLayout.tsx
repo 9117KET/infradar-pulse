@@ -19,6 +19,7 @@ const NAV = [
   { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
   { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
   { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
+  { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
   { title: 'Users', url: '/dashboard/users', icon: Users },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
