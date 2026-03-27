@@ -1,22 +1,25 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { PROJECTS, REGIONS, SECTORS, STAGES, type Region, type Sector, type ProjectStage } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES, type Region, type Sector, type ProjectStage } from '@/data/projects';
+import { useProjects } from '@/hooks/use-projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Projects() {
   const { toast } = useToast();
+  const { projects, loading } = useProjects();
   const [search, setSearch] = useState('');
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
 
   const filtered = useMemo(() => {
-    return PROJECTS.filter(p => {
+    return projects.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
       if (stage !== 'all' && p.stage !== stage) return false;
       if (sector !== 'all' && p.sector !== sector) return false;
@@ -25,7 +28,7 @@ export default function Projects() {
       if (confFilter === 'low' && p.confidence >= 70) return false;
       return true;
     });
-  }, [search, stage, sector, confFilter]);
+  }, [projects, search, stage, sector, confFilter]);
 
   const exportCSV = () => {
     const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
@@ -97,7 +100,11 @@ export default function Projects() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i}><td colSpan={7} className="p-3"><Skeleton className="h-6 w-full" /></td></tr>
+                ))
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">

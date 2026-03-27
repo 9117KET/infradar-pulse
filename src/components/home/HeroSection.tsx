@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { InteractiveGlobe } from '@/components/InteractiveGlobe';
+import { useProjects } from '@/hooks/use-projects';
 
 export function HeroSection() {
+  const { projects } = useProjects();
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
@@ -45,7 +47,7 @@ export function HeroSection() {
 
         {/* Right — Globe */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center overflow-visible min-h-[500px] lg:min-h-[600px] -mr-16 -my-8 lg:-mr-24">
-          <InteractiveGlobe className="w-[120%] h-[120%] overflow-visible" />
+          <InteractiveGlobe className="w-[120%] h-[120%] overflow-visible" projects={projects} />
         </motion.div>
       </div>
     </section>

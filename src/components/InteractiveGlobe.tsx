@@ -4,7 +4,7 @@ import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { feature } from 'topojson-client';
 import earcut from 'earcut';
-import { PROJECTS, statusColor } from '@/data/projects';
+import { statusColor, type Project } from '@/data/projects';
 
 import countriesData from 'world-atlas/countries-110m.json';
 
@@ -191,12 +191,12 @@ function Graticule() {
 
 /* ── Project markers with hover tooltip ─────────────────── */
 
-function ProjectMarkers() {
+function ProjectMarkers({ projects }: { projects: Project[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
 
   const markers = useMemo(
     () =>
-      PROJECTS.map((p) => ({
+      projects.map((p) => ({
         id: p.id,
         position: latLngToArray(p.lat, p.lng, 1.025),
         color: statusColor[p.status],
@@ -205,7 +205,7 @@ function ProjectMarkers() {
         valueLabel: p.valueLabel,
         confidence: p.confidence,
       })),
-    [],
+    [projects],
   );
 
   return (
@@ -244,7 +244,7 @@ function ProjectMarkers() {
 
 /* ── Main scene ─────────────────────────────────────────── */
 
-function GlobeScene() {
+function GlobeScene({ projects }: { projects: Project[] }) {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((_state, delta) => {
@@ -259,7 +259,7 @@ function GlobeScene() {
       </mesh>
       <Graticule />
       <Countries />
-      <ProjectMarkers />
+      <ProjectMarkers projects={projects} />
       <mesh>
         <sphereGeometry args={[1.04, 64, 64]} />
         <meshBasicMaterial color="#6bd8cb" transparent opacity={0.05} side={THREE.BackSide} />
@@ -274,7 +274,7 @@ function GlobeScene() {
 
 /* ── Exported component ─────────────────────────────────── */
 
-export function InteractiveGlobe({ className }: { className?: string }) {
+export function InteractiveGlobe({ className, projects = [] }: { className?: string; projects?: Project[] }) {
   return (
     <div className={className} style={{ width: '100%', height: '100%', minHeight: 520, overflow: 'visible' }}>
       <Canvas
@@ -287,7 +287,7 @@ export function InteractiveGlobe({ className }: { className?: string }) {
         <directionalLight position={[-4, -2, -4]} intensity={0.3} color="#63c9c1" />
         <pointLight position={[0, 2.5, 1.5]} intensity={0.25} color="#6bd8cb" />
         <Suspense fallback={null}>
-          <GlobeScene />
+          <GlobeScene projects={projects} />
         </Suspense>
         <OrbitControls
           enableZoom={false}

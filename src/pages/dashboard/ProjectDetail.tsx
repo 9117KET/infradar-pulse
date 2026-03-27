@@ -1,12 +1,26 @@
 import { useParams, Link } from 'react-router-dom';
-import { PROJECTS } from '@/data/projects';
+import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
-  const project = PROJECTS.find(p => p.id === id);
+  const { projects, loading } = useProjects();
+  const project = projects.find(p => p.id === id);
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <div className="grid gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+      </div>
+    );
+  }
 
   if (!project) {
     return (
