@@ -14,6 +14,7 @@ const NAV = [
   { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
   { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
   { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
+  { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
   { title: 'Users', url: '/dashboard/users', icon: Users },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
