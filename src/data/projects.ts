@@ -10,6 +10,9 @@ export interface Evidence {
   type: 'Satellite' | 'Filing' | 'News' | 'Registry' | 'Partner';
   verified: boolean;
   date: string;
+  title?: string;
+  description?: string;
+  added_by?: string;
 }
 
 export interface Milestone {
