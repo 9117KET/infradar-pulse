@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { InteractiveGlobe } from '@/components/InteractiveGlobe';
 
 const FEED_ITEMS = [
   { country: 'Saudi Arabia', status: 'Verified', name: 'NEOM Infrastructure', value: '$500B program', note: 'Verified this week', color: 'bg-emerald-500' },
@@ -49,37 +50,43 @@ export function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Right — Verified Feed card */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center">
-          <div className="w-full max-w-md glass-panel rounded-xl p-5 teal-glow">
-            <div className="mb-4 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-widest text-primary">Verified feed</span>
+        {/* Right — Globe + Verified Feed overlay */}
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="relative flex items-center justify-center min-h-[500px]">
+          {/* Globe */}
+          <div className="absolute inset-0">
+            <InteractiveGlobe className="w-full h-full" />
+          </div>
+
+          {/* Verified Feed card overlay */}
+          <div className="relative z-10 w-full max-w-xs glass-panel-strong rounded-xl p-4 teal-glow self-end mb-4 mr-auto ml-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">Verified feed</span>
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
               </span>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {FEED_ITEMS.map((item, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-lg bg-white/[0.03] p-3 border border-white/5">
+                <div key={i} className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2 border border-white/5">
                   <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${item.color}`} />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-muted-foreground">{item.country}</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary">{item.status}</Badge>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[10px] text-muted-foreground">{item.country}</span>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 border-primary/30 text-primary h-4">{item.status}</Badge>
                     </div>
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className="text-xs text-muted-foreground">{item.value}</span>
-                      <span className="text-xs text-muted-foreground">{item.note}</span>
+                    <p className="text-xs font-medium truncate">{item.name}</p>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-[10px] text-muted-foreground">{item.value}</span>
+                      <span className="text-[10px] text-muted-foreground">{item.note}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex items-center justify-between">
-              <a href="#contact" className="text-xs font-medium text-primary hover:underline">Request full access</a>
-              <span className="text-[10px] text-muted-foreground italic">Demo data · illustrative only</span>
+            <div className="mt-3 flex items-center justify-between">
+              <a href="#contact" className="text-[10px] font-medium text-primary hover:underline">Request full access</a>
+              <span className="text-[9px] text-muted-foreground italic">Demo data · illustrative only</span>
             </div>
           </div>
         </motion.div>
