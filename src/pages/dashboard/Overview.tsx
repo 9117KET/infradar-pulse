@@ -22,6 +22,31 @@ export default function DashboardOverview() {
   const { projects, loading: projectsLoading } = useProjects();
   const { alerts, loading: alertsLoading } = useAlerts();
 
+  const { data: researchTasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['research-tasks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('research_tasks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['pending-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('projects')
+        .select('*', { count: 'exact', head: true })
+        .eq('approved', false);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   const KPIs = useMemo(() => [
     { label: 'Projects tracked', value: projects.length.toString(), delta: '+6% MoM', icon: Activity, trend: 'up' as const },
     { label: 'Analyst verified', value: projects.filter(p => p.status === 'Verified').length.toString(), delta: '+2 this week', icon: ShieldCheck, trend: 'up' as const },
