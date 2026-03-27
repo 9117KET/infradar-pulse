@@ -61,7 +61,7 @@ function dbToProject(
   };
 }
 
-export function useProjects() {
+export function useProjects(filters?: { regions?: string[]; sectors?: string[]; stages?: string[] }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
