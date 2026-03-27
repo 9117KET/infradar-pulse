@@ -4,8 +4,7 @@ import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from 'react-router-dom';
-import { Layers, Filter, MapPin } from 'lucide-react';
+import { Layers, Filter } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 const RISK_COLORS: Record<string, string> = {
@@ -159,22 +158,22 @@ export default function GeoIntelligence() {
                   opacity: 0.9,
                 }}
               >
-                <Popup className="dark-popup">
-                  <div className="text-xs space-y-1 min-w-[180px]">
-                    <div className="font-semibold text-sm">{p.name}</div>
-                    <div className="text-muted-foreground">{p.country} · {p.region}</div>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline" className="text-[10px]">{p.sector}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
+                <Popup>
+                  <div style={{ fontSize: '12px', minWidth: '180px' }}>
+                    <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>{p.name}</div>
+                    <div style={{ color: '#888' }}>{p.country} · {p.region}</div>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                      <span style={{ border: '1px solid #555', borderRadius: '4px', padding: '1px 6px', fontSize: '10px' }}>{p.sector}</span>
+                      <span style={{ border: '1px solid #555', borderRadius: '4px', padding: '1px 6px', fontSize: '10px' }}>{p.stage}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 mt-2 text-center">
-                      <div><div className="font-bold">{p.riskScore}</div><div className="text-[9px] text-muted-foreground">Risk</div></div>
-                      <div><div className="font-bold">{p.confidence}%</div><div className="text-[9px] text-muted-foreground">Confidence</div></div>
-                      <div><div className="font-bold text-[11px]">{p.valueLabel}</div><div className="text-[9px] text-muted-foreground">Value</div></div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px', marginTop: '8px', textAlign: 'center' }}>
+                      <div><div style={{ fontWeight: 700 }}>{p.riskScore}</div><div style={{ fontSize: '9px', color: '#888' }}>Risk</div></div>
+                      <div><div style={{ fontWeight: 700 }}>{p.confidence}%</div><div style={{ fontSize: '9px', color: '#888' }}>Confidence</div></div>
+                      <div><div style={{ fontWeight: 700, fontSize: '11px' }}>{p.valueLabel}</div><div style={{ fontSize: '9px', color: '#888' }}>Value</div></div>
                     </div>
-                    <Link to={`/dashboard/projects/${p.id}`} className="block text-center text-primary text-[10px] mt-2 hover:underline">
+                    <a href={`/dashboard/projects/${p.id}`} style={{ display: 'block', textAlign: 'center', color: '#6bd8cb', fontSize: '10px', marginTop: '8px', textDecoration: 'none' }}>
                       View details →
-                    </Link>
+                    </a>
                   </div>
                 </Popup>
               </CircleMarker>
