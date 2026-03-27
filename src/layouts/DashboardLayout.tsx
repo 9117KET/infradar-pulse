@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, Satellite, ShieldCheck, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
@@ -16,6 +16,12 @@ import { Badge } from '@/components/ui/badge';
 const NAV = [
   { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
+  { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
+  { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
+  { title: 'Satellite', url: '/dashboard/satellite', icon: Satellite },
+  { title: 'Validation', url: '/dashboard/validation', icon: ShieldCheck },
+  { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle },
+  { title: 'Reporting', url: '/dashboard/reporting', icon: FileText },
   { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
   { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
   { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },

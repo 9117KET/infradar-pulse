@@ -31,6 +31,12 @@ import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
+import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
+import Reporting from "./pages/dashboard/Reporting";
+import SatelliteVerification from "./pages/dashboard/SatelliteVerification";
+import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
+import MultiSourceValidation from "./pages/dashboard/MultiSourceValidation";
+import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +75,12 @@ const App = () => (
               <Route path="/dashboard/review" element={<ReviewQueue />} />
               <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
               <Route path="/dashboard/insights" element={<InsightsManagement />} />
+              <Route path="/dashboard/geo" element={<GeoIntelligence />} />
+              <Route path="/dashboard/reporting" element={<Reporting />} />
+              <Route path="/dashboard/satellite" element={<SatelliteVerification />} />
+              <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
+              <Route path="/dashboard/validation" element={<MultiSourceValidation />} />
+              <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
