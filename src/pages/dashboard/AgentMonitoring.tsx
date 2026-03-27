@@ -36,6 +36,7 @@ interface LogEntry {
   status: string;
   query: string;
   error: string | null;
+  result: any;
   created_at: string;
   completed_at: string | null;
 }
@@ -45,6 +46,7 @@ export default function AgentMonitoring() {
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: tasks, refetch } = useQuery({
@@ -297,20 +299,50 @@ export default function AgentMonitoring() {
             <p className="text-muted-foreground text-center py-8">Waiting for agent activity…</p>
           ) : (
             liveLogs.map((log) => (
-              <div key={log.id} className="flex items-start gap-2 py-0.5 hover:bg-muted/30 rounded px-1">
-                {getStatusIcon(log.status)}
-                <span className="text-muted-foreground shrink-0">
-                  {new Date(log.created_at).toLocaleTimeString()}
-                </span>
-                <span className="text-primary font-medium shrink-0">
-                  [{agentNameMap[log.task_type] || log.task_type}]
-                </span>
-                <span className={getStatusColor(log.status)}>
-                  {log.status.toUpperCase()}
-                </span>
-                <span className="text-foreground truncate">
-                  {log.error ? `Error: ${log.error}` : log.query}
-                </span>
+              <div key={log.id}>
+                <div
+                  className="flex items-start gap-2 py-0.5 hover:bg-muted/30 rounded px-1 cursor-pointer"
+                  onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                >
+                  {getStatusIcon(log.status)}
+                  <span className="text-muted-foreground shrink-0">
+                    {new Date(log.created_at).toLocaleTimeString()}
+                  </span>
+                  <span className="text-primary font-medium shrink-0">
+                    [{agentNameMap[log.task_type] || log.task_type}]
+                  </span>
+                  <span className={getStatusColor(log.status)}>
+                    {log.status.toUpperCase()}
+                  </span>
+                  <span className="text-foreground truncate flex-1">
+                    {log.error ? `Error: ${log.error}` : log.query}
+                  </span>
+                  <span className="text-muted-foreground shrink-0">
+                    {expandedLog === log.id ? '▼' : '▶'}
+                  </span>
+                </div>
+                {expandedLog === log.id && (
+                  <div className="ml-5 my-1 p-3 rounded-lg bg-muted/20 border border-border space-y-2">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[10px]">
+                      <div><span className="text-muted-foreground">Task Type:</span> <span className="text-foreground">{log.task_type}</span></div>
+                      <div><span className="text-muted-foreground">Status:</span> <span className={getStatusColor(log.status)}>{log.status}</span></div>
+                      <div><span className="text-muted-foreground">Created:</span> <span className="text-foreground">{new Date(log.created_at).toLocaleString()}</span></div>
+                      <div><span className="text-muted-foreground">Completed:</span> <span className="text-foreground">{log.completed_at ? new Date(log.completed_at).toLocaleString() : '—'}</span></div>
+                      <div className="col-span-2"><span className="text-muted-foreground">Query:</span> <span className="text-foreground">{log.query}</span></div>
+                      {log.error && (
+                        <div className="col-span-2"><span className="text-muted-foreground">Error:</span> <span className="text-destructive">{log.error}</span></div>
+                      )}
+                    </div>
+                    {log.result && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground mb-1">Result JSON:</p>
+                        <pre className="text-[10px] text-foreground bg-background/60 rounded p-2 overflow-x-auto max-h-48 overflow-y-auto border border-border">
+                          {JSON.stringify(log.result, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}
