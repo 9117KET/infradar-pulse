@@ -2,10 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const AGENTS = [
   { type: 'discovery', name: 'Research Agent', icon: Search, schedule: 'Every 30 min', fn: agentApi.runResearchAgent },
@@ -29,9 +30,22 @@ function timeAgo(date: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+interface LogEntry {
+  id: string;
+  task_type: string;
+  status: string;
+  query: string;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
 export default function AgentMonitoring() {
   const { toast } = useToast();
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
+  const [isStreaming, setIsStreaming] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
@@ -45,6 +59,50 @@ export default function AgentMonitoring() {
     },
     refetchInterval: 30000,
   });
+
+  // Seed live logs from initial query
+  useEffect(() => {
+    if (tasks && liveLogs.length === 0) {
+      setLiveLogs(tasks.slice(0, 50).reverse() as LogEntry[]);
+    }
+  }, [tasks]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const channel = supabase
+      .channel('agent-logs-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'research_tasks' },
+        (payload) => {
+          const record = (payload.new as LogEntry);
+          if (!record?.id) return;
+
+          setLiveLogs(prev => {
+            const exists = prev.findIndex(l => l.id === record.id);
+            if (exists >= 0) {
+              const updated = [...prev];
+              updated[exists] = record;
+              return updated;
+            }
+            return [...prev.slice(-99), record];
+          });
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isStreaming, refetch]);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [liveLogs]);
 
   const getAgentStats = (taskType: string) => {
     const agentTasks = tasks?.filter(t => t.task_type === taskType) || [];
@@ -75,6 +133,27 @@ export default function AgentMonitoring() {
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
   const totalRunning = tasks?.filter(t => t.status === 'running').length || 0;
+
+  const agentNameMap: Record<string, string> = {};
+  AGENTS.forEach(a => { agentNameMap[a.type] = a.name; });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-emerald-400';
+      case 'failed': return 'text-destructive';
+      case 'running': return 'text-amber-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="h-3 w-3 text-emerald-400" />;
+      case 'failed': return <XCircle className="h-3 w-3 text-destructive" />;
+      case 'running': return <Loader2 className="h-3 w-3 text-amber-400 animate-spin" />;
+      default: return <Clock className="h-3 w-3 text-muted-foreground" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -181,6 +260,61 @@ export default function AgentMonitoring() {
             </div>
           );
         })}
+      </div>
+
+      {/* Live Log Stream */}
+      <div className="glass-panel rounded-xl p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Radio className={`h-4 w-4 ${isStreaming ? 'text-emerald-400 animate-pulse' : 'text-muted-foreground'}`} />
+            Live Agent Log Stream
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => setIsStreaming(!isStreaming)}
+            >
+              {isStreaming ? 'Pause' : 'Resume'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => setLiveLogs([])}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+
+        <div
+          ref={scrollRef}
+          className="h-64 overflow-y-auto rounded-lg bg-background/80 border border-border font-mono text-[11px] p-3 space-y-0.5"
+        >
+          {liveLogs.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">Waiting for agent activity…</p>
+          ) : (
+            liveLogs.map((log) => (
+              <div key={log.id} className="flex items-start gap-2 py-0.5 hover:bg-muted/30 rounded px-1">
+                {getStatusIcon(log.status)}
+                <span className="text-muted-foreground shrink-0">
+                  {new Date(log.created_at).toLocaleTimeString()}
+                </span>
+                <span className="text-primary font-medium shrink-0">
+                  [{agentNameMap[log.task_type] || log.task_type}]
+                </span>
+                <span className={getStatusColor(log.status)}>
+                  {log.status.toUpperCase()}
+                </span>
+                <span className="text-foreground truncate">
+                  {log.error ? `Error: ${log.error}` : log.query}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
