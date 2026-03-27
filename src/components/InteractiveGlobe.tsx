@@ -242,38 +242,6 @@ function ProjectMarkers() {
             <sphereGeometry args={[0.015, 12, 12]} />
             <meshBasicMaterial color={m.color} />
           </mesh>
-          {/* Pin line */}
-          <Line
-            points={[m.position, m.pinTop]}
-            color={m.color}
-            lineWidth={1}
-            transparent
-            opacity={0.5}
-          />
-          {/* Label */}
-          <Html position={m.pinTop} center distanceFactor={4} occlude={false} style={{ pointerEvents: 'none' }}>
-            <div
-              className="whitespace-nowrap select-none"
-              style={{
-                background: hovered === m.id ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.7)',
-                color: '#e0f0ee',
-                padding: hovered === m.id ? '6px 10px' : '3px 7px',
-                borderRadius: '6px',
-                fontSize: hovered === m.id ? '11px' : '9px',
-                border: `1px solid ${m.color}40`,
-                boxShadow: `0 0 12px ${m.color}20`,
-                transition: 'all 0.2s ease',
-                fontFamily: 'Inter, system-ui, sans-serif',
-              }}
-            >
-              <div style={{ fontWeight: 600, marginBottom: hovered === m.id ? 2 : 0 }}>{m.name}</div>
-              {hovered === m.id && (
-                <div style={{ fontSize: '9px', color: '#9ca3af' }}>
-                  {m.country} · {m.valueLabel} · {m.confidence}% conf
-                </div>
-              )}
-            </div>
-          </Html>
         </group>
       ))}
     </group>
