@@ -62,7 +62,7 @@ function AppSidebar() {
 }
 
 function NotificationBell() {
-  const { alerts } = useAlerts();
+  const { alerts, markAsRead, markAllAsRead } = useAlerts();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const unreadCount = alerts.filter(a => !a.read).length;
