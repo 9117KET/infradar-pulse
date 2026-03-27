@@ -36,6 +36,7 @@ interface LogEntry {
   status: string;
   query: string;
   error: string | null;
+  result: any;
   created_at: string;
   completed_at: string | null;
 }
