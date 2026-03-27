@@ -191,12 +191,12 @@ function Graticule() {
 
 /* ── Project markers with hover tooltip ─────────────────── */
 
-function ProjectMarkers() {
+function ProjectMarkers({ projects }: { projects: Project[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
 
   const markers = useMemo(
     () =>
-      PROJECTS.map((p) => ({
+      projects.map((p) => ({
         id: p.id,
         position: latLngToArray(p.lat, p.lng, 1.025),
         color: statusColor[p.status],
@@ -205,7 +205,7 @@ function ProjectMarkers() {
         valueLabel: p.valueLabel,
         confidence: p.confidence,
       })),
-    [],
+    [projects],
   );
 
   return (
