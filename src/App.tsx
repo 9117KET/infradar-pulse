@@ -23,6 +23,7 @@ import Login from "./pages/Login";
 import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
+import ProjectEditor from "./pages/dashboard/ProjectEditor";
 import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
