@@ -31,6 +31,12 @@ import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
+import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
+import Reporting from "./pages/dashboard/Reporting";
+import SatelliteVerification from "./pages/dashboard/SatelliteVerification";
+import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
+import MultiSourceValidation from "./pages/dashboard/MultiSourceValidation";
+import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 
 const queryClient = new QueryClient();
 
