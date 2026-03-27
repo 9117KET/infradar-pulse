@@ -4,7 +4,7 @@ import { OrbitControls, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { feature } from 'topojson-client';
 import earcut from 'earcut';
-import { PROJECTS, statusColor } from '@/data/projects';
+import { statusColor, type Project } from '@/data/projects';
 
 import countriesData from 'world-atlas/countries-110m.json';
 
