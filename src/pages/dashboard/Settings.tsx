@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { REGIONS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Settings {
   emailAlerts: boolean;
@@ -15,6 +20,22 @@ interface Settings {
 }
 
 const defaults: Settings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false, regions: ['MENA', 'East Africa', 'West Africa'] };
+
+const ROLE_OPTIONS = [
+  { value: 'investor', label: 'Investor / CFO' },
+  { value: 'strategy', label: 'Strategy Leader' },
+  { value: 'project_manager', label: 'Project Manager' },
+  { value: 'business_dev', label: 'Business Development' },
+  { value: 'dfi_analyst', label: 'DFI Analyst' },
+  { value: 'contractor', label: 'EPC Contractor' },
+  { value: 'insurance_risk', label: 'Insurance / Risk' },
+  { value: 'government', label: 'Government / SWF' },
+  { value: 'legal_advisory', label: 'Legal / Advisory' },
+  { value: 'supply_chain', label: 'Supply Chain / Logistics' },
+];
+
+const ALL_SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
+const ALL_STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 
 const agents = [
   { name: 'Research Agent', fn: agentApi.runResearchAgent, icon: Search, desc: 'Discover new projects' },
