@@ -94,7 +94,7 @@ export default function GeoIntelligence() {
   // Update markers when data/overlay/filters change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapReady) return;
 
     // Remove old markers
     markersRef.current.forEach(m => m.remove());
