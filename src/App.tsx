@@ -82,6 +82,7 @@ const App = () => (
               <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
               <Route path="/dashboard/validation" element={<MultiSourceValidation />} />
               <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
+              <Route path="/dashboard/agents" element={<AgentMonitoring />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
