@@ -14,7 +14,280 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          project_id: string | null
+          project_name: string
+          read: boolean
+          severity: Database["public"]["Enums"]["alert_severity"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          project_id?: string | null
+          project_name: string
+          read?: boolean
+          severity?: Database["public"]["Enums"]["alert_severity"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          project_id?: string | null
+          project_name?: string
+          read?: boolean
+          severity?: Database["public"]["Enums"]["alert_severity"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evidence_sources: {
+        Row: {
+          date: string
+          id: string
+          project_id: string
+          source: string
+          type: Database["public"]["Enums"]["evidence_type"]
+          url: string
+          verified: boolean
+        }
+        Insert: {
+          date: string
+          id?: string
+          project_id: string
+          source: string
+          type: Database["public"]["Enums"]["evidence_type"]
+          url?: string
+          verified?: boolean
+        }
+        Update: {
+          date?: string
+          id?: string
+          project_id?: string
+          source?: string
+          type?: Database["public"]["Enums"]["evidence_type"]
+          url?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evidence_sources_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_milestones: {
+        Row: {
+          completed: boolean
+          date: string
+          id: string
+          project_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          date: string
+          id?: string
+          project_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          date?: string
+          id?: string
+          project_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stakeholders: {
+        Row: {
+          id: string
+          name: string
+          project_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          project_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stakeholders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_updates: {
+        Row: {
+          created_at: string
+          field_changed: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+          project_id: string
+          source: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_changed: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          project_id: string
+          source?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_changed?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+          project_id?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          ai_generated: boolean
+          approved: boolean
+          confidence: number
+          country: string
+          created_at: string
+          description: string
+          id: string
+          last_updated: string
+          lat: number
+          lng: number
+          name: string
+          region: Database["public"]["Enums"]["project_region"]
+          risk_score: number
+          sector: Database["public"]["Enums"]["project_sector"]
+          slug: string
+          stage: Database["public"]["Enums"]["project_stage"]
+          status: Database["public"]["Enums"]["project_status"]
+          timeline: string | null
+          value_label: string
+          value_usd: number
+        }
+        Insert: {
+          ai_generated?: boolean
+          approved?: boolean
+          confidence?: number
+          country: string
+          created_at?: string
+          description?: string
+          id?: string
+          last_updated?: string
+          lat: number
+          lng: number
+          name: string
+          region: Database["public"]["Enums"]["project_region"]
+          risk_score?: number
+          sector: Database["public"]["Enums"]["project_sector"]
+          slug: string
+          stage?: Database["public"]["Enums"]["project_stage"]
+          status?: Database["public"]["Enums"]["project_status"]
+          timeline?: string | null
+          value_label?: string
+          value_usd?: number
+        }
+        Update: {
+          ai_generated?: boolean
+          approved?: boolean
+          confidence?: number
+          country?: string
+          created_at?: string
+          description?: string
+          id?: string
+          last_updated?: string
+          lat?: number
+          lng?: number
+          name?: string
+          region?: Database["public"]["Enums"]["project_region"]
+          risk_score?: number
+          sector?: Database["public"]["Enums"]["project_sector"]
+          slug?: string
+          stage?: Database["public"]["Enums"]["project_stage"]
+          status?: Database["public"]["Enums"]["project_status"]
+          timeline?: string | null
+          value_label?: string
+          value_usd?: number
+        }
+        Relationships: []
+      }
+      research_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          query: string
+          result: Json | null
+          status: Database["public"]["Enums"]["research_task_status"]
+          task_type: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          query: string
+          result?: Json | null
+          status?: Database["public"]["Enums"]["research_task_status"]
+          task_type: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          query?: string
+          result?: Json | null
+          status?: Database["public"]["Enums"]["research_task_status"]
+          task_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +296,27 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      alert_severity: "critical" | "high" | "medium" | "low"
+      evidence_type: "Satellite" | "Filing" | "News" | "Registry" | "Partner"
+      project_region: "MENA" | "East Africa" | "West Africa"
+      project_sector:
+        | "Urban Development"
+        | "Digital Infrastructure"
+        | "Renewable Energy"
+        | "Transport"
+        | "Water"
+        | "Energy"
+      project_stage:
+        | "Planned"
+        | "Tender"
+        | "Awarded"
+        | "Financing"
+        | "Construction"
+        | "Completed"
+        | "Cancelled"
+        | "Stopped"
+      project_status: "Verified" | "Stable" | "Pending" | "At Risk"
+      research_task_status: "pending" | "running" | "completed" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +443,30 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_severity: ["critical", "high", "medium", "low"],
+      evidence_type: ["Satellite", "Filing", "News", "Registry", "Partner"],
+      project_region: ["MENA", "East Africa", "West Africa"],
+      project_sector: [
+        "Urban Development",
+        "Digital Infrastructure",
+        "Renewable Energy",
+        "Transport",
+        "Water",
+        "Energy",
+      ],
+      project_stage: [
+        "Planned",
+        "Tender",
+        "Awarded",
+        "Financing",
+        "Construction",
+        "Completed",
+        "Cancelled",
+        "Stopped",
+      ],
+      project_status: ["Verified", "Stable", "Pending", "At Risk"],
+      research_task_status: ["pending", "running", "completed", "failed"],
+    },
   },
 } as const
