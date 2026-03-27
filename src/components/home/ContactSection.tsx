@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Shield, Clock, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const ROLES = ['Investor/Fund', 'Strategy & Research', 'Project Lead', 'Business Development', 'Analyst', 'Other'];
 const SIZES = ['1–10', '11–50', '51–200', '201–500', '501–1000', '1000+'];
@@ -15,20 +16,28 @@ export function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
-    const data = Object.fromEntries(fd.entries());
-    // Save to localStorage as MVP persistence
-    const existing = JSON.parse(localStorage.getItem('infradar_waitlist') || '[]');
-    existing.push({ ...data, ts: new Date().toISOString() });
-    localStorage.setItem('infradar_waitlist', JSON.stringify(existing));
-    setTimeout(() => {
-      setLoading(false);
+
+    const { error } = await supabase.from('waitlist' as any).insert({
+      email: fd.get('email') as string,
+      name: fd.get('name') as string || null,
+      company: fd.get('company') as string || null,
+      role: fd.get('role') as string || null,
+      company_size: fd.get('size') as string || null,
+      interest: fd.get('interest') as string || null,
+      challenge: fd.get('challenge') as string || null,
+    });
+
+    setLoading(false);
+    if (error) {
+      toast({ title: 'Something went wrong', description: error.message, variant: 'destructive' });
+    } else {
       setSubmitted(true);
       toast({ title: 'You\'re on the list!', description: 'We\'ll be in touch when early access opens.' });
-    }, 800);
+    }
   };
 
   if (submitted) {
