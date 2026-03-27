@@ -37,6 +37,7 @@ import SatelliteVerification from "./pages/dashboard/SatelliteVerification";
 import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
 import MultiSourceValidation from "./pages/dashboard/MultiSourceValidation";
 import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
+import AgentMonitoring from "./pages/dashboard/AgentMonitoring";
 
 const queryClient = new QueryClient();
 
