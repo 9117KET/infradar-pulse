@@ -75,6 +75,12 @@ const App = () => (
               <Route path="/dashboard/review" element={<ReviewQueue />} />
               <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
               <Route path="/dashboard/insights" element={<InsightsManagement />} />
+              <Route path="/dashboard/geo" element={<GeoIntelligence />} />
+              <Route path="/dashboard/reporting" element={<Reporting />} />
+              <Route path="/dashboard/satellite" element={<SatelliteVerification />} />
+              <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
+              <Route path="/dashboard/validation" element={<MultiSourceValidation />} />
+              <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
