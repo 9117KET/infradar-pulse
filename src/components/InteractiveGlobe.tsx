@@ -255,18 +255,18 @@ function GlobeScene() {
     <group ref={groupRef}>
       <mesh>
         <sphereGeometry args={[1, 96, 96]} />
-        <meshPhongMaterial color="#060d16" emissive="#050a12" emissiveIntensity={0.3} shininess={12} />
+        <meshPhongMaterial color="#0b1e2e" emissive="#0a1a28" emissiveIntensity={0.5} shininess={20} />
       </mesh>
       <Graticule />
       <Countries />
       <ProjectMarkers />
       <mesh>
         <sphereGeometry args={[1.04, 64, 64]} />
-        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.03} side={THREE.BackSide} />
+        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.05} side={THREE.BackSide} />
       </mesh>
       <mesh>
         <sphereGeometry args={[1.09, 64, 64]} />
-        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.015} side={THREE.BackSide} />
+        <meshBasicMaterial color="#6bd8cb" transparent opacity={0.03} side={THREE.BackSide} />
       </mesh>
     </group>
   );
