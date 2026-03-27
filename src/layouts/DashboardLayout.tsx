@@ -199,6 +199,7 @@ function ProjectSearch() {
   );
 }
 
+export default function DashboardLayout() {
   const { user, loading } = useAuth();
 
   if (loading) {
