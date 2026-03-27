@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { formatValue } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
 import { useAlerts } from '@/hooks/use-alerts';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, ShieldCheck, Activity, Clock, AlertTriangle, Bot, Search, RefreshCw, ShieldAlert, CheckCircle2, XCircle, ClipboardCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +46,21 @@ export default function DashboardOverview() {
       return count || 0;
     },
   });
+
+  // Realtime subscriptions for research_tasks and pending projects
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel('overview-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'research_tasks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['research-tasks'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['pending-count'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
 
   const KPIs = useMemo(() => [
     { label: 'Projects tracked', value: projects.length.toString(), delta: '+6% MoM', icon: Activity, trend: 'up' as const },
