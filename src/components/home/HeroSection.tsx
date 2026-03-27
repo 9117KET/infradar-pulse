@@ -44,8 +44,8 @@ export function HeroSection() {
         </motion.div>
 
         {/* Right — Globe */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="relative flex items-center justify-center min-h-[620px] overflow-visible lg:min-h-[700px]">
-          <InteractiveGlobe className="h-full w-full max-w-[760px]" />
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="relative flex items-center justify-center h-[80vh] lg:h-[90vh] lg:-mr-20 xl:-mr-28">
+          <InteractiveGlobe className="w-full h-full" />
         </motion.div>
       </div>
     </section>
