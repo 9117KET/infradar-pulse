@@ -6,7 +6,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
   { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
   { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
+  { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
   { title: 'Users', url: '/dashboard/users', icon: Users },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
