@@ -4,8 +4,7 @@ import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from 'react-router-dom';
-import { Layers, Filter, MapPin } from 'lucide-react';
+import { Layers, Filter } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 const RISK_COLORS: Record<string, string> = {
