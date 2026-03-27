@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PROJECTS, REGIONS, SECTORS, statusColor, type Region, type Sector, type Project } from '@/data/projects';
+import { REGIONS, SECTORS, statusColor, type Region, type Sector, type Project } from '@/data/projects';
+import { useProjects } from '@/hooks/use-projects';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, TrendingUp, Shield, Calendar, Users, X } from 'lucide-react';
 
@@ -19,6 +20,7 @@ function mapStageToFilter(stage: string): StatusFilter {
 }
 
 export function DemoSection() {
+  const { projects: PROJECTS } = useProjects();
   const [selectedRegions, setSelectedRegions] = useState<Region[]>(['MENA']);
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([]);
