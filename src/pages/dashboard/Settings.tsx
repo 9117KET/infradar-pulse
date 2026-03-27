@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { REGIONS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2 } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp } from 'lucide-react';
 
 interface Settings {
   emailAlerts: boolean;
@@ -15,6 +15,18 @@ interface Settings {
 }
 
 const defaults: Settings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false, regions: ['MENA', 'East Africa', 'West Africa'] };
+
+const agents = [
+  { name: 'Research Agent', fn: agentApi.runResearchAgent, icon: Search, desc: 'Discover new projects' },
+  { name: 'Update Checker', fn: agentApi.runUpdateChecker, icon: RefreshCw, desc: 'Check for changes' },
+  { name: 'Risk Scorer', fn: agentApi.runRiskScorer, icon: ShieldAlert, desc: 'Recalculate risk' },
+  { name: 'Stakeholder Intel', fn: agentApi.runStakeholderIntel, icon: Users, desc: 'Track stakeholders' },
+  { name: 'Funding Tracker', fn: agentApi.runFundingTracker, icon: DollarSign, desc: 'Monitor funding flows' },
+  { name: 'Regulatory Monitor', fn: agentApi.runRegulatoryMonitor, icon: Scale, desc: 'Compliance & permits' },
+  { name: 'Sentiment Analyzer', fn: agentApi.runSentimentAnalyzer, icon: MessageSquare, desc: 'Media sentiment' },
+  { name: 'Supply Chain', fn: agentApi.runSupplyChainMonitor, icon: Package, desc: 'Commodity & logistics' },
+  { name: 'Market Intel', fn: agentApi.runMarketIntel, icon: TrendingUp, desc: 'Competitive intelligence' },
+];
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -52,38 +64,24 @@ export default function SettingsPage() {
       {/* Intelligence Agents */}
       <div className="glass-panel rounded-xl p-6 space-y-4">
         <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Bot className="h-5 w-5 text-primary" />Intelligence agents</h3>
-        <p className="text-xs text-muted-foreground">Manually trigger AI research agents to discover new projects, check for updates, or recalculate risk scores.</p>
+        <p className="text-xs text-muted-foreground">Manually trigger AI research agents. All agents also run automatically on schedule.</p>
         <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2"
-            disabled={!!runningAgent}
-            onClick={() => runAgent('Research Agent', agentApi.runResearchAgent)}
-          >
-            {runningAgent === 'Research Agent' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-            Run Research Agent
-            <span className="text-xs text-muted-foreground ml-auto">Discover new projects</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2"
-            disabled={!!runningAgent}
-            onClick={() => runAgent('Update Checker', agentApi.runUpdateChecker)}
-          >
-            {runningAgent === 'Update Checker' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Run Update Checker
-            <span className="text-xs text-muted-foreground ml-auto">Check for changes</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full justify-start gap-2"
-            disabled={!!runningAgent}
-            onClick={() => runAgent('Risk Scorer', agentApi.runRiskScorer)}
-          >
-            {runningAgent === 'Risk Scorer' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
-            Run Risk Scorer
-            <span className="text-xs text-muted-foreground ml-auto">Recalculate risk</span>
-          </Button>
+          {agents.map(agent => {
+            const Icon = agent.icon;
+            return (
+              <Button
+                key={agent.name}
+                variant="outline"
+                className="w-full justify-start gap-2"
+                disabled={!!runningAgent}
+                onClick={() => runAgent(agent.name, agent.fn)}
+              >
+                {runningAgent === agent.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+                Run {agent.name}
+                <span className="text-xs text-muted-foreground ml-auto">{agent.desc}</span>
+              </Button>
+            );
+          })}
         </div>
       </div>
 
