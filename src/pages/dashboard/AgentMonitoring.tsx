@@ -46,6 +46,9 @@ export default function AgentMonitoring() {
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isStreaming, setIsStreaming] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: tasks, refetch } = useQuery({
