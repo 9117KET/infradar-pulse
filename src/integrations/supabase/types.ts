@@ -54,28 +54,37 @@ export type Database = {
       }
       evidence_sources: {
         Row: {
+          added_by: string | null
           date: string
+          description: string | null
           id: string
           project_id: string
           source: string
+          title: string | null
           type: Database["public"]["Enums"]["evidence_type"]
           url: string
           verified: boolean
         }
         Insert: {
+          added_by?: string | null
           date: string
+          description?: string | null
           id?: string
           project_id: string
           source: string
+          title?: string | null
           type: Database["public"]["Enums"]["evidence_type"]
           url?: string
           verified?: boolean
         }
         Update: {
+          added_by?: string | null
           date?: string
+          description?: string | null
           id?: string
           project_id?: string
           source?: string
+          title?: string | null
           type?: Database["public"]["Enums"]["evidence_type"]
           url?: string
           verified?: boolean
@@ -245,15 +254,21 @@ export type Database = {
           country: string
           created_at: string
           description: string
+          detailed_analysis: string | null
+          environmental_impact: string | null
+          funding_sources: string | null
           id: string
+          key_risks: string | null
           last_updated: string
           lat: number
           lng: number
           name: string
+          political_context: string | null
           region: Database["public"]["Enums"]["project_region"]
           risk_score: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
+          source_url: string | null
           stage: Database["public"]["Enums"]["project_stage"]
           status: Database["public"]["Enums"]["project_status"]
           timeline: string | null
@@ -267,15 +282,21 @@ export type Database = {
           country: string
           created_at?: string
           description?: string
+          detailed_analysis?: string | null
+          environmental_impact?: string | null
+          funding_sources?: string | null
           id?: string
+          key_risks?: string | null
           last_updated?: string
           lat: number
           lng: number
           name: string
+          political_context?: string | null
           region: Database["public"]["Enums"]["project_region"]
           risk_score?: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
+          source_url?: string | null
           stage?: Database["public"]["Enums"]["project_stage"]
           status?: Database["public"]["Enums"]["project_status"]
           timeline?: string | null
@@ -289,15 +310,21 @@ export type Database = {
           country?: string
           created_at?: string
           description?: string
+          detailed_analysis?: string | null
+          environmental_impact?: string | null
+          funding_sources?: string | null
           id?: string
+          key_risks?: string | null
           last_updated?: string
           lat?: number
           lng?: number
           name?: string
+          political_context?: string | null
           region?: Database["public"]["Enums"]["project_region"]
           risk_score?: number
           sector?: Database["public"]["Enums"]["project_sector"]
           slug?: string
+          source_url?: string | null
           stage?: Database["public"]["Enums"]["project_stage"]
           status?: Database["public"]["Enums"]["project_status"]
           timeline?: string | null
