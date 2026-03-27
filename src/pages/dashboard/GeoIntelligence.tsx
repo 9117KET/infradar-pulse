@@ -204,7 +204,6 @@ export default function GeoIntelligence() {
           <div className="absolute inset-0 flex items-center justify-center text-muted-foreground animate-pulse z-10">Loading map…</div>
         )}
         <div ref={mapContainerRef} style={{ height: '100%', width: '100%', background: '#0a0f14' }} />
-        )}
       </div>
 
       {/* Legend */}
