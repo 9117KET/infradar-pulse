@@ -67,6 +67,7 @@ const App = () => (
               <Route path="/press" element={<Press />} />
             </Route>
             <Route path="/login" element={<Login />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/projects" element={<Projects />} />
