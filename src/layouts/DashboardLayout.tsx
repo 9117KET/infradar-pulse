@@ -214,8 +214,9 @@ function ProjectSearch() {
         <div className="flex-1 flex flex-col">
           <header className="h-12 flex items-center border-b border-border px-4">
             <SidebarTrigger className="mr-4" />
-            <span className="text-sm text-muted-foreground">InfraRadar AI — Intelligence Platform</span>
-            <div className="ml-auto">
+            <span className="text-sm text-muted-foreground hidden sm:inline">InfraRadar AI — Intelligence Platform</span>
+            <div className="ml-auto flex items-center gap-2">
+              <ProjectSearch />
               <NotificationBell />
             </div>
           </header>
