@@ -1,110 +1,113 @@
 
 
-# Human-in-the-Loop Research & Rich Project Management
+# Role-Based Onboarding & Personalized Access Control
+
+## Research: Who Else Would Pay for This
+
+Beyond the 4 personas already built (Investors/CFOs, Strategy Leaders, Project Leaders, Business Development), here are additional high-value buyer segments:
+
+### Additional Personas
+| Persona | Why They Pay | Example Companies |
+|---------|-------------|-------------------|
+| **Development Finance Institutions (DFIs)** | Track $300B+ portfolio across Africa/MENA, verify project milestones | IFC, AfDB, EBRD, Africa Finance Corporation, British International Investment, Norfund, DEG, FMO |
+| **EPC Contractors & Engineering Firms** | Bid intelligence, pipeline tracking, competitor monitoring | Bechtel, Fluor, AECOM, Dar Group, Julius Berger, Orascom, China State Construction |
+| **Insurance & Risk Underwriters** | Construction risk assessment, political risk pricing | AXA XL, Swiss Re, Munich Re, Africa Trade Insurance Agency (ATI) |
+| **Government & Sovereign Wealth Funds** | Portfolio oversight, cross-sector coordination, economic planning | ADIA, Mubadala, PIF, NSIA Nigeria, Ithmar Capital Morocco |
+| **Legal & Advisory Firms** | Due diligence support, regulatory tracking for project finance deals | Clifford Chance, White & Case, Hogan Lovells, ALN, DLA Piper |
+| **Multilateral / NGO Programs** | Impact monitoring, grant/project verification | UNDP, GIZ, USAID, Power Africa, World Bank |
+| **Supply Chain & Logistics** | Track construction material demand, port/transport project timing | DP World, Maersk, Dangote, LafargeHolcim |
+
+### Tiered Access Model
+Each persona doesn't need the full platform. A DFI cares about project verification and risk — they don't need bid intelligence. A contractor cares about pipeline and tenders — they don't need satellite verification. This naturally maps to tiered pricing and filtered dashboards.
+
+---
 
 ## What We're Building
 
-Three major enhancements to make the platform truly verification-driven with human oversight:
+### 1. User Profiles with Role & Preferences (Database)
+Create a `profiles` table that captures:
+- **Role** (dropdown during signup): Investor, Strategy, Project Manager, Business Dev, DFI Analyst, Contractor, Insurance/Risk, Government, Legal/Advisory, Supply Chain
+- **Regions of interest** (multi-select): MENA, East Africa, West Africa
+- **Sectors of interest** (multi-select): Urban Development, Digital Infrastructure, Renewable Energy, Transport, Water, Energy
+- **Project stages of interest** (multi-select): Planned, Tender, Awarded, Financing, Construction, Completed
+- **Company name**, **display name**
 
-### 1. Researcher Role & Manual Project CRUD
+Auto-create profile via database trigger on signup.
 
-Authenticated users can fully manage projects — create, edit, and delete — directly from the dashboard. The Review Queue already handles AI-discovered projects; this adds manual human entry and editing.
+### 2. Multi-Step Onboarding Flow
+After first login, if profile is incomplete, redirect to `/onboarding` — a 3-step wizard:
+1. **Your Role** — select persona type + company name
+2. **Your Focus** — pick regions, sectors, stages of interest
+3. **Welcome** — summary of what they'll see, CTA to dashboard
 
-**New page: Project Editor** (`/dashboard/projects/new` and `/dashboard/projects/:id/edit`)
-- Full form to create or edit a project with all fields: name, country, region, sector, stage, status, value, coordinates, description, timeline, confidence, risk score
-- Inline management of stakeholders (add/remove chips)
-- Inline management of milestones (add/remove/toggle complete)
-- Delete project with confirmation dialog
+### 3. Filtered Dashboard Experience
+- `useProjects` hook filters by user's region/sector/stage preferences (client-side filter, no RLS change needed — all approved projects remain public-read)
+- Dashboard Overview KPIs reflect only the user's filtered scope
+- Sidebar shows role-appropriate nav items (e.g. contractors don't see "Waitlist" admin pages; DFI analysts see "Verification" prominently)
+- User can adjust preferences from Settings page
 
-**Database changes:**
-- Add INSERT policy on `projects` for authenticated users
-- Add INSERT/UPDATE/DELETE policies on `project_stakeholders`, `project_milestones`, `evidence_sources` for authenticated users
+### 4. Settings Page Enhancement
+Add a "Preferences" tab to the existing Settings page where users can update their role, regions, sectors, and stages after onboarding.
 
-**Projects table update:**
-- Add "New Project" button to Projects page
-- Add Edit/Delete actions to ProjectDetail page
-
-### 2. Evidence Sources with Real Links & Multi-Source Verification
-
-Expand the evidence system so every project has clickable, verifiable source links.
-
-**Database migration — expand `evidence_sources`:**
-- Add `title` (text) — human-readable link title
-- Add `description` (text) — brief note about what this source proves
-- Add `added_by` (text, default 'ai') — tracks whether human or AI added it
-
-**Evidence management on ProjectDetail:**
-- "Add Source" button opens a form: source name, URL, type (Satellite/Filing/News/Registry/Partner), description
-- Toggle verified status per source
-- Delete sources
-- All URLs render as clickable external links with proper labels
-
-**Agents also store real URLs:**
-- Existing agents already populate `evidence_sources.url` — ensure they store actual Firecrawl/Perplexity result URLs instead of `#`
-
-### 3. Rich Project Descriptions & Analysis
-
-Expand the project data model to support deeper analysis content.
-
-**Database migration — expand `projects`:**
-- Add `detailed_analysis` (text) — long-form analysis (market context, strategic significance)
-- Add `key_risks` (text) — specific risk factors
-- Add `funding_sources` (text) — funding breakdown
-- Add `environmental_impact` (text) — EIA summary
-- Add `political_context` (text) — regulatory/political landscape
-- Add `source_url` (text) — primary official project website/page
-
-**ProjectDetail page enhancements:**
-- Tabbed layout: Overview | Analysis | Evidence | Timeline
-- Overview: existing description + KPIs + stakeholders
-- Analysis: detailed_analysis, key_risks, funding_sources, environmental_impact, political_context (rendered as sections, editable)
-- Evidence: expanded evidence table with add/edit/delete + clickable links
-- Timeline: milestones with add/edit capability
-- "Official Project Link" button at the top linking to `source_url`
+---
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Create | `src/pages/dashboard/ProjectEditor.tsx` — full create/edit form |
-| Modify | `src/pages/dashboard/ProjectDetail.tsx` — tabbed layout, edit/delete actions, evidence CRUD, analysis sections |
-| Modify | `src/pages/dashboard/Projects.tsx` — add "New Project" button |
-| Modify | `src/data/projects.ts` — extend Project interface with new fields |
-| Modify | `src/hooks/use-projects.ts` — map new DB fields |
-| Modify | `src/App.tsx` — add new/edit routes |
-| Migration | Add columns to `projects`, add columns to `evidence_sources`, add RLS policies for CRUD |
+| Migration | Create `profiles` table, trigger for auto-creation on signup |
+| Create | `src/pages/Onboarding.tsx` — 3-step wizard |
+| Modify | `src/contexts/AuthContext.tsx` — fetch profile, expose preferences |
+| Modify | `src/layouts/DashboardLayout.tsx` — redirect to onboarding if profile incomplete, filter nav by role |
+| Modify | `src/hooks/use-projects.ts` — accept filter preferences, apply client-side |
+| Modify | `src/pages/dashboard/Overview.tsx` — filter KPIs by preferences |
+| Modify | `src/pages/dashboard/Settings.tsx` — add Preferences tab |
+| Modify | `src/App.tsx` — add `/onboarding` route |
 
 ## Technical Details
 
-**Migration SQL (single migration):**
+**Migration SQL:**
 ```sql
--- Expand projects
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS detailed_analysis text DEFAULT '';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS key_risks text DEFAULT '';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS funding_sources text DEFAULT '';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS environmental_impact text DEFAULT '';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS political_context text DEFAULT '';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS source_url text DEFAULT '';
+CREATE TABLE public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  display_name text DEFAULT '',
+  company text DEFAULT '',
+  role text DEFAULT '',
+  regions text[] DEFAULT '{}',
+  sectors text[] DEFAULT '{}',
+  stages text[] DEFAULT '{}',
+  onboarded boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
--- Expand evidence_sources
-ALTER TABLE evidence_sources ADD COLUMN IF NOT EXISTS title text DEFAULT '';
-ALTER TABLE evidence_sources ADD COLUMN IF NOT EXISTS description text DEFAULT '';
-ALTER TABLE evidence_sources ADD COLUMN IF NOT EXISTS added_by text DEFAULT 'ai';
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated users full CRUD
-CREATE POLICY "Auth users insert projects" ON projects FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Auth insert stakeholders" ON project_stakeholders FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Auth update stakeholders" ON project_stakeholders FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Auth delete stakeholders" ON project_stakeholders FOR DELETE TO authenticated USING (true);
-CREATE POLICY "Auth insert milestones" ON project_milestones FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Auth update milestones" ON project_milestones FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Auth delete milestones" ON project_milestones FOR DELETE TO authenticated USING (true);
-CREATE POLICY "Auth insert evidence" ON evidence_sources FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Auth update evidence" ON evidence_sources FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Auth delete evidence" ON evidence_sources FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Users read own profile" ON profiles FOR SELECT
+  TO authenticated USING (id = auth.uid());
+CREATE POLICY "Users update own profile" ON profiles FOR UPDATE
+  TO authenticated USING (id = auth.uid()) WITH CHECK (id = auth.uid());
+CREATE POLICY "Users insert own profile" ON profiles FOR INSERT
+  TO authenticated WITH CHECK (id = auth.uid());
+
+-- Auto-create profile on signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public AS $$
+BEGIN
+  INSERT INTO public.profiles (id) VALUES (NEW.id);
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 ```
 
-**Project Editor** uses react-hook-form with Supabase direct inserts/updates. Generates slug from name. On create, sets `ai_generated = false, approved = true`.
+**Onboarding wizard** uses local state across 3 steps, then upserts to `profiles` table on completion with `onboarded = true`.
 
-**ProjectDetail** uses a tabbed interface (existing Tabs component) with inline editing capability and real external links throughout.
+**AuthContext** expands to fetch profile after auth state change and expose `profile` + `profileLoading` in context. DashboardLayout checks `profile?.onboarded` and redirects to `/onboarding` if false.
+
+**Role-based nav filtering:** Define which nav items each role sees. Admin-only items (Waitlist, Users, Agents, Review Queue) only show for admin roles. All analytics users see core intelligence pages.
 
