@@ -1,48 +1,29 @@
 
 
-# Rebuild Interactive Globe from Scratch
+# Globe & Hero Section Cleanup
 
-## What's Changing
-Replace the current `InteractiveGlobe.tsx` (which uses a 2D canvas texture projected onto a sphere) with a proper 3D globe using **real GeoJSON country polygons rendered as 3D mesh geometry** on the sphere surface.
+## Changes
 
-## Approach
-Use **Three.js** directly within the existing React Three Fiber setup to render actual 3D country polygons extruded on a sphere, giving a sophisticated look similar to globe.gl.
+### 1. Remove regional highlighting from globe (`InteractiveGlobe.tsx`)
+- Remove `HIGHLIGHT_CODES` set entirely
+- Remove the `highlight` property from `CountryData`
+- Give **all countries** the same uniform dark fill color and border color — no differentiation between MENA/Africa and other regions
+- All borders: same subtle teal color (`#2a6e7a`) at uniform line width (`0.8`) and opacity
 
-### Implementation Details
+### 2. Add hover tooltip on project markers (`InteractiveGlobe.tsx`)
+- In `ProjectMarkers`, when a marker is hovered, render an `Html` component from `@react-three/drei` showing a small glass-panel tooltip with: project name, country, value, and confidence
+- Tooltip appears only on hover, disappears on pointer out
 
-**1. New `InteractiveGlobe.tsx` — complete rewrite**
-- Load `countries-110m.json` from `world-atlas` (already installed) and convert to GeoJSON features using `topojson-client`
-- For each country polygon, triangulate the coordinates onto the sphere surface using a custom function that converts GeoJSON rings → Three.js `BufferGeometry` via earcut triangulation
-- Render each country as a separate mesh with:
-  - Dark fill (`#0a2a3a`) with teal edges (`#6bd8cb`)
-  - Slight extrusion (altitude 0.002) above the ocean sphere for depth
-  - MENA/Africa countries highlighted slightly brighter
-- Ocean sphere: dark navy `#060d16` with subtle grid lines via a shader or wireframe overlay
-- Atmosphere: two `BackSide` glow spheres (existing pattern, refined)
-- Project markers: pulsing dots at lat/lng positions with vertical "pin" lines, status-colored, with Html labels on hover (keep existing pattern but cleaner)
-- Slow auto-rotation via `useFrame`
-- `OrbitControls` with zoom disabled (existing)
+### 3. Remove Verified Feed overlay from hero (`HeroSection.tsx`)
+- Delete the entire `FEED_ITEMS` array and the "Verified Feed card overlay" `<div>` block (lines 60-91)
+- Remove unused `Badge` import
 
-**2. Add `earcut` dependency** for polygon triangulation
+### 4. Fix globe clipping / square container (`HeroSection.tsx`)
+- Change the right column from `min-h-[500px]` with `absolute inset-0` to allow the globe to render at full visible size
+- Remove the `absolute inset-0` wrapper around the globe — let it flow naturally and fill the column
+- Increase the globe container's min-height and use `overflow-visible` so the sphere isn't clipped by the grid cell boundaries
 
-**3. `HeroSection.tsx`** — no structural changes, keep globe + verified feed overlay as-is
-
-### Technical Flow
-```text
-countries-110m.json (world-atlas)
-  → topojson.feature() → GeoJSON FeatureCollection
-  → For each feature:
-      → Convert polygon rings to 3D vertices on sphere
-      → Triangulate with earcut
-      → Create BufferGeometry mesh
-  → Render as <mesh> with MeshPhongMaterial
-  → Add project pin markers from PROJECTS data
-```
-
-### Visual Result
-- Every continent and country clearly visible with teal-tinted borders
-- Dark ocean with subtle depth
-- Glowing atmosphere halo
-- Project pins with interactive hover labels
-- Smooth rotation centered on Africa/MENA
+### Files Modified
+- `src/components/InteractiveGlobe.tsx` — remove highlighting logic, add hover tooltip
+- `src/components/home/HeroSection.tsx` — remove verified feed, fix globe container sizing
 
