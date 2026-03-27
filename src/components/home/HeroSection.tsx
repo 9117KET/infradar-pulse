@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { InteractiveGlobe } from '@/components/InteractiveGlobe';
 
 const FEED_ITEMS = [
   { country: 'Saudi Arabia', status: 'Verified', name: 'NEOM Infrastructure', value: '$500B program', note: 'Verified this week', color: 'bg-emerald-500' },
