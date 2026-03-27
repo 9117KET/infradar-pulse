@@ -1,17 +1,17 @@
 import { useRef, useMemo, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere } from '@react-three/drei';
+import { Canvas, useFrame, extend, type ThreeElements } from '@react-three/fiber';
+import { OrbitControls, Sphere, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { PROJECTS, statusColor } from '@/data/projects';
 
-function latLngToVector3(lat: number, lng: number, radius: number): THREE.Vector3 {
+function latLngToVector3(lat: number, lng: number, radius: number): [number, number, number] {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lng + 180) * (Math.PI / 180);
-  return new THREE.Vector3(
+  return [
     -radius * Math.sin(phi) * Math.cos(theta),
     radius * Math.cos(phi),
-    radius * Math.sin(phi) * Math.sin(theta)
-  );
+    radius * Math.sin(phi) * Math.sin(theta),
+  ];
 }
 
 function GlobeWireframe() {
@@ -22,29 +22,24 @@ function GlobeWireframe() {
   });
 
   const gridLines = useMemo(() => {
-    const lines: THREE.BufferGeometry[] = [];
-    // Latitude lines
+    const lines: [number, number, number][][] = [];
     for (let lat = -60; lat <= 60; lat += 30) {
-      const pts: THREE.Vector3[] = [];
+      const pts: [number, number, number][] = [];
       for (let lng = 0; lng <= 360; lng += 3) {
         pts.push(latLngToVector3(lat, lng, 1.01));
       }
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      lines.push(geo);
+      lines.push(pts);
     }
-    // Longitude lines
     for (let lng = 0; lng < 360; lng += 30) {
-      const pts: THREE.Vector3[] = [];
+      const pts: [number, number, number][] = [];
       for (let lat = -90; lat <= 90; lat += 3) {
         pts.push(latLngToVector3(lat, lng, 1.01));
       }
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
-      lines.push(geo);
+      lines.push(pts);
     }
     return lines;
   }, []);
 
-  // Rough continent outlines (simplified polylines) for Africa + MENA
   const continentPoints = useMemo(() => {
     const africa: [number, number][] = [
       [37.5, -10], [36, 0], [35, 10], [32, 15], [30, 20], [28, 25], [25, 30],
@@ -55,13 +50,12 @@ function GlobeWireframe() {
       [10, 35], [8, 20], [5, 10], [5, 3], [6, -5], [10, -15], [15, -17],
       [20, -18], [25, -15], [30, -12], [35, -5], [37.5, -10],
     ];
-    const pts = africa.map(([lat, lng]) => latLngToVector3(lat, lng, 1.015));
-    return new THREE.BufferGeometry().setFromPoints(pts);
+    return africa.map(([lat, lng]) => latLngToVector3(lat, lng, 1.015));
   }, []);
 
   const projectMarkers = useMemo(() => {
     return PROJECTS.map(p => ({
-      position: latLngToVector3(p.lat, p.lng, 1.03),
+      position: latLngToVector3(p.lat, p.lng, 1.03) as [number, number, number],
       color: statusColor[p.status],
       name: p.name,
     }));
@@ -69,32 +63,22 @@ function GlobeWireframe() {
 
   return (
     <group ref={ref}>
-      {/* Globe sphere */}
       <Sphere args={[1, 48, 48]}>
         <meshStandardMaterial color="#0d1117" transparent opacity={0.85} />
       </Sphere>
 
-      {/* Grid lines */}
-      {gridLines.map((geo, i) => (
-        <line key={`grid-${i}`} geometry={geo}>
-          <lineBasicMaterial color="#1a2332" transparent opacity={0.4} />
-        </line>
+      {gridLines.map((pts, i) => (
+        <Line key={`grid-${i}`} points={pts} color="#1a2332" lineWidth={0.5} transparent opacity={0.4} />
       ))}
 
-      {/* Continent outline */}
-      <line geometry={continentPoints}>
-        <lineBasicMaterial color="#6bd8cb" transparent opacity={0.25} />
-      </line>
+      <Line points={continentPoints} color="#6bd8cb" lineWidth={1} transparent opacity={0.25} />
 
-      {/* Project pins */}
       {projectMarkers.map((marker, i) => (
         <group key={i} position={marker.position}>
-          {/* Glow sphere */}
           <mesh>
             <sphereGeometry args={[0.035, 16, 16]} />
             <meshBasicMaterial color={marker.color} transparent opacity={0.35} />
           </mesh>
-          {/* Core dot */}
           <mesh>
             <sphereGeometry args={[0.018, 12, 12]} />
             <meshBasicMaterial color={marker.color} />
@@ -102,7 +86,6 @@ function GlobeWireframe() {
         </group>
       ))}
 
-      {/* Atmospheric glow ring */}
       <mesh>
         <sphereGeometry args={[1.06, 48, 48]} />
         <meshBasicMaterial color="#6bd8cb" transparent opacity={0.04} side={THREE.BackSide} />
