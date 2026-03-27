@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { InteractiveGlobe } from '@/components/InteractiveGlobe';
+import { useProjects } from '@/hooks/use-projects';
 
 export function HeroSection() {
+  const { projects } = useProjects();
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
