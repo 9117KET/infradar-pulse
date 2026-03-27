@@ -20,6 +20,7 @@ function mapStageToFilter(stage: string): StatusFilter {
 }
 
 export function DemoSection() {
+  const { projects: PROJECTS } = useProjects();
   const [selectedRegions, setSelectedRegions] = useState<Region[]>(['MENA']);
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([]);
