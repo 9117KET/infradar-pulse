@@ -61,23 +61,34 @@ export default function GeoIntelligence() {
     return 8;
   };
 
-  // Initialize map
+  // Initialize map after loading completes
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-    const map = L.map(mapContainerRef.current, {
-      center: [15, 35],
-      zoom: 4,
-      zoomControl: true,
-      attributionControl: false,
-    });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    mapRef.current = map;
+    if (loading || !mapContainerRef.current || mapRef.current) return;
+    
+    // Small delay to ensure container has dimensions
+    const timer = setTimeout(() => {
+      if (!mapContainerRef.current) return;
+      const map = L.map(mapContainerRef.current, {
+        center: [15, 35],
+        zoom: 4,
+        zoomControl: true,
+        attributionControl: false,
+      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+      mapRef.current = map;
+      
+      // Force resize after init
+      setTimeout(() => map.invalidateSize(), 100);
+    }, 50);
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      clearTimeout(timer);
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
-  }, []);
+  }, [loading]);
 
   // Update markers when data/overlay/filters change
   useEffect(() => {
