@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, Link, useNavigate } from 'react-router-dom';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 import {
@@ -7,9 +7,10 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
+import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
 const NAV = [
@@ -133,6 +134,71 @@ function NotificationBell() {
   );
 }
 
+function ProjectSearch() {
+  const { projects } = useProjects();
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setFocused(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const results = query.trim().length > 0
+    ? projects.filter(p => {
+        const q = query.toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.sector.toLowerCase().includes(q) || p.region.toLowerCase().includes(q);
+      }).slice(0, 6)
+    : [];
+
+  const showDropdown = focused && query.trim().length > 0;
+
+  return (
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search projects…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => setFocused(true)}
+          className="h-8 w-56 rounded-lg border border-border bg-background pl-8 pr-8 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        />
+        {query && (
+          <button onClick={() => { setQuery(''); setFocused(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
+            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+      {showDropdown && (
+        <div className="absolute left-0 top-10 z-50 w-80 rounded-xl border border-border bg-card shadow-xl">
+          {results.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">No projects found</p>
+          ) : results.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { setQuery(''); setFocused(false); navigate(`/dashboard/projects/${p.id}`); }}
+              className="flex items-start gap-3 px-4 py-2.5 w-full text-left hover:bg-white/[0.02] border-b border-border/30 last:border-0"
+            >
+              <FolderSearch className="h-3.5 w-3.5 mt-0.5 text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium truncate">{p.name}</p>
+                <p className="text-[10px] text-muted-foreground">{p.country} · {p.sector} · {p.region}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardLayout() {
   const { user, loading } = useAuth();
 
@@ -149,8 +215,9 @@ export default function DashboardLayout() {
         <div className="flex-1 flex flex-col">
           <header className="h-12 flex items-center border-b border-border px-4">
             <SidebarTrigger className="mr-4" />
-            <span className="text-sm text-muted-foreground">InfraRadar AI — Intelligence Platform</span>
-            <div className="ml-auto">
+            <span className="text-sm text-muted-foreground hidden sm:inline">InfraRadar AI — Intelligence Platform</span>
+            <div className="ml-auto flex items-center gap-2">
+              <ProjectSearch />
               <NotificationBell />
             </div>
           </header>
