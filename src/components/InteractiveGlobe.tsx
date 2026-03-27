@@ -6,7 +6,6 @@ import { feature } from 'topojson-client';
 import earcut from 'earcut';
 import { PROJECTS, statusColor } from '@/data/projects';
 
-// Use countries (not just land) for individual borders
 import countriesData from 'world-atlas/countries-110m.json';
 
 /* ── Helpers ──────────────────────────────────────────────── */
@@ -26,16 +25,6 @@ function latLngToArray(lat: number, lng: number, radius: number): [number, numbe
   return [v.x, v.y, v.z];
 }
 
-/* MENA / Africa ISO codes for highlighting */
-const HIGHLIGHT_CODES = new Set([
-  '012','818','434','788','504','732','728','736','729','180','404','800',
-  '834','508','454','646','894','716','710','426','748','072','516','024',
-  '120','140','148','178','226','266','270','288','324','624','384','430',
-  '466','478','562','566','654','678','686','694','768','854','108',
-  '784','682','512','634','048','400','368','760','792','414','275','422',
-  '887','364',
-]);
-
 /* ── Triangulate a GeoJSON polygon ring onto a sphere ───── */
 
 function ringToSphericalVertices(ring: number[][], radius: number) {
@@ -50,7 +39,6 @@ function ringToSphericalVertices(ring: number[][], radius: number) {
 }
 
 function polygonToGeometry(coordinates: number[][][], radius: number): THREE.BufferGeometry | null {
-  // coordinates[0] = outer ring, coordinates[1..] = holes
   const outerRing = coordinates[0];
   if (!outerRing || outerRing.length < 4) return null;
 
@@ -58,12 +46,10 @@ function polygonToGeometry(coordinates: number[][][], radius: number): THREE.Buf
   const allFlat: number[] = [];
   const holeIndices: number[] = [];
 
-  // Outer ring
   const outer = ringToSphericalVertices(outerRing, radius);
   for (let i = 0; i < outer.verts.length; i++) allVerts.push(outer.verts[i]);
   for (let i = 0; i < outer.flat2d.length; i++) allFlat.push(outer.flat2d[i]);
 
-  // Holes
   for (let h = 1; h < coordinates.length; h++) {
     holeIndices.push(allFlat.length / 2);
     const hole = ringToSphericalVertices(coordinates[h], radius);
@@ -119,7 +105,6 @@ function featureToBorders(feat: any, radius: number): THREE.Vector3[][] {
 interface CountryData {
   geos: THREE.BufferGeometry[];
   borders: THREE.Vector3[][];
-  highlight: boolean;
 }
 
 function Countries() {
@@ -130,12 +115,10 @@ function Countries() {
     const BORDER_R = 1.005;
 
     for (const feat of fc.features) {
-      const id = feat.id || feat.properties?.iso_n3 || '';
       const geos = featureToGeometries(feat, LAND_R);
       const borders = featureToBorders(feat, BORDER_R);
-      const highlight = HIGHLIGHT_CODES.has(String(id));
       if (geos.length || borders.length) {
-        result.push({ geos, borders, highlight });
+        result.push({ geos, borders });
       }
     }
     return result;
@@ -148,8 +131,8 @@ function Countries() {
           {c.geos.map((geo, gi) => (
             <mesh key={`f-${ci}-${gi}`} geometry={geo}>
               <meshPhongMaterial
-                color={c.highlight ? '#0f3d4d' : '#0a2a3a'}
-                emissive={c.highlight ? '#0d4a4a' : '#071e2b'}
+                color="#0a2a3a"
+                emissive="#071e2b"
                 emissiveIntensity={0.4}
                 transparent
                 opacity={0.92}
@@ -162,10 +145,10 @@ function Countries() {
             <Line
               key={`b-${ci}-${bi}`}
               points={pts}
-              color={c.highlight ? '#6bd8cb' : '#2a6e7a'}
-              lineWidth={c.highlight ? 1.2 : 0.6}
+              color="#2a6e7a"
+              lineWidth={0.8}
               transparent
-              opacity={c.highlight ? 0.7 : 0.35}
+              opacity={0.4}
             />
           ))}
         </group>
@@ -180,7 +163,6 @@ function Graticule() {
   const lines = useMemo(() => {
     const result: THREE.Vector3[][] = [];
     const R = 1.001;
-    // Latitude lines
     for (let lat = -60; lat <= 60; lat += 30) {
       const pts: THREE.Vector3[] = [];
       for (let lng = -180; lng <= 180; lng += 4) {
@@ -188,7 +170,6 @@ function Graticule() {
       }
       result.push(pts);
     }
-    // Longitude lines
     for (let lng = -180; lng < 180; lng += 30) {
       const pts: THREE.Vector3[] = [];
       for (let lat = -80; lat <= 80; lat += 4) {
@@ -208,7 +189,7 @@ function Graticule() {
   );
 }
 
-/* ── Project markers ────────────────────────────────────── */
+/* ── Project markers with hover tooltip ─────────────────── */
 
 function ProjectMarkers() {
   const [hovered, setHovered] = useState<string | null>(null);
@@ -218,7 +199,6 @@ function ProjectMarkers() {
       PROJECTS.map((p) => ({
         id: p.id,
         position: latLngToArray(p.lat, p.lng, 1.025),
-        pinTop: latLngToArray(p.lat, p.lng, 1.08),
         color: statusColor[p.status],
         name: p.name,
         country: p.country,
@@ -232,16 +212,30 @@ function ProjectMarkers() {
     <group>
       {markers.map((m) => (
         <group key={m.id}>
-          {/* Outer glow */}
-          <mesh position={m.position} onPointerOver={() => setHovered(m.id)} onPointerOut={() => setHovered(null)}>
+          <mesh
+            position={m.position}
+            onPointerOver={() => setHovered(m.id)}
+            onPointerOut={() => setHovered(null)}
+          >
             <sphereGeometry args={[0.035, 16, 16]} />
             <meshBasicMaterial color={m.color} transparent opacity={hovered === m.id ? 0.5 : 0.18} />
           </mesh>
-          {/* Inner dot */}
           <mesh position={m.position}>
             <sphereGeometry args={[0.015, 12, 12]} />
             <meshBasicMaterial color={m.color} />
           </mesh>
+          {hovered === m.id && (
+            <Html position={m.position} center style={{ pointerEvents: 'none' }}>
+              <div className="rounded-lg border border-white/10 bg-[#0a1628]/90 backdrop-blur-md px-3 py-2 shadow-xl min-w-[160px]">
+                <p className="text-xs font-semibold text-white">{m.name}</p>
+                <p className="text-[10px] text-white/60 mt-0.5">{m.country}</p>
+                <div className="flex items-center justify-between mt-1.5 gap-3">
+                  <span className="text-[10px] text-primary font-medium">{m.valueLabel}</span>
+                  <span className="text-[10px] text-white/50">{m.confidence}% conf.</span>
+                </div>
+              </div>
+            </Html>
+          )}
         </group>
       ))}
     </group>
@@ -259,27 +253,13 @@ function GlobeScene() {
 
   return (
     <group ref={groupRef}>
-      {/* Ocean sphere */}
       <mesh>
         <sphereGeometry args={[1, 96, 96]} />
-        <meshPhongMaterial
-          color="#060d16"
-          emissive="#050a12"
-          emissiveIntensity={0.3}
-          shininess={12}
-        />
+        <meshPhongMaterial color="#060d16" emissive="#050a12" emissiveIntensity={0.3} shininess={12} />
       </mesh>
-
-      {/* Graticule grid */}
       <Graticule />
-
-      {/* Country polygons + borders */}
       <Countries />
-
-      {/* Project markers */}
       <ProjectMarkers />
-
-      {/* Atmosphere glow layers */}
       <mesh>
         <sphereGeometry args={[1.04, 64, 64]} />
         <meshBasicMaterial color="#6bd8cb" transparent opacity={0.03} side={THREE.BackSide} />
