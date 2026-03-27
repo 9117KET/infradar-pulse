@@ -4,11 +4,11 @@ import { InteractiveGlobe } from '@/components/InteractiveGlobe';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-visible">
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(520px,0.95fr)] lg:gap-10 xl:max-w-[1500px]">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-20 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-0 xl:max-w-[1440px]">
         {/* Left */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center lg:pr-6">
           <div className="mb-6 flex items-center gap-2">
