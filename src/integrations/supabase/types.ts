@@ -90,6 +90,57 @@ export type Database = {
           },
         ]
       }
+      insights: {
+        Row: {
+          ai_generated: boolean
+          author: string
+          content: string
+          cover_image_url: string | null
+          created_at: string
+          excerpt: string
+          id: string
+          published: boolean
+          reading_time_min: number
+          related_project_ids: string[] | null
+          slug: string
+          tag: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_generated?: boolean
+          author?: string
+          content?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published?: boolean
+          reading_time_min?: number
+          related_project_ids?: string[] | null
+          slug: string
+          tag?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_generated?: boolean
+          author?: string
+          content?: string
+          cover_image_url?: string | null
+          created_at?: string
+          excerpt?: string
+          id?: string
+          published?: boolean
+          reading_time_min?: number
+          related_project_ids?: string[] | null
+          slug?: string
+          tag?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       project_milestones: {
         Row: {
           completed: boolean

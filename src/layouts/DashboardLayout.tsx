@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
@@ -19,6 +19,7 @@ const NAV = [
   { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
   { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
   { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
+  { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
   { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
   { title: 'Users', url: '/dashboard/users', icon: Users },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },

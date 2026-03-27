@@ -29,6 +29,8 @@ import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
+import InsightDetail from "./pages/InsightDetail";
+import InsightsManagement from "./pages/dashboard/InsightsManagement";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,7 @@ const App = () => (
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/insights" element={<Insights />} />
+              <Route path="/insights/:slug" element={<InsightDetail />} />
               <Route path="/services" element={<Services />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
@@ -65,6 +68,7 @@ const App = () => (
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<ReviewQueue />} />
               <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
+              <Route path="/dashboard/insights" element={<InsightsManagement />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
