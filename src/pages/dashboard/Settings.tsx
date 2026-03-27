@@ -9,7 +9,7 @@ import { REGIONS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Settings {
