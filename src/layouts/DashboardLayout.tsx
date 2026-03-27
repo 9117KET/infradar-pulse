@@ -13,7 +13,10 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
-const NAV = [
+// admin-only nav items
+const ADMIN_ONLY = new Set(['/dashboard/waitlist', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
+
+const ALL_NAV = [
   { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
   { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
@@ -31,6 +34,8 @@ const NAV = [
   { title: 'Agents', url: '/dashboard/agents', icon: Bot },
   { title: 'Settings', url: '/dashboard/settings', icon: Settings },
 ];
+
+const ADMIN_ROLES = new Set(['investor', 'strategy', '']);
 
 function AppSidebar() {
   const { state } = useSidebar();
