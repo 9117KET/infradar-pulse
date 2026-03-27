@@ -27,6 +27,7 @@ import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
+import ReviewQueue from "./pages/dashboard/ReviewQueue";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/dashboard/alerts" element={<Alerts />} />
               <Route path="/dashboard/users" element={<UsersPage />} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
+              <Route path="/dashboard/review" element={<ReviewQueue />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
