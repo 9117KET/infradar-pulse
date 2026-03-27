@@ -1,62 +1,48 @@
 
 
-# Infradar — Infrastructure Intelligence Platform MVP
+# Rebuild Interactive Globe from Scratch
 
-## Overview
-A complete dark-themed, premium infrastructure intelligence platform for MENA and Africa, combining a marketing site with an interactive demo and a protected dashboard application.
+## What's Changing
+Replace the current `InteractiveGlobe.tsx` (which uses a 2D canvas texture projected onto a sphere) with a proper 3D globe using **real GeoJSON country polygons rendered as 3D mesh geometry** on the sphere surface.
 
-## Brand & Design System
-- **Dark theme** with teal/cyan primary accent throughout
-- Glass panel aesthetics: semi-transparent backgrounds, white/10 borders, radial teal gradients
-- Serif headlines (e.g., Playfair Display) + sans-serif body (Inter/system)
-- Radar/target logo mark: concentric circles + crosshair in teal
-- Sticky dark nav with glass effect, mobile sheet menu
+## Approach
+Use **Three.js** directly within the existing React Three Fiber setup to render actual 3D country polygons extruded on a sphere, giving a sophisticated look similar to globe.gl.
 
-## Marketing Site Pages
+### Implementation Details
 
-### Home Page (8 sections)
-1. **Hero** — Two-column layout with headline, stats row, and "Verified feed" demo card showing 3 project rows (NEOM, Trans-Saharan Grid, East Africa Rail)
-2. **Problem** — Three stat cards (85% delayed, $1.5T+ at risk, 6-12mo lag)
-3. **Capabilities** — Bento grid with 6 modules (monitoring, satellite, validation, geospatial, risk, reporting)
-4. **Interactive Demo** — Filterable map/globe with 8+ color-coded project pins, detail panels, aggregate stats strip. Filters: region, sector multi-select, status, value slider, confidence toggle
-5. **Pipeline** — 4-step flow (Collection → Verification → Analysis → Intelligence) + feature grid
-6. **Personas** — 4 role cards (Investors, Strategy, Project leads, Business dev)
-7. **Use Case Spotlight** — Before/During/After/Impact flow with metric chips
-8. **Contact/Waitlist** — Full form (email, name, company, role, interest, size, challenge) with trust badges
+**1. New `InteractiveGlobe.tsx` — complete rewrite**
+- Load `countries-110m.json` from `world-atlas` (already installed) and convert to GeoJSON features using `topojson-client`
+- For each country polygon, triangulate the coordinates onto the sphere surface using a custom function that converts GeoJSON rings → Three.js `BufferGeometry` via earcut triangulation
+- Render each country as a separate mesh with:
+  - Dark fill (`#0a2a3a`) with teal edges (`#6bd8cb`)
+  - Slight extrusion (altitude 0.002) above the ocean sphere for depth
+  - MENA/Africa countries highlighted slightly brighter
+- Ocean sphere: dark navy `#060d16` with subtle grid lines via a shader or wireframe overlay
+- Atmosphere: two `BackSide` glow spheres (existing pattern, refined)
+- Project markers: pulsing dots at lat/lng positions with vertical "pin" lines, status-colored, with Html labels on hover (keep existing pattern but cleaner)
+- Slow auto-rotation via `useFrame`
+- `OrbitControls` with zoom disabled (existing)
 
-### Additional Pages
-- **Insights** — 3 featured posts + stat band
-- **Services** — Platform modules overview
-- **Pricing** — No prices, tailored/pilot framing, CTAs to contact
-- **About, Contact, Waitlist, Terms, Privacy, Data Protection, Careers, Press** — Professional minimal pages
+**2. Add `earcut` dependency** for polygon triangulation
 
-## Interactive Demo (Home #demo section)
-- Left filter panel: region, sector, status, value range, confidence threshold
-- Center: Map with color-coded pins (8+ seeded projects across MENA/Africa)
-- Click pin → project detail modal with confidence %, risk score, timeline, stakeholders
-- Aggregate strip showing totals when region selected
+**3. `HeroSection.tsx`** — no structural changes, keep globe + verified feed overlay as-is
 
-## Dashboard Application (Protected)
-- Mock auth gate (demo/demo credentials)
-- Branded sidebar: "InfraRadar AI — Intelligence Platform"
+### Technical Flow
+```text
+countries-110m.json (world-atlas)
+  → topojson.feature() → GeoJSON FeatureCollection
+  → For each feature:
+      → Convert polygon rings to 3D vertices on sphere
+      → Triangulate with earcut
+      → Create BufferGeometry mesh
+  → Render as <mesh> with MeshPhongMaterial
+  → Add project pin markers from PROJECTS data
+```
 
-### Dashboard Pages
-- **Overview** — 4 KPI cards with sparklines, map preview, confidence trend, recent updates table
-- **Projects** — Filter bar, search, Save Search (localStorage), Export CSV, full project table
-- **Project Detail** — Summary, score badges, milestones, evidence list, stakeholder chips
-- **Analytics** — Charts (sector mix, confidence over time)
-- **Alerts** — Mock alert items with severity
-- **Users & Settings** — Notification toggles, region preferences (localStorage)
-
-## Data Layer
-- Structured mock data: 8+ projects with id, name, country, region, sector, stage, value, confidence, lat/lng, stakeholders, milestones, evidence
-- Form submissions stored via Supabase or localStorage
-- CSV export from visible project table columns
-- Saved filters in localStorage
-
-## MVP Extras
-- Loading skeletons and empty states
-- Dedicated /waitlist page mirroring #contact form
-- Focus states and aria labels on interactive elements
-- Responsive design throughout
+### Visual Result
+- Every continent and country clearly visible with teal-tinted borders
+- Dark ocean with subtle depth
+- Glowing atmosphere halo
+- Project pins with interactive hover labels
+- Smooth rotation centered on Africa/MENA
 
