@@ -23,6 +23,7 @@ import Login from "./pages/Login";
 import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
+import ProjectEditor from "./pages/dashboard/ProjectEditor";
 import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
@@ -68,6 +69,8 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/projects" element={<Projects />} />
+              <Route path="/dashboard/projects/new" element={<ProjectEditor />} />
+              <Route path="/dashboard/projects/:id/edit" element={<ProjectEditor />} />
               <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
               <Route path="/dashboard/analytics" element={<Analytics />} />
               <Route path="/dashboard/alerts" element={<Alerts />} />
