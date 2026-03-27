@@ -30,9 +30,22 @@ function timeAgo(date: string) {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
+interface LogEntry {
+  id: string;
+  task_type: string;
+  status: string;
+  query: string;
+  error: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
 export default function AgentMonitoring() {
   const { toast } = useToast();
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
+  const [isStreaming, setIsStreaming] = useState(true);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
@@ -46,6 +59,50 @@ export default function AgentMonitoring() {
     },
     refetchInterval: 30000,
   });
+
+  // Seed live logs from initial query
+  useEffect(() => {
+    if (tasks && liveLogs.length === 0) {
+      setLiveLogs(tasks.slice(0, 50).reverse() as LogEntry[]);
+    }
+  }, [tasks]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!isStreaming) return;
+
+    const channel = supabase
+      .channel('agent-logs-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'research_tasks' },
+        (payload) => {
+          const record = (payload.new as LogEntry);
+          if (!record?.id) return;
+
+          setLiveLogs(prev => {
+            const exists = prev.findIndex(l => l.id === record.id);
+            if (exists >= 0) {
+              const updated = [...prev];
+              updated[exists] = record;
+              return updated;
+            }
+            return [...prev.slice(-99), record];
+          });
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isStreaming, refetch]);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [liveLogs]);
 
   const getAgentStats = (taskType: string) => {
     const agentTasks = tasks?.filter(t => t.task_type === taskType) || [];
@@ -76,6 +133,27 @@ export default function AgentMonitoring() {
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
   const totalRunning = tasks?.filter(t => t.status === 'running').length || 0;
+
+  const agentNameMap: Record<string, string> = {};
+  AGENTS.forEach(a => { agentNameMap[a.type] = a.name; });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-emerald-400';
+      case 'failed': return 'text-destructive';
+      case 'running': return 'text-amber-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle className="h-3 w-3 text-emerald-400" />;
+      case 'failed': return <XCircle className="h-3 w-3 text-destructive" />;
+      case 'running': return <Loader2 className="h-3 w-3 text-amber-400 animate-spin" />;
+      default: return <Clock className="h-3 w-3 text-muted-foreground" />;
+    }
+  };
 
   return (
     <div className="space-y-6">
