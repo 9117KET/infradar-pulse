@@ -40,7 +40,9 @@ const ADMIN_ROLES = new Set(['investor', 'strategy', '']);
 function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
+  const isAdmin = !profile?.role || ADMIN_ROLES.has(profile.role);
+  const NAV = ALL_NAV.filter(item => isAdmin || !ADMIN_ONLY.has(item.url));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
