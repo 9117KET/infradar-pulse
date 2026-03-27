@@ -4,7 +4,7 @@ import { InteractiveGlobe } from '@/components/InteractiveGlobe';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-visible">
+    <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
@@ -44,8 +44,8 @@ export function HeroSection() {
         </motion.div>
 
         {/* Right — Globe */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center overflow-visible min-h-[560px] lg:min-h-[650px] -mr-8 lg:-mr-16">
-          <InteractiveGlobe className="w-[110%] h-full" />
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center overflow-visible min-h-[500px] lg:min-h-[600px] -mr-16 -my-8 lg:-mr-24">
+          <InteractiveGlobe className="w-[120%] h-[120%] overflow-visible" />
         </motion.div>
       </div>
     </section>
