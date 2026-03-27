@@ -27,6 +27,7 @@ export default function GeoIntelligence() {
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.CircleMarker[]>([]);
+  const [mapReady, setMapReady] = useState(false);
 
   const filtered = useMemo(() => {
     return projects.filter(p => {
