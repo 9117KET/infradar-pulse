@@ -77,8 +77,7 @@ export default function GeoIntelligence() {
       });
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
       mapRef.current = map;
-      
-      // Force resize after init
+      setMapReady(true);
       setTimeout(() => map.invalidateSize(), 100);
     }, 50);
 
