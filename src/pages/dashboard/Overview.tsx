@@ -47,6 +47,21 @@ export default function DashboardOverview() {
     },
   });
 
+  // Realtime subscriptions for research_tasks and pending projects
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel('overview-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'research_tasks' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['research-tasks'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['pending-count'] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
+
   const KPIs = useMemo(() => [
     { label: 'Projects tracked', value: projects.length.toString(), delta: '+6% MoM', icon: Activity, trend: 'up' as const },
     { label: 'Analyst verified', value: projects.filter(p => p.status === 'Verified').length.toString(), delta: '+2 this week', icon: ShieldCheck, trend: 'up' as const },
