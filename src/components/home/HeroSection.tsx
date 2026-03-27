@@ -4,7 +4,7 @@ import { InteractiveGlobe } from '@/components/InteractiveGlobe';
 
 export function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-visible">
+    <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
