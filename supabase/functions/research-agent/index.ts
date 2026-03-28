@@ -41,6 +41,7 @@ interface ExtractedProject {
   evidence_source: string;
   evidence_url: string;
   evidence_type: string;
+  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string }[];
 }
 
 serve(async (req) => {
