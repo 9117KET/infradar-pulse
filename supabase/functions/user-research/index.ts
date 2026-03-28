@@ -198,7 +198,7 @@ serve(async (req) => {
           }),
         });
         const aiData = await aiResp.json();
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?>[0];
+        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
         if (toolCall) {
           const parsed = JSON.parse(toolCall.function.arguments);
           extractedProjects = (parsed.projects || []).map((p: Record<string, unknown>, idx: number) => ({
