@@ -1,29 +1,160 @@
+import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Shield, UserPlus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import type { AppRole } from '@/contexts/AuthContext';
 
-const USERS = [
-  { name: 'Jane Doe', email: 'jane@acme.com', role: 'Admin', lastActive: '2 min ago' },
-  { name: 'Ahmed Hassan', email: 'ahmed@fund.co', role: 'Analyst', lastActive: '1h ago' },
-  { name: 'Sarah Chen', email: 'sarah@advisory.com', role: 'Viewer', lastActive: '3d ago' },
-];
+interface UserRow {
+  id: string;
+  display_name: string | null;
+  company: string | null;
+  email: string;
+  role: AppRole;
+  updated_at: string | null;
+}
+
+const ROLE_COLORS: Record<AppRole, string> = {
+  admin: 'bg-destructive/10 text-destructive border-destructive/30',
+  researcher: 'bg-primary/10 text-primary border-primary/30',
+  user: 'bg-muted text-muted-foreground border-border',
+};
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    // Fetch all profiles (admin RLS policy allows this)
+    const { data: profiles } = await supabase.from('profiles').select('*');
+    // Fetch all roles
+    const { data: roles } = await supabase.from('user_roles').select('*');
+
+    if (profiles && roles) {
+      const roleMap = new Map<string, AppRole>();
+      for (const r of roles) {
+        const current = roleMap.get(r.user_id);
+        // Keep highest role: admin > researcher > user
+        if (!current || (r.role === 'admin') || (r.role === 'researcher' && current === 'user')) {
+          roleMap.set(r.user_id, r.role as AppRole);
+        }
+      }
+
+      const mapped: UserRow[] = profiles.map((p: any) => ({
+        id: p.id,
+        display_name: p.display_name,
+        company: p.company,
+        email: p.display_name || p.id.slice(0, 8),
+        role: roleMap.get(p.id) || 'user',
+        updated_at: p.updated_at,
+      }));
+      setUsers(mapped);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchUsers(); }, []);
+
+  const changeRole = async (userId: string, newRole: AppRole) => {
+    // Delete existing roles, insert new one
+    await supabase.from('user_roles').delete().eq('user_id', userId);
+    const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole });
+    if (error) {
+      toast({ title: 'Error updating role', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Role updated', description: `User role changed to ${newRole}` });
+      fetchUsers();
+    }
+  };
+
+  const inviteResearcher = async () => {
+    if (!inviteEmail.trim()) return;
+    // We store the email as a "pending invite" — when user signs up with this email, 
+    // we can check and assign researcher role. For now, show confirmation.
+    toast({ title: 'Researcher invite noted', description: `When ${inviteEmail} signs up, assign them the researcher role from this page.` });
+    setInviteEmail('');
+    setInviteOpen(false);
+  };
+
   return (
-    <div className="space-y-6 max-w-3xl">
-      <h1 className="font-serif text-2xl font-bold">Users</h1>
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-serif text-2xl font-bold">User Management</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage roles and access for platform users</p>
+        </div>
+        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm"><UserPlus className="mr-2 h-4 w-4" /> Invite Researcher</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Invite Researcher</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">Enter the email of the person you want to assign as a researcher. Once they sign up, change their role from this page.</p>
+            <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="researcher@example.com" />
+            <Button onClick={inviteResearcher} disabled={!inviteEmail.trim()}>Send Invite</Button>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <div className="glass-panel rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b border-border bg-black/20"><th className="p-3 text-left font-medium text-muted-foreground">Name</th><th className="p-3 text-left font-medium text-muted-foreground">Email</th><th className="p-3 text-left font-medium text-muted-foreground">Role</th><th className="p-3 text-left font-medium text-muted-foreground">Last active</th></tr></thead>
-          <tbody>
-            {USERS.map(u => (
-              <tr key={u.email} className="border-b border-border/50">
-                <td className="p-3 font-medium">{u.name}</td>
-                <td className="p-3 text-muted-foreground">{u.email}</td>
-                <td className="p-3"><Badge variant="outline" className="text-xs">{u.role}</Badge></td>
-                <td className="p-3 text-muted-foreground">{u.lastActive}</td>
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground animate-pulse">Loading users…</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-black/20">
+                <th className="p-3 text-left font-medium text-muted-foreground">User</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Company</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Current Role</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Change Role</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Last Updated</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map(u => (
+                <tr key={u.id} className="border-b border-border/50">
+                  <td className="p-3">
+                    <div className="font-medium">{u.display_name || 'Unnamed'}</div>
+                    <div className="text-xs text-muted-foreground">{u.id.slice(0, 8)}…</div>
+                  </td>
+                  <td className="p-3 text-muted-foreground">{u.company || '—'}</td>
+                  <td className="p-3">
+                    <Badge variant="outline" className={`text-xs ${ROLE_COLORS[u.role]}`}>
+                      <Shield className="mr-1 h-3 w-3" />
+                      {u.role}
+                    </Badge>
+                  </td>
+                  <td className="p-3">
+                    <Select value={u.role} onValueChange={(val) => changeRole(u.id, val as AppRole)}>
+                      <SelectTrigger className="w-32 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">User</SelectItem>
+                        <SelectItem value="researcher">Researcher</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3 text-xs text-muted-foreground">
+                    {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '—'}
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No users found</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

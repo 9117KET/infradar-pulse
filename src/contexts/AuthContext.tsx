@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
+export type AppRole = 'user' | 'researcher' | 'admin';
+
 export interface UserProfile {
   id: string;
   display_name: string;
@@ -19,6 +21,8 @@ interface AuthCtx {
   loading: boolean;
   profile: UserProfile | null;
   profileLoading: boolean;
+  roles: AppRole[];
+  hasRole: (role: AppRole) => boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -26,6 +30,7 @@ interface AuthCtx {
 const AuthContext = createContext<AuthCtx>({
   user: null, session: null, loading: true,
   profile: null, profileLoading: true,
+  roles: [], hasRole: () => false,
   signOut: async () => {}, refreshProfile: async () => {},
 });
 
@@ -37,17 +42,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [roles, setRoles] = useState<AppRole[]>([]);
 
   const fetchProfile = useCallback(async (uid: string) => {
     setProfileLoading(true);
-    const { data } = await supabase.from('profiles').select('*').eq('id', uid).maybeSingle();
-    setProfile(data as UserProfile | null);
+    // Fetch profile and roles in parallel
+    const [profileRes, rolesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
+      supabase.from('user_roles').select('role').eq('user_id', uid),
+    ]);
+    setProfile(profileRes.data as UserProfile | null);
+    setRoles((rolesRes.data?.map((r: any) => r.role) ?? []) as AppRole[]);
     setProfileLoading(false);
   }, []);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
+
+  const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -58,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile(session.user.id);
       } else {
         setProfile(null);
+        setRoles([]);
         setProfileLoading(false);
       }
     });
@@ -79,10 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setRoles([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, roles, hasRole, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
