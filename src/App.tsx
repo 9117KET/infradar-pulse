@@ -29,7 +29,7 @@ import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
-import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
+import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
 import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
