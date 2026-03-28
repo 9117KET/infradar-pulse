@@ -29,7 +29,8 @@ function dbToProject(
   p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
   stakeholders: string[],
   milestones: Milestone[],
-  evidence: Evidence[]
+  evidence: Evidence[],
+  contacts: Contact[]
 ): Project {
   return {
     id: p.slug,
