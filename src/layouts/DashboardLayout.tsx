@@ -7,32 +7,54 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, BarChart3, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, Satellite, ShieldCheck, FileText, Bot } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, ShieldCheck, BarChart3, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
-// admin-only nav items
 const ADMIN_ONLY = new Set(['/dashboard/waitlist', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
 
-const ALL_NAV = [
-  { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
-  { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
-  { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
-  { title: 'Satellite', url: '/dashboard/satellite', icon: Satellite },
-  { title: 'Validation', url: '/dashboard/validation', icon: ShieldCheck },
-  { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle },
-  { title: 'Reporting', url: '/dashboard/reporting', icon: FileText },
-  { title: 'Analytics', url: '/dashboard/analytics', icon: BarChart3 },
-  { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
-  { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
-  { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
-  { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
-  { title: 'Users', url: '/dashboard/users', icon: Users },
-  { title: 'Agents', url: '/dashboard/agents', icon: Bot },
-  { title: 'Settings', url: '/dashboard/settings', icon: Settings },
+const NAV_GROUPS = [
+  {
+    label: 'Core',
+    items: [
+      { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
+      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
+    ],
+  },
+  {
+    label: 'Intelligence',
+    items: [
+      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
+      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck },
+      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
+      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
+      { title: 'Agents', url: '/dashboard/agents', icon: Bot },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
+    ],
+  },
+  {
+    label: 'Analysis',
+    items: [
+      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3 },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
+      { title: 'Users', url: '/dashboard/users', icon: Users },
+      { title: 'Settings', url: '/dashboard/settings', icon: Settings },
+    ],
+  },
 ];
 
 const ADMIN_ROLES = new Set(['investor', 'strategy', '']);
@@ -42,7 +64,6 @@ function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, profile } = useAuth();
   const isAdmin = !profile?.role || ADMIN_ROLES.has(profile.role);
-  const NAV = ALL_NAV.filter(item => isAdmin || !ADMIN_ONLY.has(item.url));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -51,23 +72,29 @@ function AppSidebar() {
           <InfradarLogo size={24} />
           {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfraRadar AI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
         </div>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV.map(item => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map(group => {
+          const visibleItems = group.items.filter(item => isAdmin || !ADMIN_ONLY.has(item.url));
+          if (visibleItems.length === 0) return null;
+          return (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleItems.map(item => (
+                    <SidebarMenuItem key={item.url}>
+                      <SidebarMenuButton asChild>
+                        <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {!collapsed && <span>{item.title}</span>}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
         <div className="mt-auto p-4">
           <Button variant="ghost" size="sm" className="w-full justify-start text-muted-foreground" onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" />{!collapsed && 'Sign out'}
