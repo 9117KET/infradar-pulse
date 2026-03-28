@@ -21,6 +21,7 @@ export interface Alert {
   message: string;
   time: string;
   read: boolean;
+  sourceUrl?: string;
 }
 
 export const ALERTS: Alert[] = [
