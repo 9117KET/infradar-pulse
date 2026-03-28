@@ -25,7 +25,6 @@ import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
 import ProjectEditor from "./pages/dashboard/ProjectEditor";
-import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
@@ -34,12 +33,12 @@ import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
 import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
-import Reporting from "./pages/dashboard/Reporting";
-import SatelliteVerification from "./pages/dashboard/SatelliteVerification";
+import EvidenceVerification from "./pages/dashboard/EvidenceVerification";
+import AnalyticsReports from "./pages/dashboard/AnalyticsReports";
 import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
-import MultiSourceValidation from "./pages/dashboard/MultiSourceValidation";
 import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 import AgentMonitoring from "./pages/dashboard/AgentMonitoring";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
