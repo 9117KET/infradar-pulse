@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
   Check, X, ExternalLink, Bot, MapPin, DollarSign,
-  ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2
+  ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2,
+  Mail, Phone, User, Building2
 } from 'lucide-react';
 
 interface EvidenceRow {
