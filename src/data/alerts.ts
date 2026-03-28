@@ -20,6 +20,7 @@ export interface Alert {
   category: AlertCategory;
   message: string;
   time: string;
+  createdAt: string;
   read: boolean;
   sourceUrl?: string;
 }
