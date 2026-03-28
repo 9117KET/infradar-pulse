@@ -7,7 +7,7 @@ import { Mail, Rocket, BellRing, Handshake, Check, Loader2 } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const REGIONS = ['MENA', 'East Africa', 'West Africa'];
+const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
 const SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
 
 function NewsletterCard() {

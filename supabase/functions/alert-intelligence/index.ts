@@ -57,7 +57,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are an infrastructure intelligence analyst. Analyze alert patterns across categories to identify emerging risks, regional hotspots, and actionable recommendations for infrastructure investors and project managers in MENA and Africa.",
+            content: "You are an infrastructure intelligence analyst. Analyze alert patterns across categories to identify emerging risks, regional hotspots, and actionable recommendations for infrastructure investors and project managers worldwide.",
           },
           {
             role: "user",

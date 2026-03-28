@@ -29,8 +29,8 @@ serve(async (req) => {
 
     if (PERPLEXITY_API_KEY) {
       const queries = [
-        "steel cement copper prices 2025 Africa Middle East supply chain disruptions",
-        "construction material shortages shipping delays Africa MENA 2025",
+        "steel cement copper prices 2025 global supply chain disruptions infrastructure",
+        "construction material shortages shipping delays worldwide 2025",
       ];
       for (const q of queries) {
         try {
@@ -40,7 +40,7 @@ serve(async (req) => {
             body: JSON.stringify({
               model: "sonar",
               messages: [
-                { role: "system", content: "You are a supply chain analyst for infrastructure construction materials in MENA and Africa." },
+                { role: "system", content: "You are a supply chain analyst for infrastructure construction materials worldwide." },
                 { role: "user", content: q },
               ],
               search_recency_filter: "week",

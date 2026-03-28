@@ -50,7 +50,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are a research assistant specializing in infrastructure projects in Africa and the Middle East. Return factual information with source URLs." },
+              { role: "system", content: "You are a research assistant specializing in global infrastructure projects. Return factual information with source URLs." },
               { role: "user", content: `Research this query and provide detailed information with sources: ${query}` },
             ],
           }),

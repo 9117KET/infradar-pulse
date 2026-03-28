@@ -19,7 +19,7 @@ interface Settings {
   regions: string[];
 }
 
-const defaults: Settings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false, regions: ['MENA', 'East Africa', 'West Africa'] };
+const defaults: Settings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false, regions: [] };
 
 const ROLE_OPTIONS = [
   { value: 'investor', label: 'Investor / CFO' },
