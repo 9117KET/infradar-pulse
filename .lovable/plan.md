@@ -1,114 +1,87 @@
 
 
-# Role-Based Access Control + Guided Onboarding
+# Interactive Guided Product Tour (Post-Onboarding)
 
-## Overview
+## What changes
 
-Implement a proper 3-tier role system (user, researcher, admin) with a `user_roles` table, role-based navigation/access, admin user management, and an interactive guided onboarding tour that highlights platform features.
+After the text-based onboarding completes and the user lands on the dashboard for the first time, an **interactive step-by-step tour** begins. It highlights actual UI elements (sidebar items, header controls, page sections) with a spotlight overlay, tooltip arrows, and descriptions — walking the user through each feature in context.
 
-## Roles
+## Approach
 
-| Role | Access |
-|------|--------|
-| **user** | Core (Overview, Research, Projects), Intelligence, Analysis. Limited to own data. Free trial period. |
-| **researcher** | Everything user has + Operations (Monitoring, Alerts, Agents, Review Queue) + enhanced Research with API tools for verification |
-| **admin** | Full access including Admin section (Subscribers, Users, Settings). Can assign/revoke roles. |
+### 1. Tour Engine Component — `src/components/GuidedTour.tsx`
 
-## Database Changes
+A full-screen overlay system with:
+- **Spotlight mask**: Dark overlay with a transparent cutout around the highlighted element (CSS `clip-path` or box-shadow trick)
+- **Tooltip bubble**: Positioned next to the highlighted element with an arrow, containing the feature name, description, and Next/Skip buttons
+- **Step counter**: "Step 3 of 12" progress indicator
+- Element targeting via `data-tour="step-id"` attributes on existing UI elements
 
-### 1. Create `user_roles` table (per security guidelines)
+No external library needed — pure React + CSS.
 
-```sql
-CREATE TYPE public.app_role AS ENUM ('user', 'researcher', 'admin');
+### 2. Tour Steps Definition
 
-CREATE TABLE public.user_roles (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  role app_role NOT NULL,
-  UNIQUE (user_id, role)
-);
+Each step targets a `data-tour` attribute and includes a title, description, and preferred tooltip position:
 
-ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+| Step | Target | Title | Description |
+|------|--------|-------|-------------|
+| 1 | Sidebar logo | Welcome to your Dashboard | This is your command center for infrastructure intelligence |
+| 2 | Overview nav | Overview Dashboard | Real-time KPIs, risk heatmaps, and portfolio metrics |
+| 3 | Research nav | AI Research Hub | Type any query and watch AI agents research in real time |
+| 4 | Projects nav | Project Intelligence | Browse detailed project profiles with verified data |
+| 5 | Geo Intelligence nav | Geo Intelligence | Interactive maps showing project clusters and corridors |
+| 6 | Evidence nav | Evidence & Verification | Multi-source evidence layers for each project |
+| 7 | Risk nav | Risk & Anomaly Signals | AI-powered risk scoring and signal detection |
+| 8 | Analytics nav | Analytics & Reports | Custom dashboards with exportable reports |
+| 9 | Insights nav | Insights & Briefings | AI-generated intelligence briefings |
+| 10 | Notification bell | Notifications | Real-time alerts for projects and risk changes |
+| 11 | Profile menu | Your Profile | Access settings, manage your account, view your role |
+| 12 | Search bar | Quick Search | Search projects, alerts, and insights from anywhere |
+
+Steps for Operations (researcher+) and Admin sections are conditionally included based on user role.
+
+### 3. Add `data-tour` attributes to DashboardLayout
+
+Add `data-tour="overview"`, `data-tour="research"`, etc. to each sidebar nav item, the notification bell, profile menu, and search input. Minimal changes — just adding an attribute to existing elements.
+
+### 4. Tour State Management
+
+- Store `tour_completed: boolean` in the `profiles` table (new column via migration)
+- On first dashboard load, if `profile.onboarded === true && profile.tour_completed !== true`, auto-start the tour
+- "Skip tour" dismisses and marks complete
+- Finishing all steps marks complete
+- A "Restart Tour" option in Settings or Profile menu
+
+### 5. Tour UX
+
+```text
+┌──────────────────────────────────────────────┐
+│ ████████████████████████████████████████████  │
+│ ██┌──────┐██████████████████████████████████  │
+│ ██│ Logo │██████████████████████████████████  │
+│ ██└──────┘██████████████████████████████████  │
+│ ██┌──────────┐  ┌─────────────────────┐█████  │
+│ ██│▶Overview │←─│ Overview Dashboard   │█████  │
+│ ██│  (lit)   │  │ Real-time KPIs and  │█████  │
+│ ██└──────────┘  │ risk heatmaps...    │█████  │
+│ ██  Research ██ │ [Back] [Next 2/12]  │█████  │
+│ ██  Projects ██ └─────────────────────┘█████  │
+│ ██████████████████████████████████████████████ │
+│ ████████████████████████████████████████████  │
+└──────────────────────────────────────────────┘
 ```
 
-### 2. Security definer function
-
-```sql
-CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
-SET search_path = public AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role
-  )
-$$;
-```
-
-### 3. Auto-assign 'user' role on signup
-
-Add to the existing `handle_new_user` trigger function — insert a default `user` role row.
-
-### 4. RLS policies on `user_roles`
-
-- Authenticated users can read their own roles
-- Admins can read all + insert/update/delete (via `has_role`)
-
-## Frontend Changes
-
-### `AuthContext.tsx` — Add role to context
-
-- Fetch user's roles from `user_roles` table alongside profile
-- Expose `roles: app_role[]` and helper `hasRole(role)` in context
-- No changes to profile table (roles stay in separate table)
-
-### `DashboardLayout.tsx` — Role-based navigation
-
-Replace the current hacky `ADMIN_ROLES` set with proper role checks:
-- **user**: sees Core + Intelligence + Analysis groups only
-- **researcher**: sees Core + Intelligence + Operations + Analysis (no Admin)
-- **admin**: sees everything
-
-Define a `requiredRole` per nav group or per item, filter using `hasRole()`.
-
-### `Users.tsx` — Real user management (admin only)
-
-Replace hardcoded mock data with:
-- Fetch all profiles + their roles from the database
-- Table showing name, email, role, last active
-- Admin can click to assign/change a user's role (dropdown: user → researcher → admin)
-- "Invite Researcher" button: admin enters an email, and when that user signs up they get `researcher` role
-
-### `Onboarding.tsx` — Enhanced guided onboarding (6 steps)
-
-Expand from 3 steps to 6:
-
-1. **Welcome + Name/Company** (existing step 0)
-2. **Your Role** (existing role selection — now also sets app_role context for personalization)
-3. **Focus Areas** (existing regions/sectors/stages)
-4. **Platform Tour: Core Features** — visual cards explaining Overview, Projects, Research with screenshots/icons and short descriptions
-5. **Platform Tour: Intelligence & Analysis** — explains Geo Intelligence, Evidence Verification, Risk Signals, Analytics, Insights
-6. **Platform Tour: Getting Started** — role-specific tips (e.g., "As an Investor, start with Risk Signals" or "As a Contractor, check Tender-stage projects"), then "Go to Dashboard"
-
-Each tour step shows:
-- Feature icon + name
-- 1-2 sentence description of what it does
-- A "highlight" card with a mini mockup or icon illustration
-- Progress bar showing 6 steps
-
-### Route protection
-
-- Wrap admin-only routes (`/dashboard/subscribers`, `/dashboard/users`) with a role check — redirect non-admins to `/dashboard`
-- Wrap researcher-only routes (`/dashboard/review`, `/dashboard/agents`) similarly
-- Add a `<RoleGuard requiredRole="admin">` wrapper component used in `DashboardLayout` or individual pages
+- Highlighted element gets a glowing border + z-index lift
+- Everything else dimmed with a semi-transparent overlay
+- Tooltip has smooth transition animations between steps
+- Arrow points from tooltip to the highlighted element
 
 ## Files
 
 | Action | File |
 |--------|------|
-| SQL Migration | Create `user_roles` table, `has_role` function, RLS policies, update trigger |
-| Modify | `src/contexts/AuthContext.tsx` — fetch roles, expose `hasRole()` |
-| Create | `src/components/RoleGuard.tsx` — route protection component |
-| Modify | `src/layouts/DashboardLayout.tsx` — role-based nav filtering |
-| Rewrite | `src/pages/dashboard/Users.tsx` — real user management with role assignment |
-| Rewrite | `src/pages/Onboarding.tsx` — 6-step onboarding with platform tour |
-| Modify | `src/App.tsx` — wrap protected routes with RoleGuard |
+| Create | `src/components/GuidedTour.tsx` — tour overlay, spotlight, tooltip, step logic |
+| SQL | Add `tour_completed boolean default false` to `profiles` table |
+| Modify | `src/layouts/DashboardLayout.tsx` — add `data-tour` attributes to nav items, header elements; render `<GuidedTour />` when tour not completed |
+| Modify | `src/contexts/AuthContext.tsx` — expose `tour_completed` from profile, add `completeTour()` method |
+| Modify | `src/pages/dashboard/Settings.tsx` — add "Restart Tour" button |
 
