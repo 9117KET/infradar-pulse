@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProjects } from '@/hooks/use-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -15,6 +16,10 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 
 const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
 
@@ -41,6 +46,26 @@ export default function ProjectDetail() {
   const [ctPhone, setCtPhone] = useState('');
   const [ctEmail, setCtEmail] = useState('');
 
+  // Verification toggle state
+  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
+  const [verifyReason, setVerifyReason] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verificationLog, setVerificationLog] = useState<any[]>([]);
+
+  // Fetch verification log
+  useEffect(() => {
+    if (!project?.dbId) return;
+    supabase
+      .from('project_verification_log' as any)
+      .select('*')
+      .eq('project_id', project.dbId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setVerificationLog(data);
+      });
+  }, [project?.dbId, verifyLoading]);
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl">
@@ -63,6 +88,29 @@ export default function ProjectDetail() {
   }
 
   const contacts = project.contacts || [];
+
+  const handleVerificationToggle = async () => {
+    if (!project.dbId || !verifyReason.trim()) return;
+    setVerifyLoading(true);
+    try {
+      const newStatus = verifyAction === 'verified' ? 'Verified' : 'Pending';
+      await supabase.from('projects').update({ status: newStatus as any }).eq('id', project.dbId);
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('project_verification_log' as any).insert({
+        project_id: project.dbId,
+        action: verifyAction,
+        reason: verifyReason,
+        performed_by: user?.id,
+      });
+      toast({ title: verifyAction === 'verified' ? 'Project verified' : 'Project marked unverified', description: verifyReason });
+      setShowVerifyDialog(false);
+      setVerifyReason('');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!project.dbId) return;
@@ -168,6 +216,15 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
+          {project.status === 'Verified' ? (
+            <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
+              <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
+              <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+            </Button>
+          )}
           <Link to={`/dashboard/projects/${project.id}/edit`}>
             <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
           </Link>
@@ -188,6 +245,36 @@ export default function ProjectDetail() {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Verification Dialog */}
+      <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{verifyAction === 'verified' ? 'Mark Project as Verified' : 'Mark Project as Unverified'}</DialogTitle>
+            <DialogDescription>
+              {verifyAction === 'verified'
+                ? 'Confirm that this project data has been verified and is accurate.'
+                : 'Flag this project as unverified. Provide a reason so the team knows why.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={verifyReason}
+            onChange={e => setVerifyReason(e.target.value)}
+            placeholder="Reason for status change (required)..."
+            className="bg-black/20"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVerifyDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleVerificationToggle}
+              disabled={!verifyReason.trim() || verifyLoading}
+              className={verifyAction === 'verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-destructive hover:bg-destructive/90'}
+            >
+              {verifyLoading ? 'Saving...' : verifyAction === 'verified' ? 'Confirm Verified' : 'Confirm Unverified'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Score badges */}
       <div className="grid gap-4 sm:grid-cols-4">
@@ -221,6 +308,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="evidence">Evidence ({project.evidence.length})</TabsTrigger>
           <TabsTrigger value="timeline">Timeline ({project.milestones.length})</TabsTrigger>
+          <TabsTrigger value="verification">Verification ({verificationLog.length})</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -399,6 +487,30 @@ export default function ProjectDetail() {
                     <span className="text-xs text-muted-foreground ml-2">{m.date}</span>
                   </div>
                   {m.completed && <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">Complete</Badge>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Verification History */}
+        <TabsContent value="verification">
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" />Verification History</h3>
+            <div className="space-y-3">
+              {verificationLog.length === 0 && <p className="text-sm text-muted-foreground">No verification changes recorded yet.</p>}
+              {verificationLog.map((entry: any) => (
+                <div key={entry.id} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                  <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${entry.action === 'verified' ? 'bg-emerald-500' : 'bg-destructive'}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={`text-[10px] ${entry.action === 'verified' ? 'text-emerald-500 border-emerald-500/30' : 'text-destructive border-destructive/30'}`}>
+                        {entry.action === 'verified' ? 'Verified' : 'Unverified'}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleDateString()} {new Date(entry.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">{entry.reason}</p>
+                  </div>
                 </div>
               ))}
             </div>
