@@ -170,7 +170,7 @@ serve(async (req) => {
                           stage: { type: "string" },
                           value_label: { type: "string" },
                           description: { type: "string" },
-                          source_url: { type: "string" },
+                          source_url: { type: "string", description: "URL where this project information was found" },
                           contacts: {
                             type: "array",
                             items: {
@@ -179,8 +179,10 @@ serve(async (req) => {
                                 name: { type: "string" },
                                 role: { type: "string" },
                                 organization: { type: "string" },
-                                email: { type: "string" },
+                                email: { type: "string", description: "Email address if found" },
+                                phone: { type: "string", description: "Phone number if found" },
                               },
+                              required: ["name"],
                             },
                           },
                         },
