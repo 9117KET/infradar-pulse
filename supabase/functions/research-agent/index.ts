@@ -343,6 +343,24 @@ ${rawContent.join("\n\n---\n\n")}`;
             });
           }
 
+          // Add contacts if extracted
+          if (ep.contacts?.length) {
+            const validContacts = ep.contacts.filter(c => c.name && (c.phone || c.email));
+            if (validContacts.length > 0) {
+              await supabase.from("project_contacts").insert(
+                validContacts.map(c => ({
+                  project_id: newProject.id,
+                  name: c.name,
+                  role: c.role || '',
+                  organization: c.organization || '',
+                  phone: c.phone || null,
+                  email: c.email || null,
+                  source: ep.evidence_source || 'AI Research Agent',
+                  added_by: 'ai',
+                }))
+              );
+            }
+
           // Create alert for new discovery
           await supabase.from("alerts").insert({
             project_id: newProject.id,
