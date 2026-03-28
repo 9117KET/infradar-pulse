@@ -18,6 +18,15 @@ import {
   PieChart, Pie,
 } from 'recharts';
 
+const SEVERITY_COLORS: Record<string, string> = {
+  critical: '#dc2626', high: '#f59e0b', medium: '#3b82f6', low: '#64748b',
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  political: '#8b5cf6', financial: '#f59e0b', regulatory: '#3b82f6', supply_chain: '#ef4444',
+  environmental: '#22c55e', construction: '#f97316', stakeholder: '#06b6d4', market: '#ec4899', security: '#64748b',
+};
+
 const severityClass: Record<string, string> = {
   critical: 'text-destructive border-destructive/30',
   high: 'text-amber-500 border-amber-500/30',
