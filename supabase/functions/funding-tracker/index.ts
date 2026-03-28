@@ -62,8 +62,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are a development finance analyst tracking infrastructure funding flows in MENA and Africa." },
-              { role: "user", content: "Latest development bank infrastructure project approvals, bond issuances, sovereign wealth fund investments in Africa and Middle East 2025. Include amounts, countries, and project names." },
+              { role: "system", content: "You are a development finance analyst tracking infrastructure funding flows worldwide." },
+              { role: "user", content: "Latest development bank infrastructure project approvals, bond issuances, sovereign wealth fund investments worldwide 2025. Include amounts, countries, and project names." },
             ],
             search_recency_filter: "week",
           }),

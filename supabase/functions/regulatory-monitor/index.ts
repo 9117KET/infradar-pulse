@@ -44,7 +44,7 @@ serve(async (req) => {
             body: JSON.stringify({
               model: "sonar",
               messages: [
-                { role: "system", content: "You are a regulatory compliance analyst for infrastructure projects in MENA and Africa." },
+                { role: "system", content: "You are a regulatory compliance analyst for infrastructure projects worldwide." },
                 { role: "user", content: q },
               ],
               search_recency_filter: "month",
