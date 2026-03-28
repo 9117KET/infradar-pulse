@@ -114,7 +114,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects in MENA and Africa regions. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
+              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
               { role: "user", content: query },
             ],
             search_recency_filter: "month",
