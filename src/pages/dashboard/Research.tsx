@@ -268,9 +268,15 @@ export default function Research() {
                           {p.stage && <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>}
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => handleSaveProject(p)}>
-                        <Save className="h-3 w-3 mr-1" /> Save
-                      </Button>
+                      {savedProjects.has(`${activeTaskId}-${i}`) ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[10px]">
+                          <CheckCircle className="h-3 w-3 mr-1" /> In Review Queue
+                        </Badge>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => handleSaveProject(p, i)}>
+                          <Save className="h-3 w-3 mr-1" /> Save to Review
+                        </Button>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">{p.description}</p>
                     {p.value_label && <p className="text-xs"><span className="text-muted-foreground">Value:</span> {p.value_label}</p>}
