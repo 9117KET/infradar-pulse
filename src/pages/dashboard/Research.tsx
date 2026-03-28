@@ -360,8 +360,11 @@ export default function Research() {
           {/* Report — Extracted Projects */}
           {isComplete && result?.projects && (result.projects as any[]).length > 0 && (
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Discovered Projects</CardTitle>
+                <Button size="sm" variant="outline" onClick={handleExportPDF}>
+                  <Download className="h-3 w-3 mr-1" /> Export PDF
+                </Button>
               </CardHeader>
               <CardContent className="space-y-3">
                 {(result.projects as any[]).map((p: any, i: number) => (
