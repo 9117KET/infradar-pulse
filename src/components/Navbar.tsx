@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { InfradarLogo } from './InfradarLogo';
@@ -47,9 +47,9 @@ export function Navbar() {
           <Link to="/login">
             <Button variant="ghost" size="sm" className="text-muted-foreground">Sign in</Button>
           </Link>
-          <a href="/#contact">
-            <Button size="sm" className="teal-glow">Join waitlist</Button>
-          </a>
+          <Link to="/login">
+            <Button size="sm" className="teal-glow">Get Started</Button>
+          </Link>
         </div>
 
         {/* Mobile */}
@@ -70,9 +70,9 @@ export function Navbar() {
               <Link to="/login" onClick={() => setOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start">Sign in</Button>
               </Link>
-              <a href="/#contact" onClick={() => setOpen(false)}>
-                <Button className="w-full teal-glow">Join waitlist</Button>
-              </a>
+              <Link to="/login" onClick={() => setOpen(false)}>
+                <Button className="w-full teal-glow">Get Started</Button>
+              </Link>
             </div>
           </SheetContent>
         </Sheet>
