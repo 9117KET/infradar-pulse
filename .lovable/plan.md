@@ -1,70 +1,89 @@
 
+# Review Queue Source Verification Fix
 
-# Sophisticated Hero Command Center Widget
+## What’s wrong now
+The issue is real: the Review Queue fetches pending projects with `select('*')`, but the UI never renders `project.source_url` inside the expanded details. So even when a pending project already has a source URL, reviewers cannot see it.
 
-## Current State
-The right side of the hero has a simple card with 3 cycling project rows and basic stats. It works but feels like a basic list — not a "command center."
+There is also a second platform-wide issue: some projects may still be missing `source_url`, and current agent logic is not strict enough about guaranteeing verifiable URLs everywhere.
 
-## Proposed Redesign
+## Implementation plan
 
-Replace the single card with a multi-layered **Intelligence Dashboard** widget that feels like a live operations terminal.
+### 1) Fix the Review Queue UI first
+Update `src/pages/dashboard/ReviewQueue.tsx` so expanded details show a clear verification block:
+- Primary source link from `project.source_url`
+- Friendly label like “Primary source”
+- Open-in-new-tab button/icon
+- Clear fallback state when no source exists yet, e.g. “Source link missing — requires enrichment before approval”
 
-```text
-┌──────────────────────────────────────────┐
-│ ◉ INFRADAR COMMAND CENTER    ● Real-time │
-├──────────────────────────────────────────┤
-│                                          │
-│  ┌─ SECTOR BREAKDOWN (mini donut) ─────┐ │
-│  │  ◕ Energy 34%  ◕ Transport 22% ... │ │
-│  └─────────────────────────────────────┘ │
-│                                          │
-│  ┌─ LIVE FEED ─────────────────────────┐ │
-│  │  ↑ NEOM Phase 2   $500B   SA  ▓▓▓░ │ │
-│  │  ↑ Cairo Metro    $23B    EG  ▓▓░░ │ │
-│  │  ↑ Kenya Wind     $1.2B   KE  ▓░░░ │ │
-│  └─────────────────────────────────────┘ │
-│                                          │
-│  ┌─ RISK HEATMAP ──┐ ┌─ ACTIVITY ─────┐ │
-│  │  ■■■■□□  MENA   │ │ ┃▁▂▅▇█▅▃▁     │ │
-│  │  ■■□□□□  Africa │ │ │ 24h volume   │ │
-│  └──────────────────┘ └────────────────┘ │
-│                                          │
-│  $1.2T pipeline  │  142 projects  │ v1.0 │
-└──────────────────────────────────────────┘
-```
+Also use the already-imported `ExternalLink` icon there.
 
-### Sections (top to bottom):
+### 2) Make missing-source records obvious before approval
+Improve the review cards so source completeness is visible even before expansion:
+- Add a small “Has source” / “Missing source” badge
+- Optionally disable or warn on approval when `source_url` is empty
+- This keeps “verified intelligence” aligned with the review workflow
 
-1. **Header** — "INFRADAR COMMAND CENTER" with scanning line animation + green pulsing dot
+### 3) Surface evidence links in the review flow
+For pending projects, also load related `evidence_sources` for each project and show them in the expanded panel:
+- List source name + source URL
+- Mark verified/unverified if available
+- This gives reviewers more than one verification path, not just a single primary URL
 
-2. **Sector Breakdown** — Animated donut/ring chart (pure SVG, no library) showing project count by sector with colored segments. Sectors animate in on mount.
+This is especially useful when `projects.source_url` is missing but `evidence_sources.url` exists.
 
-3. **Live Project Feed** — Same cycling 3-project list but enhanced with:
-   - Risk score as a mini progress bar (colored green/amber/red)
-   - Typewriter-style entry animation
-   - Faint scan-line effect across each row
+### 4) Backfill missing URLs platform-wide
+Strengthen `supabase/functions/data-enrichment/index.ts` so it prioritizes projects lacking:
+- `source_url`
+- evidence URLs
+- contact source URLs where relevant
 
-4. **Bottom Grid** (2 mini panels side by side):
-   - **Regional Risk Summary** — tiny heatmap blocks for MENA vs Africa (avg risk scores)
-   - **Activity Pulse** — SVG sparkline showing project count distribution (simulated from data, grouped by region/sector)
+Enhance the enrichment output so it fills:
+- `projects.source_url`
+- additional `evidence_sources` entries when citations are available
+- `project_contacts.source_url` consistently for discovered contacts
 
-5. **Stats Footer** — Total pipeline value, project count, version — with a counting-up number animation on mount
+### 5) Tighten discovery agent requirements
+Update `supabase/functions/research-agent/index.ts` so discovery is stricter:
+- Treat source URL as required for accepted extraction output
+- Prefer real citation URLs, not placeholders
+- Skip or flag weak discoveries where no verifiable URL can be found
+- Ensure every new pending project gets:
+  - `projects.source_url`
+  - matching `evidence_sources.url`
+  - alert `source_url`
+  - contact `source_url` when contacts are extracted
 
-### Visual Effects:
-- Faint horizontal scan-line animation (CSS) moving down the card every 4s
-- Ambient teal glow behind the card (existing)
-- Glass-morphism with slightly more opacity
-- Monospace font for numbers/codes
+### 6) Improve contact-finder source fidelity
+Update `supabase/functions/contact-finder/index.ts` so contact sourcing is more precise:
+- Attach the best per-contact or per-batch source URL
+- Avoid generic or ambiguous source assignment where possible
+- Preserve verifiability for contractor emails and phone numbers
 
-## Implementation
+### 7) Keep editing and detail pages aligned
+Review existing source handling in:
+- `src/pages/dashboard/ProjectDetail.tsx`
+- `src/pages/dashboard/ProjectEditor.tsx`
+- `src/hooks/use-projects.ts`
 
-### Modify: `src/components/home/HeroLiveTracker.tsx`
-- Complete rebuild with 5 sections above
-- Pure SVG for donut chart and sparkline (no chart library needed for hero)
-- `useMemo` to compute sector distribution, regional risk averages
-- Counting animation via a small `useEffect` + `requestAnimationFrame` hook
-- CSS keyframe for scan-line effect (inline style or tailwind extend)
+These already support `sourceUrl`, so no major redesign is needed, but I would ensure:
+- empty strings are treated consistently as missing
+- links render prominently and safely
+- manual edits preserve source integrity
 
-### No other files change
-- `HeroSection.tsx` already passes `projects` — no change needed
+## Files to update
+- `src/pages/dashboard/ReviewQueue.tsx`
+- `supabase/functions/research-agent/index.ts`
+- `supabase/functions/data-enrichment/index.ts`
+- `supabase/functions/contact-finder/index.ts`
 
+## Expected outcome
+After this:
+- Every project under review visibly shows where the information came from
+- Reviewers can click directly to verify the claim
+- Missing-source projects are clearly flagged
+- Agents continuously backfill and enforce source URLs across projects, alerts, evidence, and contacts
+
+## Technical notes
+- No schema migration is needed because `projects.source_url`, `alerts.source_url`, `insights.source_url`, and `project_contacts.source_url` already exist
+- The biggest current gap is UI rendering in the Review Queue, not database structure
+- The best verification UX is: primary project URL + supporting evidence URLs together in the review details
