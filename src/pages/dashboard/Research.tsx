@@ -22,6 +22,7 @@ export default function Research() {
   const [query, setQuery] = useState('');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Poll active task
