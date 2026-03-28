@@ -53,6 +53,19 @@ export default function ProjectDetail() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verificationLog, setVerificationLog] = useState<any[]>([]);
 
+  // Fetch verification log
+  useEffect(() => {
+    if (!project?.dbId) return;
+    supabase
+      .from('project_verification_log' as any)
+      .select('*')
+      .eq('project_id', project.dbId)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        if (data) setVerificationLog(data);
+      });
+  }, [project?.dbId, verifyLoading]);
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl">
