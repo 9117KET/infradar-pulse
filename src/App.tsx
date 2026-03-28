@@ -25,7 +25,6 @@ import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
 import ProjectEditor from "./pages/dashboard/ProjectEditor";
-import Analytics from "./pages/dashboard/Analytics";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
@@ -34,12 +33,12 @@ import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
 import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
-import Reporting from "./pages/dashboard/Reporting";
-import SatelliteVerification from "./pages/dashboard/SatelliteVerification";
+import EvidenceVerification from "./pages/dashboard/EvidenceVerification";
+import AnalyticsReports from "./pages/dashboard/AnalyticsReports";
 import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
-import MultiSourceValidation from "./pages/dashboard/MultiSourceValidation";
 import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 import AgentMonitoring from "./pages/dashboard/AgentMonitoring";
+import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -74,7 +73,7 @@ const App = () => (
               <Route path="/dashboard/projects/new" element={<ProjectEditor />} />
               <Route path="/dashboard/projects/:id/edit" element={<ProjectEditor />} />
               <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
-              <Route path="/dashboard/analytics" element={<Analytics />} />
+              <Route path="/dashboard/analytics-reports" element={<AnalyticsReports />} />
               <Route path="/dashboard/alerts" element={<Alerts />} />
               <Route path="/dashboard/users" element={<UsersPage />} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
@@ -82,12 +81,15 @@ const App = () => (
               <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
               <Route path="/dashboard/insights" element={<InsightsManagement />} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
-              <Route path="/dashboard/reporting" element={<Reporting />} />
-              <Route path="/dashboard/satellite" element={<SatelliteVerification />} />
+              <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
               <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
-              <Route path="/dashboard/validation" element={<MultiSourceValidation />} />
               <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
               <Route path="/dashboard/agents" element={<AgentMonitoring />} />
+              {/* Redirects for old routes */}
+              <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/analytics-reports" replace />} />
+              <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/analytics-reports" replace />} />
+              <Route path="/dashboard/satellite" element={<Navigate to="/dashboard/evidence" replace />} />
+              <Route path="/dashboard/validation" element={<Navigate to="/dashboard/evidence" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
