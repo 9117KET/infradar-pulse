@@ -81,6 +81,7 @@ serve(async (req) => {
                       issues: { type: "array", items: { type: "string", enum: ["community_opposition", "labor_dispute", "political_controversy", "environmental_concern", "cost_overrun", "delay", "none"] } },
                       severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the news source" },
                     },
                     required: ["project_name", "sentiment", "summary"],
                   },
