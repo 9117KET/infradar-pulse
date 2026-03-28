@@ -33,7 +33,7 @@ serve(async (req) => {
         const res = await fetch("https://api.firecrawl.dev/v1/search", {
           method: "POST",
           headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: "infrastructure construction contract awards bids Africa Middle East 2025", limit: 5, scrapeOptions: { formats: ["markdown"] } }),
+          body: JSON.stringify({ query: "infrastructure construction contract awards bids global worldwide 2025", limit: 5, scrapeOptions: { formats: ["markdown"] } }),
         });
         const data = await res.json();
         if (data?.data) {
