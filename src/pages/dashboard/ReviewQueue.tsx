@@ -20,6 +20,18 @@ interface EvidenceRow {
   title: string | null;
 }
 
+interface ContactRow {
+  id: string;
+  name: string;
+  role: string;
+  organization: string;
+  email: string | null;
+  phone: string | null;
+  contact_type: string;
+  source_url: string | null;
+  verified: boolean;
+}
+
 export default function ReviewQueue() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
