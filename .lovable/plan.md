@@ -1,65 +1,54 @@
 
 
-# Source Links for Projects, Alerts & Insights
+# Enhanced Contractor Email Discovery & Display
 
 ## Summary
 
-Add `source_url` to alerts and ensure all agents always include source URLs in their findings. Update the Alerts UI and Insights pages to display clickable source links. Projects already have `source_url` — ensure agents populate it consistently.
+The existing `contact-finder` agent and `project_contacts` table already support emails, phones, roles, and organizations. The gap is that the agent doesn't specifically prioritize **main contractor contacts** and the UI doesn't highlight them. Rather than a new agent, we enhance the existing one and improve how contractor info is surfaced.
 
----
+## Changes
 
-## Database Migration
+### 1. Enhance Contact Finder Agent
 
-Add `source_url` column to the `alerts` table:
+Update `supabase/functions/contact-finder/index.ts`:
+- Modify the Perplexity search query to explicitly target "main contractor email procurement officer EPC" keywords
+- Update the AI extraction prompt to prioritize contractor roles (Project Manager, Procurement, Site Manager, CEO, etc.) and require `organization` and `email` as strongly preferred fields
+- Add a `contact_type` concept via the `role` field — prompt AI to tag contacts as "Main Contractor", "Sub-Contractor", "Government Official", "Project Owner", etc.
+
+### 2. Add `contact_type` Column to `project_contacts`
+
+Database migration to add a `contact_type` field for categorizing contacts:
 
 ```sql
-ALTER TABLE alerts ADD COLUMN source_url text DEFAULT NULL;
+ALTER TABLE project_contacts ADD COLUMN contact_type text NOT NULL DEFAULT 'general';
 ```
 
-The `insights` table already has no source_url — add one:
+Values: `contractor`, `government`, `financier`, `consultant`, `owner`, `general`
 
-```sql
-ALTER TABLE insights ADD COLUMN source_url text DEFAULT NULL;
-```
+Update the contact-finder agent to set this field based on AI extraction.
 
-No RLS changes needed.
+### 3. Update Project Detail — Contacts Tab
 
----
+In `ProjectDetail.tsx`:
+- Group contacts by `contact_type` (Contractors section shown first, then others)
+- Show contractor contacts with a distinct visual style (e.g., hard hat icon, highlighted card)
+- Add `contact_type` dropdown to the manual "Add Contact" form
+- Display organization name prominently alongside email/phone
 
-## Update All Agent Edge Functions
+### 4. Update Research Agent
 
-Modify every agent that creates alerts to include a `source_url` field pointing to the actual news article, filing, or resource. Agents affected:
+In `research-agent/index.ts`, when discovering new projects, also extract main contractor name and add it as a contact with `contact_type = 'contractor'` in `project_contacts`.
 
-- `research-agent` — already has `evidence_url`, pass it to alert inserts as `source_url`
-- `risk-scorer`, `regulatory-monitor`, `supply-chain-monitor`, `funding-tracker`, `sentiment-analyzer`, `contact-finder`, `update-checker`, `stakeholder-intel`, `market-intel` — add `source_url` from Perplexity citations or Firecrawl results to alert inserts
-- `research-agent` — also ensure `source_url` is set on project inserts (already has the field, just ensure it's populated)
+### 5. Agent Monitoring Label
 
-For the AI extraction prompts in each agent, add `source_url` as a required field in the structured output so the AI always returns a link to the original source.
-
----
-
-## Frontend Changes
-
-### Alerts Page (`Alerts.tsx`)
-- Update the `Alert` interface in `src/data/alerts.ts` to include `source_url?: string`
-- Update `use-alerts.ts` to map `source_url` from DB
-- In each alert card, add an `ExternalLink` icon-button that opens `source_url` in a new tab (only shown when URL exists)
-
-### Insights Page
-- Where insights are displayed, show a "Source" link if `source_url` is present
-
-### Project Detail
-- Already shows `sourceUrl` — no changes needed, just ensure agents populate it
-
----
+Update `AgentMonitoring.tsx` description for Contact Finder to reflect its enhanced contractor-focus.
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Migration | Add `source_url` to `alerts` and `insights` tables |
-| Modify | `src/data/alerts.ts` — add `source_url` to Alert interface |
-| Modify | `src/hooks/use-alerts.ts` — map source_url |
-| Modify | `src/pages/dashboard/Alerts.tsx` — show source link on each alert |
-| Modify | All 10 agent edge functions — include source_url in alert inserts |
+| Migration | Add `contact_type` to `project_contacts` |
+| Modify | `supabase/functions/contact-finder/index.ts` — contractor-focused prompts |
+| Modify | `supabase/functions/research-agent/index.ts` — extract contractor on discovery |
+| Modify | `src/pages/dashboard/ProjectDetail.tsx` — grouped contacts by type, add type to form |
 
