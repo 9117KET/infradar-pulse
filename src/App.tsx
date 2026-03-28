@@ -28,6 +28,7 @@ import ProjectEditor from "./pages/dashboard/ProjectEditor";
 import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
+import { RoleGuard } from "./components/RoleGuard";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
