@@ -22,6 +22,7 @@ export default function Research() {
   const [query, setQuery] = useState('');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   // Poll active task
@@ -82,10 +83,12 @@ export default function Research() {
   const stepIndex = STEPS.findIndex(s => s.key === currentStep);
   const progressValue = stepIndex >= 0 ? STEPS[stepIndex].progress : 5;
 
-  const handleSaveProject = async (project: any) => {
+  const handleSaveProject = async (project: any, index: number) => {
+    const key = `${activeTaskId}-${index}`;
+    if (savedProjects.has(key)) return;
     try {
       const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      await supabase.from('projects').insert({
+      const { data: inserted } = await supabase.from('projects').insert({
         name: project.name,
         slug,
         country: project.country || 'Unknown',
@@ -100,8 +103,27 @@ export default function Research() {
         ai_generated: true,
         source_url: project.source_url || '',
         value_label: project.value_label || 'Undisclosed',
-      });
-      toast({ title: 'Saved', description: `${project.name} added to Review Queue` });
+      }).select('id').single();
+
+      // Also save contacts if present
+      if (inserted?.id && project.contacts?.length) {
+        const contactRows = project.contacts.map((c: any) => ({
+          project_id: inserted.id,
+          name: c.name || 'Unknown',
+          role: c.role || '',
+          organization: c.organization || '',
+          email: c.email || null,
+          phone: c.phone || null,
+          source: 'user-research',
+          source_url: project.source_url || null,
+          added_by: 'ai',
+          contact_type: 'general',
+        }));
+        await supabase.from('project_contacts').insert(contactRows);
+      }
+
+      setSavedProjects(prev => new Set(prev).add(key));
+      toast({ title: 'Saved to Review Queue', description: `${project.name} added with ${project.contacts?.length || 0} contacts` });
     } catch {
       toast({ title: 'Error', description: 'Failed to save project', variant: 'destructive' });
     }
@@ -246,34 +268,65 @@ export default function Research() {
                           {p.stage && <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>}
                         </div>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => handleSaveProject(p)}>
-                        <Save className="h-3 w-3 mr-1" /> Save
-                      </Button>
+                      {savedProjects.has(`${activeTaskId}-${i}`) ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/30 text-[10px]">
+                          <CheckCircle className="h-3 w-3 mr-1" /> In Review Queue
+                        </Badge>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => handleSaveProject(p, i)}>
+                          <Save className="h-3 w-3 mr-1" /> Save to Review
+                        </Button>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground">{p.description}</p>
                     {p.value_label && <p className="text-xs"><span className="text-muted-foreground">Value:</span> {p.value_label}</p>}
-                    {p.source_url && (
-                      <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                        <ExternalLink className="h-3 w-3" /> Source
-                      </a>
-                    )}
-                    {p.contacts && (p.contacts as any[]).length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <h4 className="text-[10px] font-semibold uppercase text-muted-foreground">Contacts</h4>
-                        {(p.contacts as any[]).map((c: any, ci: number) => (
-                          <div key={ci} className="flex items-center gap-2 text-xs">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span>{c.name}</span>
+                    
+                    {/* Source URL - always visible */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      {p.source_url ? (
+                        <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">
+                          {p.source_url}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-destructive/70 italic">No source URL found</span>
+                      )}
+                    </div>
+
+                    {/* Contacts & Emails */}
+                    <div className="mt-2 border-t border-border pt-2 space-y-1.5">
+                      <h4 className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" /> Contacts & Emails
+                        {p.contacts?.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] ml-1">{p.contacts.length}</Badge>
+                        )}
+                      </h4>
+                      {p.contacts && (p.contacts as any[]).length > 0 ? (
+                        (p.contacts as any[]).map((c: any, ci: number) => (
+                          <div key={ci} className="flex items-center flex-wrap gap-x-3 gap-y-0.5 text-xs bg-muted/20 rounded p-1.5">
+                            <span className="font-medium">{c.name}</span>
                             {c.role && <span className="text-muted-foreground">· {c.role}</span>}
+                            {c.organization && (
+                              <span className="text-muted-foreground flex items-center gap-0.5">
+                                <Building2 className="h-3 w-3" /> {c.organization}
+                              </span>
+                            )}
                             {c.email && (
                               <a href={`mailto:${c.email}`} className="text-primary hover:underline flex items-center gap-0.5">
                                 <Mail className="h-3 w-3" /> {c.email}
                               </a>
                             )}
+                            {c.phone && (
+                              <a href={`tel:${c.phone}`} className="text-primary hover:underline flex items-center gap-0.5">
+                                <Phone className="h-3 w-3" /> {c.phone}
+                              </a>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      ) : (
+                        <p className="text-xs text-destructive/70 italic">No contacts discovered</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </CardContent>
