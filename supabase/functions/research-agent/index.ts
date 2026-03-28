@@ -320,6 +320,7 @@ ${rawContent.join("\n\n---\n\n")}`;
           lng: ep.lng,
           description: ep.description,
           timeline: ep.timeline || "",
+          source_url: ep.evidence_url || "",
           ai_generated: true,
           approved: false, // requires admin approval
         }).select().single();
