@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 
 const METRICS = [
   { label: 'Verification speed', value: 'Hours, not weeks' },
-  { label: 'Coverage', value: 'MENA + Africa' },
+  { label: 'Coverage', value: 'Global' },
   { label: 'Signal quality', value: 'Confidence scored' },
   { label: 'Decision cadence', value: 'Weekly pipeline' },
 ];

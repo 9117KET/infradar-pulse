@@ -29,7 +29,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Track high-value projects across <span className="text-foreground font-medium">MENA and Africa</span> with <span className="text-foreground font-medium">AI-assisted, human-verified</span> signals—one decision-ready pipeline in hours, not weeks.
+            Track high-value projects across <span className="text-foreground font-medium">every continent</span> with <span className="text-foreground font-medium">AI-assisted, human-verified</span> signals—one decision-ready pipeline in hours, not weeks.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">

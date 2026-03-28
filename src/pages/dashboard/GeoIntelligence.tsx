@@ -70,8 +70,8 @@ export default function GeoIntelligence() {
     const timer = setTimeout(() => {
       if (!mapContainerRef.current) return;
       const map = L.map(mapContainerRef.current, {
-        center: [15, 35],
-        zoom: 4,
+        center: [20, 0],
+        zoom: 2,
         zoomControl: true,
         attributionControl: false,
       });
