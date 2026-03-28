@@ -151,7 +151,7 @@ CRITICAL: Every project MUST have a "source_url" field containing a real, verifi
 For each project, extract:
 - name: project name
 - country: country where project is located
-- region: must be one of "MENA", "East Africa", "West Africa"
+- region: must be one of "MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"
 - sector: one of "Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"
 - stage: one of "Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"
 - status: one of "Verified", "Stable", "Pending", "At Risk"
