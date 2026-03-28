@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { REGIONS, SECTORS, STAGES, type Region, type Sector, type ProjectStage } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Bookmark, Plus } from 'lucide-react';
+import { Search, Download, Bookmark, Plus, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,7 +18,22 @@ export default function Projects() {
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
+  const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
+  // Fetch projects that were unverified in the last 7 days
+  useEffect(() => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    supabase
+      .from('project_verification_log' as any)
+      .select('project_id')
+      .eq('action', 'unverified')
+      .gte('created_at', sevenDaysAgo)
+      .then(({ data }) => {
+        if (data) {
+          setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
+        }
+      });
+  }, []);
   const filtered = useMemo(() => {
     return projects.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
@@ -109,7 +125,14 @@ export default function Projects() {
                 <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3"><Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link></td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-1.5">
+                      <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                      {p.dbId && recentlyUnverified.has(p.dbId) && (
+                        <span title="Recently marked unverified"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" /></span>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground">{p.country}</td>
                   <td className="p-3 text-muted-foreground">{p.sector}</td>
                   <td className="p-3"><Badge variant="outline" className="text-xs">{p.stage}</Badge></td>
