@@ -20,6 +20,7 @@ const NAV_GROUPS = [
     label: 'Core',
     items: [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
+      { title: 'Research', url: '/dashboard/research', icon: Search },
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
     ],
   },
