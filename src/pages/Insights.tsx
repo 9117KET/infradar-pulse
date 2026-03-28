@@ -60,7 +60,7 @@ export default function Insights() {
         </div>
 
         <div className="text-center">
-          <a href="/#contact"><Button className="teal-glow">Join the waitlist</Button></a>
+          <Link to="/login"><Button className="teal-glow">Get Started Free</Button></Link>
         </div>
       </div>
     </div>
