@@ -201,6 +201,7 @@ export type Database = {
       project_contacts: {
         Row: {
           added_by: string
+          contact_type: string
           created_at: string
           email: string | null
           id: string
@@ -215,6 +216,7 @@ export type Database = {
         }
         Insert: {
           added_by?: string
+          contact_type?: string
           created_at?: string
           email?: string | null
           id?: string
@@ -229,6 +231,7 @@ export type Database = {
         }
         Update: {
           added_by?: string
+          contact_type?: string
           created_at?: string
           email?: string | null
           id?: string
