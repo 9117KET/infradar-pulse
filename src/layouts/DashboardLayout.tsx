@@ -13,7 +13,7 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
-const ADMIN_ONLY = new Set(['/dashboard/waitlist', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
+const ADMIN_ONLY = new Set(['/dashboard/subscribers', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
 
 const NAV_GROUPS = [
   {
