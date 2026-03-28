@@ -1,87 +1,87 @@
 
 
-# Interactive Guided Product Tour (Post-Onboarding)
+# Expand Geographic Coverage to Global
 
-## What changes
+## Problem
+The entire platform — database schema, all 12 agents, frontend types, onboarding, settings, and project editor — is hardcoded to only 3 regions: MENA, East Africa, West Africa. The map shows the whole world but agents only discover projects in Africa/Middle East.
 
-After the text-based onboarding completes and the user lands on the dashboard for the first time, an **interactive step-by-step tour** begins. It highlights actual UI elements (sidebar items, header controls, page sections) with a spotlight overlay, tooltip arrows, and descriptions — walking the user through each feature in context.
+## Solution
+Expand the `project_region` enum and all related code to cover all major world regions, and update every agent's search queries and prompts to be globally scoped.
 
-## Approach
+## New Regions
+Replace `'MENA' | 'East Africa' | 'West Africa'` with:
+- **MENA** (keep existing)
+- **East Africa** (keep existing)
+- **West Africa** (keep existing)
+- **Southern Africa**
+- **Central Africa**
+- **North America**
+- **South America**
+- **Europe**
+- **Central Asia**
+- **South Asia**
+- **East Asia**
+- **Southeast Asia**
+- **Oceania**
+- **Caribbean**
 
-### 1. Tour Engine Component — `src/components/GuidedTour.tsx`
+## Changes Required
 
-A full-screen overlay system with:
-- **Spotlight mask**: Dark overlay with a transparent cutout around the highlighted element (CSS `clip-path` or box-shadow trick)
-- **Tooltip bubble**: Positioned next to the highlighted element with an arrow, containing the feature name, description, and Next/Skip buttons
-- **Step counter**: "Step 3 of 12" progress indicator
-- Element targeting via `data-tour="step-id"` attributes on existing UI elements
+### 1. Database Migration
+- Add new values to `project_region` enum via `ALTER TYPE project_region ADD VALUE`
 
-No external library needed — pure React + CSS.
+### 2. Frontend Types — `src/data/projects.ts`
+- Expand `Region` type union and `REGIONS` array to include all new regions
 
-### 2. Tour Steps Definition
+### 3. Onboarding — `src/pages/Onboarding.tsx`
+- Replace hardcoded 3-region list with full global regions list
 
-Each step targets a `data-tour` attribute and includes a title, description, and preferred tooltip position:
+### 4. Settings — `src/pages/dashboard/Settings.tsx`
+- Default regions updated (or default to all); uses `REGIONS` from data file
 
-| Step | Target | Title | Description |
-|------|--------|-------|-------------|
-| 1 | Sidebar logo | Welcome to your Dashboard | This is your command center for infrastructure intelligence |
-| 2 | Overview nav | Overview Dashboard | Real-time KPIs, risk heatmaps, and portfolio metrics |
-| 3 | Research nav | AI Research Hub | Type any query and watch AI agents research in real time |
-| 4 | Projects nav | Project Intelligence | Browse detailed project profiles with verified data |
-| 5 | Geo Intelligence nav | Geo Intelligence | Interactive maps showing project clusters and corridors |
-| 6 | Evidence nav | Evidence & Verification | Multi-source evidence layers for each project |
-| 7 | Risk nav | Risk & Anomaly Signals | AI-powered risk scoring and signal detection |
-| 8 | Analytics nav | Analytics & Reports | Custom dashboards with exportable reports |
-| 9 | Insights nav | Insights & Briefings | AI-generated intelligence briefings |
-| 10 | Notification bell | Notifications | Real-time alerts for projects and risk changes |
-| 11 | Profile menu | Your Profile | Access settings, manage your account, view your role |
-| 12 | Search bar | Quick Search | Search projects, alerts, and insights from anywhere |
+### 5. Project Editor — `src/pages/dashboard/ProjectEditor.tsx`
+- Already imports `REGIONS` from data file, no extra change needed
 
-Steps for Operations (researcher+) and Admin sections are conditionally included based on user role.
+### 6. GeoIntelligence Map — `src/pages/dashboard/GeoIntelligence.tsx`
+- Update default center from Africa-focused `[15, 35]` to world center `[20, 0]`, default zoom to 2
 
-### 3. Add `data-tour` attributes to DashboardLayout
+### 7. Edge Functions — ALL 12 agents + user-research (13 files total)
 
-Add `data-tour="overview"`, `data-tour="research"`, etc. to each sidebar nav item, the notification bell, profile menu, and search input. Minimal changes — just adding an attribute to existing elements.
+Each agent needs:
+- **Search queries** expanded from "Africa MENA" to global terms
+- **System prompts** changed from "MENA and Africa" to "global infrastructure projects worldwide"
+- **Region enum** in extraction schemas expanded to include all new regions
+- **research-agent**: Update `NEWS_SOURCES`, `RESEARCH_QUERIES`, `ExtractedProject.region` type, extraction prompt region list, and tool schema enum
+- **user-research**: Update system prompt from "Africa and Middle East" to global
+- **funding-tracker**: Update search queries from "Africa MENA" to global
+- **market-intel**: Update search query and system prompt
+- **stakeholder-intel**: Update system prompt
+- **regulatory-monitor**: Update system prompt
+- **sentiment-analyzer**: Update system prompt
+- **supply-chain-monitor**: Update system prompt
+- **alert-intelligence**: Update system prompt
+- **data-enrichment**: Update prompts
+- **contact-finder**: Update prompts
+- **update-checker**: Update prompts
+- **generate-insight**: Update system prompt
+- **risk-scorer**: Update prompts
 
-### 4. Tour State Management
+### 8. Home page components
+- Any marketing copy referencing "MENA and Africa" exclusivity should be updated to "global" coverage
 
-- Store `tour_completed: boolean` in the `profiles` table (new column via migration)
-- On first dashboard load, if `profile.onboarded === true && profile.tour_completed !== true`, auto-start the tour
-- "Skip tour" dismisses and marks complete
-- Finishing all steps marks complete
-- A "Restart Tour" option in Settings or Profile menu
+### 9. Insights seed data
+- Update article titles/content that reference only MENA/Africa (cosmetic, lower priority)
 
-### 5. Tour UX
+## Key Design Decision
+Users can still filter by specific regions in onboarding, settings, and the dashboard — so someone only interested in MENA still gets a focused experience. The agents just search globally by default instead of being restricted.
 
-```text
-┌──────────────────────────────────────────────┐
-│ ████████████████████████████████████████████  │
-│ ██┌──────┐██████████████████████████████████  │
-│ ██│ Logo │██████████████████████████████████  │
-│ ██└──────┘██████████████████████████████████  │
-│ ██┌──────────┐  ┌─────────────────────┐█████  │
-│ ██│▶Overview │←─│ Overview Dashboard   │█████  │
-│ ██│  (lit)   │  │ Real-time KPIs and  │█████  │
-│ ██└──────────┘  │ risk heatmaps...    │█████  │
-│ ██  Research ██ │ [Back] [Next 2/12]  │█████  │
-│ ██  Projects ██ └─────────────────────┘█████  │
-│ ██████████████████████████████████████████████ │
-│ ████████████████████████████████████████████  │
-└──────────────────────────────────────────────┘
-```
-
-- Highlighted element gets a glowing border + z-index lift
-- Everything else dimmed with a semi-transparent overlay
-- Tooltip has smooth transition animations between steps
-- Arrow points from tooltip to the highlighted element
-
-## Files
-
-| Action | File |
-|--------|------|
-| Create | `src/components/GuidedTour.tsx` — tour overlay, spotlight, tooltip, step logic |
-| SQL | Add `tour_completed boolean default false` to `profiles` table |
-| Modify | `src/layouts/DashboardLayout.tsx` — add `data-tour` attributes to nav items, header elements; render `<GuidedTour />` when tour not completed |
-| Modify | `src/contexts/AuthContext.tsx` — expose `tour_completed` from profile, add `completeTour()` method |
-| Modify | `src/pages/dashboard/Settings.tsx` — add "Restart Tour" button |
+| Action | Files |
+|--------|-------|
+| SQL Migration | Add 11 new values to `project_region` enum |
+| Modify | `src/data/projects.ts` — expand Region type + REGIONS array |
+| Modify | `src/pages/Onboarding.tsx` — full region list |
+| Modify | `src/pages/dashboard/Settings.tsx` — default regions |
+| Modify | `src/pages/dashboard/GeoIntelligence.tsx` — global map center |
+| Modify | 13 edge functions — global prompts, queries, schema enums |
+| Modify | Home/marketing components — global messaging |
 
