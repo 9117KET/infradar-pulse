@@ -263,6 +263,74 @@ function ProjectSearch() {
   );
 }
 
+const ROLE_LABELS: Record<string, { label: string; color: string }> = {
+  admin: { label: 'Admin', color: 'bg-destructive/10 text-destructive border-destructive/30' },
+  researcher: { label: 'Researcher', color: 'bg-primary/10 text-primary border-primary/30' },
+  user: { label: 'User', color: 'bg-muted text-muted-foreground border-border' },
+};
+
+function ProfileMenu() {
+  const { profile, roles, signOut, hasRole } = useAuth();
+  const navigate = useNavigate();
+  const topRole = hasRole('admin') ? 'admin' : hasRole('researcher') ? 'researcher' : 'user';
+  const roleInfo = ROLE_LABELS[topRole];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="flex items-center gap-2 h-8 px-2">
+          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <User className="h-3.5 w-3.5 text-primary" />
+          </div>
+          <span className="text-xs font-medium hidden md:inline max-w-[100px] truncate">
+            {profile?.display_name || 'Account'}
+          </span>
+          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium">{profile?.display_name || 'User'}</p>
+            {profile?.company && <p className="text-xs text-muted-foreground">{profile.company}</p>}
+            <Badge variant="outline" className={`text-[10px] w-fit ${roleInfo.color}`}>
+              <Shield className="mr-1 h-2.5 w-2.5" />
+              {roleInfo.label}
+            </Badge>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+
+        {/* Role-specific items */}
+        {hasRole('admin') && (
+          <>
+            <DropdownMenuItem onClick={() => navigate('/dashboard/users')}>
+              <Users className="mr-2 h-4 w-4" /> User Management
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/dashboard/subscribers')}>
+              <ListChecks className="mr-2 h-4 w-4" /> Subscribers
+            </DropdownMenuItem>
+          </>
+        )}
+        {(hasRole('researcher') || hasRole('admin')) && (
+          <DropdownMenuItem onClick={() => navigate('/dashboard/review')}>
+            <ClipboardCheck className="mr-2 h-4 w-4" /> Review Queue
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
+          <Settings className="mr-2 h-4 w-4" /> Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+          <LogOut className="mr-2 h-4 w-4" /> Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export default function DashboardLayout() {
   const { user, loading, profile, profileLoading } = useAuth();
 
