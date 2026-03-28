@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import {
   AlertTriangle, Brain, CheckCheck, ChevronDown, ChevronUp,
-  Shield, TrendingUp, BarChart3, Loader2,
+  Shield, TrendingUp, BarChart3, Loader2, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
