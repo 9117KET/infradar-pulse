@@ -70,6 +70,7 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
+              <Route path="/dashboard/research" element={<Research />} />
               <Route path="/dashboard/projects" element={<Projects />} />
               <Route path="/dashboard/projects/new" element={<ProjectEditor />} />
               <Route path="/dashboard/projects/:id/edit" element={<ProjectEditor />} />
