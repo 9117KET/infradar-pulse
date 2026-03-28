@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,9 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User } from 'lucide-react';
+import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { agentApi } from '@/lib/api/agents';
+import jsPDF from 'jspdf';
 
 const STEPS = [
   { key: 'searching', label: 'Searching', icon: Search, progress: 20 },
