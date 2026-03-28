@@ -216,6 +216,15 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
+          {project.status === 'Verified' ? (
+            <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
+              <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
+              <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+            </Button>
+          )}
           <Link to={`/dashboard/projects/${project.id}/edit`}>
             <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
           </Link>
@@ -236,6 +245,36 @@ export default function ProjectDetail() {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Verification Dialog */}
+      <Dialog open={showVerifyDialog} onOpenChange={setShowVerifyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{verifyAction === 'verified' ? 'Mark Project as Verified' : 'Mark Project as Unverified'}</DialogTitle>
+            <DialogDescription>
+              {verifyAction === 'verified'
+                ? 'Confirm that this project data has been verified and is accurate.'
+                : 'Flag this project as unverified. Provide a reason so the team knows why.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={verifyReason}
+            onChange={e => setVerifyReason(e.target.value)}
+            placeholder="Reason for status change (required)..."
+            className="bg-black/20"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVerifyDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleVerificationToggle}
+              disabled={!verifyReason.trim() || verifyLoading}
+              className={verifyAction === 'verified' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-destructive hover:bg-destructive/90'}
+            >
+              {verifyLoading ? 'Saving...' : verifyAction === 'verified' ? 'Confirm Verified' : 'Confirm Unverified'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Score badges */}
       <div className="grid gap-4 sm:grid-cols-4">
