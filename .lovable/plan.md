@@ -1,83 +1,114 @@
 
 
-# Replace Waitlist with Multi-Option Engagement Hub
+# Role-Based Access Control + Guided Onboarding
 
-## What Changes
+## Overview
 
-Remove all "Join waitlist" references across the codebase and replace with a unified **"Stay Connected"** engagement section where visitors choose what they want:
+Implement a proper 3-tier role system (user, researcher, admin) with a `user_roles` table, role-based navigation/access, admin user management, and an interactive guided onboarding tour that highlights platform features.
 
-1. **Newsletter / Intel Digest** — subscribe to weekly infrastructure intelligence briefings
-2. **Get Started Free** — sign up and start using the platform immediately
-3. **Custom Alert Subscription** — configure a region + sector alert from the landing page
-4. **Request a Demo** — enterprise lead capture form
+## Roles
 
-## Approach
+| Role | Access |
+|------|--------|
+| **user** | Core (Overview, Research, Projects), Intelligence, Analysis. Limited to own data. Free trial period. |
+| **researcher** | Everything user has + Operations (Monitoring, Alerts, Agents, Review Queue) + enhanced Research with API tools for verification |
+| **admin** | Full access including Admin section (Subscribers, Users, Settings). Can assign/revoke roles. |
 
-### 1. Replace `ContactSection` with `EngagementSection`
+## Database Changes
 
-Redesign the bottom-of-page section (currently "Join the waitlist") into a 4-card layout:
+### 1. Create `user_roles` table (per security guidelines)
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  STAY CONNECTED — Choose how to engage              │
-│                                                     │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
-│  │ 📧      │ │ 🚀      │ │ 🔔      │ │ 🤝      │   │
-│  │Newsletter│ │Get Start│ │Custom   │ │Request  │   │
-│  │Digest   │ │ed Free  │ │Alert    │ │a Demo   │   │
-│  │         │ │         │ │         │ │         │   │
-│  │[email]  │ │[Sign up]│ │[region] │ │[name]   │   │
-│  │[Submit] │ │         │ │[sector] │ │[company]│   │
-│  └─────────┘ └─────────┘ │[email]  │ │[Submit] │   │
-│                          └─────────┘ └─────────┘   │
-└─────────────────────────────────────────────────────┘
+```sql
+CREATE TYPE public.app_role AS ENUM ('user', 'researcher', 'admin');
+
+CREATE TABLE public.user_roles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role app_role NOT NULL,
+  UNIQUE (user_id, role)
+);
+
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ```
 
-- **Newsletter**: email-only form, inserts into a new `subscribers` table with `type: 'newsletter'`
-- **Get Started Free**: links to `/login` (existing signup flow)
-- **Custom Alert**: region + sector dropdowns + email, inserts into `subscribers` with `type: 'alert'` and preferences
-- **Request a Demo**: name, company, email, use case textarea, inserts into `subscribers` with `type: 'demo_request'`
+### 2. Security definer function
 
-### 2. Database: New `subscribers` table
+```sql
+CREATE OR REPLACE FUNCTION public.has_role(_user_id uuid, _role app_role)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role
+  )
+$$;
+```
 
-Replace the `waitlist` table with a more versatile `subscribers` table:
-- `id`, `email`, `name`, `company`, `type` (newsletter / alert / demo_request), `preferences` (JSONB for region/sector), `created_at`
-- RLS: anon+authenticated can insert, authenticated can read
+### 3. Auto-assign 'user' role on signup
 
-### 3. Update all CTAs across the codebase
+Add to the existing `handle_new_user` trigger function — insert a default `user` role row.
 
-| Location | Current | New |
-|----------|---------|-----|
-| `Navbar.tsx` — desktop + mobile buttons | "Join waitlist" → `/#contact` | "Get Started" → `/login` |
-| `HeroSection.tsx` — hero CTA | "Join waitlist" → `#contact` | "Get Started Free" → `/login` |
-| `Footer.tsx` — get started section | "Join waitlist" → `/#contact` | "Subscribe to Updates" → `/#connect` |
-| `Pricing.tsx` — CTA button | "Join waitlist" → `/waitlist` | "Get Started" → `/login` |
-| `Insights.tsx` — bottom CTA | "Join the waitlist" → `/#contact` | "Get Started Free" → `/login` |
+### 4. RLS policies on `user_roles`
 
-### 4. Dashboard: Replace WaitlistSubmissions with SubscriberManagement
+- Authenticated users can read their own roles
+- Admins can read all + insert/update/delete (via `has_role`)
 
-Rename the admin page to show all subscriber types with filtering by type (newsletter, alert, demo_request). Update nav label from "Waitlist" to "Subscribers".
+## Frontend Changes
 
-### 5. Clean up
+### `AuthContext.tsx` — Add role to context
 
-- Remove `src/pages/Waitlist.tsx` and its route
-- Remove `/#contact` anchor references (new section uses `#connect`)
-- Keep the `waitlist` DB table intact (existing data) but stop writing to it
+- Fetch user's roles from `user_roles` table alongside profile
+- Expose `roles: app_role[]` and helper `hasRole(role)` in context
+- No changes to profile table (roles stay in separate table)
+
+### `DashboardLayout.tsx` — Role-based navigation
+
+Replace the current hacky `ADMIN_ROLES` set with proper role checks:
+- **user**: sees Core + Intelligence + Analysis groups only
+- **researcher**: sees Core + Intelligence + Operations + Analysis (no Admin)
+- **admin**: sees everything
+
+Define a `requiredRole` per nav group or per item, filter using `hasRole()`.
+
+### `Users.tsx` — Real user management (admin only)
+
+Replace hardcoded mock data with:
+- Fetch all profiles + their roles from the database
+- Table showing name, email, role, last active
+- Admin can click to assign/change a user's role (dropdown: user → researcher → admin)
+- "Invite Researcher" button: admin enters an email, and when that user signs up they get `researcher` role
+
+### `Onboarding.tsx` — Enhanced guided onboarding (6 steps)
+
+Expand from 3 steps to 6:
+
+1. **Welcome + Name/Company** (existing step 0)
+2. **Your Role** (existing role selection — now also sets app_role context for personalization)
+3. **Focus Areas** (existing regions/sectors/stages)
+4. **Platform Tour: Core Features** — visual cards explaining Overview, Projects, Research with screenshots/icons and short descriptions
+5. **Platform Tour: Intelligence & Analysis** — explains Geo Intelligence, Evidence Verification, Risk Signals, Analytics, Insights
+6. **Platform Tour: Getting Started** — role-specific tips (e.g., "As an Investor, start with Risk Signals" or "As a Contractor, check Tender-stage projects"), then "Go to Dashboard"
+
+Each tour step shows:
+- Feature icon + name
+- 1-2 sentence description of what it does
+- A "highlight" card with a mini mockup or icon illustration
+- Progress bar showing 6 steps
+
+### Route protection
+
+- Wrap admin-only routes (`/dashboard/subscribers`, `/dashboard/users`) with a role check — redirect non-admins to `/dashboard`
+- Wrap researcher-only routes (`/dashboard/review`, `/dashboard/agents`) similarly
+- Add a `<RoleGuard requiredRole="admin">` wrapper component used in `DashboardLayout` or individual pages
 
 ## Files
 
 | Action | File |
 |--------|------|
-| Create | `src/components/home/EngagementSection.tsx` — 4-card engagement hub |
-| Create | `src/pages/dashboard/SubscriberManagement.tsx` — replaces WaitlistSubmissions |
-| SQL | Create `subscribers` table with RLS |
-| Modify | `src/pages/Index.tsx` — swap ContactSection for EngagementSection |
-| Modify | `src/components/Navbar.tsx` — update CTA buttons |
-| Modify | `src/components/home/HeroSection.tsx` — update hero CTA |
-| Modify | `src/components/Footer.tsx` — update footer CTA |
-| Modify | `src/pages/Pricing.tsx` — update CTA |
-| Modify | `src/pages/Insights.tsx` — update bottom CTA |
-| Modify | `src/layouts/DashboardLayout.tsx` — rename Waitlist nav to Subscribers |
-| Modify | `src/App.tsx` — remove `/waitlist` route, update `/dashboard/waitlist` to `/dashboard/subscribers` |
-| Delete | `src/pages/Waitlist.tsx` |
+| SQL Migration | Create `user_roles` table, `has_role` function, RLS policies, update trigger |
+| Modify | `src/contexts/AuthContext.tsx` — fetch roles, expose `hasRole()` |
+| Create | `src/components/RoleGuard.tsx` — route protection component |
+| Modify | `src/layouts/DashboardLayout.tsx` — role-based nav filtering |
+| Rewrite | `src/pages/dashboard/Users.tsx` — real user management with role assignment |
+| Rewrite | `src/pages/Onboarding.tsx` — 6-step onboarding with platform tour |
+| Modify | `src/App.tsx` — wrap protected routes with RoleGuard |
 
