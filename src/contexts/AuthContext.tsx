@@ -26,6 +26,7 @@ interface AuthCtx {
   hasRole: (role: AppRole) => boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  completeTour: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx>({
