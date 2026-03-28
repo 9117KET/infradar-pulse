@@ -1,0 +1,2 @@
+CREATE POLICY "Auth users insert research_tasks" ON public.research_tasks FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Auth users update research_tasks" ON public.research_tasks FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
