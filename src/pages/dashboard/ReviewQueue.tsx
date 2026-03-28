@@ -69,6 +69,24 @@ export default function ReviewQueue() {
     },
   });
 
+  // Load contacts for all pending projects
+  const { data: contactsMap = {} } = useQuery({
+    queryKey: ['pending-contacts', pendingIds],
+    enabled: pendingIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('project_contacts')
+        .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
+        .in('project_id', pendingIds);
+      const map: Record<string, ContactRow[]> = {};
+      (data || []).forEach((c: any) => {
+        if (!map[c.project_id]) map[c.project_id] = [];
+        map[c.project_id].push(c);
+      });
+      return map;
+    },
+  });
+
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').update({ approved: true }).eq('id', id);
