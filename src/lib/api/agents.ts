@@ -22,4 +22,5 @@ export const agentApi = {
   runSentimentAnalyzer: () => invokeAgent('sentiment-analyzer'),
   runSupplyChainMonitor: () => invokeAgent('supply-chain-monitor'),
   runMarketIntel: () => invokeAgent('market-intel'),
+  runContactFinder: () => invokeAgent('contact-finder'),
 };
