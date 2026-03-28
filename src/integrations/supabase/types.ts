@@ -24,6 +24,7 @@ export type Database = {
           project_name: string
           read: boolean
           severity: Database["public"]["Enums"]["alert_severity"]
+          source_url: string | null
         }
         Insert: {
           category?: Database["public"]["Enums"]["alert_category"]
@@ -34,6 +35,7 @@ export type Database = {
           project_name: string
           read?: boolean
           severity?: Database["public"]["Enums"]["alert_severity"]
+          source_url?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["alert_category"]
@@ -44,6 +46,7 @@ export type Database = {
           project_name?: string
           read?: boolean
           severity?: Database["public"]["Enums"]["alert_severity"]
+          source_url?: string | null
         }
         Relationships: [
           {
@@ -115,6 +118,7 @@ export type Database = {
           reading_time_min: number
           related_project_ids: string[] | null
           slug: string
+          source_url: string | null
           tag: string
           title: string
           updated_at: string
@@ -131,6 +135,7 @@ export type Database = {
           reading_time_min?: number
           related_project_ids?: string[] | null
           slug: string
+          source_url?: string | null
           tag?: string
           title: string
           updated_at?: string
@@ -147,6 +152,7 @@ export type Database = {
           reading_time_min?: number
           related_project_ids?: string[] | null
           slug?: string
+          source_url?: string | null
           tag?: string
           title?: string
           updated_at?: string

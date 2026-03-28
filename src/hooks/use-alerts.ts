@@ -33,6 +33,7 @@ export function useAlerts() {
           message: a.message,
           time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
           read: a.read,
+          sourceUrl: a.source_url || undefined,
         })));
       }
       setLoading(false);

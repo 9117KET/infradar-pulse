@@ -109,6 +109,7 @@ serve(async (req) => {
                       event_type: { type: "string", enum: ["new_funding", "disbursement", "budget_overrun", "funding_gap", "bond_issuance"] },
                       severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source article" },
                     },
                     required: ["project_name", "summary"],
                   },
@@ -147,6 +148,7 @@ serve(async (req) => {
           severity: u.severity || "high",
           message: `Financial alert: ${u.project_name} — ${u.summary}`,
           category: "financial",
+          source_url: u.source_url || null,
         });
         alertsCreated++;
       }

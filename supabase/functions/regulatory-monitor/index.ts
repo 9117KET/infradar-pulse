@@ -88,6 +88,7 @@ serve(async (req) => {
                       type: { type: "string", enum: ["eia_approval", "eia_denial", "permit_block", "sanction", "policy_change", "regulation_update"] },
                       severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source article or filing" },
                     },
                     required: ["country", "type", "summary"],
                   },
@@ -121,6 +122,7 @@ serve(async (req) => {
         severity: isCritical ? "critical" : (f.severity || "medium"),
         message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country} — ${f.summary}`,
         category: "regulatory",
+        source_url: f.source_url || null,
       });
       alertsCreated++;
 
