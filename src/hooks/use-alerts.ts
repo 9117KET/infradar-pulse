@@ -32,6 +32,7 @@ export function useAlerts() {
           category: (a.category || 'market') as AlertCategory,
           message: a.message,
           time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
+          createdAt: a.created_at,
           read: a.read,
           sourceUrl: a.source_url || undefined,
         })));
