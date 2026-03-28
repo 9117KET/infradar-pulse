@@ -68,6 +68,27 @@ export default function DashboardOverview() {
     return researchTasks.filter(t => new Date(t.created_at).getTime() > cutoff).length;
   }, [researchTasks]);
 
+  // Data Quality Score
+  const dataQuality = useMemo(() => {
+    if (!projects.length) return { overall: 0, fields: [] };
+    const fieldChecks = [
+      { name: 'Description', check: (p: typeof projects[0]) => !!p.description && p.description.length > 10 },
+      { name: 'Coordinates', check: (p: typeof projects[0]) => p.lat !== 0 && p.lng !== 0 },
+      { name: 'Value', check: (p: typeof projects[0]) => p.valueUsd > 0 },
+      { name: 'Source URL', check: (p: typeof projects[0]) => !!(p as any).sourceUrl },
+      { name: 'Evidence', check: (p: typeof projects[0]) => p.evidence.length > 0 },
+      { name: 'Contacts', check: (p: typeof projects[0]) => p.contacts?.length > 0 },
+      { name: 'Milestones', check: (p: typeof projects[0]) => p.milestones?.length > 0 },
+      { name: 'Stakeholders', check: (p: typeof projects[0]) => p.stakeholders?.length > 0 },
+    ];
+    const fields = fieldChecks.map(f => {
+      const filled = projects.filter(f.check).length;
+      return { name: f.name, pct: Math.round((filled / projects.length) * 100), filled, total: projects.length };
+    });
+    const overall = Math.round(fields.reduce((s, f) => s + f.pct, 0) / fields.length);
+    return { overall, fields };
+  }, [projects]);
+
   const regionData = useMemo(() => {
     const map: Record<string, number> = {};
     projects.forEach(p => { map[p.region] = (map[p.region] || 0) + 1; });
@@ -110,8 +131,8 @@ export default function DashboardOverview() {
     { label: 'Unread alerts', value: alertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
     { label: 'Critical alerts', value: alertStats.critical, icon: Zap, color: 'text-red-400' },
     { label: 'Pending review', value: pendingCount, icon: ClipboardCheck, color: 'text-amber-400' },
-    { label: 'Agent runs (24h)', value: recentRuns, icon: Bot, color: 'text-primary' },
-  ], [projects, verifiedCount, avgConfidence, totalValue, alertStats, pendingCount, recentRuns]);
+    { label: 'Data quality', value: `${dataQuality.overall}%`, icon: Users, color: dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400' },
+  ], [projects, verifiedCount, avgConfidence, totalValue, alertStats, pendingCount, dataQuality]);
 
   const formatValue = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`;
 
@@ -213,6 +234,33 @@ export default function DashboardOverview() {
               </BarChart>
             </ResponsiveContainer>
           )}
+        </div>
+      </div>
+
+      {/* Data Quality Score */}
+      <div className="glass-panel rounded-xl p-5">
+        <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" /> Data quality score
+          <span className={`ml-auto text-2xl font-bold ${dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+            {dataQuality.overall}%
+          </span>
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {dataQuality.fields.map(f => (
+            <div key={f.name} className="rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground">{f.name}</span>
+                <span className={`text-xs font-semibold ${f.pct >= 70 ? 'text-emerald-400' : f.pct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{f.pct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${f.pct >= 70 ? 'bg-emerald-400' : f.pct >= 40 ? 'bg-amber-400' : 'bg-red-400'}`}
+                  style={{ width: `${f.pct}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">{f.filled}/{f.total} projects</div>
+            </div>
+          ))}
         </div>
       </div>
 
