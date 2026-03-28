@@ -8,7 +8,12 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, ArrowLeft, Briefcase, Globe, Rocket } from 'lucide-react';
+import {
+  ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
+  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Bot, Sparkles
+} from 'lucide-react';
+
+const TOTAL_STEPS = 6;
 
 const ROLES = [
   { value: 'investor', label: 'Investor / CFO', desc: 'Portfolio tracking, risk assessment' },
@@ -26,6 +31,47 @@ const ROLES = [
 const REGIONS = ['MENA', 'East Africa', 'West Africa'];
 const SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
 const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
+
+const CORE_FEATURES = [
+  { icon: LayoutDashboard, name: 'Overview Dashboard', desc: 'Real-time portfolio metrics, regional risk heatmaps, and KPI tracking across all your monitored projects.' },
+  { icon: Search, name: 'AI Research Hub', desc: 'Type any query in plain language and watch AI agents research projects, contacts, and market intelligence in real time.' },
+  { icon: FolderSearch, name: 'Project Intelligence', desc: 'Detailed project profiles with verified data, stakeholder contacts, funding sources, and timeline tracking.' },
+];
+
+const INTEL_FEATURES = [
+  { icon: Globe, name: 'Geo Intelligence', desc: 'Interactive maps showing project clusters, infrastructure corridors, and regional investment patterns.' },
+  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers — satellite imagery, filings, news, and registry data for each project.' },
+  { icon: AlertTriangle, name: 'Risk & Anomaly Signals', desc: 'AI-powered risk scoring with political, financial, regulatory, and environmental signal detection.' },
+  { icon: BarChart3, name: 'Analytics & Reports', desc: 'Custom dashboards with sector breakdowns, investment flows, and exportable PDF reports.' },
+  { icon: BookOpen, name: 'Insights & Briefings', desc: 'AI-generated intelligence briefings on market trends, regulatory changes, and emerging opportunities.' },
+];
+
+const ROLE_TIPS: Record<string, { tip: string; startWith: string }> = {
+  investor: { tip: 'As an Investor, your priority is risk-adjusted returns.', startWith: 'Start with Risk Signals to assess your portfolio exposure.' },
+  strategy: { tip: 'As a Strategy Leader, market positioning is key.', startWith: 'Start with Research Hub to scan competitive landscapes.' },
+  project_manager: { tip: 'As a Project Manager, timeline visibility matters most.', startWith: 'Start with Projects to track milestones and stage transitions.' },
+  business_dev: { tip: 'As Business Development, opportunities are everything.', startWith: 'Start with Research Hub to find new tenders and partnerships.' },
+  dfi_analyst: { tip: 'As a DFI Analyst, verification drives your work.', startWith: 'Start with Evidence & Verification for portfolio oversight.' },
+  contractor: { tip: 'As an EPC Contractor, tender intelligence is critical.', startWith: 'Start with Projects filtered to Tender stage.' },
+  insurance_risk: { tip: 'As Insurance/Risk, construction and political risk pricing is key.', startWith: 'Start with Risk Signals for real-time risk monitoring.' },
+  government: { tip: 'As Government/SWF, cross-sector coordination matters.', startWith: 'Start with Overview Dashboard for the big picture.' },
+  legal_advisory: { tip: 'As Legal/Advisory, due diligence requires verified data.', startWith: 'Start with Evidence & Verification and Project contacts.' },
+  supply_chain: { tip: 'As Supply Chain/Logistics, timing and demand signals are crucial.', startWith: 'Start with Monitoring for real-time project updates.' },
+};
+
+function FeatureCard({ icon: Icon, name, desc }: { icon: any; name: string; desc: string }) {
+  return (
+    <div className="flex gap-3 p-4 rounded-xl border border-border bg-card/50 hover:bg-card/80 transition-colors">
+      <div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="h-5 w-5 text-primary" />
+      </div>
+      <div>
+        <h4 className="text-sm font-semibold">{name}</h4>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function Onboarding() {
   const { user, refreshProfile } = useAuth();
@@ -68,9 +114,12 @@ export default function Onboarding() {
     navigate('/dashboard', { replace: true });
   };
 
+  const roleTips = ROLE_TIPS[role] || { tip: 'Welcome to InfraRadar AI.', startWith: 'Start with the Overview Dashboard to explore your data.' };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-lg space-y-8">
+      <div className="w-full max-w-lg space-y-6">
+        {/* Header */}
         <div className="text-center space-y-2">
           <InfradarLogo size={40} className="mx-auto" />
           <h1 className="font-serif text-2xl font-bold">Welcome to InfraRadar AI</h1>
@@ -78,16 +127,18 @@ export default function Onboarding() {
         </div>
 
         {/* Progress */}
-        <div className="flex gap-2">
-          {[0, 1, 2].map(i => (
+        <div className="flex gap-1.5">
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? 'bg-primary' : 'bg-muted'}`} />
           ))}
         </div>
+        <p className="text-[10px] text-muted-foreground text-center">Step {step + 1} of {TOTAL_STEPS}</p>
 
+        {/* Step 0: Name & Company */}
         {step === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
-              <Briefcase className="h-5 w-5 text-primary" /> Your role
+              <Briefcase className="h-5 w-5 text-primary" /> About you
             </div>
             <div className="space-y-3">
               <div>
@@ -98,6 +149,18 @@ export default function Onboarding() {
                 <Label>Company</Label>
                 <Input value={company} onChange={e => setCompany(e.target.value)} placeholder="Your organization" className="mt-1" />
               </div>
+            </div>
+            <Button onClick={() => setStep(1)} disabled={!displayName.trim()} className="w-full">
+              Continue <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step 1: Role Selection */}
+        {step === 1 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
+              <Briefcase className="h-5 w-5 text-primary" /> Your role
             </div>
             <div className="grid grid-cols-2 gap-2">
               {ROLES.map(r => (
@@ -111,18 +174,23 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
-            <Button onClick={() => setStep(1)} disabled={!role} className="w-full">
-              Continue <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(2)} disabled={!role} className="flex-1">
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
-        {step === 1 && (
-          <div className="space-y-6">
+        {/* Step 2: Focus Areas */}
+        {step === 2 && (
+          <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
               <Globe className="h-5 w-5 text-primary" /> Your focus areas
             </div>
-
             <div>
               <Label className="mb-2 block">Regions of interest</Label>
               <div className="flex flex-wrap gap-2">
@@ -134,7 +202,6 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
-
             <div>
               <Label className="mb-2 block">Sectors of interest</Label>
               <div className="flex flex-wrap gap-2">
@@ -146,7 +213,6 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
-
             <div>
               <Label className="mb-2 block">Project stages</Label>
               <div className="flex flex-wrap gap-2">
@@ -158,24 +224,78 @@ export default function Onboarding() {
                 ))}
               </div>
             </div>
-
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => setStep(2)} disabled={regions.length === 0 && sectors.length === 0} className="flex-1">
+              <Button onClick={() => setStep(3)} disabled={regions.length === 0 && sectors.length === 0} className="flex-1">
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-6">
+        {/* Step 3: Platform Tour — Core Features */}
+        {step === 3 && (
+          <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
-              <Rocket className="h-5 w-5 text-primary" /> You're all set
+              <Sparkles className="h-5 w-5 text-primary" /> Core Features
             </div>
+            <p className="text-sm text-muted-foreground">Here's what powers your intelligence workflow:</p>
+            <div className="space-y-3">
+              {CORE_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(4)} className="flex-1">
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Platform Tour — Intelligence & Analysis */}
+        {step === 4 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
+              <Activity className="h-5 w-5 text-primary" /> Intelligence & Analysis
+            </div>
+            <p className="text-sm text-muted-foreground">Deep analytical tools for informed decisions:</p>
+            <div className="space-y-3">
+              {INTEL_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(5)} className="flex-1">
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Getting Started — Role-specific tips + summary */}
+        {step === 5 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
+              <Rocket className="h-5 w-5 text-primary" /> You're all set!
+            </div>
+
+            {/* Role-specific tip */}
+            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5">
+              <p className="text-sm font-medium">{roleTips.tip}</p>
+              <p className="text-xs text-muted-foreground mt-1">{roleTips.startWith}</p>
+            </div>
+
+            {/* Summary */}
             <div className="glass-panel rounded-xl p-5 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium">{displayName}</span>
+              </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Role</span>
                 <span className="font-medium">{ROLES.find(r => r.value === role)?.label}</span>
@@ -194,18 +314,16 @@ export default function Onboarding() {
                 <span className="text-muted-foreground">Sectors</span>
                 <span className="font-medium">{sectors.length > 0 ? sectors.join(', ') : 'All'}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Stages</span>
-                <span className="font-medium">{stages.length > 0 ? stages.join(', ') : 'All'}</span>
-              </div>
             </div>
-            <p className="text-xs text-muted-foreground text-center">Your dashboard will be personalized based on these preferences. You can change them anytime in Settings.</p>
+
+            <p className="text-xs text-muted-foreground text-center">You can change these preferences anytime in Settings.</p>
+
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+              <Button variant="outline" onClick={() => setStep(4)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button onClick={finish} disabled={saving} className="flex-1">
-                {saving ? 'Saving…' : 'Go to dashboard'} <ArrowRight className="ml-2 h-4 w-4" />
+                {saving ? 'Saving…' : 'Go to Dashboard'} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>

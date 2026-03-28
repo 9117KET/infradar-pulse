@@ -535,6 +535,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           challenge: string | null
@@ -576,7 +594,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       alert_category:
@@ -590,6 +614,7 @@ export type Database = {
         | "market"
         | "security"
       alert_severity: "critical" | "high" | "medium" | "low"
+      app_role: "user" | "researcher" | "admin"
       evidence_type: "Satellite" | "Filing" | "News" | "Registry" | "Partner"
       project_region: "MENA" | "East Africa" | "West Africa"
       project_sector:
@@ -749,6 +774,7 @@ export const Constants = {
         "security",
       ],
       alert_severity: ["critical", "high", "medium", "low"],
+      app_role: ["user", "researcher", "admin"],
       evidence_type: ["Satellite", "Filing", "News", "Registry", "Partner"],
       project_region: ["MENA", "East Africa", "West Africa"],
       project_sector: [
