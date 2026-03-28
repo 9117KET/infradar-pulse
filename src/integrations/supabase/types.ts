@@ -640,7 +640,21 @@ export type Database = {
       alert_severity: "critical" | "high" | "medium" | "low"
       app_role: "user" | "researcher" | "admin"
       evidence_type: "Satellite" | "Filing" | "News" | "Registry" | "Partner"
-      project_region: "MENA" | "East Africa" | "West Africa"
+      project_region:
+        | "MENA"
+        | "East Africa"
+        | "West Africa"
+        | "Southern Africa"
+        | "Central Africa"
+        | "North America"
+        | "South America"
+        | "Europe"
+        | "Central Asia"
+        | "South Asia"
+        | "East Asia"
+        | "Southeast Asia"
+        | "Oceania"
+        | "Caribbean"
       project_sector:
         | "Urban Development"
         | "Digital Infrastructure"
@@ -800,7 +814,22 @@ export const Constants = {
       alert_severity: ["critical", "high", "medium", "low"],
       app_role: ["user", "researcher", "admin"],
       evidence_type: ["Satellite", "Filing", "News", "Registry", "Partner"],
-      project_region: ["MENA", "East Africa", "West Africa"],
+      project_region: [
+        "MENA",
+        "East Africa",
+        "West Africa",
+        "Southern Africa",
+        "Central Africa",
+        "North America",
+        "South America",
+        "Europe",
+        "Central Asia",
+        "South Asia",
+        "East Asia",
+        "Southeast Asia",
+        "Oceania",
+        "Caribbean",
+      ],
       project_sector: [
         "Urban Development",
         "Digital Infrastructure",

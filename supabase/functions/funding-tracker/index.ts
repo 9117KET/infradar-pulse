@@ -31,9 +31,10 @@ serve(async (req) => {
     // Search Firecrawl for dev bank announcements
     if (FIRECRAWL_API_KEY) {
       const searches = [
-        "World Bank infrastructure project approval Africa MENA 2025",
+        "World Bank infrastructure project approval worldwide 2025",
+        "Asian Development Bank ADB new project funding 2025",
+        "IFC AIIB EBRD infrastructure investment global 2025",
         "African Development Bank AfDB new project funding 2025",
-        "IFC AIIB infrastructure investment Africa Middle East 2025",
       ];
       for (const q of searches.slice(0, 2)) {
         try {
@@ -61,8 +62,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are a development finance analyst tracking infrastructure funding flows in MENA and Africa." },
-              { role: "user", content: "Latest development bank infrastructure project approvals, bond issuances, sovereign wealth fund investments in Africa and Middle East 2025. Include amounts, countries, and project names." },
+              { role: "system", content: "You are a development finance analyst tracking infrastructure funding flows worldwide." },
+              { role: "user", content: "Latest development bank infrastructure project approvals, bond issuances, sovereign wealth fund investments worldwide 2025. Include amounts, countries, and project names." },
             ],
             search_recency_filter: "week",
           }),

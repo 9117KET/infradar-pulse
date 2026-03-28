@@ -7,25 +7,28 @@ const corsHeaders = {
 };
 
 const NEWS_SOURCES = [
-  "MEED infrastructure projects MENA 2025",
-  "IJGlobal infrastructure Africa MENA",
-  "African Development Bank new projects 2025",
-  "Construction Week Middle East projects",
-  "infrastructure mega projects East Africa West Africa 2025",
+  "MEED infrastructure projects 2025",
+  "IJGlobal infrastructure projects worldwide",
+  "World Bank new infrastructure projects 2025",
+  "Construction Week global megaprojects",
+  "infrastructure mega projects worldwide 2025",
+  "Asian Development Bank infrastructure 2025",
+  "European Investment Bank infrastructure 2025",
+  "Inter-American Development Bank infrastructure 2025",
 ];
 
 const RESEARCH_QUERIES = [
-  "latest infrastructure megaprojects Middle East North Africa 2025 construction awarded",
-  "new infrastructure projects East Africa West Africa 2025 tender awarded financing",
-  "major construction projects Saudi Arabia UAE Egypt Morocco 2025",
-  "renewable energy projects Africa MENA 2025 solar wind",
-  "transport rail port projects Africa 2025",
+  "latest infrastructure megaprojects worldwide 2025 construction awarded",
+  "new infrastructure projects Asia Europe Americas 2025 tender awarded financing",
+  "major construction projects global 2025 transport energy water",
+  "renewable energy infrastructure projects worldwide 2025 solar wind",
+  "transport rail port airport projects global 2025",
 ];
 
 interface ExtractedProject {
   name: string;
   country: string;
-  region: "MENA" | "East Africa" | "West Africa";
+  region: "MENA" | "East Africa" | "West Africa" | "Southern Africa" | "Central Africa" | "North America" | "South America" | "Europe" | "Central Asia" | "South Asia" | "East Asia" | "Southeast Asia" | "Oceania" | "Caribbean";
   sector: string;
   stage: string;
   status: string;
@@ -111,7 +114,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects in MENA and Africa regions. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
+              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
               { role: "user", content: query },
             ],
             search_recency_filter: "month",
@@ -148,7 +151,7 @@ CRITICAL: Every project MUST have a "source_url" field containing a real, verifi
 For each project, extract:
 - name: project name
 - country: country where project is located
-- region: must be one of "MENA", "East Africa", "West Africa"
+- region: must be one of "MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"
 - sector: one of "Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"
 - stage: one of "Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"
 - status: one of "Verified", "Stable", "Pending", "At Risk"
@@ -197,7 +200,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                       properties: {
                         name: { type: "string" },
                         country: { type: "string" },
-                        region: { type: "string", enum: ["MENA", "East Africa", "West Africa"] },
+                        region: { type: "string", enum: ["MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"] },
                         sector: { type: "string", enum: ["Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"] },
                         stage: { type: "string", enum: ["Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"] },
                         status: { type: "string", enum: ["Verified", "Stable", "Pending", "At Risk"] },

@@ -28,7 +28,7 @@ const ROLES = [
   { value: 'supply_chain', label: 'Supply Chain / Logistics', desc: 'Material demand, transport timing' },
 ];
 
-const REGIONS = ['MENA', 'East Africa', 'West Africa'];
+const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
 const SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
 const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 

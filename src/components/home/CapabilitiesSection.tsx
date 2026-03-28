@@ -20,7 +20,7 @@ export function CapabilitiesSection() {
           <em className="not-italic text-gradient-teal">Modern</em> infrastructure intelligence
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          Verified signals, real-time updates, confidence scoring, and priority regional coverage for MENA and Africa.
+          Verified signals, real-time updates, confidence scoring, and global infrastructure coverage across all continents.
         </p>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
