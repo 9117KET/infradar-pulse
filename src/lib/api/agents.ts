@@ -24,4 +24,5 @@ export const agentApi = {
   runMarketIntel: () => invokeAgent('market-intel'),
   runContactFinder: () => invokeAgent('contact-finder'),
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
+  runDataEnrichment: () => invokeAgent('data-enrichment'),
 };
