@@ -124,6 +124,11 @@ export default function ReviewQueue() {
 
   const hasSource = (project: any) => project.source_url && project.source_url.trim() !== '' && project.source_url !== '#';
   const projectEvidence = (id: string) => (evidenceMap as Record<string, EvidenceRow[]>)[id] || [];
+  const projectContacts = (id: string) => (contactsMap as Record<string, ContactRow[]>)[id] || [];
+
+  const contactTypeIcon: Record<string, string> = {
+    contractor: '🏗️', government: '🏛️', financier: '💰', consultant: '📋', owner: '👤', general: '📌',
+  };
 
   const stageBadgeColor = (stage: string) => {
     const map: Record<string, string> = {
