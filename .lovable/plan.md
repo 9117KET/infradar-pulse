@@ -1,54 +1,79 @@
 
 
-# Enhanced Contractor Email Discovery & Display
+# Sophisticated Dashboard Overview with Charts, Maps & Real-Time Visuals
 
 ## Summary
 
-The existing `contact-finder` agent and `project_contacts` table already support emails, phones, roles, and organizations. The gap is that the agent doesn't specifically prioritize **main contractor contacts** and the UI doesn't highlight them. Rather than a new agent, we enhance the existing one and improve how contractor info is surfaced.
+Rebuild the Overview page from a basic stats + table layout into a rich, data-dense command center with interactive charts, a mini heatmap, alert distribution visuals, and real-time agent activity — all powered by Recharts and the existing Leaflet map setup.
+
+## Layout (6 sections)
+
+```text
+┌─────────────────────────────────────────────────────┐
+│  KPI Cards (8 cards, 2 rows)                        │
+├──────────────────────┬──────────────────────────────┤
+│  Projects by Region  │  Projects by Sector          │
+│  (Pie/Donut Chart)   │  (Bar Chart)                 │
+├──────────────────────┴──────────────────────────────┤
+│  Mini World Map — project locations heatmap          │
+│  (Leaflet with circle markers, color = risk)         │
+├──────────────────────┬──────────────────────────────┤
+│  Confidence Trend    │  Alert Distribution           │
+│  (Area Chart)        │  (Stacked Bar by category)    │
+├──────────────────────┴──────────────────────────────┤
+│  Pipeline by Stage   │  Agent Activity (live feed)   │
+│  (Horizontal bar)    │  + Pending Review card        │
+├─────────────────────────────────────────────────────┤
+│  Recent Project Updates (table, kept from current)   │
+└─────────────────────────────────────────────────────┘
+```
 
 ## Changes
 
-### 1. Enhance Contact Finder Agent
+### 1. Install Recharts (already available via shadcn chart component)
 
-Update `supabase/functions/contact-finder/index.ts`:
-- Modify the Perplexity search query to explicitly target "main contractor email procurement officer EPC" keywords
-- Update the AI extraction prompt to prioritize contractor roles (Project Manager, Procurement, Site Manager, CEO, etc.) and require `organization` and `email` as strongly preferred fields
-- Add a `contact_type` concept via the `role` field — prompt AI to tag contacts as "Main Contractor", "Sub-Contractor", "Government Official", "Project Owner", etc.
+Use the existing `recharts` dependency already in the project. Import `PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer` directly.
 
-### 2. Add `contact_type` Column to `project_contacts`
+### 2. Rebuild `src/pages/dashboard/Overview.tsx`
 
-Database migration to add a `contact_type` field for categorizing contacts:
+**KPI cards (expanded to 8):** Projects tracked, Verified count, Avg confidence, Total value, Active alerts (unread), Stale projects (30d+), Pending review, Agent runs (24h).
 
-```sql
-ALTER TABLE project_contacts ADD COLUMN contact_type text NOT NULL DEFAULT 'general';
-```
+**Projects by Region — Donut chart:** Aggregate `projects` by `region`, render as a donut with colored segments.
 
-Values: `contractor`, `government`, `financier`, `consultant`, `owner`, `general`
+**Projects by Sector — Horizontal bar chart:** Aggregate by `sector`, show horizontal bars with values.
 
-Update the contact-finder agent to set this field based on AI extraction.
+**Mini Heatmap Map:** Embed a small Leaflet map (reuse pattern from GeoIntelligence) with `CircleMarker` for each project. Color by risk score (green → amber → red). No popups, just visual density.
 
-### 3. Update Project Detail — Contacts Tab
+**Confidence Trend — Area chart:** Compute average confidence from `project_updates` over last 6 months (or use static fallback if insufficient data). Smooth area chart with gradient fill.
 
-In `ProjectDetail.tsx`:
-- Group contacts by `contact_type` (Contractors section shown first, then others)
-- Show contractor contacts with a distinct visual style (e.g., hard hat icon, highlighted card)
-- Add `contact_type` dropdown to the manual "Add Contact" form
-- Display organization name prominently alongside email/phone
+**Alert Distribution — Stacked bar chart:** Group alerts by category and severity. Show a bar per category with severity segments stacked.
 
-### 4. Update Research Agent
+**Pipeline by Stage — Horizontal bar:** Count projects per stage (Planned → Construction → Completed). Color-coded bars.
 
-In `research-agent/index.ts`, when discovering new projects, also extract main contractor name and add it as a contact with `contact_type = 'contractor'` in `project_contacts`.
+**Agent Activity + Pending Review:** Keep existing live feed but make it more compact. Keep pending review card.
 
-### 5. Agent Monitoring Label
+**Recent updates table:** Keep but style more compactly.
 
-Update `AgentMonitoring.tsx` description for Contact Finder to reflect its enhanced contractor-focus.
+### 3. Real-time subscriptions
+
+Already has realtime for `research_tasks` and `projects`. Add subscription for `alerts` table to keep alert stats live.
+
+### 4. Mini map component
+
+Create `src/components/dashboard/OverviewMap.tsx` — a small, non-interactive Leaflet map (zoom/pan disabled or minimal) showing project dots colored by risk. Reuse the native Leaflet approach from GeoIntelligence to avoid React-Leaflet context issues.
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Migration | Add `contact_type` to `project_contacts` |
-| Modify | `supabase/functions/contact-finder/index.ts` — contractor-focused prompts |
-| Modify | `supabase/functions/research-agent/index.ts` — extract contractor on discovery |
-| Modify | `src/pages/dashboard/ProjectDetail.tsx` — grouped contacts by type, add type to form |
+| Create | `src/components/dashboard/OverviewMap.tsx` — mini heatmap map |
+| Rewrite | `src/pages/dashboard/Overview.tsx` — full rebuild with charts |
+
+## Technical Notes
+
+- Recharts is already a dependency (used by shadcn chart component)
+- Leaflet is already installed and configured
+- All data comes from existing hooks (`useProjects`, `useAlerts`) + existing Supabase queries
+- No new database tables or migrations needed
+- Real-time updates flow automatically through existing subscriptions
 
