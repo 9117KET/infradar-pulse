@@ -96,6 +96,7 @@ serve(async (req) => {
                       sector: { type: "string" },
                       value_usd: { type: "number" },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source" },
                     },
                     required: ["company", "event_type", "summary"],
                   },
