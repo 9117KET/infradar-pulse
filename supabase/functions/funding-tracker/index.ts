@@ -146,6 +146,7 @@ serve(async (req) => {
           project_name: u.project_name,
           severity: u.severity || "high",
           message: `Financial alert: ${u.project_name} — ${u.summary}`,
+          category: "financial",
         });
         alertsCreated++;
       }
