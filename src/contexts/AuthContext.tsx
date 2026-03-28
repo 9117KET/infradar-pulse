@@ -13,6 +13,7 @@ export interface UserProfile {
   sectors: string[];
   stages: string[];
   onboarded: boolean;
+  tour_completed: boolean;
 }
 
 interface AuthCtx {
@@ -25,13 +26,14 @@ interface AuthCtx {
   hasRole: (role: AppRole) => boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  completeTour: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx>({
   user: null, session: null, loading: true,
   profile: null, profileLoading: true,
   roles: [], hasRole: () => false,
-  signOut: async () => {}, refreshProfile: async () => {},
+  signOut: async () => {}, refreshProfile: async () => {}, completeTour: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -90,6 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
+  const completeTour = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ tour_completed: true }).eq('id', user.id);
+    setProfile(prev => prev ? { ...prev, tour_completed: true } : prev);
+  }, [user]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -97,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, roles, hasRole, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, roles, hasRole, signOut, refreshProfile, completeTour }}>
       {children}
     </AuthContext.Provider>
   );

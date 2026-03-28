@@ -9,6 +9,7 @@ import {
 import { NavLink } from '@/components/NavLink';
 import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, ShieldCheck, BarChart3, Bot, User, Shield, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
@@ -19,50 +20,50 @@ import {
 
 import type { AppRole } from '@/contexts/AuthContext';
 
-type NavItem = { title: string; url: string; icon: any; minRole?: AppRole };
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string };
 type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Core',
     items: [
-      { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
-      { title: 'Research', url: '/dashboard/research', icon: Search },
-      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
+      { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
+      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
+      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
-      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck },
-      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle },
+      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
+      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
+      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle, tourId: 'nav-risk' },
     ],
   },
   {
     label: 'Operations',
     minRole: 'researcher',
     items: [
-      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
-      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
-      { title: 'Agents', url: '/dashboard/agents', icon: Bot },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
+      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity, tourId: 'nav-monitoring' },
+      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
+      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
     ],
   },
   {
     label: 'Analysis',
     items: [
-      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3 },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
+      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3, tourId: 'nav-analytics' },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
     ],
   },
   {
     label: 'Admin',
     minRole: 'admin',
     items: [
-      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks },
-      { title: 'Users', url: '/dashboard/users', icon: Users },
-      { title: 'Settings', url: '/dashboard/settings', icon: Settings },
+      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+      { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
+      { title: 'Settings', url: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
     ],
   },
 ];
@@ -88,7 +89,7 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
       <SidebarContent>
-        <div className="flex items-center gap-2 px-4 py-4">
+        <div data-tour="sidebar-logo" className="flex items-center gap-2 px-4 py-4">
           <InfradarLogo size={24} />
           {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfraRadar AI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
         </div>
@@ -102,7 +103,7 @@ function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map(item => (
-                    <SidebarMenuItem key={item.url}>
+                    <SidebarMenuItem key={item.url} data-tour={item.tourId}>
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <item.icon className="mr-2 h-4 w-4" />
@@ -332,7 +333,21 @@ function ProfileMenu() {
 }
 
 export default function DashboardLayout() {
-  const { user, loading, profile, profileLoading } = useAuth();
+  const { user, loading, profile, profileLoading, completeTour } = useAuth();
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    if (profile && profile.onboarded && !profile.tour_completed) {
+      // Small delay so the dashboard renders first
+      const t = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [profile]);
+
+  const handleTourComplete = async () => {
+    setShowTour(false);
+    await completeTour();
+  };
 
   if (loading || profileLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
@@ -350,9 +365,9 @@ export default function DashboardLayout() {
             <SidebarTrigger className="mr-4" />
             <span className="text-sm text-muted-foreground hidden sm:inline">InfraRadar AI — Intelligence Platform</span>
             <div className="ml-auto flex items-center gap-3">
-              <ProjectSearch />
-              <NotificationBell />
-              <ProfileMenu />
+              <div data-tour="header-search"><ProjectSearch /></div>
+              <div data-tour="header-notifications"><NotificationBell /></div>
+              <div data-tour="header-profile"><ProfileMenu /></div>
             </div>
           </header>
           <main className="flex-1 p-6 overflow-auto">
@@ -360,6 +375,7 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+      {showTour && <GuidedTour onComplete={handleTourComplete} />}
     </SidebarProvider>
   );
 }
