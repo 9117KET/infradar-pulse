@@ -236,7 +236,28 @@ function PreferencesTab() {
         </div>
       </div>
 
-      <Button onClick={savePrefs} disabled={saving} className="teal-glow">{saving ? 'Saving…' : 'Save preferences'}</Button>
+      <div className="flex items-center gap-3">
+        <Button onClick={savePrefs} disabled={saving} className="teal-glow">{saving ? 'Saving…' : 'Save preferences'}</Button>
+        <RestartTourButton />
+      </div>
     </div>
+  );
+}
+
+function RestartTourButton() {
+  const { toast } = useToast();
+  const { user, refreshProfile } = useAuth();
+
+  const restart = async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ tour_completed: false }).eq('id', user.id);
+    await refreshProfile();
+    toast({ title: 'Tour restarted', description: 'Refresh the page to begin the guided tour.' });
+  };
+
+  return (
+    <Button variant="outline" onClick={restart} className="gap-2">
+      <RotateCcw className="h-4 w-4" /> Restart Tour
+    </Button>
   );
 }
