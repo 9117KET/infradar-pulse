@@ -376,7 +376,7 @@ export default function ReviewQueue() {
                       )}
                     </div>
 
-                      <div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
                         <span className="text-muted-foreground">Timeline:</span>{' '}
                         {project.timeline || 'N/A'}
                       </div>
