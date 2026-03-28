@@ -9,30 +9,37 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Log task start
+  const { data: task } = await supabase.from("research_tasks").insert({
+    task_type: "update-check",
+    query: "Checking approved projects for recent updates",
+    status: "running",
+  }).select().single();
+  const taskId = task?.id;
+
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Get all approved projects
     const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
     if (!projects?.length) {
-      return new Response(JSON.stringify({ success: true, message: "No projects to check" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects to check" } }).eq("id", taskId);
+      return new Response(JSON.stringify({ success: true, message: "No projects to check" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let updatedCount = 0;
     let alertsCreated = 0;
 
-    for (const project of projects.slice(0, 5)) { // limit per run
-      // Confidence decay: reduce by 1 point per week since last update
+    for (const project of projects.slice(0, 5)) {
+      // Confidence decay
       const daysSinceUpdate = Math.floor((Date.now() - new Date(project.last_updated).getTime()) / (1000 * 60 * 60 * 24));
       const weeksSinceUpdate = Math.floor(daysSinceUpdate / 7);
       if (weeksSinceUpdate > 0 && project.confidence > 30) {
@@ -49,15 +56,11 @@ serve(async (req) => {
         }
       }
 
-      // Search for recent news about the project
       if (PERPLEXITY_API_KEY) {
         try {
           const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
             method: "POST",
-            headers: {
-              Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-              "Content-Type": "application/json",
-            },
+            headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               model: "sonar",
               messages: [
@@ -71,13 +74,9 @@ serve(async (req) => {
           const content = pxData?.choices?.[0]?.message?.content;
 
           if (content) {
-            // Use AI to analyze if there's a meaningful update
             const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                "Content-Type": "application/json",
-              },
+              headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 model: "google/gemini-2.5-flash-lite",
                 messages: [
@@ -96,35 +95,33 @@ ${content}
 
 Analyze if there are meaningful changes. Return JSON with:
 - has_update: boolean
-- new_stage: string or null (if stage changed)
-- new_status: string or null (if status changed)
-- confidence_adjustment: number (-20 to +20, 0 if no change)
-- alert_message: string or null (if alert-worthy)
+- new_stage: string or null
+- new_status: string or null
+- confidence_adjustment: number (-20 to +20)
+- alert_message: string or null
 - alert_severity: "critical" | "high" | "medium" | "low" | null`,
                   },
                 ],
-                tools: [
-                  {
-                    type: "function",
-                    function: {
-                      name: "report_update",
-                      description: "Report project update analysis",
-                      parameters: {
-                        type: "object",
-                        properties: {
-                          has_update: { type: "boolean" },
-                          new_stage: { type: "string" },
-                          new_status: { type: "string" },
-                          confidence_adjustment: { type: "number" },
-                          alert_message: { type: "string" },
-                          alert_severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
-                        },
-                        required: ["has_update"],
-                        additionalProperties: false,
+                tools: [{
+                  type: "function",
+                  function: {
+                    name: "report_update",
+                    description: "Report project update analysis",
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        has_update: { type: "boolean" },
+                        new_stage: { type: "string" },
+                        new_status: { type: "string" },
+                        confidence_adjustment: { type: "number" },
+                        alert_message: { type: "string" },
+                        alert_severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       },
+                      required: ["has_update"],
+                      additionalProperties: false,
                     },
                   },
-                ],
+                }],
                 tool_choice: { type: "function", function: { name: "report_update" } },
               }),
             });
@@ -134,16 +131,13 @@ Analyze if there are meaningful changes. Return JSON with:
               const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
               if (toolCall?.function?.arguments) {
                 const analysis = JSON.parse(toolCall.function.arguments);
-
                 if (analysis.has_update) {
                   const updates: Record<string, unknown> = { last_updated: new Date().toISOString() };
-
                   if (analysis.new_stage) updates.stage = analysis.new_stage;
                   if (analysis.new_status) updates.status = analysis.new_status;
                   if (analysis.confidence_adjustment) {
                     updates.confidence = Math.max(0, Math.min(100, project.confidence + analysis.confidence_adjustment));
                   }
-
                   await supabase.from("projects").update(updates).eq("id", project.id);
                   updatedCount++;
 
@@ -168,15 +162,14 @@ Analyze if there are meaningful changes. Return JSON with:
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true, projects_checked: Math.min(projects.length, 5), updated: updatedCount, alerts_created: alertsCreated }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const result = { success: true, projects_checked: Math.min(projects.length, 5), updated: updatedCount, alerts_created: alertsCreated };
+    if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Update checker error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
+    if (taskId) await supabase.from("research_tasks").update({ status: "failed", completed_at: new Date().toISOString(), error: errMsg }).eq("id", taskId);
+    return new Response(JSON.stringify({ error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
