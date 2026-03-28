@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthCtx>({
   user: null, session: null, loading: true,
   profile: null, profileLoading: true,
   roles: [], hasRole: () => false,
-  signOut: async () => {}, refreshProfile: async () => {},
+  signOut: async () => {}, refreshProfile: async () => {}, completeTour: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
