@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone } from '@/data/projects';
+import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone, Contact } from '@/data/projects';
 
 export interface DbProject {
   id: string;
