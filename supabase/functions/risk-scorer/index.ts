@@ -168,6 +168,7 @@ Return updated risk scores and any alerts for significant risk changes.`,
               severity: newRisk > 60 ? "high" : "medium",
               message: score.alert || `Risk score changed from ${oldRisk} to ${newRisk}`,
               category: "security",
+              source_url: null,
             });
           }
         }

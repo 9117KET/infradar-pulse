@@ -127,6 +127,7 @@ serve(async (req) => {
         severity: "low",
         message: `Market intel: ${i.company} — ${i.event_type.replace(/_/g, " ")} — ${i.summary}`,
         category: "market",
+        source_url: i.source_url || null,
       });
       alertsCreated++;
     }

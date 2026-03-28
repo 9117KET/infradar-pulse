@@ -233,7 +233,14 @@ export default function Alerts() {
                 {!a.read && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
               </div>
               <p className="text-sm font-medium">{a.message}</p>
-              <p className="text-xs text-muted-foreground mt-1">{a.projectName} · {a.time}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-muted-foreground">{a.projectName} · {a.time}</p>
+                {a.sourceUrl && (
+                  <a href={a.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    <ExternalLink className="h-3 w-3" /> Source
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         ))}
