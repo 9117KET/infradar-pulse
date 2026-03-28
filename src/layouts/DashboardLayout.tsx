@@ -20,7 +20,7 @@ import {
 
 import type { AppRole } from '@/contexts/AuthContext';
 
-type NavItem = { title: string; url: string; icon: any; minRole?: AppRole };
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string };
 type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
