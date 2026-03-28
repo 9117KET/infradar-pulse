@@ -89,7 +89,7 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
       <SidebarContent>
-        <div className="flex items-center gap-2 px-4 py-4">
+        <div data-tour="sidebar-logo" className="flex items-center gap-2 px-4 py-4">
           <InfradarLogo size={24} />
           {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfraRadar AI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
         </div>
