@@ -32,7 +32,7 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href="#contact"><Button size="lg" className="teal-glow font-sans">Join waitlist</Button></a>
+            <Link to="/login"><Button size="lg" className="teal-glow font-sans">Get Started Free</Button></Link>
             <a href="#demo"><Button size="lg" variant="outline" className="font-sans">Watch demo</Button></a>
           </div>
 
