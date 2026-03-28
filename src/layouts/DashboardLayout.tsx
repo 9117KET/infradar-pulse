@@ -103,7 +103,7 @@ function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map(item => (
-                    <SidebarMenuItem key={item.url}>
+                    <SidebarMenuItem key={item.url} data-tour={item.tourId}>
                       <SidebarMenuButton asChild>
                         <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                           <item.icon className="mr-2 h-4 w-4" />
