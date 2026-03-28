@@ -83,10 +83,12 @@ export default function Research() {
   const stepIndex = STEPS.findIndex(s => s.key === currentStep);
   const progressValue = stepIndex >= 0 ? STEPS[stepIndex].progress : 5;
 
-  const handleSaveProject = async (project: any) => {
+  const handleSaveProject = async (project: any, index: number) => {
+    const key = `${activeTaskId}-${index}`;
+    if (savedProjects.has(key)) return;
     try {
       const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      await supabase.from('projects').insert({
+      const { data: inserted } = await supabase.from('projects').insert({
         name: project.name,
         slug,
         country: project.country || 'Unknown',
@@ -101,8 +103,27 @@ export default function Research() {
         ai_generated: true,
         source_url: project.source_url || '',
         value_label: project.value_label || 'Undisclosed',
-      });
-      toast({ title: 'Saved', description: `${project.name} added to Review Queue` });
+      }).select('id').single();
+
+      // Also save contacts if present
+      if (inserted?.id && project.contacts?.length) {
+        const contactRows = project.contacts.map((c: any) => ({
+          project_id: inserted.id,
+          name: c.name || 'Unknown',
+          role: c.role || '',
+          organization: c.organization || '',
+          email: c.email || null,
+          phone: c.phone || null,
+          source: 'user-research',
+          source_url: project.source_url || null,
+          added_by: 'ai',
+          contact_type: 'general',
+        }));
+        await supabase.from('project_contacts').insert(contactRows);
+      }
+
+      setSavedProjects(prev => new Set(prev).add(key));
+      toast({ title: 'Saved to Review Queue', description: `${project.name} added with ${project.contacts?.length || 0} contacts` });
     } catch {
       toast({ title: 'Error', description: 'Failed to save project', variant: 'destructive' });
     }
