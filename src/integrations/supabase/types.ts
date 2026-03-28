@@ -191,6 +191,7 @@ export type Database = {
           role: string | null
           sectors: string[] | null
           stages: string[] | null
+          tour_completed: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -203,6 +204,7 @@ export type Database = {
           role?: string | null
           sectors?: string[] | null
           stages?: string[] | null
+          tour_completed?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -215,6 +217,7 @@ export type Database = {
           role?: string | null
           sectors?: string[] | null
           stages?: string[] | null
+          tour_completed?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
