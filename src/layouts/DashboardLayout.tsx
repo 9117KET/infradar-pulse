@@ -27,43 +27,43 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Core',
     items: [
-      { title: 'Overview', url: '/dashboard', icon: LayoutDashboard },
-      { title: 'Research', url: '/dashboard/research', icon: Search },
-      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch },
+      { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
+      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
+      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe },
-      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck },
-      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle },
+      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
+      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
+      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle, tourId: 'nav-risk' },
     ],
   },
   {
     label: 'Operations',
     minRole: 'researcher',
     items: [
-      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
-      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
-      { title: 'Agents', url: '/dashboard/agents', icon: Bot },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck },
+      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity, tourId: 'nav-monitoring' },
+      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
+      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
     ],
   },
   {
     label: 'Analysis',
     items: [
-      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3 },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen },
+      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3, tourId: 'nav-analytics' },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
     ],
   },
   {
     label: 'Admin',
     minRole: 'admin',
     items: [
-      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks },
-      { title: 'Users', url: '/dashboard/users', icon: Users },
-      { title: 'Settings', url: '/dashboard/settings', icon: Settings },
+      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+      { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
+      { title: 'Settings', url: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
     ],
   },
 ];
