@@ -1,79 +1,90 @@
 
 
-# Sophisticated Dashboard Overview with Charts, Maps & Real-Time Visuals
+# Dashboard Navigation Reorganization & Page Consolidation
 
-## Summary
+## Current Problem
 
-Rebuild the Overview page from a basic stats + table layout into a rich, data-dense command center with interactive charts, a mini heatmap, alert distribution visuals, and real-time agent activity — all powered by Recharts and the existing Leaflet map setup.
+16 flat nav items with no grouping — overwhelming and hard to navigate. Several pages overlap in purpose.
 
-## Layout (6 sections)
+## Merges
+
+### 1. Satellite + Validation → **"Evidence & Verification"**
+Both pull from `evidence_sources` table. Satellite shows satellite-specific evidence; Validation shows cross-source coverage. Merge into one page with tabs or sections.
+
+### 2. Analytics + Reporting → **"Analytics & Reports"**
+Analytics shows basic sector bar charts. Reporting shows a project table with CSV export and AI report generation. Merge into one page — charts on top, export/report tools below.
+
+## New Sidebar Structure (Grouped with Section Labels)
 
 ```text
-┌─────────────────────────────────────────────────────┐
-│  KPI Cards (8 cards, 2 rows)                        │
-├──────────────────────┬──────────────────────────────┤
-│  Projects by Region  │  Projects by Sector          │
-│  (Pie/Donut Chart)   │  (Bar Chart)                 │
-├──────────────────────┴──────────────────────────────┤
-│  Mini World Map — project locations heatmap          │
-│  (Leaflet with circle markers, color = risk)         │
-├──────────────────────┬──────────────────────────────┤
-│  Confidence Trend    │  Alert Distribution           │
-│  (Area Chart)        │  (Stacked Bar by category)    │
-├──────────────────────┴──────────────────────────────┤
-│  Pipeline by Stage   │  Agent Activity (live feed)   │
-│  (Horizontal bar)    │  + Pending Review card        │
-├─────────────────────────────────────────────────────┤
-│  Recent Project Updates (table, kept from current)   │
-└─────────────────────────────────────────────────────┘
+── CORE
+   Overview
+   Projects
+
+── INTELLIGENCE
+   Geo Intelligence
+   Evidence & Verification  (merged Satellite + Validation)
+   Risk Signals
+
+── OPERATIONS
+   Monitoring
+   Alerts
+   Agents              (admin)
+   Review Queue         (admin)
+
+── ANALYSIS
+   Analytics & Reports  (merged Analytics + Reporting)
+   Insights
+
+── ADMIN
+   Waitlist             (admin)
+   Users                (admin)
+   Settings
 ```
+
+**Result: 16 items → 12 items**, organized into 5 logical groups with clear section labels.
 
 ## Changes
 
-### 1. Install Recharts (already available via shadcn chart component)
+### 1. Create merged Evidence & Verification page
+- `src/pages/dashboard/EvidenceVerification.tsx`
+- KPI cards: Total sources, Verified count, Satellite verified, 4+ source coverage, Conflicts
+- Donut chart: Evidence by type distribution
+- Bar chart: Verification rate per type
+- Coverage heatmap grid (project × evidence type)
+- Full project table with satellite status column, source badges, coverage bars, confidence
+- Filters: evidence type, verification status, coverage level
 
-Use the existing `recharts` dependency already in the project. Import `PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer` directly.
+### 2. Create merged Analytics & Reports page
+- `src/pages/dashboard/AnalyticsReports.tsx`
+- Top section: Recharts visualizations (sector breakdown donut, region bar, value distribution, confidence trend)
+- Bottom section: Reporting tools — region filter, project summary table, CSV export button, AI report generation button
+- Keeps all existing Reporting functionality intact
 
-### 2. Rebuild `src/pages/dashboard/Overview.tsx`
+### 3. Update DashboardLayout sidebar
+- Replace flat `ALL_NAV` array with grouped structure using multiple `SidebarGroup` sections
+- Remove Satellite, Validation, Analytics, Reporting routes
+- Add Evidence & Verification and Analytics & Reports routes
 
-**KPI cards (expanded to 8):** Projects tracked, Verified count, Avg confidence, Total value, Active alerts (unread), Stale projects (30d+), Pending review, Agent runs (24h).
+### 4. Update App.tsx routes
+- Remove `/dashboard/satellite`, `/dashboard/validation`, `/dashboard/analytics`, `/dashboard/reporting`
+- Add `/dashboard/evidence` and `/dashboard/analytics-reports`
+- Add redirects from old paths to new ones for bookmarks
 
-**Projects by Region — Donut chart:** Aggregate `projects` by `region`, render as a donut with colored segments.
-
-**Projects by Sector — Horizontal bar chart:** Aggregate by `sector`, show horizontal bars with values.
-
-**Mini Heatmap Map:** Embed a small Leaflet map (reuse pattern from GeoIntelligence) with `CircleMarker` for each project. Color by risk score (green → amber → red). No popups, just visual density.
-
-**Confidence Trend — Area chart:** Compute average confidence from `project_updates` over last 6 months (or use static fallback if insufficient data). Smooth area chart with gradient fill.
-
-**Alert Distribution — Stacked bar chart:** Group alerts by category and severity. Show a bar per category with severity segments stacked.
-
-**Pipeline by Stage — Horizontal bar:** Count projects per stage (Planned → Construction → Completed). Color-coded bars.
-
-**Agent Activity + Pending Review:** Keep existing live feed but make it more compact. Keep pending review card.
-
-**Recent updates table:** Keep but style more compactly.
-
-### 3. Real-time subscriptions
-
-Already has realtime for `research_tasks` and `projects`. Add subscription for `alerts` table to keep alert stats live.
-
-### 4. Mini map component
-
-Create `src/components/dashboard/OverviewMap.tsx` — a small, non-interactive Leaflet map (zoom/pan disabled or minimal) showing project dots colored by risk. Reuse the native Leaflet approach from GeoIntelligence to avoid React-Leaflet context issues.
+### 5. Delete old pages
+- `SatelliteVerification.tsx`, `MultiSourceValidation.tsx` (merged into EvidenceVerification)
+- Old `Analytics.tsx`, `Reporting.tsx` (merged into AnalyticsReports)
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Create | `src/components/dashboard/OverviewMap.tsx` — mini heatmap map |
-| Rewrite | `src/pages/dashboard/Overview.tsx` — full rebuild with charts |
-
-## Technical Notes
-
-- Recharts is already a dependency (used by shadcn chart component)
-- Leaflet is already installed and configured
-- All data comes from existing hooks (`useProjects`, `useAlerts`) + existing Supabase queries
-- No new database tables or migrations needed
-- Real-time updates flow automatically through existing subscriptions
+| Create | `src/pages/dashboard/EvidenceVerification.tsx` |
+| Create | `src/pages/dashboard/AnalyticsReports.tsx` |
+| Modify | `src/layouts/DashboardLayout.tsx` — grouped sidebar |
+| Modify | `src/App.tsx` — updated routes |
+| Delete | `src/pages/dashboard/SatelliteVerification.tsx` |
+| Delete | `src/pages/dashboard/MultiSourceValidation.tsx` |
+| Delete | `src/pages/dashboard/Analytics.tsx` |
+| Delete | `src/pages/dashboard/Reporting.tsx` |
 
