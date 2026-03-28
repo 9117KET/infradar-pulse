@@ -13,6 +13,7 @@ export interface UserProfile {
   sectors: string[];
   stages: string[];
   onboarded: boolean;
+  tour_completed: boolean;
 }
 
 interface AuthCtx {
