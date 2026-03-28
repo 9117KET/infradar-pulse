@@ -13,7 +13,7 @@ import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Waitlist from "./pages/Waitlist";
+
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import DataProtection from "./pages/DataProtection";
