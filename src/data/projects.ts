@@ -1,6 +1,6 @@
 export type ProjectStage = 'Planned' | 'Tender' | 'Awarded' | 'Financing' | 'Construction' | 'Completed' | 'Cancelled' | 'Stopped';
 export type ProjectStatus = 'Verified' | 'Stable' | 'Pending' | 'At Risk';
-export type Region = 'MENA' | 'East Africa' | 'West Africa';
+export type Region = 'MENA' | 'East Africa' | 'West Africa' | 'Southern Africa' | 'Central Africa' | 'North America' | 'South America' | 'Europe' | 'Central Asia' | 'South Asia' | 'East Asia' | 'Southeast Asia' | 'Oceania' | 'Caribbean';
 export type Sector = 'Urban Development' | 'Digital Infrastructure' | 'Renewable Energy' | 'Transport' | 'Water' | 'Energy';
 
 export interface Evidence {
