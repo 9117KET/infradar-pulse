@@ -5,7 +5,7 @@ import { DemoSection } from '@/components/home/DemoSection';
 import { PipelineSection } from '@/components/home/PipelineSection';
 import { PersonasSection } from '@/components/home/PersonasSection';
 import { UseCaseSection } from '@/components/home/UseCaseSection';
-import { ContactSection } from '@/components/home/ContactSection';
+import { EngagementSection } from '@/components/home/EngagementSection';
 
 const Index = () => (
   <>
