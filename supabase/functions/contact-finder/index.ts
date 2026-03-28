@@ -27,10 +27,9 @@ serve(async (req) => {
       .select()
       .single();
 
-    // Find projects with fewer than 2 contacts
     const { data: allProjects } = await supabase
       .from("projects")
-      .select("id, name, country, region, sector")
+      .select("id, name, country, region, sector, source_url")
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -39,10 +38,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { data: existingContacts } = await supabase
-      .from("project_contacts")
-      .select("project_id");
-
+    const { data: existingContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
     (existingContacts || []).forEach((c: any) => {
       contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1;
@@ -72,8 +68,8 @@ serve(async (req) => {
     for (const project of needsContacts) {
       const rawContent: string[] = [];
       const projectStakeholders = stakeholderMap[project.id] || [];
+      const citationUrls: string[] = [];
 
-      // Search with Perplexity — prioritize contractor/procurement contacts
       if (PERPLEXITY_API_KEY) {
         try {
           const searchQuery = `"${project.name}" ${project.country} main contractor EPC procurement officer project manager email phone contact site engineer ${projectStakeholders.slice(0, 3).join(" ")}`;
@@ -83,7 +79,7 @@ serve(async (req) => {
             body: JSON.stringify({
               model: "sonar",
               messages: [
-                { role: "system", content: "Find contact information for people involved in this infrastructure project. Prioritize main contractor contacts (project managers, procurement officers, site managers, CEOs). Also find government officials, project owners, financiers, and consultants. Include names, phone numbers, emails, job titles, and organizations." },
+                { role: "system", content: "Find contact information for people involved in this infrastructure project. Prioritize main contractor contacts. Include names, phone numbers, emails, job titles, and organizations. Always cite the URL where each contact was found." },
                 { role: "user", content: searchQuery },
               ],
               search_recency_filter: "year",
@@ -92,14 +88,16 @@ serve(async (req) => {
           const pxData = await pxResponse.json();
           if (pxData?.choices?.[0]?.message?.content) {
             rawContent.push(`Perplexity: ${pxData.choices[0].message.content}`);
-            if (pxData.citations) rawContent.push(`Sources: ${pxData.citations.join(", ")}`);
+            if (pxData.citations) {
+              citationUrls.push(...pxData.citations);
+              rawContent.push(`Sources: ${pxData.citations.join(", ")}`);
+            }
           }
         } catch (e) {
           console.error("Perplexity error for", project.name, e);
         }
       }
 
-      // Scrape stakeholder websites with Firecrawl
       if (FIRECRAWL_API_KEY && projectStakeholders.length > 0) {
         try {
           const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -116,6 +114,7 @@ serve(async (req) => {
             for (const result of searchData.data.slice(0, 2)) {
               if (result.markdown) {
                 rawContent.push(`Firecrawl (${result.url}): ${result.markdown.slice(0, 2000)}`);
+                if (result.url) citationUrls.push(result.url);
               }
             }
           }
@@ -126,7 +125,6 @@ serve(async (req) => {
 
       if (rawContent.length === 0) continue;
 
-      // Extract contacts with AI — enhanced for contractor classification
       try {
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -134,14 +132,14 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
             messages: [
-              { role: "system", content: "Extract contact information for people involved in infrastructure projects. Classify each contact into a contact_type: 'contractor' (EPC firms, construction companies, site managers, procurement), 'government' (ministry officials, regulators), 'financier' (banks, DFIs, investors), 'consultant' (advisors, engineers, lawyers), 'owner' (project owner, developer), or 'general'. Prioritize finding main contractor emails and phone numbers. Only include contacts where you have at least a name and one of: phone number or email. Be precise — do not fabricate information." },
-              { role: "user", content: `Extract contacts for project "${project.name}" in ${project.country}.\n\nRaw data:\n${rawContent.join("\n\n")}` },
+              { role: "system", content: "Extract contact information for people involved in infrastructure projects. Classify each contact into a contact_type. IMPORTANT: For each contact, include the specific source_url where their information was found. Only include contacts where you have at least a name and one of: phone number or email. Do not fabricate information." },
+              { role: "user", content: `Extract contacts for project "${project.name}" in ${project.country}.\n\nAvailable citation URLs: ${JSON.stringify(citationUrls)}\n\nRaw data:\n${rawContent.join("\n\n")}` },
             ],
             tools: [{
               type: "function",
               function: {
                 name: "extract_contacts",
-                description: "Extract contact details for project stakeholders with type classification",
+                description: "Extract contact details with source URLs",
                 parameters: {
                   type: "object",
                   properties: {
@@ -151,12 +149,12 @@ serve(async (req) => {
                         type: "object",
                         properties: {
                           name: { type: "string" },
-                          role: { type: "string", description: "Job title or role" },
+                          role: { type: "string" },
                           organization: { type: "string" },
-                          phone: { type: "string", description: "Phone number if available" },
-                          email: { type: "string", description: "Email if available" },
-                          contact_type: { type: "string", enum: ["contractor", "government", "financier", "consultant", "owner", "general"], description: "Category of this contact" },
-                          source: { type: "string", description: "Where this contact info was found" },
+                          phone: { type: "string" },
+                          email: { type: "string" },
+                          contact_type: { type: "string", enum: ["contractor", "government", "financier", "consultant", "owner", "general"] },
+                          source_url: { type: "string", description: "The specific URL where this contact's information was found" },
                         },
                         required: ["name", "contact_type"],
                         additionalProperties: false,
@@ -184,7 +182,6 @@ serve(async (req) => {
         const parsed = JSON.parse(toolCall.function.arguments);
         const contacts = parsed.contacts || [];
 
-        // Dedup against existing contacts
         const { data: existingForProject } = await supabase
           .from("project_contacts")
           .select("name, organization")
@@ -200,7 +197,8 @@ serve(async (req) => {
         });
 
         if (newContacts.length > 0) {
-          const sourceUrl = rawContent.find(r => r.startsWith("Sources:"))?.replace("Sources: ", "").split(", ")[0] || null;
+          // Use the best available source URL: per-contact > first citation > project source_url
+          const fallbackSourceUrl = citationUrls[0] || (project as any).source_url || null;
 
           await supabase.from("project_contacts").insert(
             newContacts.map((c: any) => ({
@@ -211,8 +209,8 @@ serve(async (req) => {
               phone: c.phone || null,
               email: c.email || null,
               contact_type: c.contact_type || 'general',
-              source: c.source || 'AI Research',
-              source_url: sourceUrl,
+              source: c.organization || 'AI Research',
+              source_url: (c.source_url && c.source_url.startsWith("http")) ? c.source_url : fallbackSourceUrl,
               added_by: 'ai',
             }))
           );
@@ -228,7 +226,7 @@ serve(async (req) => {
             severity: "low",
             message: alertMsg,
             category: "stakeholder",
-            source_url: sourceUrl,
+            source_url: fallbackSourceUrl,
           });
 
           totalInserted += newContacts.length;

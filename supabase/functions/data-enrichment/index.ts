@@ -29,27 +29,25 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
 
-    // Get all approved projects
-    const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
+    // Get ALL projects (approved AND pending) — pending projects especially need source URLs
+    const { data: projects } = await supabase.from("projects").select("*");
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects" } }).eq("id", taskId);
       return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get contacts count per project
     const { data: allContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
     (allContacts || []).forEach((c: any) => { contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1; });
 
-    // Get evidence count per project
     const { data: allEvidence } = await supabase.from("evidence_sources").select("project_id");
     const evidenceCounts: Record<string, number> = {};
     (allEvidence || []).forEach((e: any) => { evidenceCounts[e.project_id] = (evidenceCounts[e.project_id] || 0) + 1; });
 
-    // Score projects by data gaps (higher = more gaps)
+    // Score projects — source_url gaps are now highest priority
     const scoredProjects = projects.map((p: any) => {
       let gaps = 0;
-      if (!p.source_url || p.source_url === '') gaps += 2;
+      if (!p.source_url || p.source_url === '' || p.source_url === '#') gaps += 5; // Highest priority
       if (!p.detailed_analysis || p.detailed_analysis === '') gaps += 2;
       if (!p.key_risks || p.key_risks === '') gaps += 1;
       if (!p.funding_sources || p.funding_sources === '') gaps += 1;
@@ -58,10 +56,11 @@ serve(async (req) => {
       if (!p.description || p.description === '') gaps += 2;
       if (!contactCounts[p.id]) gaps += 3;
       if (!evidenceCounts[p.id]) gaps += 1;
+      // Pending projects get a bonus so they're enriched first
+      if (!p.approved) gaps += 3;
       return { ...p, gapScore: gaps, hasContacts: !!contactCounts[p.id], hasEvidence: !!evidenceCounts[p.id] };
     });
 
-    // Process top 5 projects with most gaps
     const toEnrich = scoredProjects.filter(p => p.gapScore > 2).sort((a, b) => b.gapScore - a.gapScore).slice(0, 5);
 
     if (!toEnrich.length) {
@@ -72,12 +71,13 @@ serve(async (req) => {
 
     let enriched = 0;
     let contactsAdded = 0;
+    let sourcesBackfilled = 0;
 
     for (const project of toEnrich) {
       try {
-        // Build specific search query based on what's missing
         const missingFields: string[] = [];
-        if (!project.source_url || project.source_url === '') missingFields.push("official website or news article URL");
+        const missingSourceUrl = !project.source_url || project.source_url === '' || project.source_url === '#';
+        if (missingSourceUrl) missingFields.push("official website URL, news article URL, or government filing URL where this project is documented (THIS IS THE MOST IMPORTANT FIELD)");
         if (!project.detailed_analysis || project.detailed_analysis === '') missingFields.push("detailed project analysis and current status");
         if (!project.key_risks || project.key_risks === '') missingFields.push("key risks and challenges");
         if (!project.funding_sources || project.funding_sources === '') missingFields.push("funding sources and financial backing");
@@ -91,8 +91,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are an infrastructure project research analyst. Find detailed, factual information about the given project. Include source URLs for all information." },
-              { role: "user", content: `Research the "${project.name}" infrastructure project in ${project.country} (${project.sector} sector). I need the following information:\n${missingFields.map(f => `- ${f}`).join("\n")}\n\nProvide specific, verified details with source URLs.` },
+              { role: "system", content: "You are an infrastructure project research analyst. Find detailed, factual information about the given project. CRITICAL: You MUST include direct, clickable source URLs for all information. Provide the most authoritative URL you can find (government website, major news outlet, official project page)." },
+              { role: "user", content: `Research the "${project.name}" infrastructure project in ${project.country} (${project.sector} sector). I need the following information:\n${missingFields.map(f => `- ${f}`).join("\n")}\n\nProvide specific, verified details with source URLs. The source URL is the most critical piece of information needed.` },
             ],
           }),
         });
@@ -102,15 +102,14 @@ serve(async (req) => {
 
         if (!researchContent) continue;
 
-        // Use AI to extract structured data
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-lite",
             messages: [
-              { role: "system", content: "You extract structured project data from research text." },
-              { role: "user", content: `Extract data for "${project.name}" from this research:\n${researchContent}\n\nCitations: ${JSON.stringify(citations)}\n\nExtract all available fields. For contacts, include name, role, organization, email if found.` },
+              { role: "system", content: "You extract structured project data from research text. The source_url field is the MOST IMPORTANT — it must be a real, verifiable URL (not a placeholder). Use citations provided when available." },
+              { role: "user", content: `Extract data for "${project.name}" from this research:\n${researchContent}\n\nCitations: ${JSON.stringify(citations)}\n\nExtract all available fields. source_url MUST be a real URL from the citations or content. For contacts, include name, role, organization, email if found.` },
             ],
             tools: [{
               type: "function",
@@ -120,12 +119,27 @@ serve(async (req) => {
                 parameters: {
                   type: "object",
                   properties: {
-                    source_url: { type: "string", description: "Best source URL for the project" },
-                    detailed_analysis: { type: "string", description: "Detailed analysis paragraph" },
-                    key_risks: { type: "string", description: "Key risks paragraph" },
-                    funding_sources: { type: "string", description: "Funding sources info" },
-                    environmental_impact: { type: "string", description: "Environmental impact info" },
-                    political_context: { type: "string", description: "Political context info" },
+                    source_url: { type: "string", description: "REQUIRED: Best verifiable source URL for the project (news article, gov filing, or official page)" },
+                    detailed_analysis: { type: "string" },
+                    key_risks: { type: "string" },
+                    funding_sources: { type: "string" },
+                    environmental_impact: { type: "string" },
+                    political_context: { type: "string" },
+                    evidence_sources: {
+                      type: "array",
+                      description: "Additional evidence source URLs found during research",
+                      items: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string" },
+                          url: { type: "string" },
+                          source: { type: "string" },
+                          type: { type: "string", enum: ["News", "Filing", "Registry", "Partner"] },
+                        },
+                        required: ["url", "source"],
+                        additionalProperties: false,
+                      },
+                    },
                     contacts: {
                       type: "array",
                       items: {
@@ -136,6 +150,7 @@ serve(async (req) => {
                           organization: { type: "string" },
                           email: { type: "string" },
                           contact_type: { type: "string", enum: ["contractor", "government", "consultant", "financier", "general"] },
+                          source_url: { type: "string", description: "URL where this contact info was found" },
                         },
                         required: ["name", "organization"],
                         additionalProperties: false,
@@ -160,9 +175,11 @@ serve(async (req) => {
         const updates: Record<string, unknown> = { last_updated: new Date().toISOString() };
         const fieldsUpdated: string[] = [];
 
-        if (extracted.source_url && (!project.source_url || project.source_url === '')) {
+        // Source URL is highest priority
+        if (extracted.source_url && extracted.source_url.startsWith("http") && missingSourceUrl) {
           updates.source_url = extracted.source_url;
           fieldsUpdated.push("source_url");
+          sourcesBackfilled++;
         }
         if (extracted.detailed_analysis && (!project.detailed_analysis || project.detailed_analysis === '')) {
           updates.detailed_analysis = extracted.detailed_analysis;
@@ -199,7 +216,26 @@ serve(async (req) => {
           enriched++;
         }
 
-        // Add contacts
+        // Add additional evidence sources
+        if (extracted.evidence_sources?.length) {
+          for (const ev of extracted.evidence_sources) {
+            if (ev.url && ev.url.startsWith("http")) {
+              await supabase.from("evidence_sources").insert({
+                project_id: project.id,
+                source: ev.source || "AI Research",
+                url: ev.url,
+                type: ev.type || "News",
+                verified: false,
+                date: new Date().toISOString().split("T")[0],
+                title: ev.title || "",
+                description: "",
+                added_by: "ai",
+              });
+            }
+          }
+        }
+
+        // Add contacts with proper source URLs
         if (extracted.contacts?.length && !project.hasContacts) {
           for (const contact of extracted.contacts.slice(0, 5)) {
             await supabase.from("project_contacts").insert({
@@ -210,7 +246,7 @@ serve(async (req) => {
               email: contact.email || null,
               contact_type: contact.contact_type || "general",
               source: "Data Enrichment Agent",
-              source_url: extracted.source_url || null,
+              source_url: contact.source_url || extracted.source_url || null,
               added_by: "ai",
             });
             contactsAdded++;
@@ -221,7 +257,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded };
+    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
