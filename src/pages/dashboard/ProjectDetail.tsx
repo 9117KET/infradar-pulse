@@ -46,6 +46,13 @@ export default function ProjectDetail() {
   const [ctPhone, setCtPhone] = useState('');
   const [ctEmail, setCtEmail] = useState('');
 
+  // Verification toggle state
+  const [showVerifyDialog, setShowVerifyDialog] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
+  const [verifyReason, setVerifyReason] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verificationLog, setVerificationLog] = useState<any[]>([]);
+
   if (loading) {
     return (
       <div className="space-y-6 max-w-4xl">
