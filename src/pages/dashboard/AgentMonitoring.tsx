@@ -18,6 +18,7 @@ const AGENTS = [
   { type: 'sentiment-analyzer', name: 'Sentiment Analyzer', icon: MessageSquare, schedule: 'Every 2 hours', fn: agentApi.runSentimentAnalyzer },
   { type: 'supply-chain-monitor', name: 'Supply Chain', icon: Package, schedule: 'Every 4 hours', fn: agentApi.runSupplyChainMonitor },
   { type: 'market-intel', name: 'Market Intel', icon: TrendingUp, schedule: 'Every 6 hours', fn: agentApi.runMarketIntel },
+  { type: 'contact-finder', name: 'Contact Finder', icon: Phone, schedule: 'Every 3 hours', fn: agentApi.runContactFinder },
 ];
 
 function timeAgo(date: string) {
