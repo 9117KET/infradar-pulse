@@ -1,55 +1,65 @@
 
 
-# Project Verification Status Toggle
+# Source Links for Projects, Alerts & Insights
 
 ## Summary
 
-Add the ability to mark/unmark a project's status as "Verified" or "Unverified" directly from the Project Detail page, with a reason log so the team knows why verification was revoked.
+Add `source_url` to alerts and ensure all agents always include source URLs in their findings. Update the Alerts UI and Insights pages to display clickable source links. Projects already have `source_url` — ensure agents populate it consistently.
 
-## Changes
+---
 
-### 1. Database Migration
+## Database Migration
 
-Create a `project_verification_log` table to track verification/unverification history:
+Add `source_url` column to the `alerts` table:
 
 ```sql
-CREATE TABLE project_verification_log (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  project_id uuid NOT NULL,
-  action text NOT NULL, -- 'verified' or 'unverified'
-  reason text NOT NULL DEFAULT '',
-  performed_by uuid REFERENCES auth.users(id),
-  created_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE project_verification_log ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Auth read verification log" ON project_verification_log FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Auth insert verification log" ON project_verification_log FOR INSERT TO authenticated WITH CHECK (true);
+ALTER TABLE alerts ADD COLUMN source_url text DEFAULT NULL;
 ```
 
-### 2. ProjectDetail.tsx — Add Verification Toggle
+The `insights` table already has no source_url — add one:
 
-Add a prominent button next to the status badge:
-- If status is **Verified** → show "Mark Unverified" button (red/warning style)
-- If status is anything else → show "Mark Verified" button (green style)
+```sql
+ALTER TABLE insights ADD COLUMN source_url text DEFAULT NULL;
+```
 
-Clicking either opens a small dialog asking for a **reason** (required text field). On submit:
-1. Update `projects.status` to `'Verified'` or `'Pending'`
-2. Insert a row into `project_verification_log` with action, reason, and user ID
-3. Show toast confirmation
+No RLS changes needed.
 
-### 3. Verification History Tab
+---
 
-Add a "Verification History" section inside the existing project detail tabs showing the log entries (timestamp, action, reason, who performed it).
+## Update All Agent Edge Functions
 
-### 4. Projects List — Visual Indicator
+Modify every agent that creates alerts to include a `source_url` field pointing to the actual news article, filing, or resource. Agents affected:
 
-On the Projects list page, projects that were recently unverified (last 7 days) get a small warning indicator so analysts notice them.
+- `research-agent` — already has `evidence_url`, pass it to alert inserts as `source_url`
+- `risk-scorer`, `regulatory-monitor`, `supply-chain-monitor`, `funding-tracker`, `sentiment-analyzer`, `contact-finder`, `update-checker`, `stakeholder-intel`, `market-intel` — add `source_url` from Perplexity citations or Firecrawl results to alert inserts
+- `research-agent` — also ensure `source_url` is set on project inserts (already has the field, just ensure it's populated)
+
+For the AI extraction prompts in each agent, add `source_url` as a required field in the structured output so the AI always returns a link to the original source.
+
+---
+
+## Frontend Changes
+
+### Alerts Page (`Alerts.tsx`)
+- Update the `Alert` interface in `src/data/alerts.ts` to include `source_url?: string`
+- Update `use-alerts.ts` to map `source_url` from DB
+- In each alert card, add an `ExternalLink` icon-button that opens `source_url` in a new tab (only shown when URL exists)
+
+### Insights Page
+- Where insights are displayed, show a "Source" link if `source_url` is present
+
+### Project Detail
+- Already shows `sourceUrl` — no changes needed, just ensure agents populate it
+
+---
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Migration | Create `project_verification_log` table |
-| Modify | `src/pages/dashboard/ProjectDetail.tsx` — toggle button + reason dialog + history section |
-| Modify | `src/pages/dashboard/Projects.tsx` — recently unverified indicator |
+| Migration | Add `source_url` to `alerts` and `insights` tables |
+| Modify | `src/data/alerts.ts` — add `source_url` to Alert interface |
+| Modify | `src/hooks/use-alerts.ts` — map source_url |
+| Modify | `src/pages/dashboard/Alerts.tsx` — show source link on each alert |
+| Modify | All 10 agent edge functions — include source_url in alert inserts |
 
