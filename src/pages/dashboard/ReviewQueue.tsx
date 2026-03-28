@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
   Check, X, ExternalLink, Bot, MapPin, DollarSign,
-  ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2
+  ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2,
+  Mail, Phone, User, Building2
 } from 'lucide-react';
 
 interface EvidenceRow {
@@ -17,6 +18,18 @@ interface EvidenceRow {
   verified: boolean;
   date: string;
   title: string | null;
+}
+
+interface ContactRow {
+  id: string;
+  name: string;
+  role: string;
+  organization: string;
+  email: string | null;
+  phone: string | null;
+  contact_type: string;
+  source_url: string | null;
+  verified: boolean;
 }
 
 export default function ReviewQueue() {
@@ -51,6 +64,24 @@ export default function ReviewQueue() {
       (data || []).forEach((e: any) => {
         if (!map[e.project_id]) map[e.project_id] = [];
         map[e.project_id].push(e);
+      });
+      return map;
+    },
+  });
+
+  // Load contacts for all pending projects
+  const { data: contactsMap = {} } = useQuery({
+    queryKey: ['pending-contacts', pendingIds],
+    enabled: pendingIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('project_contacts')
+        .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
+        .in('project_id', pendingIds);
+      const map: Record<string, ContactRow[]> = {};
+      (data || []).forEach((c: any) => {
+        if (!map[c.project_id]) map[c.project_id] = [];
+        map[c.project_id].push(c);
       });
       return map;
     },
@@ -93,6 +124,11 @@ export default function ReviewQueue() {
 
   const hasSource = (project: any) => project.source_url && project.source_url.trim() !== '' && project.source_url !== '#';
   const projectEvidence = (id: string) => (evidenceMap as Record<string, EvidenceRow[]>)[id] || [];
+  const projectContacts = (id: string) => (contactsMap as Record<string, ContactRow[]>)[id] || [];
+
+  const contactTypeIcon: Record<string, string> = {
+    contractor: '🏗️', government: '🏛️', financier: '💰', consultant: '📋', owner: '👤', general: '📌',
+  };
 
   const stageBadgeColor = (stage: string) => {
     const map: Record<string, string> = {
@@ -147,6 +183,7 @@ export default function ReviewQueue() {
           {pending.map((project: any) => {
             const hasPrimarySource = hasSource(project);
             const evidence = projectEvidence(project.id);
+            const contacts = projectContacts(project.id);
             const hasAnySource = hasPrimarySource || evidence.length > 0;
 
             return (
@@ -277,6 +314,64 @@ export default function ReviewQueue() {
                       {!hasPrimarySource && evidence.length === 0 && (
                         <p className="text-[10px] text-muted-foreground italic">
                           No evidence sources found. The Data Enrichment agent will attempt to backfill.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Contacts Block */}
+                    <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5" /> Contacts & Stakeholders
+                        {contacts.length > 0 && (
+                          <Badge variant="outline" className="ml-auto text-[9px] bg-primary/10 text-primary">{contacts.length} found</Badge>
+                        )}
+                      </h4>
+
+                      {contacts.length > 0 ? (
+                        <div className="space-y-2">
+                          {contacts.map((contact) => (
+                            <div key={contact.id} className="flex items-start gap-3 rounded-md bg-background/50 p-2 text-xs">
+                              <span className="text-sm mt-0.5">{contactTypeIcon[contact.contact_type] || '📌'}</span>
+                              <div className="flex-1 min-w-0 space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-medium">{contact.name}</span>
+                                  {contact.verified && (
+                                    <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/15 text-emerald-400">Verified</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-[8px] px-1 py-0 capitalize">{contact.contact_type}</Badge>
+                                </div>
+                                {contact.role && (
+                                  <p className="text-muted-foreground">{contact.role}</p>
+                                )}
+                                <div className="flex items-center gap-1 text-muted-foreground">
+                                  <Building2 className="h-3 w-3" />
+                                  <span>{contact.organization}</span>
+                                </div>
+                                <div className="flex items-center gap-3 pt-0.5">
+                                  {contact.email && (
+                                    <a href={`mailto:${contact.email}`} className="flex items-center gap-1 text-primary hover:underline">
+                                      <Mail className="h-3 w-3" /> {contact.email}
+                                    </a>
+                                  )}
+                                  {contact.phone && (
+                                    <a href={`tel:${contact.phone}`} className="flex items-center gap-1 text-primary hover:underline">
+                                      <Phone className="h-3 w-3" /> {contact.phone}
+                                    </a>
+                                  )}
+                                </div>
+                                {contact.source_url && (
+                                  <a href={contact.source_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-muted-foreground hover:text-primary text-[10px]">
+                                    <ExternalLink className="h-2.5 w-2.5" /> Source
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-400 flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          No contacts found — Contact Finder agent will attempt to discover stakeholders
                         </p>
                       )}
                     </div>
