@@ -8,6 +8,7 @@ import { REGIONS, SECTORS, statusColor, type Region, type Sector, type Project }
 import { useProjects } from '@/hooks/use-projects';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, TrendingUp, Shield, Calendar, Users, X } from 'lucide-react';
+import { HeroMap } from './HeroMap';
 
 const STATUSES_FILTER = ['Completed', 'In progress', 'Planned', 'Stopped'] as const;
 type StatusFilter = typeof STATUSES_FILTER[number];
@@ -21,7 +22,7 @@ function mapStageToFilter(stage: string): StatusFilter {
 
 export function DemoSection() {
   const { projects: PROJECTS } = useProjects();
-  const [selectedRegions, setSelectedRegions] = useState<Region[]>(['MENA']);
+  const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([]);
   const [valueRange, setValueRange] = useState([0, 600]);
@@ -121,30 +122,20 @@ export function DemoSection() {
 
             {viewMode === 'map' ? (
               <div className="glass-panel rounded-xl overflow-hidden relative" style={{ height: 480 }}>
-                {/* Simplified SVG map */}
-                <svg viewBox="-20 -40 200 180" className="w-full h-full" style={{ background: 'hsl(210,12%,7%)' }}>
-                  {/* Simplified Africa + MENA outline */}
-                  <ellipse cx={80} cy={60} rx={70} ry={65} fill="none" stroke="hsl(210,10%,18%)" strokeWidth={0.5} />
-                  <ellipse cx={80} cy={60} rx={50} ry={45} fill="none" stroke="hsl(210,10%,15%)" strokeWidth={0.3} />
-                  {/* Grid lines */}
-                  {[0, 30, 60, 90, 120].map(y => <line key={`h${y}`} x1={-20} y1={y - 20} x2={180} y2={y - 20} stroke="hsl(210,10%,12%)" strokeWidth={0.3} />)}
-                  {[0, 40, 80, 120, 160].map(x => <line key={`v${x}`} x1={x - 10} y1={-40} x2={x - 10} y2={140} stroke="hsl(210,10%,12%)" strokeWidth={0.3} />)}
-                  {/* Project pins */}
-                  {filtered.map(p => {
-                    const x = ((p.lng + 20) / 80) * 160 - 10;
-                    const y = ((50 - p.lat) / 80) * 140 - 20;
-                    return (
-                      <g key={p.id} className="cursor-pointer" onClick={() => setSelectedProject(p)}>
-                        <circle cx={x} cy={y} r={4} fill={statusColor[p.status]} opacity={0.3}>
-                          <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite" />
-                        </circle>
-                        <circle cx={x} cy={y} r={3} fill={statusColor[p.status]} stroke="hsl(210,12%,9%)" strokeWidth={1} />
-                        <title>{p.name}</title>
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className="absolute bottom-3 left-3 flex gap-3 text-[10px] text-muted-foreground">
+                <HeroMap
+                  projects={filtered.map(p => ({
+                    lat: p.lat,
+                    lng: p.lng,
+                    name: p.name,
+                    country: p.country,
+                    sector: p.sector,
+                    riskScore: p.riskScore,
+                    valueLabel: p.valueLabel,
+                    id: p.id,
+                  }))}
+                  className="w-full h-full"
+                />
+                <div className="absolute bottom-3 left-3 z-[1000] flex gap-3 text-[10px] text-muted-foreground">
                   {Object.entries(statusColor).map(([s, c]) => (
                     <span key={s} className="flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ background: c }} />{s}</span>
                   ))}
