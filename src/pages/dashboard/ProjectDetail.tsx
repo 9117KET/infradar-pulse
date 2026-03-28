@@ -153,12 +153,13 @@ export default function ProjectDetail() {
         organization: ctOrg,
         phone: ctPhone || null,
         email: ctEmail || null,
+        contact_type: ctType,
         source: 'Manual entry',
         added_by: 'human',
       } as any);
       toast({ title: 'Contact added' });
       setShowAddContact(false);
-      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail('');
+      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail(''); setCtType('general');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
