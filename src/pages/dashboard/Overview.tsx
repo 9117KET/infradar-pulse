@@ -237,6 +237,33 @@ export default function DashboardOverview() {
         </div>
       </div>
 
+      {/* Data Quality Score */}
+      <div className="glass-panel rounded-xl p-5">
+        <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" /> Data quality score
+          <span className={`ml-auto text-2xl font-bold ${dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+            {dataQuality.overall}%
+          </span>
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {dataQuality.fields.map(f => (
+            <div key={f.name} className="rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-muted-foreground">{f.name}</span>
+                <span className={`text-xs font-semibold ${f.pct >= 70 ? 'text-emerald-400' : f.pct >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{f.pct}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${f.pct >= 70 ? 'bg-emerald-400' : f.pct >= 40 ? 'bg-amber-400' : 'bg-red-400'}`}
+                  style={{ width: `${f.pct}%` }}
+                />
+              </div>
+              <div className="text-[10px] text-muted-foreground/60 mt-1">{f.filled}/{f.total} projects</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Pipeline + Agent Activity + Pending */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="glass-panel rounded-xl p-5">
