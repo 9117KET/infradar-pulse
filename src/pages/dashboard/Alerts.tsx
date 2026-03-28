@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAlerts } from '@/hooks/use-alerts';
 import { ALERT_CATEGORIES, type AlertCategory } from '@/data/alerts';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -11,6 +12,11 @@ import {
   Shield, TrendingUp, BarChart3, Loader2, ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid, Cell,
+  PieChart, Pie,
+} from 'recharts';
 
 const severityClass: Record<string, string> = {
   critical: 'text-destructive border-destructive/30',
