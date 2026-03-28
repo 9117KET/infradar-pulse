@@ -333,7 +333,21 @@ function ProfileMenu() {
 }
 
 export default function DashboardLayout() {
-  const { user, loading, profile, profileLoading } = useAuth();
+  const { user, loading, profile, profileLoading, completeTour } = useAuth();
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    if (profile && profile.onboarded && !profile.tour_completed) {
+      // Small delay so the dashboard renders first
+      const t = setTimeout(() => setShowTour(true), 800);
+      return () => clearTimeout(t);
+    }
+  }, [profile]);
+
+  const handleTourComplete = async () => {
+    setShowTour(false);
+    await completeTour();
+  };
 
   if (loading || profileLoading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>;
@@ -351,9 +365,9 @@ export default function DashboardLayout() {
             <SidebarTrigger className="mr-4" />
             <span className="text-sm text-muted-foreground hidden sm:inline">InfraRadar AI — Intelligence Platform</span>
             <div className="ml-auto flex items-center gap-3">
-              <ProjectSearch />
-              <NotificationBell />
-              <ProfileMenu />
+              <div data-tour="header-search"><ProjectSearch /></div>
+              <div data-tour="header-notifications"><NotificationBell /></div>
+              <div data-tour="header-profile"><ProfileMenu /></div>
             </div>
           </header>
           <main className="flex-1 p-6 overflow-auto">
@@ -361,6 +375,7 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
+      {showTour && <GuidedTour onComplete={handleTourComplete} />}
     </SidebarProvider>
   );
 }
