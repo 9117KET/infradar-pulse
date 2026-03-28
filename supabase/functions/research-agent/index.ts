@@ -361,6 +361,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                 }))
               );
             }
+          }
 
           // Create alert for new discovery
           await supabase.from("alerts").insert({
