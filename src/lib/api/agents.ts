@@ -12,6 +12,12 @@ async function invokeAgent(functionName: string) {
   return data;
 }
 
+async function invokeAgentWithBody(functionName: string, body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke(functionName, { body });
+  if (error) throw new Error(error.message || `Failed to invoke ${functionName}`);
+  return data;
+}
+
 export const agentApi = {
   runResearchAgent: () => invokeAgent('research-agent'),
   runUpdateChecker: () => invokeAgent('update-checker'),
