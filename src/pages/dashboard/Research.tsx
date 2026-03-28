@@ -280,28 +280,53 @@ export default function Research() {
                     </div>
                     <p className="text-xs text-muted-foreground">{p.description}</p>
                     {p.value_label && <p className="text-xs"><span className="text-muted-foreground">Value:</span> {p.value_label}</p>}
-                    {p.source_url && (
-                      <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                        <ExternalLink className="h-3 w-3" /> Source
-                      </a>
-                    )}
-                    {p.contacts && (p.contacts as any[]).length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        <h4 className="text-[10px] font-semibold uppercase text-muted-foreground">Contacts</h4>
-                        {(p.contacts as any[]).map((c: any, ci: number) => (
-                          <div key={ci} className="flex items-center gap-2 text-xs">
-                            <User className="h-3 w-3 text-muted-foreground" />
-                            <span>{c.name}</span>
+                    
+                    {/* Source URL - always visible */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      {p.source_url ? (
+                        <a href={p.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate">
+                          {p.source_url}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-destructive/70 italic">No source URL found</span>
+                      )}
+                    </div>
+
+                    {/* Contacts & Emails */}
+                    <div className="mt-2 border-t border-border pt-2 space-y-1.5">
+                      <h4 className="text-[10px] font-semibold uppercase text-muted-foreground flex items-center gap-1">
+                        <User className="h-3 w-3" /> Contacts & Emails
+                        {p.contacts?.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] ml-1">{p.contacts.length}</Badge>
+                        )}
+                      </h4>
+                      {p.contacts && (p.contacts as any[]).length > 0 ? (
+                        (p.contacts as any[]).map((c: any, ci: number) => (
+                          <div key={ci} className="flex items-center flex-wrap gap-x-3 gap-y-0.5 text-xs bg-muted/20 rounded p-1.5">
+                            <span className="font-medium">{c.name}</span>
                             {c.role && <span className="text-muted-foreground">· {c.role}</span>}
+                            {c.organization && (
+                              <span className="text-muted-foreground flex items-center gap-0.5">
+                                <Building2 className="h-3 w-3" /> {c.organization}
+                              </span>
+                            )}
                             {c.email && (
                               <a href={`mailto:${c.email}`} className="text-primary hover:underline flex items-center gap-0.5">
                                 <Mail className="h-3 w-3" /> {c.email}
                               </a>
                             )}
+                            {c.phone && (
+                              <a href={`tel:${c.phone}`} className="text-primary hover:underline flex items-center gap-0.5">
+                                <Phone className="h-3 w-3" /> {c.phone}
+                              </a>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      ) : (
+                        <p className="text-xs text-destructive/70 italic">No contacts discovered</p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </CardContent>
