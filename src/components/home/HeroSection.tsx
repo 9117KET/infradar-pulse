@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { HeroMap } from '@/components/home/HeroMap';
+import { HeroLiveTracker } from '@/components/home/HeroLiveTracker';
 import { useProjects } from '@/hooks/use-projects';
 
 export function HeroSection() {
