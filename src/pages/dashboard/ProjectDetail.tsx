@@ -308,6 +308,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
           <TabsTrigger value="evidence">Evidence ({project.evidence.length})</TabsTrigger>
           <TabsTrigger value="timeline">Timeline ({project.milestones.length})</TabsTrigger>
+          <TabsTrigger value="verification">Verification ({verificationLog.length})</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
