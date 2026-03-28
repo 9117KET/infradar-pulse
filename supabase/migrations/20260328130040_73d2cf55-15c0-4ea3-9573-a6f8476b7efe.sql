@@ -1,0 +1,11 @@
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Southern Africa';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Central Africa';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'North America';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'South America';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Europe';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Central Asia';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'South Asia';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'East Asia';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Southeast Asia';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Oceania';
+ALTER TYPE project_region ADD VALUE IF NOT EXISTS 'Caribbean';
