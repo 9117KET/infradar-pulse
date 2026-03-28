@@ -31,9 +31,10 @@ serve(async (req) => {
     // Search Firecrawl for dev bank announcements
     if (FIRECRAWL_API_KEY) {
       const searches = [
-        "World Bank infrastructure project approval Africa MENA 2025",
+        "World Bank infrastructure project approval worldwide 2025",
+        "Asian Development Bank ADB new project funding 2025",
+        "IFC AIIB EBRD infrastructure investment global 2025",
         "African Development Bank AfDB new project funding 2025",
-        "IFC AIIB infrastructure investment Africa Middle East 2025",
       ];
       for (const q of searches.slice(0, 2)) {
         try {
