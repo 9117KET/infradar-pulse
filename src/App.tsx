@@ -87,7 +87,7 @@ const App = () => (
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
               <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
               <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
-              <Route path="/dashboard/agents" element={<AgentMonitoring />} />
+              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentMonitoring /></RoleGuard>} />
               {/* Redirects for old routes */}
               <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/analytics-reports" replace />} />
               <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/analytics-reports" replace />} />
