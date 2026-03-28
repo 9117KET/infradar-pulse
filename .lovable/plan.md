@@ -1,71 +1,43 @@
 
 
-# Agent Automation, Data Gap Filler & Enhanced Monitoring
+# Hero Section — Live Tracking Widget
 
-## Problems Identified
+## What Changes
 
-1. **No pg_cron schedules exist** — all 10+ agents have never run automatically despite having defined schedules. They only execute on manual trigger.
-2. **update-checker and risk-scorer don't log to `research_tasks`** — they appear as "Never run" on the monitoring page because they skip the task tracking insert.
-3. **Many projects lack contacts, emails, and source URLs** — no agent specifically targets filling data gaps on existing projects.
-4. **Agent Monitoring page is too static** — no visual representation of agent workflow or progress.
+Replace the Leaflet map on the right side of the hero with a **Live Tracking** widget inspired by the reference image, but enhanced with real database data and subtle animations.
 
-## Changes
+## Design
 
-### 1. Fix update-checker & risk-scorer to log to research_tasks
+The widget will be a dark glass-morphism card containing:
 
-Both agents need the same pattern as other agents: insert a `research_tasks` row at start (status: running), update on completion/failure.
+1. **Header**: Infradar logo icon + "LIVE TRACKING" label + green pulsing "Real-time" badge
+2. **Project Cards** (top 3 by value): Each card shows an icon, project name, value label, stage/status, and country code — with staggered fade-in animations
+3. **Bottom Stats Bar**: Total project count + total pipeline value (summed from DB) + version tag
+4. **Ambient effects**: Subtle border glow, card hover lift, and a slow rotating gradient behind the widget for depth
 
-**Files:** `supabase/functions/update-checker/index.ts`, `supabase/functions/risk-scorer/index.ts`
+Data comes from the existing `useProjects()` hook — no new queries needed. The top 3 projects cycle every 5 seconds with a crossfade to show the platform is alive.
 
-### 2. Create a new "Data Enrichment" agent
+## Implementation
 
-A new edge function `data-enrichment` that:
-- Scans all approved projects for missing fields (no source_url, no contacts, empty description, no evidence, missing detailed_analysis)
-- For each project with gaps, uses Perplexity to search for the missing information
-- Uses AI to extract and fill: source URLs, detailed analysis, key risks, funding sources, environmental impact, political context
-- Logs progress to `research_tasks` so it appears on monitoring
-- Creates alerts when significant data is added
-- Processes 5-10 projects per run to stay within limits
+### New Component: `src/components/home/HeroLiveTracker.tsx`
 
-**Files:** Create `supabase/functions/data-enrichment/index.ts`, add to `src/lib/api/agents.ts`, add to agent grid in `AgentMonitoring.tsx`
+- Accepts `projects` array prop
+- Computes: `totalProjects`, `totalPipelineValue` (formatted as $xT/$xB), top 3 projects sorted by `valueUsd`
+- Auto-rotates visible projects every 5s (show 3 at a time from the full list, cycling through)
+- Each project row: colored icon (by sector), name, value label, stage badge, country ISO code
+- Framer Motion `AnimatePresence` for smooth card transitions
+- Country codes derived from existing `country` field (map country name → ISO code)
 
-### 3. Set up pg_cron schedules for ALL agents
+### Modify: `src/components/home/HeroSection.tsx`
 
-Enable `pg_cron` and `pg_net` extensions, then create cron jobs for all 12 agents:
-
-| Agent | Schedule |
-|-------|----------|
-| research-agent | Every 30 min |
-| update-checker | Every 2 hours |
-| risk-scorer | Every 4 hours |
-| stakeholder-intel | Every 6 hours |
-| funding-tracker | Every 4 hours |
-| regulatory-monitor | Every 3 hours |
-| sentiment-analyzer | Every 2 hours |
-| supply-chain-monitor | Every 4 hours |
-| market-intel | Every 6 hours |
-| contact-finder | Every 3 hours |
-| alert-intelligence | Every 4 hours |
-| data-enrichment | Every 2 hours |
-
-**Method:** SQL insert tool (not migration) since it contains project-specific URLs/keys.
-
-### 4. Enhance Agent Monitoring UI with visual workflow
-
-Add to `AgentMonitoring.tsx`:
-- **Agent Activity Timeline** — a Recharts area chart showing agent runs over the last 7 days by agent type
-- **Data Coverage Dashboard** — visual bars showing what % of projects have contacts, emails, URLs, evidence, descriptions filled
-- **Live Process Visualization** — when an agent is running, show an animated step-by-step workflow indicator (Searching → Extracting → Analyzing → Saving) based on task status
-- **Health indicators** — agents that haven't run in > 2× their schedule period get a "Stale" warning badge
+- Replace `HeroMap` import with `HeroLiveTracker`
+- Remove `min-h-[500px]` constraint since the widget is more compact
+- Pass `projects` to the new component
 
 ## Files Changed
 
 | Action | File |
 |--------|------|
-| Modify | `supabase/functions/update-checker/index.ts` — add research_tasks logging |
-| Modify | `supabase/functions/risk-scorer/index.ts` — add research_tasks logging |
-| Create | `supabase/functions/data-enrichment/index.ts` — new data gap filler agent |
-| Modify | `src/lib/api/agents.ts` — add `runDataEnrichment` |
-| Modify | `src/pages/dashboard/AgentMonitoring.tsx` — activity chart, data coverage dashboard, live process viz, stale warnings |
-| SQL insert | Enable pg_cron + pg_net, create 12 cron schedules |
+| Create | `src/components/home/HeroLiveTracker.tsx` |
+| Modify | `src/components/home/HeroSection.tsx` — swap map for live tracker |
 
