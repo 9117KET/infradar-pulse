@@ -31,4 +31,5 @@ export const agentApi = {
   runContactFinder: () => invokeAgent('contact-finder'),
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
+  runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),
 };

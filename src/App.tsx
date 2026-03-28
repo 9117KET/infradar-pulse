@@ -38,6 +38,7 @@ import AnalyticsReports from "./pages/dashboard/AnalyticsReports";
 import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
 import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 import AgentMonitoring from "./pages/dashboard/AgentMonitoring";
+import Research from "./pages/dashboard/Research";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
