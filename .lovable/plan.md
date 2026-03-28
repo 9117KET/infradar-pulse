@@ -1,43 +1,70 @@
 
 
-# Hero Section — Live Tracking Widget
+# Sophisticated Hero Command Center Widget
 
-## What Changes
+## Current State
+The right side of the hero has a simple card with 3 cycling project rows and basic stats. It works but feels like a basic list — not a "command center."
 
-Replace the Leaflet map on the right side of the hero with a **Live Tracking** widget inspired by the reference image, but enhanced with real database data and subtle animations.
+## Proposed Redesign
 
-## Design
+Replace the single card with a multi-layered **Intelligence Dashboard** widget that feels like a live operations terminal.
 
-The widget will be a dark glass-morphism card containing:
+```text
+┌──────────────────────────────────────────┐
+│ ◉ INFRADAR COMMAND CENTER    ● Real-time │
+├──────────────────────────────────────────┤
+│                                          │
+│  ┌─ SECTOR BREAKDOWN (mini donut) ─────┐ │
+│  │  ◕ Energy 34%  ◕ Transport 22% ... │ │
+│  └─────────────────────────────────────┘ │
+│                                          │
+│  ┌─ LIVE FEED ─────────────────────────┐ │
+│  │  ↑ NEOM Phase 2   $500B   SA  ▓▓▓░ │ │
+│  │  ↑ Cairo Metro    $23B    EG  ▓▓░░ │ │
+│  │  ↑ Kenya Wind     $1.2B   KE  ▓░░░ │ │
+│  └─────────────────────────────────────┘ │
+│                                          │
+│  ┌─ RISK HEATMAP ──┐ ┌─ ACTIVITY ─────┐ │
+│  │  ■■■■□□  MENA   │ │ ┃▁▂▅▇█▅▃▁     │ │
+│  │  ■■□□□□  Africa │ │ │ 24h volume   │ │
+│  └──────────────────┘ └────────────────┘ │
+│                                          │
+│  $1.2T pipeline  │  142 projects  │ v1.0 │
+└──────────────────────────────────────────┘
+```
 
-1. **Header**: Infradar logo icon + "LIVE TRACKING" label + green pulsing "Real-time" badge
-2. **Project Cards** (top 3 by value): Each card shows an icon, project name, value label, stage/status, and country code — with staggered fade-in animations
-3. **Bottom Stats Bar**: Total project count + total pipeline value (summed from DB) + version tag
-4. **Ambient effects**: Subtle border glow, card hover lift, and a slow rotating gradient behind the widget for depth
+### Sections (top to bottom):
 
-Data comes from the existing `useProjects()` hook — no new queries needed. The top 3 projects cycle every 5 seconds with a crossfade to show the platform is alive.
+1. **Header** — "INFRADAR COMMAND CENTER" with scanning line animation + green pulsing dot
+
+2. **Sector Breakdown** — Animated donut/ring chart (pure SVG, no library) showing project count by sector with colored segments. Sectors animate in on mount.
+
+3. **Live Project Feed** — Same cycling 3-project list but enhanced with:
+   - Risk score as a mini progress bar (colored green/amber/red)
+   - Typewriter-style entry animation
+   - Faint scan-line effect across each row
+
+4. **Bottom Grid** (2 mini panels side by side):
+   - **Regional Risk Summary** — tiny heatmap blocks for MENA vs Africa (avg risk scores)
+   - **Activity Pulse** — SVG sparkline showing project count distribution (simulated from data, grouped by region/sector)
+
+5. **Stats Footer** — Total pipeline value, project count, version — with a counting-up number animation on mount
+
+### Visual Effects:
+- Faint horizontal scan-line animation (CSS) moving down the card every 4s
+- Ambient teal glow behind the card (existing)
+- Glass-morphism with slightly more opacity
+- Monospace font for numbers/codes
 
 ## Implementation
 
-### New Component: `src/components/home/HeroLiveTracker.tsx`
+### Modify: `src/components/home/HeroLiveTracker.tsx`
+- Complete rebuild with 5 sections above
+- Pure SVG for donut chart and sparkline (no chart library needed for hero)
+- `useMemo` to compute sector distribution, regional risk averages
+- Counting animation via a small `useEffect` + `requestAnimationFrame` hook
+- CSS keyframe for scan-line effect (inline style or tailwind extend)
 
-- Accepts `projects` array prop
-- Computes: `totalProjects`, `totalPipelineValue` (formatted as $xT/$xB), top 3 projects sorted by `valueUsd`
-- Auto-rotates visible projects every 5s (show 3 at a time from the full list, cycling through)
-- Each project row: colored icon (by sector), name, value label, stage badge, country ISO code
-- Framer Motion `AnimatePresence` for smooth card transitions
-- Country codes derived from existing `country` field (map country name → ISO code)
-
-### Modify: `src/components/home/HeroSection.tsx`
-
-- Replace `HeroMap` import with `HeroLiveTracker`
-- Remove `min-h-[500px]` constraint since the widget is more compact
-- Pass `projects` to the new component
-
-## Files Changed
-
-| Action | File |
-|--------|------|
-| Create | `src/components/home/HeroLiveTracker.tsx` |
-| Modify | `src/components/home/HeroSection.tsx` — swap map for live tracker |
+### No other files change
+- `HeroSection.tsx` already passes `projects` — no change needed
 
