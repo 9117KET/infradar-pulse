@@ -92,6 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [fetchProfile]);
 
+  const completeTour = useCallback(async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ tour_completed: true }).eq('id', user.id);
+    setProfile(prev => prev ? { ...prev, tour_completed: true } : prev);
+  }, [user]);
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -99,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, roles, hasRole, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, profileLoading, roles, hasRole, signOut, refreshProfile, completeTour }}>
       {children}
     </AuthContext.Provider>
   );
