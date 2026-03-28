@@ -125,7 +125,14 @@ export default function Projects() {
                 <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-3"><Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link></td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-1.5">
+                      <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                      {p.dbId && recentlyUnverified.has(p.dbId) && (
+                        <span title="Recently marked unverified"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" /></span>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 text-muted-foreground">{p.country}</td>
                   <td className="p-3 text-muted-foreground">{p.sector}</td>
                   <td className="p-3"><Badge variant="outline" className="text-xs">{p.stage}</Badge></td>
