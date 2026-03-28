@@ -45,7 +45,7 @@ export default function ProjectDetail() {
   const [ctOrg, setCtOrg] = useState('');
   const [ctPhone, setCtPhone] = useState('');
   const [ctEmail, setCtEmail] = useState('');
-
+  const [ctType, setCtType] = useState('general');
   // Verification toggle state
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
