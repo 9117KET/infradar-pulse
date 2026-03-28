@@ -7,19 +7,22 @@ const corsHeaders = {
 };
 
 const NEWS_SOURCES = [
-  "MEED infrastructure projects MENA 2025",
-  "IJGlobal infrastructure Africa MENA",
-  "African Development Bank new projects 2025",
-  "Construction Week Middle East projects",
-  "infrastructure mega projects East Africa West Africa 2025",
+  "MEED infrastructure projects 2025",
+  "IJGlobal infrastructure projects worldwide",
+  "World Bank new infrastructure projects 2025",
+  "Construction Week global megaprojects",
+  "infrastructure mega projects worldwide 2025",
+  "Asian Development Bank infrastructure 2025",
+  "European Investment Bank infrastructure 2025",
+  "Inter-American Development Bank infrastructure 2025",
 ];
 
 const RESEARCH_QUERIES = [
-  "latest infrastructure megaprojects Middle East North Africa 2025 construction awarded",
-  "new infrastructure projects East Africa West Africa 2025 tender awarded financing",
-  "major construction projects Saudi Arabia UAE Egypt Morocco 2025",
-  "renewable energy projects Africa MENA 2025 solar wind",
-  "transport rail port projects Africa 2025",
+  "latest infrastructure megaprojects worldwide 2025 construction awarded",
+  "new infrastructure projects Asia Europe Americas 2025 tender awarded financing",
+  "major construction projects global 2025 transport energy water",
+  "renewable energy infrastructure projects worldwide 2025 solar wind",
+  "transport rail port airport projects global 2025",
 ];
 
 interface ExtractedProject {
