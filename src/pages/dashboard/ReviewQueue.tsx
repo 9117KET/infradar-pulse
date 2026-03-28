@@ -183,6 +183,7 @@ export default function ReviewQueue() {
           {pending.map((project: any) => {
             const hasPrimarySource = hasSource(project);
             const evidence = projectEvidence(project.id);
+            const contacts = projectContacts(project.id);
             const hasAnySource = hasPrimarySource || evidence.length > 0;
 
             return (
