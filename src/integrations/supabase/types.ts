@@ -189,6 +189,59 @@ export type Database = {
         }
         Relationships: []
       }
+      project_contacts: {
+        Row: {
+          added_by: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          organization: string
+          phone: string | null
+          project_id: string
+          role: string
+          source: string
+          source_url: string | null
+          verified: boolean
+        }
+        Insert: {
+          added_by?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          organization?: string
+          phone?: string | null
+          project_id: string
+          role?: string
+          source?: string
+          source_url?: string | null
+          verified?: boolean
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          organization?: string
+          phone?: string | null
+          project_id?: string
+          role?: string
+          source?: string
+          source_url?: string | null
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_contacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_milestones: {
         Row: {
           completed: boolean

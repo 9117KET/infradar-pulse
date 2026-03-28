@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone } from '@/data/projects';
+import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone, Contact } from '@/data/projects';
 
 export interface DbProject {
   id: string;
@@ -29,7 +29,8 @@ function dbToProject(
   p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
   stakeholders: string[],
   milestones: Milestone[],
-  evidence: Evidence[]
+  evidence: Evidence[],
+  contacts: Contact[]
 ): Project {
   return {
     id: p.slug,
@@ -51,6 +52,7 @@ function dbToProject(
     stakeholders,
     milestones,
     evidence,
+    contacts,
     detailedAnalysis: (p as any).detailed_analysis || '',
     keyRisks: (p as any).key_risks || '',
     fundingSources: (p as any).funding_sources || '',
@@ -68,11 +70,12 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
   useEffect(() => {
     async function fetchProjects() {
       setLoading(true);
-      const [{ data: pData }, { data: sData }, { data: mData }, { data: eData }] = await Promise.all([
+      const [{ data: pData }, { data: sData }, { data: mData }, { data: eData }, { data: cData }] = await Promise.all([
         supabase.from('projects').select('*').eq('approved', true).order('value_usd', { ascending: false }),
         supabase.from('project_stakeholders').select('*'),
         supabase.from('project_milestones').select('*'),
         supabase.from('evidence_sources').select('*'),
+        supabase.from('project_contacts').select('*'),
       ]);
 
       if (!pData) { setLoading(false); return; }
@@ -95,8 +98,14 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
         evidenceMap[e.project_id].push({ id: e.id, source: e.source, url: e.url, type: e.type, verified: e.verified, date: e.date, title: e.title || '', description: e.description || '', added_by: e.added_by || 'ai' });
       });
 
+      const contactMap: Record<string, Contact[]> = {};
+      (cData || []).forEach((c: any) => {
+        if (!contactMap[c.project_id]) contactMap[c.project_id] = [];
+        contactMap[c.project_id].push(c);
+      });
+
       let result = pData.map((p: any) =>
-        dbToProject(p, stakeholderMap[p.id] || [], milestoneMap[p.id] || [], evidenceMap[p.id] || [])
+        dbToProject(p, stakeholderMap[p.id] || [], milestoneMap[p.id] || [], evidenceMap[p.id] || [], contactMap[p.id] || [])
       );
 
       // Apply client-side filters from user preferences

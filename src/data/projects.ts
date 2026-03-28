@@ -22,6 +22,20 @@ export interface Milestone {
   completed: boolean;
 }
 
+export interface Contact {
+  id: string;
+  name: string;
+  role: string;
+  organization: string;
+  phone: string | null;
+  email: string | null;
+  source: string;
+  source_url: string | null;
+  verified: boolean;
+  added_by: string;
+  created_at: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -40,6 +54,7 @@ export interface Project {
   stakeholders: string[];
   milestones: Milestone[];
   evidence: Evidence[];
+  contacts?: Contact[];
   lastUpdated: string;
   timeline: string;
   detailedAnalysis?: string;
