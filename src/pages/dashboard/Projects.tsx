@@ -1,15 +1,29 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { REGIONS, SECTORS, STAGES, type Region, type Sector, type ProjectStage } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Bookmark, Plus, AlertTriangle } from 'lucide-react';
+import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+} from 'recharts';
+import OverviewMap from '@/components/dashboard/OverviewMap';
+
+const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
+const STATUS_COLORS: Record<string, string> = { Verified: '#22c55e', Stable: '#3b82f6', Pending: '#f59e0b', 'At Risk': '#ef4444' };
+const STAGE_COLORS: Record<string, string> = {
+  Planned: '#64748b', Tender: '#8b5cf6', Awarded: '#3b82f6', Financing: '#f59e0b',
+  Construction: '#22c55e', Completed: '#14b8a6', Cancelled: '#ef4444', Stopped: '#dc2626',
+};
+
+const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 };
 
 export default function Projects() {
   const { toast } = useToast();
@@ -20,7 +34,6 @@ export default function Projects() {
   const [confFilter, setConfFilter] = useState<string>('all');
   const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
-  // Fetch projects that were unverified in the last 7 days
   useEffect(() => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     supabase
@@ -29,11 +42,10 @@ export default function Projects() {
       .eq('action', 'unverified')
       .gte('created_at', sevenDaysAgo)
       .then(({ data }) => {
-        if (data) {
-          setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
-        }
+        if (data) setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
       });
   }, []);
+
   const filtered = useMemo(() => {
     return projects.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
@@ -45,6 +57,56 @@ export default function Projects() {
       return true;
     });
   }, [projects, search, stage, sector, confFilter]);
+
+  // Aggregations for charts
+  const totalValue = useMemo(() => filtered.reduce((s, p) => s + (p.valueUsd || 0), 0), [filtered]);
+  const avgConfidence = useMemo(() => filtered.length ? Math.round(filtered.reduce((s, p) => s + p.confidence, 0) / filtered.length) : 0, [filtered]);
+  const verifiedCount = useMemo(() => filtered.filter(p => p.status === 'Verified').length, [filtered]);
+
+  const regionData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filtered.forEach(p => { map[p.region] = (map[p.region] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [filtered]);
+
+  const sectorData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filtered.forEach(p => { map[p.sector] = (map[p.sector] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+  }, [filtered]);
+
+  const stageData = useMemo(() => {
+    const stages = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
+    const map: Record<string, number> = {};
+    filtered.forEach(p => { map[p.stage] = (map[p.stage] || 0) + 1; });
+    return stages.map(name => ({ name, value: map[name] || 0 }));
+  }, [filtered]);
+
+  const statusData = useMemo(() => {
+    const map: Record<string, number> = {};
+    filtered.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [filtered]);
+
+  const confidenceDistribution = useMemo(() => {
+    const buckets = [
+      { name: '<50%', min: 0, max: 50, count: 0 },
+      { name: '50-69%', min: 50, max: 70, count: 0 },
+      { name: '70-89%', min: 70, max: 90, count: 0 },
+      { name: '≥90%', min: 90, max: 101, count: 0 },
+    ];
+    filtered.forEach(p => {
+      const b = buckets.find(b => p.confidence >= b.min && p.confidence < b.max);
+      if (b) b.count++;
+    });
+    return buckets.map(b => ({ name: b.name, value: b.count }));
+  }, [filtered]);
+
+  const valueByRegion = useMemo(() => {
+    const map: Record<string, number> = {};
+    filtered.forEach(p => { map[p.region] = (map[p.region] || 0) + p.valueUsd; });
+    return Object.entries(map).map(([name, value]) => ({ name, value: +(value / 1e9).toFixed(1) }));
+  }, [filtered]);
 
   const exportCSV = () => {
     const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
@@ -75,6 +137,141 @@ export default function Projects() {
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
       </div>
+
+      {/* KPI Summary */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
+        {[
+          { label: 'Total projects', value: filtered.length, icon: Activity, color: 'text-primary' },
+          { label: 'Verified', value: verifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
+          { label: 'Avg confidence', value: `${avgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
+          { label: 'Total value', value: totalValue >= 1e9 ? `$${(totalValue / 1e9).toFixed(1)}B` : `$${(totalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
+          { label: 'Regions', value: regionData.length, icon: MapPin, color: 'text-blue-400' },
+          { label: 'At Risk', value: filtered.filter(p => p.status === 'At Risk').length, icon: AlertTriangle, color: 'text-destructive' },
+        ].map(k => (
+          <div key={k.label} className="glass-panel rounded-xl p-4">
+            <k.icon className={`h-4 w-4 ${k.color} mb-2`} />
+            {loading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
+            <div className="text-[10px] text-muted-foreground mt-0.5">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row 1: Region donut + Status donut + Confidence histogram */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">By region</h3>
+          {loading ? <Skeleton className="h-[180px] w-full" /> : (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={regionData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
+                    {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {regionData.map((r, i) => (
+                  <span key={r.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />{r.name}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">By status</h3>
+          {loading ? <Skeleton className="h-[180px] w-full" /> : (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
+                    {statusData.map(s => <Cell key={s.name} fill={STATUS_COLORS[s.name] || '#64748b'} />)}
+                  </Pie>
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {statusData.map(s => (
+                  <span key={s.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLORS[s.name] || '#64748b' }} />{s.name} ({s.value})
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">Confidence distribution</h3>
+          {loading ? <Skeleton className="h-[180px] w-full" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={confidenceDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} fill="hsl(170 55% 63%)" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Charts Row 2: Pipeline stages + Value by region + Sector bar */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">Pipeline by stage</h3>
+          {loading ? <Skeleton className="h-[200px] w-full" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
+                  {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">Value by region ($B)</h3>
+          {loading ? <Skeleton className="h-[200px] w-full" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={valueByRegion}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`$${v}B`, 'Value']} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} fill="#38bdf8" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-sm font-semibold mb-3">By sector</h3>
+          {loading ? <Skeleton className="h-[200px] w-full" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
+                  {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Mini Map */}
+      {!loading && <OverviewMap projects={filtered} />}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
