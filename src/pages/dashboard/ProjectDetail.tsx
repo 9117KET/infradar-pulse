@@ -89,6 +89,29 @@ export default function ProjectDetail() {
 
   const contacts = project.contacts || [];
 
+  const handleVerificationToggle = async () => {
+    if (!project.dbId || !verifyReason.trim()) return;
+    setVerifyLoading(true);
+    try {
+      const newStatus = verifyAction === 'verified' ? 'Verified' : 'Pending';
+      await supabase.from('projects').update({ status: newStatus as any }).eq('id', project.dbId);
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('project_verification_log' as any).insert({
+        project_id: project.dbId,
+        action: verifyAction,
+        reason: verifyReason,
+        performed_by: user?.id,
+      });
+      toast({ title: verifyAction === 'verified' ? 'Project verified' : 'Project marked unverified', description: verifyReason });
+      setShowVerifyDialog(false);
+      setVerifyReason('');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!project.dbId) return;
     try {
