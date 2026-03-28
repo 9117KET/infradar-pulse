@@ -56,6 +56,40 @@ export default function Alerts() {
 
   const filtered = filterByCategory(selectedCategory);
 
+  // Volume over time (last 30 days, grouped by day)
+  const volumeByDay = useMemo(() => {
+    const days: Record<string, Record<string, number>> = {};
+    const now = Date.now();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now - i * 86400000);
+      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+      days[key] = { critical: 0, high: 0, medium: 0, low: 0 };
+    }
+    alerts.forEach(a => {
+      const d = new Date(a.createdAt);
+      const key = `${d.getMonth() + 1}/${d.getDate()}`;
+      if (days[key]) days[key][a.severity] = (days[key][a.severity] || 0) + 1;
+    });
+    return Object.entries(days).map(([day, sevs]) => ({ day, ...sevs }));
+  }, [alerts]);
+
+  // Category distribution for pie
+  const categoryDistribution = useMemo(() => {
+    return ALERT_CATEGORIES
+      .map(c => ({ name: c.label, value: stats.byCategory[c.value] || 0, fill: CATEGORY_COLORS[c.value] || '#64748b' }))
+      .filter(c => c.value > 0);
+  }, [stats]);
+
+  // Severity distribution for pie
+  const severityDistribution = useMemo(() => {
+    const sevs = ['critical', 'high', 'medium', 'low'] as const;
+    return sevs.map(s => ({
+      name: s.charAt(0).toUpperCase() + s.slice(1),
+      value: alerts.filter(a => a.severity === s).length,
+      fill: SEVERITY_COLORS[s],
+    })).filter(s => s.value > 0);
+  }, [alerts]);
+
   const generateBrief = async () => {
     setBriefLoading(true);
     try {
