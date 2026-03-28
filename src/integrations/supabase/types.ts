@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       alerts: {
         Row: {
+          category: Database["public"]["Enums"]["alert_category"]
           created_at: string
           id: string
           message: string
@@ -25,6 +26,7 @@ export type Database = {
           severity: Database["public"]["Enums"]["alert_severity"]
         }
         Insert: {
+          category?: Database["public"]["Enums"]["alert_category"]
           created_at?: string
           id?: string
           message: string
@@ -34,6 +36,7 @@ export type Database = {
           severity?: Database["public"]["Enums"]["alert_severity"]
         }
         Update: {
+          category?: Database["public"]["Enums"]["alert_category"]
           created_at?: string
           id?: string
           message?: string
@@ -502,6 +505,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      alert_category:
+        | "political"
+        | "financial"
+        | "regulatory"
+        | "supply_chain"
+        | "environmental"
+        | "construction"
+        | "stakeholder"
+        | "market"
+        | "security"
       alert_severity: "critical" | "high" | "medium" | "low"
       evidence_type: "Satellite" | "Filing" | "News" | "Registry" | "Partner"
       project_region: "MENA" | "East Africa" | "West Africa"
@@ -650,6 +663,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      alert_category: [
+        "political",
+        "financial",
+        "regulatory",
+        "supply_chain",
+        "environmental",
+        "construction",
+        "stakeholder",
+        "market",
+        "security",
+      ],
       alert_severity: ["critical", "high", "medium", "low"],
       evidence_type: ["Satellite", "Filing", "News", "Registry", "Partner"],
       project_region: ["MENA", "East Africa", "West Africa"],
