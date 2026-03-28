@@ -16,7 +16,7 @@ const Index = () => (
     <PipelineSection />
     <PersonasSection />
     <UseCaseSection />
-    <ContactSection />
+    <EngagementSection />
   </>
 );
 

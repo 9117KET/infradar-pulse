@@ -51,7 +51,7 @@ const NAV_GROUPS = [
   {
     label: 'Admin',
     items: [
-      { title: 'Waitlist', url: '/dashboard/waitlist', icon: ListChecks },
+      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks },
       { title: 'Users', url: '/dashboard/users', icon: Users },
       { title: 'Settings', url: '/dashboard/settings', icon: Settings },
     ],

@@ -64,7 +64,7 @@ export function Footer() {
           <div>
             <h4 className="font-sans text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Get Started</h4>
             <div className="flex flex-col gap-3">
-              <a href="/#contact"><Button className="w-full teal-glow">Join waitlist</Button></a>
+              <a href="/#connect"><Button className="w-full teal-glow">Subscribe to Updates</Button></a>
               <Link to="/login"><Button variant="outline" className="w-full">Explore platform</Button></Link>
             </div>
           </div>
