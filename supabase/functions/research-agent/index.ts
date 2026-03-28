@@ -41,7 +41,7 @@ interface ExtractedProject {
   evidence_source: string;
   evidence_url: string;
   evidence_type: string;
-  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string }[];
+  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string; contact_type?: string }[];
 }
 
 serve(async (req) => {
@@ -222,6 +222,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                               organization: { type: "string" },
                               phone: { type: "string" },
                               email: { type: "string" },
+                              contact_type: { type: "string", enum: ["contractor", "government", "financier", "consultant", "owner", "general"] },
                             },
                             required: ["name"],
                             additionalProperties: false,
@@ -357,7 +358,9 @@ ${rawContent.join("\n\n---\n\n")}`;
                   organization: c.organization || '',
                   phone: c.phone || null,
                   email: c.email || null,
+                  contact_type: c.contact_type || 'general',
                   source: ep.evidence_source || 'AI Research Agent',
+                  source_url: ep.evidence_url || null,
                   added_by: 'ai',
                 }))
               );

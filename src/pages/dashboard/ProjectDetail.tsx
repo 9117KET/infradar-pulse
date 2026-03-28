@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -45,7 +45,7 @@ export default function ProjectDetail() {
   const [ctOrg, setCtOrg] = useState('');
   const [ctPhone, setCtPhone] = useState('');
   const [ctEmail, setCtEmail] = useState('');
-
+  const [ctType, setCtType] = useState('general');
   // Verification toggle state
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
@@ -153,12 +153,13 @@ export default function ProjectDetail() {
         organization: ctOrg,
         phone: ctPhone || null,
         email: ctEmail || null,
+        contact_type: ctType,
         source: 'Manual entry',
         added_by: 'human',
       } as any);
       toast({ title: 'Contact added' });
       setShowAddContact(false);
-      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail('');
+      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail(''); setCtType('general');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
@@ -360,54 +361,89 @@ export default function ProjectDetail() {
                   <Input value={ctRole} onChange={e => setCtRole(e.target.value)} placeholder="Role / Title" className="bg-black/20" />
                   <Input value={ctOrg} onChange={e => setCtOrg(e.target.value)} placeholder="Organization" className="bg-black/20" />
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <Input value={ctPhone} onChange={e => setCtPhone(e.target.value)} placeholder="Phone number" className="bg-black/20" />
                   <Input value={ctEmail} onChange={e => setCtEmail(e.target.value)} placeholder="Email" className="bg-black/20" />
+                  <Select value={ctType} onValueChange={setCtType}>
+                    <SelectTrigger className="bg-black/20"><SelectValue placeholder="Contact Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contractor">Contractor</SelectItem>
+                      <SelectItem value="government">Government</SelectItem>
+                      <SelectItem value="financier">Financier</SelectItem>
+                      <SelectItem value="consultant">Consultant</SelectItem>
+                      <SelectItem value="owner">Project Owner</SelectItem>
+                      <SelectItem value="general">General</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button size="sm" onClick={handleAddContact}>Add Contact</Button>
               </div>
             )}
 
-            <div className="space-y-2">
-              {contacts.length === 0 && <p className="text-sm text-muted-foreground">No contacts found yet. The Contact Finder agent will discover contacts automatically.</p>}
-              {contacts.map(c => (
-                <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{c.name}</span>
-                      {c.added_by === 'human' && <Badge className="text-[9px] bg-blue-500/20 text-blue-400">Human</Badge>}
-                      {c.added_by === 'ai' && <Badge className="text-[9px] bg-purple-500/20 text-purple-400">AI</Badge>}
-                    </div>
-                    {(c.role || c.organization) && (
-                      <p className="text-xs text-muted-foreground">
-                        {c.role}{c.role && c.organization ? ' · ' : ''}{c.organization}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-3 mt-1">
-                      {c.phone && (
-                        <a href={`tel:${c.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                          <Phone className="h-3 w-3" />{c.phone}
-                        </a>
-                      )}
-                      {c.email && (
-                        <a href={`mailto:${c.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                          <Mail className="h-3 w-3" />{c.email}
-                        </a>
-                      )}
-                    </div>
-                    {c.source && <p className="text-[10px] text-muted-foreground">Source: {c.source}</p>}
+            {contacts.length === 0 && <p className="text-sm text-muted-foreground">No contacts found yet. The Contact Finder agent will discover contacts automatically.</p>}
+
+            {/* Group contacts by type — contractors first */}
+            {(() => {
+              const typeOrder = ['contractor', 'government', 'owner', 'financier', 'consultant', 'general'];
+              const typeLabels: Record<string, string> = { contractor: 'Contractors', government: 'Government', owner: 'Project Owners', financier: 'Financiers', consultant: 'Consultants', general: 'Other' };
+              const typeIcons: Record<string, any> = { contractor: HardHat, government: Landmark, owner: Building2, financier: Briefcase, consultant: UserCheck, general: Users };
+
+              const grouped: Record<string, typeof contacts> = {};
+              contacts.forEach(c => {
+                const t = (c as any).contact_type || 'general';
+                if (!grouped[t]) grouped[t] = [];
+                grouped[t].push(c);
+              });
+
+              return typeOrder.filter(t => grouped[t]?.length).map(t => {
+                const Icon = typeIcons[t] || Users;
+                return (
+                  <div key={t} className="space-y-2 mt-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Icon className="h-3 w-3" />{typeLabels[t] || t} ({grouped[t].length})
+                    </h4>
+                    {grouped[t].map(c => (
+                      <div key={c.id} className={`flex items-center justify-between p-3 rounded-lg border ${t === 'contractor' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/[0.02] border-white/5'}`}>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{c.name}</span>
+                            {t === 'contractor' && <Badge className="text-[9px] bg-amber-500/20 text-amber-400">Contractor</Badge>}
+                            {c.added_by === 'human' && <Badge className="text-[9px] bg-blue-500/20 text-blue-400">Human</Badge>}
+                            {c.added_by === 'ai' && <Badge className="text-[9px] bg-purple-500/20 text-purple-400">AI</Badge>}
+                          </div>
+                          {(c.role || c.organization) && (
+                            <p className="text-xs text-muted-foreground">
+                              {c.role}{c.role && c.organization ? ' · ' : ''}{c.organization}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 mt-1">
+                            {c.phone && (
+                              <a href={`tel:${c.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                                <Phone className="h-3 w-3" />{c.phone}
+                              </a>
+                            )}
+                            {c.email && (
+                              <a href={`mailto:${c.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
+                                <Mail className="h-3 w-3" />{c.email}
+                              </a>
+                            )}
+                          </div>
+                          {c.source && <p className="text-[10px] text-muted-foreground">Source: {c.source}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => toggleContactVerified(c.id, c.verified)}>
+                            {c.verified
+                              ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
+                              : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
+                          </button>
+                          <button onClick={() => deleteContact(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => toggleContactVerified(c.id, c.verified)}>
-                      {c.verified
-                        ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
-                        : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
-                    </button>
-                    <button onClick={() => deleteContact(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                );
+              });
+            })()}
           </div>
         </TabsContent>
 
