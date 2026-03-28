@@ -87,6 +87,7 @@ serve(async (req) => {
                       disruption_type: { type: "string", enum: ["price_spike", "shortage", "shipping_delay", "tariff", "none"] },
                       severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source" },
                     },
                     required: ["commodity", "summary"],
                   },
