@@ -38,10 +38,15 @@ export default function Research() {
       return data;
     },
     enabled: !!activeTaskId,
-    refetchInterval: (query) => {
-      const task = query.state.data;
+    refetchInterval: (data) => {
+      // In TanStack Query v5, refetchInterval receives the query object
+      const task = typeof data === 'object' && data !== null && 'state' in data 
+        ? (data as any).state?.data 
+        : data;
       if (!task) return 2000;
-      return task.status === 'running' || task.status === 'pending' ? 2000 : false;
+      const status = task?.status;
+      if (status === 'completed' || status === 'failed') return false;
+      return 2000;
     },
   });
 
@@ -87,6 +92,11 @@ export default function Research() {
     const key = `${activeTaskId}-${index}`;
     if (savedProjects.has(key)) return;
     try {
+      // Use project source_url, or fall back to research sources
+      const sources = (result?.sources as any[]) || [];
+      const fallbackUrl = sources[0]?.url || '';
+      const sourceUrl = project.source_url || fallbackUrl;
+
       const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const { data: inserted } = await supabase.from('projects').insert({
         name: project.name,
@@ -101,7 +111,7 @@ export default function Research() {
         lng: 0,
         approved: false,
         ai_generated: true,
-        source_url: project.source_url || '',
+        source_url: sourceUrl,
         value_label: project.value_label || 'Undisclosed',
       }).select('id').single();
 

@@ -201,7 +201,11 @@ serve(async (req) => {
         const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
         if (toolCall) {
           const parsed = JSON.parse(toolCall.function.arguments);
-          extractedProjects = parsed.projects || [];
+          extractedProjects = (parsed.projects || []).map((p: Record<string, unknown>, idx: number) => ({
+            ...p,
+            // Ensure every project has a source_url — fall back to search results
+            source_url: p.source_url || searchResults[idx]?.url || searchResults[0]?.url || null,
+          }));
         }
       } catch (e) {
         console.error("AI extraction error:", e);
