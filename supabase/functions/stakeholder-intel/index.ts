@@ -56,7 +56,7 @@ serve(async (req) => {
             body: JSON.stringify({
               model: "sonar",
               messages: [
-                { role: "system", content: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects in MENA and Africa." },
+                { role: "system", content: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide." },
                 { role: "user", content: query },
               ],
               search_recency_filter: "month",

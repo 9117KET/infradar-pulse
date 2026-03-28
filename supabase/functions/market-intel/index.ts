@@ -52,8 +52,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are a competitive intelligence analyst for the infrastructure construction sector in MENA and Africa." },
-              { role: "user", content: "Latest contract awards, bidding activity, market share shifts in infrastructure construction Africa Middle East 2025. Which companies are winning the most bids? Any new market entrants?" },
+              { role: "system", content: "You are a competitive intelligence analyst for the global infrastructure construction sector." },
+              { role: "user", content: "Latest contract awards, bidding activity, market share shifts in infrastructure construction worldwide 2025. Which companies are winning the most bids? Any new market entrants?" },
             ],
             search_recency_filter: "month",
           }),

@@ -32,7 +32,7 @@ serve(async (req) => {
       research: researchRes.data || [],
     };
 
-    const systemPrompt = `You are InfraRadar AI's senior infrastructure analyst. You write insightful, data-driven articles about infrastructure development in MENA and Africa.
+    const systemPrompt = `You are InfraRadar AI's senior infrastructure analyst. You write insightful, data-driven articles about global infrastructure development.
 
 Your tone is authoritative but accessible — like a top-tier consulting firm's research arm. Use specific data points from the provided context. Format in Markdown with ## headings, bullet points, and bold key terms.
 
