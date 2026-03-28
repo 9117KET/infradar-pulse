@@ -41,7 +41,8 @@ interface ExtractedProject {
   evidence_source: string;
   evidence_url: string;
   evidence_type: string;
-  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string; contact_type?: string }[];
+  source_url: string;
+  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string; contact_type?: string; source_url?: string }[];
 }
 
 serve(async (req) => {
@@ -59,7 +60,6 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Create research task record
     const { data: task } = await supabase
       .from("research_tasks")
       .insert({ task_type: "discovery", query: "Full pipeline run", status: "running" })
@@ -111,7 +111,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "sonar",
             messages: [
-              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects in MENA and Africa regions." },
+              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects in MENA and Africa regions. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
               { role: "user", content: query },
             ],
             search_recency_filter: "month",
@@ -130,7 +130,6 @@ serve(async (req) => {
     }
 
     if (rawContent.length === 0) {
-      // Update task as failed
       if (task) {
         await supabase.from("research_tasks").update({ status: "failed", error: "No data sources available", completed_at: new Date().toISOString() }).eq("id", task.id);
       }
@@ -140,9 +139,11 @@ serve(async (req) => {
       );
     }
 
-    // Step 3: AI extraction with Lovable AI
+    // Step 3: AI extraction — source_url is now REQUIRED
     console.log("Extracting structured data with AI...");
     const extractionPrompt = `Analyze the following infrastructure news and research content. Extract any NEW infrastructure projects you can identify.
+
+CRITICAL: Every project MUST have a "source_url" field containing a real, verifiable URL where the project information can be confirmed. Do NOT use placeholder URLs. If you cannot find a verifiable source URL for a project, set confidence to 30 or below and still include the best available URL.
 
 For each project, extract:
 - name: project name
@@ -153,7 +154,7 @@ For each project, extract:
 - status: one of "Verified", "Stable", "Pending", "At Risk"
 - value_usd: estimated value in USD (number)
 - value_label: human readable value like "$2.5B"
-- confidence: 0-100 based on evidence quality
+- confidence: 0-100 based on evidence quality (MUST be ≤30 if no real source URL)
 - risk_score: 0-100 based on risk factors
 - lat: latitude coordinate
 - lng: longitude coordinate
@@ -161,8 +162,9 @@ For each project, extract:
 - timeline: e.g. "2024-2030"
 - stakeholders: array of key stakeholder names
 - evidence_source: name of the source
-- evidence_url: URL of the source
+- evidence_url: URL of the source (MUST be a real, clickable URL)
 - evidence_type: one of "Satellite", "Filing", "News", "Registry", "Partner"
+- source_url: PRIMARY verifiable URL for this project (REQUIRED — real news article, government filing, or official project page)
 
 Content to analyze:
 ${rawContent.join("\n\n---\n\n")}`;
@@ -176,7 +178,7 @@ ${rawContent.join("\n\n---\n\n")}`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are an infrastructure data extraction engine. Return valid JSON only." },
+          { role: "system", content: "You are an infrastructure data extraction engine. Return valid JSON only. Every extracted project MUST include a verifiable source_url." },
           { role: "user", content: extractionPrompt },
         ],
         tools: [
@@ -209,11 +211,11 @@ ${rawContent.join("\n\n---\n\n")}`;
                         timeline: { type: "string" },
                         stakeholders: { type: "array", items: { type: "string" } },
                         evidence_source: { type: "string" },
-                        evidence_url: { type: "string" },
+                        evidence_url: { type: "string", description: "Direct URL to the source article or page" },
                         evidence_type: { type: "string", enum: ["Satellite", "Filing", "News", "Registry", "Partner"] },
+                        source_url: { type: "string", description: "REQUIRED: Primary verifiable URL for this project" },
                         contacts: {
                           type: "array",
-                          description: "Optional contacts found for this project",
                           items: {
                             type: "object",
                             properties: {
@@ -229,7 +231,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                           },
                         },
                       },
-                      required: ["name", "country", "region", "sector", "stage", "value_usd", "lat", "lng", "description"],
+                      required: ["name", "country", "region", "sector", "stage", "value_usd", "lat", "lng", "description", "source_url"],
                       additionalProperties: false,
                     },
                   },
@@ -272,39 +274,53 @@ ${rawContent.join("\n\n---\n\n")}`;
     // Step 4: Upsert into database
     let inserted = 0;
     let updated = 0;
+    let skippedNoSource = 0;
 
     for (const ep of extractedProjects) {
+      // Determine the best source URL available
+      const bestSourceUrl = ep.source_url || ep.evidence_url || "";
+      const isValidSource = bestSourceUrl && bestSourceUrl.startsWith("http");
+
+      // If no valid source and confidence is high, cap it
+      if (!isValidSource && (ep.confidence || 50) > 30) {
+        ep.confidence = 30;
+      }
+
       const slug = ep.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-      // Check if project exists
       const { data: existing } = await supabase
         .from("projects")
-        .select("id, confidence")
+        .select("id, confidence, source_url")
         .eq("slug", slug)
         .maybeSingle();
 
       if (existing) {
-        // Update if new confidence is higher
-        if (ep.confidence > (existing.confidence || 0)) {
-          await supabase.from("projects").update({
-            confidence: ep.confidence,
+        // Update if new confidence is higher, or if we now have a source URL where one was missing
+        const existingMissingSource = !existing.source_url || existing.source_url === '';
+        if (ep.confidence > (existing.confidence || 0) || (existingMissingSource && isValidSource)) {
+          const updatePayload: Record<string, unknown> = {
+            confidence: Math.max(ep.confidence, existing.confidence || 0),
             stage: ep.stage,
             status: ep.status || "Pending",
             last_updated: new Date().toISOString(),
-          }).eq("id", existing.id);
+          };
+          if (existingMissingSource && isValidSource) {
+            updatePayload.source_url = bestSourceUrl;
+          }
+
+          await supabase.from("projects").update(updatePayload).eq("id", existing.id);
 
           await supabase.from("project_updates").insert({
             project_id: existing.id,
-            field_changed: "confidence",
-            old_value: String(existing.confidence),
-            new_value: String(ep.confidence),
+            field_changed: existingMissingSource && isValidSource ? "source_url" : "confidence",
+            old_value: existingMissingSource ? "" : String(existing.confidence),
+            new_value: existingMissingSource && isValidSource ? bestSourceUrl : String(ep.confidence),
             source: ep.evidence_source || "AI Research Agent",
           });
 
           updated++;
         }
       } else {
-        // Insert new project
         const { data: newProject } = await supabase.from("projects").insert({
           slug,
           name: ep.name,
@@ -321,32 +337,33 @@ ${rawContent.join("\n\n---\n\n")}`;
           lng: ep.lng,
           description: ep.description,
           timeline: ep.timeline || "",
-          source_url: ep.evidence_url || "",
+          source_url: bestSourceUrl,
           ai_generated: true,
-          approved: false, // requires admin approval
+          approved: false,
         }).select().single();
 
         if (newProject) {
-          // Add stakeholders
           if (ep.stakeholders?.length) {
             await supabase.from("project_stakeholders").insert(
               ep.stakeholders.map((name) => ({ project_id: newProject.id, name }))
             );
           }
 
-          // Add evidence
+          // Add evidence — always use a real URL
+          const evidenceUrl = ep.evidence_url || bestSourceUrl || "#";
           if (ep.evidence_source) {
             await supabase.from("evidence_sources").insert({
               project_id: newProject.id,
               source: ep.evidence_source,
-              url: ep.evidence_url || "#",
+              url: evidenceUrl,
               type: ep.evidence_type || "News",
               verified: false,
               date: new Date().toISOString().split("T")[0],
+              title: ep.name,
+              description: ep.description?.substring(0, 200) || "",
             });
           }
 
-          // Add contacts if extracted
           if (ep.contacts?.length) {
             const validContacts = ep.contacts.filter(c => c.name && (c.phone || c.email));
             if (validContacts.length > 0) {
@@ -360,38 +377,37 @@ ${rawContent.join("\n\n---\n\n")}`;
                   email: c.email || null,
                   contact_type: c.contact_type || 'general',
                   source: ep.evidence_source || 'AI Research Agent',
-                  source_url: ep.evidence_url || null,
+                  source_url: bestSourceUrl || null,
                   added_by: 'ai',
                 }))
               );
             }
           }
 
-          // Create alert for new discovery
           await supabase.from("alerts").insert({
             project_id: newProject.id,
             project_name: ep.name,
             severity: "medium",
             message: `New project discovered: ${ep.name} (${ep.country}) — ${ep.value_label || "value TBD"}`,
             category: "market",
-            source_url: ep.evidence_url || null,
+            source_url: bestSourceUrl || null,
           });
 
           inserted++;
+          if (!isValidSource) skippedNoSource++;
         }
       }
     }
 
-    // Update task as completed
     if (task) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { extracted: extractedProjects.length, inserted, updated, sources: rawContent.length },
+        result: { extracted: extractedProjects.length, inserted, updated, sources: rawContent.length, missing_source: skippedNoSource },
         completed_at: new Date().toISOString(),
       }).eq("id", task.id);
     }
 
-    console.log(`Research complete: ${extractedProjects.length} extracted, ${inserted} new, ${updated} updated`);
+    console.log(`Research complete: ${extractedProjects.length} extracted, ${inserted} new, ${updated} updated, ${skippedNoSource} missing source`);
 
     return new Response(
       JSON.stringify({
@@ -400,6 +416,7 @@ ${rawContent.join("\n\n---\n\n")}`;
         inserted,
         updated,
         sources_processed: rawContent.length,
+        missing_source: skippedNoSource,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
