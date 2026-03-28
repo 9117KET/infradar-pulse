@@ -13,9 +13,12 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { Badge } from '@/components/ui/badge';
 
-const ADMIN_ONLY = new Set(['/dashboard/subscribers', '/dashboard/users', '/dashboard/agents', '/dashboard/review']);
+import type { AppRole } from '@/contexts/AuthContext';
 
-const NAV_GROUPS = [
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole };
+type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
+
+const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Core',
     items: [
@@ -34,6 +37,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'Operations',
+    minRole: 'researcher',
     items: [
       { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity },
       { title: 'Alerts', url: '/dashboard/alerts', icon: Bell },
@@ -50,6 +54,7 @@ const NAV_GROUPS = [
   },
   {
     label: 'Admin',
+    minRole: 'admin',
     items: [
       { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks },
       { title: 'Users', url: '/dashboard/users', icon: Users },
@@ -58,13 +63,23 @@ const NAV_GROUPS = [
   },
 ];
 
-const ADMIN_ROLES = new Set(['investor', 'strategy', '']);
+const ROLE_HIERARCHY: Record<AppRole, number> = { user: 0, researcher: 1, admin: 2 };
+
+function meetsMinRole(hasRole: (r: AppRole) => boolean, minRole?: AppRole): boolean {
+  if (!minRole) return true;
+  // Admin always passes
+  if (hasRole('admin')) return true;
+  const required = ROLE_HIERARCHY[minRole];
+  for (const r of Object.keys(ROLE_HIERARCHY) as AppRole[]) {
+    if (hasRole(r) && ROLE_HIERARCHY[r] >= required) return true;
+  }
+  return false;
+}
 
 function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { signOut, profile } = useAuth();
-  const isAdmin = !profile?.role || ADMIN_ROLES.has(profile.role);
+  const { signOut, hasRole } = useAuth();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -74,7 +89,8 @@ function AppSidebar() {
           {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfraRadar AI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
         </div>
         {NAV_GROUPS.map(group => {
-          const visibleItems = group.items.filter(item => isAdmin || !ADMIN_ONLY.has(item.url));
+          if (!meetsMinRole(hasRole, group.minRole)) return null;
+          const visibleItems = group.items.filter(item => meetsMinRole(hasRole, item.minRole));
           if (visibleItems.length === 0) return null;
           return (
             <SidebarGroup key={group.label}>
