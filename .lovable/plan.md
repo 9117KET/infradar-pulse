@@ -1,112 +1,83 @@
 
 
-# On-Demand Research Hub — Live Visual Research for Users
+# Replace Waitlist with Multi-Option Engagement Hub
 
-## Concept
+## What Changes
 
-A new **Research** page accessible from the dashboard sidebar where users can type a natural-language query (e.g., "King Salman Airport expansion details" or "renewable energy projects in Kenya") and watch a multi-agent research process unfold visually in real time. At the end, they receive a structured project report with sources — or suggestions for similar projects if nothing is found.
+Remove all "Join waitlist" references across the codebase and replace with a unified **"Stay Connected"** engagement section where visitors choose what they want:
 
-## User Flow
+1. **Newsletter / Intel Digest** — subscribe to weekly infrastructure intelligence briefings
+2. **Get Started Free** — sign up and start using the platform immediately
+3. **Custom Alert Subscription** — configure a region + sector alert from the landing page
+4. **Request a Demo** — enterprise lead capture form
+
+## Approach
+
+### 1. Replace `ContactSection` with `EngagementSection`
+
+Redesign the bottom-of-page section (currently "Join the waitlist") into a 4-card layout:
 
 ```text
 ┌─────────────────────────────────────────────────────┐
-│  RESEARCH HUB                                       │
+│  STAY CONNECTED — Choose how to engage              │
 │                                                     │
-│  ┌───────────────────────────────────┐  [Research]  │
-│  │ "Port expansion projects in Ghana" │             │
-│  └───────────────────────────────────┘              │
-│                                                     │
-│  ┌─ LIVE RESEARCH VISUALIZATION ──────────────────┐ │
-│  │                                                 │ │
-│  │  [Perplexity] ──searching──▶ 12 results found   │ │
-│  │  [Firecrawl]  ──scraping───▶ 8 pages scraped    │ │
-│  │  [AI Extract] ──analyzing──▶ 3 projects found   │ │
-│  │  [Enrichment] ──verifying──▶ contacts, URLs     │ │
-│  │                                                 │ │
-│  │  Sources being visited:                         │ │
-│  │   ✓ meed.com/ghana-port...                      │ │
-│  │   ◷ constructionweek.com/tema...                 │ │
-│  │   ◷ afdb.org/projects/...                        │ │
-│  └─────────────────────────────────────────────────┘ │
-│                                                     │
-│  ── OR after completion ──                          │
-│                                                     │
-│  ┌─ RESEARCH REPORT ─────────────────────────────┐  │
-│  │  Found: 3 matching projects                    │  │
-│  │  ┌─ Tema Port Phase 3 ──────────────────────┐  │  │
-│  │  │  Country: Ghana | Sector: Transport       │  │  │
-│  │  │  Value: $1.5B | Stage: Under Construction │  │  │
-│  │  │  Contacts: 2 found | Sources: 4 verified  │  │  │
-│  │  │  [View Full Details] [Save to Projects]    │  │  │
-│  │  └──────────────────────────────────────────┘  │  │
-│  │  Similar projects you might be interested in:  │  │
-│  │  • Lome Port Expansion (Togo) — 85% match     │  │
-│  └────────────────────────────────────────────────┘  │
-│                                                     │
-│  [Set Alert for Updates]  [Export Report]            │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
+│  │ 📧      │ │ 🚀      │ │ 🔔      │ │ 🤝      │   │
+│  │Newsletter│ │Get Start│ │Custom   │ │Request  │   │
+│  │Digest   │ │ed Free  │ │Alert    │ │a Demo   │   │
+│  │         │ │         │ │         │ │         │   │
+│  │[email]  │ │[Sign up]│ │[region] │ │[name]   │   │
+│  │[Submit] │ │         │ │[sector] │ │[company]│   │
+│  └─────────┘ └─────────┘ │[email]  │ │[Submit] │   │
+│                          └─────────┘ └─────────┘   │
 └─────────────────────────────────────────────────────┘
 ```
 
-## Architecture
+- **Newsletter**: email-only form, inserts into a new `subscribers` table with `type: 'newsletter'`
+- **Get Started Free**: links to `/login` (existing signup flow)
+- **Custom Alert**: region + sector dropdowns + email, inserts into `subscribers` with `type: 'alert'` and preferences
+- **Request a Demo**: name, company, email, use case textarea, inserts into `subscribers` with `type: 'demo_request'`
 
-### Backend: New Edge Function `user-research`
+### 2. Database: New `subscribers` table
 
-A dedicated edge function that:
-1. Accepts a user query + optional user_id
-2. Creates a `research_tasks` entry with `task_type: 'user-research'` and status `running`
-3. Runs a multi-step pipeline, updating the task's `result` JSONB field at each step so the frontend can poll for progress:
-   - **Step 1 — Search**: Use Perplexity to find relevant sources. Write `{ step: 'searching', sources_found: N, queries: [...] }` to result
-   - **Step 2 — Scrape**: Use Firecrawl to scrape top results. Update `{ step: 'scraping', pages_scraped: N, urls: [...] }`
-   - **Step 3 — Extract**: Use AI (Lovable AI) to extract structured project data. Update `{ step: 'extracting', projects_found: N }`
-   - **Step 4 — Enrich**: Cross-reference with existing DB projects, find contacts, verify URLs. Update `{ step: 'enriching', contacts_found: N }`
-   - **Step 5 — Complete**: Final report with all projects, sources, contacts, and similar project suggestions from the database
-4. On completion, set status to `completed` with full structured report in `result`
-5. If nothing found, populate `result.suggestions` with similar projects from the DB based on region/sector matching
+Replace the `waitlist` table with a more versatile `subscribers` table:
+- `id`, `email`, `name`, `company`, `type` (newsletter / alert / demo_request), `preferences` (JSONB for region/sector), `created_at`
+- RLS: anon+authenticated can insert, authenticated can read
 
-### Frontend: New Page `src/pages/dashboard/Research.tsx`
+### 3. Update all CTAs across the codebase
 
-**Search bar** at top — large, prominent input with a "Research" button.
+| Location | Current | New |
+|----------|---------|-----|
+| `Navbar.tsx` — desktop + mobile buttons | "Join waitlist" → `/#contact` | "Get Started" → `/login` |
+| `HeroSection.tsx` — hero CTA | "Join waitlist" → `#contact` | "Get Started Free" → `/login` |
+| `Footer.tsx` — get started section | "Join waitlist" → `/#contact` | "Subscribe to Updates" → `/#connect` |
+| `Pricing.tsx` — CTA button | "Join waitlist" → `/waitlist` | "Get Started" → `/login` |
+| `Insights.tsx` — bottom CTA | "Join the waitlist" → `/#contact` | "Get Started Free" → `/login` |
 
-**Live visualization panel** that polls `research_tasks` every 2 seconds while status is `running`:
-- Animated pipeline showing each agent stage with status indicators (spinning, checkmark, pending)
-- Live source list showing URLs being visited with status icons (loading spinner → checkmark)
-- Step progress bar across the top
-- Agent icons (Perplexity, Firecrawl, AI) with animated connections between them
+### 4. Dashboard: Replace WaitlistSubmissions with SubscriberManagement
 
-**Report panel** shown on completion:
-- Structured cards for each discovered project with key fields
-- Source URLs with verification badges
-- Contacts with email/phone links
-- "Save to Projects" button that inserts into the `projects` table as pending
-- "Similar Projects" section querying existing DB by matching region + sector
-- "Set Alert" button that creates an alert subscription so the user gets notified of future updates
-- "Export Report" button for a downloadable summary
+Rename the admin page to show all subscriber types with filtering by type (newsletter, alert, demo_request). Update nav label from "Waitlist" to "Subscribers".
 
-**Research history** sidebar/section showing past user research tasks from `research_tasks` table filtered by `task_type: 'user-research'`.
+### 5. Clean up
 
-### Navigation
+- Remove `src/pages/Waitlist.tsx` and its route
+- Remove `/#contact` anchor references (new section uses `#connect`)
+- Keep the `waitlist` DB table intact (existing data) but stop writing to it
 
-Add "Research" to the **Core** nav group in `DashboardLayout.tsx` with a `Search` icon — this is a primary user-facing feature, not an admin tool.
-
-### API Layer
-
-Add `runUserResearch(query: string)` to `src/lib/api/agents.ts` that invokes the `user-research` function with the query body.
-
-## Files to Create/Modify
+## Files
 
 | Action | File |
 |--------|------|
-| Create | `supabase/functions/user-research/index.ts` — multi-step research pipeline with progress updates |
-| Create | `src/pages/dashboard/Research.tsx` — full research hub page with live viz + report |
-| Modify | `src/lib/api/agents.ts` — add `runUserResearch` |
-| Modify | `src/layouts/DashboardLayout.tsx` — add Research to Core nav group |
-| Modify | `src/App.tsx` — add `/dashboard/research` route |
-
-## Technical Notes
-
-- Progress polling uses `useQuery` with 2s `refetchInterval` while task is `running`, stops on `completed`/`failed`
-- The edge function updates `research_tasks.result` JSONB incrementally at each step — no websockets needed
-- Similar project matching uses a simple DB query: `SELECT * FROM projects WHERE region = X OR sector = Y ORDER BY confidence DESC LIMIT 5`
-- "Save to Projects" inserts with `approved: false` so it goes through the Review Queue
-- Research history filtered by authenticated user's ID (stored in the task)
+| Create | `src/components/home/EngagementSection.tsx` — 4-card engagement hub |
+| Create | `src/pages/dashboard/SubscriberManagement.tsx` — replaces WaitlistSubmissions |
+| SQL | Create `subscribers` table with RLS |
+| Modify | `src/pages/Index.tsx` — swap ContactSection for EngagementSection |
+| Modify | `src/components/Navbar.tsx` — update CTA buttons |
+| Modify | `src/components/home/HeroSection.tsx` — update hero CTA |
+| Modify | `src/components/Footer.tsx` — update footer CTA |
+| Modify | `src/pages/Pricing.tsx` — update CTA |
+| Modify | `src/pages/Insights.tsx` — update bottom CTA |
+| Modify | `src/layouts/DashboardLayout.tsx` — rename Waitlist nav to Subscribers |
+| Modify | `src/App.tsx` — remove `/waitlist` route, update `/dashboard/waitlist` to `/dashboard/subscribers` |
+| Delete | `src/pages/Waitlist.tsx` |
 
