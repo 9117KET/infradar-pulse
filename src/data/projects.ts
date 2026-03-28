@@ -22,6 +22,8 @@ export interface Milestone {
   completed: boolean;
 }
 
+export type ContactType = 'contractor' | 'government' | 'financier' | 'consultant' | 'owner' | 'general';
+
 export interface Contact {
   id: string;
   name: string;
@@ -33,6 +35,7 @@ export interface Contact {
   source_url: string | null;
   verified: boolean;
   added_by: string;
+  contact_type: ContactType;
   created_at: string;
 }
 

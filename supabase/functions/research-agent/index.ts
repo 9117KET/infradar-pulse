@@ -358,7 +358,9 @@ ${rawContent.join("\n\n---\n\n")}`;
                   organization: c.organization || '',
                   phone: c.phone || null,
                   email: c.email || null,
+                  contact_type: c.contact_type || 'general',
                   source: ep.evidence_source || 'AI Research Agent',
+                  source_url: ep.evidence_url || null,
                   added_by: 'ai',
                 }))
               );
