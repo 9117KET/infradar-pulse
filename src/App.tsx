@@ -13,7 +13,7 @@ import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import Waitlist from "./pages/Waitlist";
+
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import DataProtection from "./pages/DataProtection";
@@ -29,7 +29,7 @@ import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
-import WaitlistSubmissions from "./pages/dashboard/WaitlistSubmissions";
+import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
 import GeoIntelligence from "./pages/dashboard/GeoIntelligence";
@@ -59,7 +59,7 @@ const App = () => (
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
-              <Route path="/waitlist" element={<Waitlist />} />
+              
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/data-protection" element={<DataProtection />} />
@@ -80,7 +80,7 @@ const App = () => (
               <Route path="/dashboard/users" element={<UsersPage />} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<ReviewQueue />} />
-              <Route path="/dashboard/waitlist" element={<WaitlistSubmissions />} />
+              <Route path="/dashboard/subscribers" element={<SubscriberManagement />} />
               <Route path="/dashboard/insights" element={<InsightsManagement />} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />

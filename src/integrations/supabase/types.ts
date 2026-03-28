@@ -505,6 +505,36 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          preferences: Json | null
+          type: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          preferences?: Json | null
+          type?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          preferences?: Json | null
+          type?: string
+        }
+        Relationships: []
+      }
       waitlist: {
         Row: {
           challenge: string | null

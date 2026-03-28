@@ -22,8 +22,8 @@ export default function Pricing() {
             <span className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Dedicated onboarding</span>
           </div>
           <div className="flex gap-4 justify-center">
-            <a href="/#contact"><Button className="teal-glow">Request pricing</Button></a>
-            <Link to="/waitlist"><Button variant="outline">Join waitlist</Button></Link>
+            <a href="/#connect"><Button className="teal-glow">Request pricing</Button></a>
+            <Link to="/login"><Button variant="outline">Get Started</Button></Link>
           </div>
         </div>
       </div>
