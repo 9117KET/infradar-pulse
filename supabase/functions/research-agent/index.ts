@@ -41,6 +41,7 @@ interface ExtractedProject {
   evidence_source: string;
   evidence_url: string;
   evidence_type: string;
+  contacts?: { name: string; role?: string; organization?: string; phone?: string; email?: string }[];
 }
 
 serve(async (req) => {
@@ -212,7 +213,23 @@ ${rawContent.join("\n\n---\n\n")}`;
                         evidence_type: { type: "string", enum: ["Satellite", "Filing", "News", "Registry", "Partner"] },
                       },
                       required: ["name", "country", "region", "sector", "stage", "value_usd", "lat", "lng", "description"],
+                      additionalProperties: false,
                     },
+                  },
+                  contacts: {
+                    type: "array",
+                    description: "Optional contacts found for this project",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        role: { type: "string" },
+                        organization: { type: "string" },
+                        phone: { type: "string" },
+                        email: { type: "string" },
+                      },
+                      required: ["name"],
+                      additionalProperties: false,
                   },
                 },
                 required: ["projects"],
@@ -325,6 +342,24 @@ ${rawContent.join("\n\n---\n\n")}`;
               date: new Date().toISOString().split("T")[0],
             });
           }
+
+          // Add contacts if extracted
+          if (ep.contacts?.length) {
+            const validContacts = ep.contacts.filter(c => c.name && (c.phone || c.email));
+            if (validContacts.length > 0) {
+              await supabase.from("project_contacts").insert(
+                validContacts.map(c => ({
+                  project_id: newProject.id,
+                  name: c.name,
+                  role: c.role || '',
+                  organization: c.organization || '',
+                  phone: c.phone || null,
+                  email: c.email || null,
+                  source: ep.evidence_source || 'AI Research Agent',
+                  added_by: 'ai',
+                }))
+              );
+            }
 
           // Create alert for new discovery
           await supabase.from("alerts").insert({
