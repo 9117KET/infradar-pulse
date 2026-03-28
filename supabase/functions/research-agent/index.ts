@@ -28,7 +28,7 @@ const RESEARCH_QUERIES = [
 interface ExtractedProject {
   name: string;
   country: string;
-  region: "MENA" | "East Africa" | "West Africa";
+  region: "MENA" | "East Africa" | "West Africa" | "Southern Africa" | "Central Africa" | "North America" | "South America" | "Europe" | "Central Asia" | "South Asia" | "East Asia" | "Southeast Asia" | "Oceania" | "Caribbean";
   sector: string;
   stage: string;
   status: string;
