@@ -200,7 +200,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                       properties: {
                         name: { type: "string" },
                         country: { type: "string" },
-                        region: { type: "string", enum: ["MENA", "East Africa", "West Africa"] },
+                        region: { type: "string", enum: ["MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"] },
                         sector: { type: "string", enum: ["Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"] },
                         stage: { type: "string", enum: ["Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"] },
                         status: { type: "string", enum: ["Verified", "Stable", "Pending", "At Risk"] },
