@@ -166,19 +166,19 @@ export function HeroLiveTracker({ projects }: { projects: TrackerProject[] }) {
   }, [projects]);
 
   const regionRisk = useMemo(() => {
-    const regions: Record<string, { total: number; count: number }> = {
-      MENA: { total: 0, count: 0 },
-      'East Africa': { total: 0, count: 0 },
-      'West Africa': { total: 0, count: 0 },
-    };
+    const regions: Record<string, { total: number; count: number }> = {};
     projects.forEach(p => {
       const r = (p as any).region || 'MENA';
-      if (regions[r]) { regions[r].total += p.riskScore; regions[r].count++; }
+      if (!regions[r]) regions[r] = { total: 0, count: 0 };
+      regions[r].total += p.riskScore; regions[r].count++;
     });
-    return Object.entries(regions).map(([name, { total, count }]) => ({
-      name: name === 'East Africa' ? 'E. Africa' : name === 'West Africa' ? 'W. Africa' : name,
-      avg: count ? Math.round(total / count) : 0,
-    }));
+    return Object.entries(regions)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 4)
+      .map(([name, { total, count }]) => ({
+        name: name.length > 12 ? name.substring(0, 10) + '…' : name,
+        avg: count ? Math.round(total / count) : 0,
+      }));
   }, [projects]);
 
   const sparkData = useMemo(() => {
