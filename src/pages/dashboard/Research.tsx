@@ -38,10 +38,15 @@ export default function Research() {
       return data;
     },
     enabled: !!activeTaskId,
-    refetchInterval: (query) => {
-      const task = query.state.data;
+    refetchInterval: (data) => {
+      // In TanStack Query v5, refetchInterval receives the query object
+      const task = typeof data === 'object' && data !== null && 'state' in data 
+        ? (data as any).state?.data 
+        : data;
       if (!task) return 2000;
-      return task.status === 'running' || task.status === 'pending' ? 2000 : false;
+      const status = task?.status;
+      if (status === 'completed' || status === 'failed') return false;
+      return 2000;
     },
   });
 
