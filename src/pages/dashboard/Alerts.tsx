@@ -164,6 +164,103 @@ export default function Alerts() {
         </div>
       </div>
 
+      {/* Trend Charts */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Volume over time stacked area */}
+        <Card className="glass-panel border-border lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Alert Volume (Last 30 Days)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={volumeByDay}>
+                <defs>
+                  <linearGradient id="critGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#dc2626" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#dc2626" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="highGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="medGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
+                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+                <Area type="monotone" dataKey="critical" stackId="1" stroke="#dc2626" fill="url(#critGrad)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="high" stackId="1" stroke="#f59e0b" fill="url(#highGrad)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="medium" stackId="1" stroke="#3b82f6" fill="url(#medGrad)" strokeWidth={1.5} />
+                <Area type="monotone" dataKey="low" stackId="1" stroke="#64748b" fill="#64748b" fillOpacity={0.15} strokeWidth={1.5} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div className="flex gap-4 justify-center mt-2">
+              {(['critical', 'high', 'medium', 'low'] as const).map(s => (
+                <span key={s} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: SEVERITY_COLORS[s] }} />
+                  {s.charAt(0).toUpperCase() + s.slice(1)}
+                </span>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Severity + Category pie charts */}
+        <div className="space-y-4">
+          <Card className="glass-panel border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">By Severity</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <ResponsiveContainer width="100%" height={120}>
+                <PieChart>
+                  <Pie data={severityDistribution} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" paddingAngle={2}>
+                    {severityDistribution.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {severityDistribution.map(s => (
+                  <span key={s.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full" style={{ background: s.fill }} />
+                    {s.name} ({s.value})
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-panel border-border">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">By Category</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <ResponsiveContainer width="100%" height={120}>
+                <PieChart>
+                  <Pie data={categoryDistribution} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" paddingAngle={2}>
+                    {categoryDistribution.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {categoryDistribution.map(c => (
+                  <span key={c.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2 h-2 rounded-full" style={{ background: c.fill }} />
+                    {c.name} ({c.value})
+                  </span>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Intelligence Brief */}
       {brief && (
         <Collapsible open={briefOpen} onOpenChange={setBriefOpen}>
