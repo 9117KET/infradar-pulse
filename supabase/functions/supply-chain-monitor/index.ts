@@ -131,6 +131,7 @@ serve(async (req) => {
           severity: r.severity || "medium",
           message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")} — ${r.summary}`,
           category: "supply_chain",
+          source_url: r.source_url || null,
         });
         alertsCreated++;
       }

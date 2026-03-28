@@ -148,6 +148,7 @@ serve(async (req) => {
           severity: u.severity || "high",
           message: `Financial alert: ${u.project_name} — ${u.summary}`,
           category: "financial",
+          source_url: u.source_url || null,
         });
         alertsCreated++;
       }
