@@ -54,7 +54,7 @@ export interface Project {
   stakeholders: string[];
   milestones: Milestone[];
   evidence: Evidence[];
-  contacts: Contact[];
+  contacts?: Contact[];
   lastUpdated: string;
   timeline: string;
   detailedAnalysis?: string;

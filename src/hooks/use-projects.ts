@@ -52,6 +52,7 @@ function dbToProject(
     stakeholders,
     milestones,
     evidence,
+    contacts,
     detailedAnalysis: (p as any).detailed_analysis || '',
     keyRisks: (p as any).key_risks || '',
     fundingSources: (p as any).funding_sources || '',
