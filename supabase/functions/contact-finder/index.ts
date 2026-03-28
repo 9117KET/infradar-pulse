@@ -21,10 +21,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Create research task
     const { data: task } = await supabase
       .from("research_tasks")
-      .insert({ task_type: "contact-finder", query: "Auto contact discovery", status: "running" })
+      .insert({ task_type: "contact-finder", query: "Auto contact & contractor discovery", status: "running" })
       .select()
       .single();
 
@@ -40,7 +39,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get existing contact counts per project
     const { data: existingContacts } = await supabase
       .from("project_contacts")
       .select("project_id");
@@ -50,7 +48,6 @@ serve(async (req) => {
       contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1;
     });
 
-    // Filter to projects needing contacts
     const needsContacts = allProjects.filter(p => (contactCounts[p.id] || 0) < 2).slice(0, 10);
 
     if (needsContacts.length === 0) {
@@ -58,7 +55,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: "All projects covered" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Get stakeholders for context
     const projectIds = needsContacts.map(p => p.id);
     const { data: stakeholders } = await supabase
       .from("project_stakeholders")
@@ -77,17 +73,17 @@ serve(async (req) => {
       const rawContent: string[] = [];
       const projectStakeholders = stakeholderMap[project.id] || [];
 
-      // Search with Perplexity
+      // Search with Perplexity — prioritize contractor/procurement contacts
       if (PERPLEXITY_API_KEY) {
         try {
-          const searchQuery = `"${project.name}" ${project.country} contact phone email project manager contractor procurement ${projectStakeholders.slice(0, 3).join(" ")}`;
+          const searchQuery = `"${project.name}" ${project.country} main contractor EPC procurement officer project manager email phone contact site engineer ${projectStakeholders.slice(0, 3).join(" ")}`;
           const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               model: "sonar",
               messages: [
-                { role: "system", content: "Find contact information (names, phone numbers, emails, job titles) for people involved in this infrastructure project. Include contractors, project managers, government officials, and procurement contacts." },
+                { role: "system", content: "Find contact information for people involved in this infrastructure project. Prioritize main contractor contacts (project managers, procurement officers, site managers, CEOs). Also find government officials, project owners, financiers, and consultants. Include names, phone numbers, emails, job titles, and organizations." },
                 { role: "user", content: searchQuery },
               ],
               search_recency_filter: "year",
@@ -110,7 +106,7 @@ serve(async (req) => {
             method: "POST",
             headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
             body: JSON.stringify({
-              query: `${projectStakeholders[0]} ${project.country} contact team leadership`,
+              query: `${projectStakeholders[0]} ${project.country} contact team leadership email procurement`,
               limit: 3,
               scrapeOptions: { formats: ["markdown"] },
             }),
@@ -130,7 +126,7 @@ serve(async (req) => {
 
       if (rawContent.length === 0) continue;
 
-      // Extract contacts with AI
+      // Extract contacts with AI — enhanced for contractor classification
       try {
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -138,14 +134,14 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "google/gemini-3-flash-preview",
             messages: [
-              { role: "system", content: "Extract contact information for people involved in infrastructure projects. Only include contacts where you have at least a name and one of: phone number or email. Be precise — do not fabricate information." },
+              { role: "system", content: "Extract contact information for people involved in infrastructure projects. Classify each contact into a contact_type: 'contractor' (EPC firms, construction companies, site managers, procurement), 'government' (ministry officials, regulators), 'financier' (banks, DFIs, investors), 'consultant' (advisors, engineers, lawyers), 'owner' (project owner, developer), or 'general'. Prioritize finding main contractor emails and phone numbers. Only include contacts where you have at least a name and one of: phone number or email. Be precise — do not fabricate information." },
               { role: "user", content: `Extract contacts for project "${project.name}" in ${project.country}.\n\nRaw data:\n${rawContent.join("\n\n")}` },
             ],
             tools: [{
               type: "function",
               function: {
                 name: "extract_contacts",
-                description: "Extract contact details for project stakeholders",
+                description: "Extract contact details for project stakeholders with type classification",
                 parameters: {
                   type: "object",
                   properties: {
@@ -159,9 +155,10 @@ serve(async (req) => {
                           organization: { type: "string" },
                           phone: { type: "string", description: "Phone number if available" },
                           email: { type: "string", description: "Email if available" },
+                          contact_type: { type: "string", enum: ["contractor", "government", "financier", "consultant", "owner", "general"], description: "Category of this contact" },
                           source: { type: "string", description: "Where this contact info was found" },
                         },
-                        required: ["name"],
+                        required: ["name", "contact_type"],
                         additionalProperties: false,
                       },
                     },
@@ -187,7 +184,7 @@ serve(async (req) => {
         const parsed = JSON.parse(toolCall.function.arguments);
         const contacts = parsed.contacts || [];
 
-        // Get existing contacts for dedup
+        // Dedup against existing contacts
         const { data: existingForProject } = await supabase
           .from("project_contacts")
           .select("name, organization")
@@ -203,6 +200,8 @@ serve(async (req) => {
         });
 
         if (newContacts.length > 0) {
+          const sourceUrl = rawContent.find(r => r.startsWith("Sources:"))?.replace("Sources: ", "").split(", ")[0] || null;
+
           await supabase.from("project_contacts").insert(
             newContacts.map((c: any) => ({
               project_id: project.id,
@@ -211,18 +210,25 @@ serve(async (req) => {
               organization: c.organization || '',
               phone: c.phone || null,
               email: c.email || null,
+              contact_type: c.contact_type || 'general',
               source: c.source || 'AI Research',
+              source_url: sourceUrl,
               added_by: 'ai',
             }))
           );
+
+          const contractorCount = newContacts.filter((c: any) => c.contact_type === 'contractor').length;
+          const alertMsg = contractorCount > 0
+            ? `${newContacts.length} new contact(s) found for ${project.name} (${contractorCount} contractor)`
+            : `${newContacts.length} new contact(s) found for ${project.name}`;
 
           await supabase.from("alerts").insert({
             project_id: project.id,
             project_name: project.name,
             severity: "low",
-            message: `${newContacts.length} new verification contact(s) found for ${project.name}`,
+            message: alertMsg,
             category: "stakeholder",
-            source_url: null,
+            source_url: sourceUrl,
           });
 
           totalInserted += newContacts.length;
@@ -232,7 +238,6 @@ serve(async (req) => {
       }
     }
 
-    // Complete task
     if (task) {
       await supabase.from("research_tasks").update({
         status: "completed",

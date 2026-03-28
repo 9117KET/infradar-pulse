@@ -101,7 +101,7 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
       const contactMap: Record<string, Contact[]> = {};
       (cData || []).forEach((c: any) => {
         if (!contactMap[c.project_id]) contactMap[c.project_id] = [];
-        contactMap[c.project_id].push(c);
+        contactMap[c.project_id].push({ ...c, contact_type: c.contact_type || 'general' });
       });
 
       let result = pData.map((p: any) =>

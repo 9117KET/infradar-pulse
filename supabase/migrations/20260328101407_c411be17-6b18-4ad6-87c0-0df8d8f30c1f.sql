@@ -1,0 +1,1 @@
+ALTER TABLE public.project_contacts ADD COLUMN contact_type text NOT NULL DEFAULT 'general';
