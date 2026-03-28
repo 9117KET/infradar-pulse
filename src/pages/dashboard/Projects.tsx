@@ -18,7 +18,22 @@ export default function Projects() {
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
+  const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
+  // Fetch projects that were unverified in the last 7 days
+  useEffect(() => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    supabase
+      .from('project_verification_log' as any)
+      .select('project_id')
+      .eq('action', 'unverified')
+      .gte('created_at', sevenDaysAgo)
+      .then(({ data }) => {
+        if (data) {
+          setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
+        }
+      });
+  }, []);
   const filtered = useMemo(() => {
     return projects.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
