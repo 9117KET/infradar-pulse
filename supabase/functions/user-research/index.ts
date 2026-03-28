@@ -144,11 +144,11 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `You are an infrastructure project data extractor. Extract structured project data from the provided content. Return JSON array of projects.`,
+                content: `You are an infrastructure project data extractor. Extract structured project data from the provided content. For EVERY project you MUST include: the source_url where the information was found, any contacts mentioned (name, role, organization, email, phone). Return JSON array of projects. Always try to extract email addresses and phone numbers for key stakeholders, contractors, or project managers mentioned in the content.`,
               },
               {
                 role: "user",
-                content: `Extract infrastructure projects from this content related to: "${query}"\n\nContent:\n${combined.substring(0, 8000)}`,
+                content: `Extract infrastructure projects from this content related to: "${query}"\n\nFor each project, extract:\n- Project name, country, sector, stage, value\n- Source URL where this info was found\n- ALL contacts: names, roles, organizations, emails, phone numbers\n\nContent:\n${combined.substring(0, 8000)}`,
               },
             ],
             tools: [{
@@ -170,7 +170,7 @@ serve(async (req) => {
                           stage: { type: "string" },
                           value_label: { type: "string" },
                           description: { type: "string" },
-                          source_url: { type: "string" },
+                          source_url: { type: "string", description: "URL where this project information was found" },
                           contacts: {
                             type: "array",
                             items: {
@@ -179,8 +179,10 @@ serve(async (req) => {
                                 name: { type: "string" },
                                 role: { type: "string" },
                                 organization: { type: "string" },
-                                email: { type: "string" },
+                                email: { type: "string", description: "Email address if found" },
+                                phone: { type: "string", description: "Phone number if found" },
                               },
+                              required: ["name"],
                             },
                           },
                         },
