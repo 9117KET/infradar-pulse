@@ -120,6 +120,7 @@ serve(async (req) => {
         project_name: f.related_project_name || `${f.country} regulatory`,
         severity: isCritical ? "critical" : (f.severity || "medium"),
         message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country} — ${f.summary}`,
+        category: "regulatory",
       });
       alertsCreated++;
 

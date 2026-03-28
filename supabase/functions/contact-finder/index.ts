@@ -221,6 +221,7 @@ serve(async (req) => {
             project_name: project.name,
             severity: "low",
             message: `${newContacts.length} new verification contact(s) found for ${project.name}`,
+            category: "stakeholder",
           });
 
           totalInserted += newContacts.length;

@@ -369,6 +369,7 @@ ${rawContent.join("\n\n---\n\n")}`;
             project_name: ep.name,
             severity: "medium",
             message: `New project discovered: ${ep.name} (${ep.country}) — ${ep.value_label || "value TBD"}`,
+            category: "market",
           });
 
           inserted++;
