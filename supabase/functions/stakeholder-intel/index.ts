@@ -103,6 +103,7 @@ serve(async (req) => {
                       risk_flag: { type: "string", enum: ["poor_track_record", "conflict_of_interest", "investigation", "delays", "none"] },
                       severity: { type: "string", enum: ["critical", "high", "medium", "low"] },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source" },
                     },
                     required: ["stakeholder_name", "summary"],
                   },
@@ -138,6 +139,7 @@ serve(async (req) => {
           severity: f.severity || "medium",
           message: `Stakeholder alert: ${f.stakeholder_name} — ${f.summary}`,
           category: "stakeholder",
+          source_url: f.source_url || null,
         });
         alertsCreated++;
       }

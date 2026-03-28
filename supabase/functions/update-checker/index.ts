@@ -154,6 +154,7 @@ Analyze if there are meaningful changes. Return JSON with:
                       severity: analysis.alert_severity || "medium",
                       message: analysis.alert_message,
                       category: "construction",
+                      source_url: null,
                     });
                     alertsCreated++;
                   }

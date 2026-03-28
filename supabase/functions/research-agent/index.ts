@@ -320,6 +320,7 @@ ${rawContent.join("\n\n---\n\n")}`;
           lng: ep.lng,
           description: ep.description,
           timeline: ep.timeline || "",
+          source_url: ep.evidence_url || "",
           ai_generated: true,
           approved: false, // requires admin approval
         }).select().single();
@@ -370,6 +371,7 @@ ${rawContent.join("\n\n---\n\n")}`;
             severity: "medium",
             message: `New project discovered: ${ep.name} (${ep.country}) — ${ep.value_label || "value TBD"}`,
             category: "market",
+            source_url: ep.evidence_url || null,
           });
 
           inserted++;

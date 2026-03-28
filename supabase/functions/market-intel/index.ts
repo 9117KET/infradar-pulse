@@ -96,6 +96,7 @@ serve(async (req) => {
                       sector: { type: "string" },
                       value_usd: { type: "number" },
                       summary: { type: "string" },
+                      source_url: { type: "string", description: "URL of the source" },
                     },
                     required: ["company", "event_type", "summary"],
                   },
@@ -126,6 +127,7 @@ serve(async (req) => {
         severity: "low",
         message: `Market intel: ${i.company} — ${i.event_type.replace(/_/g, " ")} — ${i.summary}`,
         category: "market",
+        source_url: i.source_url || null,
       });
       alertsCreated++;
     }
