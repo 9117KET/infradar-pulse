@@ -8,6 +8,7 @@ import { REGIONS, SECTORS, statusColor, type Region, type Sector, type Project }
 import { useProjects } from '@/hooks/use-projects';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, TrendingUp, Shield, Calendar, Users, X } from 'lucide-react';
+import { HeroMap } from './HeroMap';
 
 const STATUSES_FILTER = ['Completed', 'In progress', 'Planned', 'Stopped'] as const;
 type StatusFilter = typeof STATUSES_FILTER[number];
