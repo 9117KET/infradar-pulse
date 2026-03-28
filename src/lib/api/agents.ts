@@ -23,4 +23,5 @@ export const agentApi = {
   runSupplyChainMonitor: () => invokeAgent('supply-chain-monitor'),
   runMarketIntel: () => invokeAgent('market-intel'),
   runContactFinder: () => invokeAgent('contact-finder'),
+  runAlertIntelligence: () => invokeAgent('alert-intelligence'),
 };

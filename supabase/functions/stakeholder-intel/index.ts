@@ -137,6 +137,7 @@ serve(async (req) => {
           project_name: f.related_project_name || f.stakeholder_name,
           severity: f.severity || "medium",
           message: `Stakeholder alert: ${f.stakeholder_name} — ${f.summary}`,
+          category: "stakeholder",
         });
         alertsCreated++;
       }
