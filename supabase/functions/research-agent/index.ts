@@ -222,6 +222,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                               organization: { type: "string" },
                               phone: { type: "string" },
                               email: { type: "string" },
+                              contact_type: { type: "string", enum: ["contractor", "government", "financier", "consultant", "owner", "general"] },
                             },
                             required: ["name"],
                             additionalProperties: false,
