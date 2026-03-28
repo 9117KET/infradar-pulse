@@ -23,7 +23,7 @@ export default function EvidenceVerification() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const projectsWithData = useMemo(() => projects.map(p => {
-    const typesPresent = new Set(p.evidence.map(e => e.type));
+    const typesPresent = new Set<string>(p.evidence.map(e => e.type));
     const verifiedCount = p.evidence.filter(e => e.verified).length;
     const totalCount = p.evidence.length;
     const coverage = EVIDENCE_TYPES.filter(t => typesPresent.has(t as string)).length;
