@@ -167,6 +167,7 @@ Return updated risk scores and any alerts for significant risk changes.`,
               project_name: project.name,
               severity: newRisk > 60 ? "high" : "medium",
               message: score.alert || `Risk score changed from ${oldRisk} to ${newRisk}`,
+              category: "security",
             });
           }
         }

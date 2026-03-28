@@ -112,6 +112,7 @@ serve(async (req) => {
           project_name: a.project_name,
           severity: a.severity || (a.sentiment === "very_negative" ? "high" : "medium"),
           message: `Negative sentiment: ${a.project_name} — ${a.summary}`,
+          category: "political",
         });
         alertsCreated++;
 

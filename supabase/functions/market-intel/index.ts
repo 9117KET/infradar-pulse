@@ -125,6 +125,7 @@ serve(async (req) => {
         project_name: i.company,
         severity: "low",
         message: `Market intel: ${i.company} — ${i.event_type.replace(/_/g, " ")} — ${i.summary}`,
+        category: "market",
       });
       alertsCreated++;
     }
