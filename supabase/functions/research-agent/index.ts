@@ -213,7 +213,23 @@ ${rawContent.join("\n\n---\n\n")}`;
                         evidence_type: { type: "string", enum: ["Satellite", "Filing", "News", "Registry", "Partner"] },
                       },
                       required: ["name", "country", "region", "sector", "stage", "value_usd", "lat", "lng", "description"],
+                      additionalProperties: false,
                     },
+                  },
+                  contacts: {
+                    type: "array",
+                    description: "Optional contacts found for this project",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        role: { type: "string" },
+                        organization: { type: "string" },
+                        phone: { type: "string" },
+                        email: { type: "string" },
+                      },
+                      required: ["name"],
+                      additionalProperties: false,
                   },
                 },
                 required: ["projects"],
