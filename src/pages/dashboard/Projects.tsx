@@ -310,6 +310,7 @@ export default function Projects() {
             <thead>
               <tr className="border-b border-border text-left bg-black/20">
                 <th className="p-3 font-medium text-muted-foreground">Project</th>
+                <th className="p-3 font-medium text-muted-foreground w-8"></th>
                 <th className="p-3 font-medium text-muted-foreground">Country</th>
                 <th className="p-3 font-medium text-muted-foreground">Sector</th>
                 <th className="p-3 font-medium text-muted-foreground">Stage</th>
