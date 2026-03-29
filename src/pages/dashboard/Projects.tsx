@@ -29,8 +29,10 @@ const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(21
 
 export default function Projects() {
   const { toast } = useToast();
+  const { hasRole } = useAuth();
   const { projects, loading } = useProjects();
-  const [search, setSearch] = useState('');
+  const { isTracked, toggleTrack } = useTrackedProjects();
+  const canCreate = hasRole('admin') || hasRole('researcher');
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
