@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useInsights, type Insight } from '@/hooks/use-insights';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
