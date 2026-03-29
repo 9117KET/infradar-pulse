@@ -4,6 +4,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
@@ -84,20 +85,12 @@ function extractUrlsFromText(text: string): Source[] {
 const CONTENT_SLICE = 12000;
 
 async function aiSuggestSources(
-  LOVABLE_API_KEY: string,
   title: string,
   excerpt: string,
   content: string,
 ): Promise<Source[]> {
   const slice = content.slice(0, CONTENT_SLICE);
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+  const response = await chatCompletions({
       messages: [
         {
           role: "system",
@@ -138,7 +131,6 @@ async function aiSuggestSources(
         },
       }],
       tool_choice: { type: "function", function: { name: "attach_sources" } },
-    }),
   });
 
   if (!response.ok) {
@@ -174,7 +166,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -260,8 +251,8 @@ serve(async (req) => {
         methods.push("extract");
       }
 
-      if (merged.length === 0 && useAi && LOVABLE_API_KEY) {
-        const ai = await aiSuggestSources(LOVABLE_API_KEY, row.title, row.excerpt, row.content);
+      if (merged.length === 0 && useAi && isLlmConfigured()) {
+        const ai = await aiSuggestSources(row.title, row.excerpt, row.content);
         if (ai.length) {
           merged = mergeDedupe([...merged, ...ai]);
           methods.push("ai");

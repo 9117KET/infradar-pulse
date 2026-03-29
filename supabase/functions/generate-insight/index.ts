@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
@@ -14,9 +15,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -49,14 +47,7 @@ ${JSON.stringify(context, null, 2)}`;
       ? `Write a comprehensive insight article about: ${topic}. Include specific project references from our database where relevant.`
       : `Based on the current project data, alerts, and research findings, identify the most important emerging trend or insight. Write a comprehensive article about it. Pick a specific, compelling angle, not a generic overview.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+    const response = await chatCompletions({
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -94,7 +85,6 @@ ${JSON.stringify(context, null, 2)}`;
           },
         }],
         tool_choice: { type: "function", function: { name: "create_insight" } },
-      }),
     });
 
     if (!response.ok) {

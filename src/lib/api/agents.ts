@@ -42,4 +42,11 @@ export const agentApi = {
     dry_run?: boolean;
     use_ai?: boolean;
   }) => invokeAgentWithBody('insight-sources-agent', { ...(opts ?? {}) }),
+
+  runEntityDedup: () => invokeAgent('entity-dedup'),
+  runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
+  runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),
+  runSecurityResilience: () => invokeAgent('security-resilience'),
+  runTenderAwardMonitor: () => invokeAgent('tender-award-monitor'),
+  runExecutiveBriefing: () => invokeAgent('executive-briefing'),
 };
