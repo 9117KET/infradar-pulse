@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
@@ -32,8 +33,6 @@ serve(async (req) => {
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
     if (!projects?.length) {
@@ -77,11 +76,7 @@ serve(async (req) => {
       `- ${p.name} (${p.country}, ${p.sector}, ${p.stage}, current risk: ${p.risk_score})`
     ).join("\n");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+    const aiResponse = await chatCompletions({
         messages: [
           { role: "system", content: "You are an infrastructure risk scoring engine." },
           { role: "user", content: `Based on this geopolitical context:\n${geoContext}\n\nScore these projects (0-100 risk, higher = more risky):\n${projectSummaries}\n\nReturn updated risk scores and any alerts for significant risk changes.` },
@@ -114,7 +109,6 @@ serve(async (req) => {
           },
         }],
         tool_choice: { type: "function", function: { name: "score_risks" } },
-      }),
     });
 
     if (!aiResponse.ok) {

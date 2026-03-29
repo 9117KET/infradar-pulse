@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
@@ -48,8 +49,6 @@ serve(async (req) => {
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
 
     // Get ALL projects (approved AND pending); pending projects especially need source URLs
@@ -146,11 +145,7 @@ serve(async (req) => {
 
         if (!researchContent) continue;
 
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-lite",
+        const aiResponse = await chatCompletions({
             messages: [
               { role: "system", content: "You extract structured project data from research text. The source_url field is the MOST IMPORTANT: it must be a real, verifiable URL (not a placeholder). Use citations provided when available." },
               { role: "user", content: `Extract data for "${project.name}" from this research:\n${researchContent}\n\nCitations: ${JSON.stringify(citations)}\n\nExtract all available fields. source_url MUST be a real URL from the citations or content. For contacts, include name, role, organization, email if found.` },
@@ -207,7 +202,6 @@ serve(async (req) => {
               },
             }],
             tool_choice: { type: "function", function: { name: "enrich_project" } },
-          }),
         });
 
         if (!aiResponse.ok) continue;

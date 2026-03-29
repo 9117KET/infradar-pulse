@@ -10,11 +10,11 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
+import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
 import { openCustomerPortal, startCheckoutSession } from '@/lib/billing/stripeClient';
 
 interface Settings {
@@ -51,6 +51,12 @@ const agents = [
   { name: 'Sentiment Analyzer', fn: agentApi.runSentimentAnalyzer, icon: MessageSquare, desc: 'Media sentiment' },
   { name: 'Supply Chain', fn: agentApi.runSupplyChainMonitor, icon: Package, desc: 'Commodity & logistics' },
   { name: 'Market Intel', fn: agentApi.runMarketIntel, icon: TrendingUp, desc: 'Competitive intelligence' },
+  { name: 'Entity Dedup', fn: agentApi.runEntityDedup, icon: GitMerge, desc: 'Flag duplicate project records' },
+  { name: 'Corporate / M&A', fn: agentApi.runCorporateMaMonitor, icon: Building2, desc: 'Ownership & counterparty moves' },
+  { name: 'ESG & Social', fn: agentApi.runEsgSocialMonitor, icon: Leaf, desc: 'Permits, litigation, social license' },
+  { name: 'Security & Resilience', fn: agentApi.runSecurityResilience, icon: Shield, desc: 'Cyber & outage signals' },
+  { name: 'Tender / Award', fn: agentApi.runTenderAwardMonitor, icon: Gavel, desc: 'Awards, disputes, re-tenders' },
+  { name: 'Executive Briefing', fn: agentApi.runExecutiveBriefing, icon: ScrollText, desc: 'Synthesize alerts into a brief' },
 ];
 
 export default function SettingsPage() {

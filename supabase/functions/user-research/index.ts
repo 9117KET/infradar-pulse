@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
@@ -141,16 +142,11 @@ serve(async (req) => {
     });
 
     let extractedProjects: Array<Record<string, unknown>> = [];
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
 
-    if (lovableKey && scrapedContent.length > 0) {
+    if (isLlmConfigured() && scrapedContent.length > 0) {
       try {
         const combined = scrapedContent.join("\n\n---\n\n");
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+        const aiResp = await chatCompletions({
             messages: [
               {
                 role: "system",
@@ -205,7 +201,6 @@ serve(async (req) => {
               },
             }],
             tool_choice: { type: "function", function: { name: "extract_projects" } },
-          }),
         });
         const aiData = await aiResp.json();
         const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];

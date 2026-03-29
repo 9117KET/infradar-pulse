@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,12 @@ const AGENTS = [
   { type: 'contact-finder', name: 'Contact Finder', icon: Phone, schedule: 'Every 3 hours', scheduleMinutes: 180, fn: agentApi.runContactFinder },
   { type: 'alert-intelligence', name: 'Alert Intelligence', icon: AlertTriangle, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runAlertIntelligence },
   { type: 'data-enrichment', name: 'Data Enrichment', icon: Database, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runDataEnrichment },
+  { type: 'entity-dedup', name: 'Entity Dedup', icon: GitMerge, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runEntityDedup },
+  { type: 'corporate-ma-monitor', name: 'Corporate / M&A', icon: Building2, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runCorporateMaMonitor },
+  { type: 'esg-social-monitor', name: 'ESG & Social', icon: Leaf, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runEsgSocialMonitor },
+  { type: 'security-resilience', name: 'Security & Resilience', icon: Shield, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runSecurityResilience },
+  { type: 'tender-award-monitor', name: 'Tender / Award', icon: Gavel, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runTenderAwardMonitor },
+  { type: 'executive-briefing', name: 'Executive Briefing', icon: ScrollText, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runExecutiveBriefing },
 ];
 
 function timeAgo(date: string) {
