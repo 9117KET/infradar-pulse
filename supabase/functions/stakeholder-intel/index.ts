@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,9 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const gate = await requireAiEntitlementOrRespond(req);
+  if (gate instanceof Response) return gate;
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
@@ -34,6 +38,7 @@ serve(async (req) => {
 
     if (!projects?.length) {
       if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No projects to analyze" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -146,6 +151,8 @@ serve(async (req) => {
     }
 
     if (task) await supabase.from("research_tasks").update({ status: "completed", result: { findings: findings.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
+
+    await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify({ success: true, findings: findings.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

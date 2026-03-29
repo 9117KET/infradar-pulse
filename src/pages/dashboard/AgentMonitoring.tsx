@@ -6,6 +6,10 @@ import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 const AGENTS = [
@@ -48,6 +52,8 @@ const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
 
 export default function AgentMonitoring() {
   const { toast } = useToast();
+  const { canUseAi, isFreeTier, loading: entLoading } = useEntitlements();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
@@ -190,12 +196,20 @@ export default function AgentMonitoring() {
   };
 
   const runAgent = async (name: string, fn: () => Promise<any>) => {
+    if (!canUseAi) {
+      setUpgradeOpen(true);
+      return;
+    }
     setRunningAgent(name);
     try {
       await fn();
       toast({ title: `${name} triggered` });
       refetch();
     } catch (e: any) {
+      if (isEntitlementOrQuotaError(e)) {
+        setUpgradeOpen(true);
+        return;
+      }
       toast({ title: `${name} failed`, description: e.message, variant: 'destructive' });
     } finally {
       setRunningAgent(null);
@@ -241,6 +255,16 @@ export default function AgentMonitoring() {
 
   return (
     <div className="space-y-6">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="ai" />
+      {!entLoading && isFreeTier && (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Zap className="h-4 w-4" />
+          <AlertTitle>Explore every agent — run on a trial or paid plan</AlertTitle>
+          <AlertDescription>
+            You can browse schedules and logs on any account. Triggering agents uses your daily AI allowance; start a 3-day trial or subscribe from Billing when you are ready.
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <Bot className="h-6 w-6 text-primary" /> Agent Monitoring

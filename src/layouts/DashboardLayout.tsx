@@ -42,12 +42,11 @@ const NAV_GROUPS: NavGroup[] = [
   },
   {
     label: 'Operations',
-    minRole: 'researcher',
     items: [
       { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity, tourId: 'nav-monitoring' },
       { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review', minRole: 'researcher' },
     ],
   },
   {

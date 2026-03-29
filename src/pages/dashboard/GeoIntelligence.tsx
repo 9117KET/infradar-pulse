@@ -1,8 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import L from 'leaflet';
-import { useProjects } from '@/hooks/use-projects';
+import { useProjects, applyProjectFilters } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Layers, Filter } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 
 const RISK_COLORS: Record<string, string> = {
@@ -20,7 +24,12 @@ function getRiskLevel(score: number) {
 }
 
 export default function GeoIntelligence() {
-  const { projects, loading } = useProjects();
+  const { profile } = useAuth();
+  const { allProjects, loading } = useProjects();
+  const hasPrefs =
+    !!profile?.onboarded &&
+    ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
+  const [matchOnboarding, setMatchOnboarding] = useState(true);
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [sectorFilter, setSectorFilter] = useState<string>('all');
   const [overlay, setOverlay] = useState<'risk' | 'confidence' | 'value'>('risk');
@@ -29,18 +38,29 @@ export default function GeoIntelligence() {
   const markersRef = useRef<L.CircleMarker[]>([]);
   const [mapReady, setMapReady] = useState(false);
 
+  const scopedProjects = useMemo(() => {
+    if (matchOnboarding && hasPrefs && profile?.onboarded) {
+      return applyProjectFilters(allProjects, {
+        regions: profile.regions,
+        sectors: profile.sectors,
+        stages: profile.stages,
+      });
+    }
+    return allProjects;
+  }, [allProjects, matchOnboarding, hasPrefs, profile?.onboarded, profile?.regions, profile?.sectors, profile?.stages]);
+
   const filtered = useMemo(() => {
-    return projects.filter(p => {
+    return scopedProjects.filter(p => {
       if (regionFilter !== 'all' && p.region !== regionFilter) return false;
       if (sectorFilter !== 'all' && p.sector !== sectorFilter) return false;
       return true;
     });
-  }, [projects, regionFilter, sectorFilter]);
+  }, [scopedProjects, regionFilter, sectorFilter]);
 
-  const regions = [...new Set(projects.map(p => p.region))];
-  const sectors = [...new Set(projects.map(p => p.sector))];
+  const regions = [...new Set(scopedProjects.map(p => p.region))];
+  const sectors = [...new Set(scopedProjects.map(p => p.sector))];
 
-  const getColor = (p: typeof projects[0]) => {
+  const getColor = (p: typeof allProjects[0]) => {
     if (overlay === 'risk') return RISK_COLORS[getRiskLevel(p.riskScore)];
     if (overlay === 'confidence') {
       if (p.confidence >= 80) return '#22c55e';
@@ -141,11 +161,22 @@ export default function GeoIntelligence() {
 
   return (
     <div className="space-y-4">
+      <p className="text-sm text-muted-foreground max-w-2xl">
+        The map uses the full approved project pipeline. Turn on <strong className="text-foreground">Match my onboarding</strong> to limit dots and filters to the regions, sectors, and stages in your profile (
+        <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link>
+        ). Turn it off to explore everything, then narrow with the dropdowns.
+      </p>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <Layers className="h-5 w-5 text-primary" /> Geospatial Intelligence
         </h1>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          {hasPrefs && (
+            <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5">
+              <Switch id="geo-match" checked={matchOnboarding} onCheckedChange={setMatchOnboarding} />
+              <Label htmlFor="geo-match" className="text-xs cursor-pointer">Match my onboarding</Label>
+            </div>
+          )}
           <Select value={regionFilter} onValueChange={setRegionFilter}>
             <SelectTrigger className="w-[140px] h-8 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
             <SelectContent>

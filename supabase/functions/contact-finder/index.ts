@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,6 +23,9 @@ function isReachableRow(c: { name?: string; email?: string | null; phone?: strin
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const gate = await requireAiEntitlementOrRespond(req);
+  if (gate instanceof Response) return gate;
 
   try {
     let bodyProjectId: string | undefined;
@@ -90,6 +94,7 @@ serve(async (req) => {
 
     if (!needsContacts.length) {
       if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No work" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -293,6 +298,8 @@ serve(async (req) => {
     }
 
     console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
+
+    await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
       JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning }),

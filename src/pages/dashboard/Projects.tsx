@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
@@ -29,8 +31,16 @@ const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(21
 
 export default function Projects() {
   const { toast } = useToast();
-  const { hasRole } = useAuth();
-  const { projects, loading } = useProjects();
+  const { hasRole, profile } = useAuth();
+  const { canExportCsv, refresh: refreshEntitlements } = useEntitlements();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const preferenceFilters = profile?.onboarded
+    ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages }
+    : undefined;
+  const hasPreferenceFilters =
+    !!profile?.onboarded &&
+    ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
+  const { projects, loading } = useProjects(preferenceFilters);
   const { isTracked, toggleTrack } = useTrackedProjects();
   const canCreate = hasRole('admin') || hasRole('researcher');
   const [search, setSearch] = useState('');
@@ -115,7 +125,11 @@ export default function Projects() {
     return Object.entries(map).map(([name, value]) => ({ name, value: +(value / 1e9).toFixed(1) }));
   }, [filtered]);
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
+    if (!canExportCsv) {
+      setUpgradeOpen(true);
+      return;
+    }
     const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
     const rows = filtered.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
@@ -124,6 +138,12 @@ export default function Projects() {
     const a = document.createElement('a');
     a.href = url; a.download = 'infradar_projects.csv'; a.click();
     URL.revokeObjectURL(url);
+    const { error } = await supabase.rpc('increment_usage_metric', { p_metric: 'export_csv' });
+    if (error) {
+      toast({ title: 'Could not record export', description: error.message, variant: 'destructive' });
+      return;
+    }
+    await refreshEntitlements();
     toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
   };
 
@@ -136,12 +156,21 @@ export default function Projects() {
 
   return (
     <div className="space-y-6">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="export" />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
+        <div>
+          <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
+          {hasPreferenceFilters && (
+            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+              The dataset below starts from your onboarding regions, sectors, and stages. Refine further with filters or update preferences in{' '}
+              <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link>.
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
           <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
-          <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
       </div>
 
