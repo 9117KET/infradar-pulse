@@ -8,7 +8,7 @@ import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
+import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
@@ -52,7 +52,7 @@ const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
 
 export default function AgentMonitoring() {
   const { toast } = useToast();
-  const { canUseAi, isFreeTier, loading: entLoading } = useEntitlements();
+  const { canUseAi, isFreeTier, staffBypass, loading: entLoading } = useEntitlements();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
@@ -195,7 +195,15 @@ export default function AgentMonitoring() {
     return minutesSince > agent.scheduleMinutes * 2;
   };
 
-  const runAgent = async (name: string, fn: () => Promise<any>) => {
+  const runAgent = async (name: string, fn: () => Promise<unknown>) => {
+    if (!staffBypass) {
+      toast({
+        title: 'Team access required',
+        description: 'Batch agents are limited to admin and researcher accounts.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!canUseAi) {
       setUpgradeOpen(true);
       return;
@@ -205,12 +213,21 @@ export default function AgentMonitoring() {
       await fn();
       toast({ title: `${name} triggered` });
       refetch();
-    } catch (e: any) {
+    } catch (e: unknown) {
+      if (isStaffOnlyError(e)) {
+        toast({
+          title: 'Team access required',
+          description: 'Batch agents are restricted to admin or researcher accounts.',
+          variant: 'destructive',
+        });
+        return;
+      }
       if (isEntitlementOrQuotaError(e)) {
         setUpgradeOpen(true);
         return;
       }
-      toast({ title: `${name} failed`, description: e.message, variant: 'destructive' });
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: `${name} failed`, description: msg, variant: 'destructive' });
     } finally {
       setRunningAgent(null);
     }

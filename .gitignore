@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase CLI local cache (do not commit)
+supabase/.branches/
+supabase/.temp/

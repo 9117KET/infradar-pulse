@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
+import { recordAiUsage } from "../_shared/requireAi.ts";
+import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +28,7 @@ function isReachableContactRow(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireAiEntitlementOrRespond(req);
+  const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -41,6 +42,7 @@ serve(async (req) => {
     task_type: "data-enrichment",
     query: "Scanning projects for missing data and enriching gaps",
     status: "running",
+    requested_by: gate.userId,
   }).select().single();
   const taskId = task?.id;
 
@@ -60,14 +62,33 @@ serve(async (req) => {
 
     const { data: allContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
-    (allContacts || []).forEach((c: any) => { contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1; });
+    (allContacts || []).forEach((c: { project_id: string }) => {
+      contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1;
+    });
 
     const { data: allEvidence } = await supabase.from("evidence_sources").select("project_id");
     const evidenceCounts: Record<string, number> = {};
-    (allEvidence || []).forEach((e: any) => { evidenceCounts[e.project_id] = (evidenceCounts[e.project_id] || 0) + 1; });
+    (allEvidence || []).forEach((e: { project_id: string }) => {
+      evidenceCounts[e.project_id] = (evidenceCounts[e.project_id] || 0) + 1;
+    });
+
+    type ProjectRow = {
+      id: string;
+      name?: string;
+      country?: string | null;
+      sector?: string | null;
+      source_url?: string | null;
+      detailed_analysis?: string | null;
+      key_risks?: string | null;
+      funding_sources?: string | null;
+      environmental_impact?: string | null;
+      political_context?: string | null;
+      description?: string | null;
+      approved?: boolean | null;
+    };
 
     // Score projects; source_url gaps are now highest priority
-    const scoredProjects = projects.map((p: any) => {
+    const scoredProjects = (projects as ProjectRow[]).map((p) => {
       let gaps = 0;
       if (!p.source_url || p.source_url === '' || p.source_url === '#') gaps += 5; // Highest priority
       if (!p.detailed_analysis || p.detailed_analysis === '') gaps += 2;

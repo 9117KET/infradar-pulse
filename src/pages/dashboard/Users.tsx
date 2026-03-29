@@ -35,6 +35,7 @@ export default function UsersPage() {
     setLoading(true);
     const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
     const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
+    const { data: emailRows, error: emailError } = await supabase.rpc('admin_list_user_emails');
 
     if (profilesError) {
       toast({
@@ -54,9 +55,17 @@ export default function UsersPage() {
         variant: 'destructive',
       });
     }
+    if (emailError) {
+      toast({
+        title: 'Could not load emails',
+        description: emailError.message,
+        variant: 'destructive',
+      });
+    }
 
     const profilesList = profiles ?? [];
     const roles = rolesRows ?? [];
+    const emailMap = new Map((emailRows ?? []).map((r) => [r.user_id, r.email]));
 
     const roleMap = new Map<string, AppRole>();
     for (const r of roles) {
@@ -70,7 +79,7 @@ export default function UsersPage() {
       id: p.id,
       display_name: p.display_name,
       company: p.company,
-      email: p.display_name || p.id.slice(0, 8),
+      email: emailMap.get(p.id) ?? '',
       role: roleMap.get(p.id) || 'user',
       updated_at: p.updated_at,
     }));
@@ -131,7 +140,7 @@ export default function UsersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-black/20">
-                <th className="p-3 text-left font-medium text-muted-foreground">User</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">User / email</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Company</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Current Role</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Change Role</th>
@@ -143,7 +152,7 @@ export default function UsersPage() {
                 <tr key={u.id} className="border-b border-border/50">
                   <td className="p-3">
                     <div className="font-medium">{u.display_name || 'Unnamed'}</div>
-                    <div className="text-xs text-muted-foreground">{u.id.slice(0, 8)}…</div>
+                    <div className="text-xs text-muted-foreground break-all">{u.email || `${u.id.slice(0, 8)}…`}</div>
                   </td>
                   <td className="p-3 text-muted-foreground">{u.company || '-'}</td>
                   <td className="p-3">

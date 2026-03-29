@@ -512,6 +512,7 @@ export type Database = {
           error: string | null
           id: string
           query: string
+          requested_by: string | null
           result: Json | null
           status: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -522,6 +523,7 @@ export type Database = {
           error?: string | null
           id?: string
           query: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -532,6 +534,7 @@ export type Database = {
           error?: string | null
           id?: string
           query?: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type?: string
@@ -737,9 +740,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_user_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_staff: {
+        Args: {
           _user_id: string
         }
         Returns: boolean
