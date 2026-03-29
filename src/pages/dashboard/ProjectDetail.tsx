@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,8 +29,12 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasRole } = useAuth();
   const { projects, loading } = useProjects();
+  const { isTracked, toggleTrack } = useTrackedProjects();
   const project = projects.find(p => p.id === id);
+  const canEdit = hasRole('admin') || hasRole('researcher');
+  const canDelete = hasRole('admin');
 
   // Evidence form state
   const [showAddEvidence, setShowAddEvidence] = useState(false);
@@ -217,33 +223,46 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
-          {project.status === 'Verified' ? (
-            <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
-              <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
-              <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+          {/* Track/Bookmark button — all roles */}
+          {project.dbId && (
+            <Button size="sm" variant="outline" onClick={() => toggleTrack(project.dbId!)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>
+              <Star className={`h-3 w-3 mr-1 ${isTracked(project.dbId) ? 'fill-amber-400' : ''}`} />
+              {isTracked(project.dbId) ? 'Tracked' : 'Track'}
             </Button>
           )}
-          <Link to={`/dashboard/projects/${project.id}/edit`}>
-            <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
-          </Link>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/30"><Trash2 className="h-3 w-3 mr-1" />Delete</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
-                <AlertDialogDescription>This will permanently remove this project and all associated data.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canEdit && (
+            <>
+              {project.status === 'Verified' ? (
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
+                  <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
+                  <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+                </Button>
+              )}
+              <Link to={`/dashboard/projects/${project.id}/edit`}>
+                <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
+              </Link>
+            </>
+          )}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30"><Trash2 className="h-3 w-3 mr-1" />Delete</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>This will permanently remove this project and all associated data.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
@@ -348,10 +367,12 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Phone className="h-4 w-4" />Verification Contacts</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
-                {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                {showAddContact ? 'Cancel' : 'Add Contact'}
-              </Button>
+              {canEdit && (
+                <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
+                  {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                  {showAddContact ? 'Cancel' : 'Add Contact'}
+                </Button>
+              )}
             </div>
 
             {showAddContact && (
@@ -452,10 +473,12 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold">Evidence Sources</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
-                {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                {showAddEvidence ? 'Cancel' : 'Add Source'}
-              </Button>
+              {canEdit && (
+                <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
+                  {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                  {showAddEvidence ? 'Cancel' : 'Add Source'}
+                </Button>
+              )}
             </div>
 
             {showAddEvidence && (
