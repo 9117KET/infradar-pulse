@@ -367,10 +367,12 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Phone className="h-4 w-4" />Verification Contacts</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
-                {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                {showAddContact ? 'Cancel' : 'Add Contact'}
-              </Button>
+              {canEdit && (
+                <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
+                  {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                  {showAddContact ? 'Cancel' : 'Add Contact'}
+                </Button>
+              )}
             </div>
 
             {showAddContact && (
