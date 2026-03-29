@@ -81,23 +81,25 @@ export default function InsightsManagement() {
         </Card>
       </div>
 
-      <Card className="glass-panel border-border">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Generate AI Insight</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <input
-            type="text"
-            placeholder="Optional topic (leave blank for AI to choose based on latest data)…"
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <Button onClick={generateInsight} disabled={generating} size="sm" className="teal-glow">
-            {generating ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</> : <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Insight</>}
-          </Button>
-        </CardContent>
-      </Card>
+      {canGenerate && (
+        <Card className="glass-panel border-border">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Generate AI Insight</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <input
+              type="text"
+              placeholder="Optional topic (leave blank for AI to choose based on latest data)…"
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+            <Button onClick={generateInsight} disabled={generating} size="sm" className="teal-glow">
+              {generating ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</> : <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Insight</>}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="glass-panel border-border">
         <CardContent className="p-0">
