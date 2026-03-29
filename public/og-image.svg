@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c1222"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#042f2e"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5eead4"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(120, 165)">
+    <circle cx="150" cy="150" r="135" fill="none" stroke="url(#teal)" stroke-width="8" opacity="0.35"/>
+    <circle cx="150" cy="150" r="90" fill="none" stroke="url(#teal)" stroke-width="6" opacity="0.5"/>
+    <circle cx="150" cy="150" r="45" fill="none" stroke="url(#teal)" stroke-width="5" opacity="0.65"/>
+    <circle cx="150" cy="150" r="18" fill="url(#teal)"/>
+    <line x1="150" y1="15" x2="150" y2="105" stroke="url(#teal)" stroke-width="5" opacity="0.6"/>
+    <line x1="150" y1="195" x2="150" y2="285" stroke="url(#teal)" stroke-width="5" opacity="0.6"/>
+    <line x1="15" y1="150" x2="105" y2="150" stroke="url(#teal)" stroke-width="5" opacity="0.6"/>
+    <line x1="195" y1="150" x2="285" y2="150" stroke="url(#teal)" stroke-width="5" opacity="0.6"/>
+  </g>
+  <text x="420" y="280" fill="#f8fafc" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700" letter-spacing="0.04em">InfraRadar</text>
+  <text x="420" y="360" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="32" font-weight="400">Verified global infrastructure intelligence</text>
+</svg>
