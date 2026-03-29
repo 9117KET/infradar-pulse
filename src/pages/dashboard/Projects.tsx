@@ -136,7 +136,7 @@ export default function Projects() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
         <div className="flex gap-2">
-          <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>
+          {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
           <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
