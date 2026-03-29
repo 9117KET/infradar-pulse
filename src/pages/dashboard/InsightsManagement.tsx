@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useInsights, type Insight } from '@/hooks/use-insights';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,10 @@ export default function InsightsManagement() {
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState('');
   const queryClient = useQueryClient();
+  const { hasRole } = useAuth();
+  const canGenerate = hasRole('admin') || hasRole('researcher');
+  const canPublish = hasRole('admin');
+  const canDeleteInsight = hasRole('admin');
 
   const generateInsight = async () => {
     setGenerating(true);
@@ -76,23 +81,25 @@ export default function InsightsManagement() {
         </Card>
       </div>
 
-      <Card className="glass-panel border-border">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Generate AI Insight</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <input
-            type="text"
-            placeholder="Optional topic (leave blank for AI to choose based on latest data)…"
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
-            className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <Button onClick={generateInsight} disabled={generating} size="sm" className="teal-glow">
-            {generating ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</> : <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Insight</>}
-          </Button>
-        </CardContent>
-      </Card>
+      {canGenerate && (
+        <Card className="glass-panel border-border">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Generate AI Insight</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <input
+              type="text"
+              placeholder="Optional topic (leave blank for AI to choose based on latest data)…"
+              value={topic}
+              onChange={e => setTopic(e.target.value)}
+              className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+            <Button onClick={generateInsight} disabled={generating} size="sm" className="teal-glow">
+              {generating ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</> : <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate Insight</>}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="glass-panel border-border">
         <CardContent className="p-0">
@@ -129,12 +136,16 @@ export default function InsightsManagement() {
                     <TableCell className="text-muted-foreground text-xs">{format(new Date(i.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePublish(i)} title={i.published ? 'Unpublish' : 'Publish'}>
-                          {i.published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteInsight(i.id)} title="Delete">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {canPublish && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePublish(i)} title={i.published ? 'Unpublish' : 'Publish'}>
+                            {i.published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                        {canDeleteInsight && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteInsight(i.id)} title="Delete">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

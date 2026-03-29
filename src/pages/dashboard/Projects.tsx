@@ -2,12 +2,14 @@ import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin } from 'lucide-react';
+import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -27,7 +29,10 @@ const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(21
 
 export default function Projects() {
   const { toast } = useToast();
+  const { hasRole } = useAuth();
   const { projects, loading } = useProjects();
+  const { isTracked, toggleTrack } = useTrackedProjects();
+  const canCreate = hasRole('admin') || hasRole('researcher');
   const [search, setSearch] = useState('');
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
@@ -132,7 +137,7 @@ export default function Projects() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
         <div className="flex gap-2">
-          <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>
+          {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
           <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
           <Button size="sm" variant="outline" onClick={exportCSV}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
@@ -305,6 +310,7 @@ export default function Projects() {
             <thead>
               <tr className="border-b border-border text-left bg-black/20">
                 <th className="p-3 font-medium text-muted-foreground">Project</th>
+                <th className="p-3 font-medium text-muted-foreground w-8"></th>
                 <th className="p-3 font-medium text-muted-foreground">Country</th>
                 <th className="p-3 font-medium text-muted-foreground">Sector</th>
                 <th className="p-3 font-medium text-muted-foreground">Stage</th>
@@ -329,6 +335,13 @@ export default function Projects() {
                         <span title="Recently marked unverified"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" /></span>
                       )}
                     </div>
+                  </td>
+                  <td className="p-3">
+                    {p.dbId && (
+                      <button onClick={() => toggleTrack(p.dbId!)} title={isTracked(p.dbId) ? 'Untrack' : 'Track'}>
+                        <Star className={`h-4 w-4 ${isTracked(p.dbId) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'}`} />
+                      </button>
+                    )}
                   </td>
                   <td className="p-3 text-muted-foreground">{p.country}</td>
                   <td className="p-3 text-muted-foreground">{p.sector}</td>

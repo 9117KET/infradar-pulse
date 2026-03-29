@@ -2,11 +2,12 @@ import { useEffect, useMemo } from 'react';
 import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
+import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, ShieldCheck, Activity, Clock, AlertTriangle, Bot, Search,
-  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users,
+  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users, Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
@@ -29,6 +30,7 @@ export default function DashboardOverview() {
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading, stats: alertStats } = useAlerts();
+  const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const queryClient = useQueryClient();
 
   const { data: researchTasks = [], isLoading: tasksLoading } = useQuery({
@@ -332,6 +334,35 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+
+      {/* Tracked Projects */}
+      {trackedProjects.length > 0 && (
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+            <Star className="h-5 w-5 text-amber-400 fill-amber-400" /> Your tracked projects
+            <span className="text-sm font-normal text-muted-foreground ml-auto">{trackedProjects.length} tracked</span>
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {trackedProjects.slice(0, 6).map(tp => {
+              const project = projects.find(p => p.dbId === tp.project_id);
+              if (!project) return null;
+              return (
+                <Link key={tp.id} to={`/dashboard/projects/${project.id}`} className="rounded-lg border border-border/50 p-3 hover:border-primary/30 transition-colors block">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
+                    <span className="text-sm font-medium truncate">{project.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="text-[10px]">{project.status}</Badge>
+                    <Badge variant="outline" className="text-[10px]">{project.stage}</Badge>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{project.country}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent project updates table */}
       <div className="glass-panel rounded-xl p-5">
