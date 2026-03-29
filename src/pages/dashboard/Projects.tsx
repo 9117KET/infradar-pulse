@@ -336,6 +336,13 @@ export default function Projects() {
                       )}
                     </div>
                   </td>
+                  <td className="p-3">
+                    {p.dbId && (
+                      <button onClick={() => toggleTrack(p.dbId!)} title={isTracked(p.dbId) ? 'Untrack' : 'Track'}>
+                        <Star className={`h-4 w-4 ${isTracked(p.dbId) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground hover:text-amber-400'}`} />
+                      </button>
+                    )}
+                  </td>
                   <td className="p-3 text-muted-foreground">{p.country}</td>
                   <td className="p-3 text-muted-foreground">{p.sector}</td>
                   <td className="p-3"><Badge variant="outline" className="text-xs">{p.stage}</Badge></td>

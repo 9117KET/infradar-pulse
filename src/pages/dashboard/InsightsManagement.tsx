@@ -136,12 +136,16 @@ export default function InsightsManagement() {
                     <TableCell className="text-muted-foreground text-xs">{format(new Date(i.created_at), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePublish(i)} title={i.published ? 'Unpublish' : 'Publish'}>
-                          {i.published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteInsight(i.id)} title="Delete">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        {canPublish && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePublish(i)} title={i.published ? 'Unpublish' : 'Publish'}>
+                            {i.published ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </Button>
+                        )}
+                        {canDeleteInsight && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteInsight(i.id)} title="Delete">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
