@@ -30,6 +30,7 @@ export default function DashboardOverview() {
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading, stats: alertStats } = useAlerts();
+  const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const queryClient = useQueryClient();
 
   const { data: researchTasks = [], isLoading: tasksLoading } = useQuery({
