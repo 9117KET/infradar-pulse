@@ -33,6 +33,7 @@ export default function Projects() {
   const { projects, loading } = useProjects();
   const { isTracked, toggleTrack } = useTrackedProjects();
   const canCreate = hasRole('admin') || hasRole('researcher');
+  const [search, setSearch] = useState('');
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
