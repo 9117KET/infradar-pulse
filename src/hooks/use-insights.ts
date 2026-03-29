@@ -60,13 +60,13 @@ export function useInsights(publishedOnly = true) {
   return useQuery({
     queryKey: ['insights', publishedOnly],
     queryFn: async () => {
-      let query = supabase.from('insights' as any).select('*').order('created_at', { ascending: false });
+      let query = supabase.from('insights').select('*').order('created_at', { ascending: false });
       if (publishedOnly) {
         query = query.eq('published', true);
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as unknown as Insight[];
+      return (data ?? []) as Insight[];
     },
   });
 }
@@ -75,9 +75,9 @@ export function useInsight(slug: string) {
   return useQuery({
     queryKey: ['insight', slug],
     queryFn: async () => {
-      const { data, error } = await (supabase.from('insights' as any).select('*').eq('slug', slug).single() as any);
+      const { data, error } = await supabase.from('insights').select('*').eq('slug', slug).single();
       if (error) throw error;
-      return data as unknown as Insight;
+      return data as Insight;
     },
     enabled: !!slug,
   });

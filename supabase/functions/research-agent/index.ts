@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
+import { recordAiUsage } from "../_shared/requireAi.ts";
+import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -70,7 +71,7 @@ interface ExtractedProject {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireAiEntitlementOrRespond(req);
+  const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
   try {
@@ -87,7 +88,12 @@ serve(async (req) => {
 
     const { data: task } = await supabase
       .from("research_tasks")
-      .insert({ task_type: "discovery", query: "Full pipeline run", status: "running" })
+      .insert({
+        task_type: "discovery",
+        query: "Full pipeline run",
+        status: "running",
+        requested_by: gate.userId,
+      })
       .select()
       .single();
 

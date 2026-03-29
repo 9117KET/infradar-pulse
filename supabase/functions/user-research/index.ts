@@ -29,7 +29,13 @@ serve(async (req) => {
     // Create research task
     const { data: task, error: taskErr } = await supabase
       .from("research_tasks")
-      .insert({ task_type: "user-research", query: query.trim(), status: "running", result: { step: "initializing", sources: [], projects: [] } })
+      .insert({
+        task_type: "user-research",
+        query: query.trim(),
+        status: "running",
+        requested_by: gate.userId,
+        result: { step: "initializing", sources: [], projects: [] },
+      })
       .select("id")
       .single();
 

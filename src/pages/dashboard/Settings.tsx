@@ -75,7 +75,7 @@ export default function SettingsPage() {
   });
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { canUseAi } = useEntitlements();
+  const { canUseAi, staffBypass } = useEntitlements();
 
   const save = () => {
     localStorage.setItem('infradar_settings', JSON.stringify(settings));
@@ -87,6 +87,14 @@ export default function SettingsPage() {
   };
 
   const runAgent = async (name: string, fn: () => Promise<unknown>) => {
+    if (!staffBypass) {
+      toast({
+        title: 'Team access required',
+        description: 'Batch intelligence agents are limited to admin and researcher accounts.',
+        variant: 'destructive',
+      });
+      return;
+    }
     if (!canUseAi) {
       setUpgradeOpen(true);
       return;
@@ -96,6 +104,14 @@ export default function SettingsPage() {
       const result = await fn();
       toast({ title: `${name} complete`, description: JSON.stringify(result) });
     } catch (e: unknown) {
+      if (isStaffOnlyError(e)) {
+        toast({
+          title: 'Team access required',
+          description: 'Batch agents are restricted to admin or researcher accounts.',
+          variant: 'destructive',
+        });
+        return;
+      }
       if (isEntitlementOrQuotaError(e)) {
         setUpgradeOpen(true);
         return;
@@ -162,7 +178,7 @@ export default function SettingsPage() {
           <div className="glass-panel rounded-xl p-6 space-y-4">
             <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Bot className="h-5 w-5 text-primary" />Intelligence agents</h3>
             <p className="text-xs text-muted-foreground">
-              Manually trigger AI research agents. Runs count against your daily AI allowance; start a trial or subscribe if you need more.
+              Manually trigger batch intelligence agents (admin/researcher). Runs count against your daily AI allowance where applicable; start a trial or subscribe if you need more.
             </p>
             <div className="space-y-3">
               {agents.map(agent => {

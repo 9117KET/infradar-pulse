@@ -5,6 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
 import { Mail, Rocket, BellRing, Handshake, Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database, Json } from '@/integrations/supabase/types';
+
+type SubscriberInsert = Database['public']['Tables']['subscribers']['Insert'];
 import { toast } from 'sonner';
 import { SECTORS } from '@/data/projects';
 
@@ -18,7 +21,8 @@ function NewsletterCard() {
   const submit = async () => {
     if (!email.trim()) return;
     setLoading(true);
-    const { error } = await supabase.from('subscribers' as any).insert({ email: email.trim(), type: 'newsletter' } as any);
+    const row: SubscriberInsert = { email: email.trim(), type: 'newsletter' };
+    const { error } = await supabase.from('subscribers').insert(row);
     setLoading(false);
     if (error) { toast.error('Something went wrong'); return; }
     setDone(true);
@@ -85,11 +89,12 @@ function AlertSubscriptionCard() {
   const submit = async () => {
     if (!email.trim() || !region || !sector) { toast.error('Please fill all fields'); return; }
     setLoading(true);
-    const { error } = await supabase.from('subscribers' as any).insert({
+    const row: SubscriberInsert = {
       email: email.trim(),
       type: 'alert',
-      preferences: { region, sector },
-    } as any);
+      preferences: { region, sector } as Json,
+    };
+    const { error } = await supabase.from('subscribers').insert(row);
     setLoading(false);
     if (error) { toast.error('Something went wrong'); return; }
     setDone(true);
@@ -143,13 +148,14 @@ function DemoRequestCard() {
   const submit = async () => {
     if (!email.trim() || !name.trim()) { toast.error('Please provide your name and email'); return; }
     setLoading(true);
-    const { error } = await supabase.from('subscribers' as any).insert({
+    const row: SubscriberInsert = {
       email: email.trim(),
       name: name.trim(),
       company: company.trim() || null,
       type: 'demo_request',
-      preferences: { use_case: useCase },
-    } as any);
+      preferences: { use_case: useCase } as Json,
+    };
+    const { error } = await supabase.from('subscribers').insert(row);
     setLoading(false);
     if (error) { toast.error('Something went wrong'); return; }
     setDone(true);

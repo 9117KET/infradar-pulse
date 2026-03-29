@@ -7,8 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Mail, Building2, BellRing, Handshake, Newspaper } from 'lucide-react';
 import { format } from 'date-fns';
+import type { Database } from '@/integrations/supabase/types';
+import type { LucideIcon } from 'lucide-react';
 
-const TYPE_META: Record<string, { label: string; color: string; icon: any }> = {
+type SubscriberRow = Database['public']['Tables']['subscribers']['Row'];
+
+const TYPE_META: Record<string, { label: string; color: string; icon: LucideIcon }> = {
   newsletter: { label: 'Newsletter', color: 'border-primary/30 text-primary', icon: Newspaper },
   alert: { label: 'Alert', color: 'border-amber-500/30 text-amber-500', icon: BellRing },
   demo_request: { label: 'Demo', color: 'border-blue-500/30 text-blue-500', icon: Handshake },
@@ -21,20 +25,20 @@ export default function SubscriberManagement() {
     queryKey: ['subscribers'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('subscribers' as any)
+        .from('subscribers')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as any[];
+      return (data ?? []) as SubscriberRow[];
     },
   });
 
-  const filtered = filter === 'all' ? subscribers : subscribers.filter((s: any) => s.type === filter);
+  const filtered = filter === 'all' ? subscribers : subscribers.filter((s) => s.type === filter);
   const counts = {
     all: subscribers.length,
-    newsletter: subscribers.filter((s: any) => s.type === 'newsletter').length,
-    alert: subscribers.filter((s: any) => s.type === 'alert').length,
-    demo_request: subscribers.filter((s: any) => s.type === 'demo_request').length,
+    newsletter: subscribers.filter((s) => s.type === 'newsletter').length,
+    alert: subscribers.filter((s) => s.type === 'alert').length,
+    demo_request: subscribers.filter((s) => s.type === 'demo_request').length,
   };
 
   return (
@@ -95,7 +99,7 @@ export default function SubscriberManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((s: any) => {
+                {filtered.map((s: SubscriberRow) => {
                   const meta = TYPE_META[s.type] || TYPE_META.newsletter;
                   const Icon = meta.icon;
                   return (

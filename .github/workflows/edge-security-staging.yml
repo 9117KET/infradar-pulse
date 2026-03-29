@@ -1,0 +1,35 @@
+# Optional: smoke-test hosted Edge Functions against staging secrets.
+# Configure repository secrets (Settings → Secrets and variables → Actions):
+#   STAGING_SUPABASE_URL          — https://<ref>.supabase.co
+#   STAGING_SUPABASE_ANON_KEY     — Project Settings → API → anon public
+#   SECURITY_TEST_ACCESS_TOKEN    — optional; non-staff session JWT
+#   SECURITY_TEST_ACCESS_TOKEN_STAFF — optional; staff session JWT
+# Or use password-based auth in secrets (set env vars in the step below if you add them to GitHub).
+
+name: Edge security smoke (staging)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Edge Function gates (hosted)
+        env:
+          EDGE_SECURITY_BASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          EDGE_SECURITY_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          SECURITY_TEST_ACCESS_TOKEN: ${{ secrets.SECURITY_TEST_ACCESS_TOKEN }}
+          SECURITY_TEST_ACCESS_TOKEN_STAFF: ${{ secrets.SECURITY_TEST_ACCESS_TOKEN_STAFF }}
+        run: node scripts/verify-edge-security.mjs

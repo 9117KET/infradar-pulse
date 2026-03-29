@@ -4,7 +4,8 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
+import { recordAiUsage } from "../_shared/requireAi.ts";
+import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 
 /** Match other edge functions so Supabase client preflight (OPTIONS) succeeds. */
 const corsHeaders = {
@@ -169,7 +170,7 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const gate = await requireAiEntitlementOrRespond(req);
+  const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
   try {
@@ -196,6 +197,7 @@ serve(async (req) => {
         task_type: "insight_sources",
         query: insightId ? `single:${insightId}` : `scope:${scope}`,
         status: "running",
+        requested_by: gate.userId,
         result: { step: "loading", scope, dry_run: dryRun },
       })
       .select("id")
