@@ -473,10 +473,12 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold">Evidence Sources</h3>
-              <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
-                {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                {showAddEvidence ? 'Cancel' : 'Add Source'}
-              </Button>
+              {canEdit && (
+                <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
+                  {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
+                  {showAddEvidence ? 'Cancel' : 'Add Source'}
+                </Button>
+              )}
             </div>
 
             {showAddEvidence && (
