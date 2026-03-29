@@ -223,33 +223,46 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
-          {project.status === 'Verified' ? (
-            <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
-              <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
-              <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+          {/* Track/Bookmark button — all roles */}
+          {project.dbId && (
+            <Button size="sm" variant="outline" onClick={() => toggleTrack(project.dbId!)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>
+              <Star className={`h-3 w-3 mr-1 ${isTracked(project.dbId) ? 'fill-amber-400' : ''}`} />
+              {isTracked(project.dbId) ? 'Tracked' : 'Track'}
             </Button>
           )}
-          <Link to={`/dashboard/projects/${project.id}/edit`}>
-            <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
-          </Link>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button size="sm" variant="outline" className="text-destructive border-destructive/30"><Trash2 className="h-3 w-3 mr-1" />Delete</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
-                <AlertDialogDescription>This will permanently remove this project and all associated data.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {canEdit && (
+            <>
+              {project.status === 'Verified' ? (
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
+                  <ShieldAlert className="h-3 w-3 mr-1" />Mark Unverified
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" className="text-emerald-500 border-emerald-500/30" onClick={() => { setVerifyAction('verified'); setShowVerifyDialog(true); }}>
+                  <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
+                </Button>
+              )}
+              <Link to={`/dashboard/projects/${project.id}/edit`}>
+                <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
+              </Link>
+            </>
+          )}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button size="sm" variant="outline" className="text-destructive border-destructive/30"><Trash2 className="h-3 w-3 mr-1" />Delete</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {project.name}?</AlertDialogTitle>
+                  <AlertDialogDescription>This will permanently remove this project and all associated data.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
