@@ -86,7 +86,9 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
-          <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>
+          {(hasRole('admin') || hasRole('researcher')) && (
+            <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="preferences">
