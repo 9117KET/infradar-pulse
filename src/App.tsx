@@ -79,7 +79,7 @@ const App = () => (
               <Route path="/dashboard/analytics-reports" element={<AnalyticsReports />} />
               <Route path="/dashboard/alerts" element={<Alerts />} />
               <Route path="/dashboard/users" element={<RoleGuard requiredRole="admin"><UsersPage /></RoleGuard>} />
-              <Route path="/dashboard/settings" element={<RoleGuard requiredRole="admin"><SettingsPage /></RoleGuard>} />
+              <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<RoleGuard requiredRole="researcher"><ReviewQueue /></RoleGuard>} />
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
               <Route path="/dashboard/insights" element={<InsightsManagement />} />

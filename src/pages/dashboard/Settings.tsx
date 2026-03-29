@@ -50,6 +50,7 @@ const agents = [
 ];
 
 export default function SettingsPage() {
+  const { hasRole } = useAuth();
   const { toast } = useToast();
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('infradar_settings');
