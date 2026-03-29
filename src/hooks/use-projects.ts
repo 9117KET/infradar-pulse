@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone, Contact } from '@/data/projects';
 
@@ -26,6 +26,8 @@ export interface DbProject {
   created_by?: string | null;
   research_saved_by?: string | null;
 }
+
+export type ProjectFilters = { regions?: string[]; sectors?: string[]; stages?: string[] };
 
 function dbToProject(
   p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
@@ -67,9 +69,35 @@ function dbToProject(
   };
 }
 
-export function useProjects(filters?: { regions?: string[]; sectors?: string[]; stages?: string[] }) {
-  const [projects, setProjects] = useState<Project[]>([]);
+/** Client-side filter from onboarding / Settings preferences. Empty array for a dimension = no filter on that dimension. */
+export function applyProjectFilters(all: Project[], filters?: ProjectFilters): Project[] {
+  if (!filters) return all;
+  let result = all;
+  if (filters.regions && filters.regions.length > 0) {
+    result = result.filter((p) => filters.regions!.includes(p.region));
+  }
+  if (filters.sectors && filters.sectors.length > 0) {
+    result = result.filter((p) => filters.sectors!.includes(p.sector));
+  }
+  if (filters.stages && filters.stages.length > 0) {
+    result = result.filter((p) => filters.stages!.includes(p.stage));
+  }
+  return result;
+}
+
+export function useProjects(filters?: ProjectFilters) {
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const regionsKey = filters?.regions?.slice().sort().join('\0') ?? '';
+  const sectorsKey = filters?.sectors?.slice().sort().join('\0') ?? '';
+  const stagesKey = filters?.stages?.slice().sort().join('\0') ?? '';
+
+  const projects = useMemo(
+    () => applyProjectFilters(allProjects, filters),
+    // Stable keys avoid stale closure when profile loads after mount; object identity alone is not stable.
+    [allProjects, regionsKey, sectorsKey, stagesKey]
+  );
 
   useEffect(() => {
     async function fetchProjects() {
@@ -82,7 +110,10 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
         supabase.from('project_contacts').select('*'),
       ]);
 
-      if (!pData) { setLoading(false); return; }
+      if (!pData) {
+        setLoading(false);
+        return;
+      }
 
       const stakeholderMap: Record<string, string[]> = {};
       (sData || []).forEach((s: any) => {
@@ -108,28 +139,16 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
         contactMap[c.project_id].push({ ...c, contact_type: c.contact_type || 'general' });
       });
 
-      let result = pData.map((p: any) =>
+      const result = pData.map((p: any) =>
         dbToProject(p, stakeholderMap[p.id] || [], milestoneMap[p.id] || [], evidenceMap[p.id] || [], contactMap[p.id] || [])
       );
 
-      // Apply client-side filters from user preferences
-      if (filters?.regions && filters.regions.length > 0) {
-        result = result.filter(p => filters.regions!.includes(p.region));
-      }
-      if (filters?.sectors && filters.sectors.length > 0) {
-        result = result.filter(p => filters.sectors!.includes(p.sector));
-      }
-      if (filters?.stages && filters.stages.length > 0) {
-        result = result.filter(p => filters.stages!.includes(p.stage));
-      }
-
-      setProjects(result);
+      setAllProjects(result);
       setLoading(false);
     }
 
     fetchProjects();
 
-    // Realtime subscription
     const channel = supabase
       .channel('projects-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
@@ -137,8 +156,10 @@ export function useProjects(filters?: { regions?: string[]; sectors?: string[]; 
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  return { projects, loading };
+  return { projects, allProjects, loading };
 }

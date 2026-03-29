@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -9,8 +10,12 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
+import { openCustomerPortal, startCheckoutSession } from '@/lib/billing/stripeClient';
 
 interface Settings {
   emailAlerts: boolean;
@@ -49,13 +54,28 @@ const agents = [
 ];
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') || 'preferences';
+  const setTab = (v: string) => {
+    setSearchParams(v === 'preferences' ? {} : { tab: v });
+  };
+
+  useEffect(() => {
+    if (searchParams.get('checkout') !== 'success') return;
+    toast({ title: 'Subscription updated', description: 'Welcome! Your plan will sync in a few seconds.' });
+    const next = new URLSearchParams(searchParams);
+    next.delete('checkout');
+    if (!next.get('tab')) next.set('tab', 'billing');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, toast]);
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('infradar_settings');
     return saved ? JSON.parse(saved) : defaults;
   });
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { canUseAi } = useEntitlements();
 
   const save = () => {
     localStorage.setItem('infradar_settings', JSON.stringify(settings));
@@ -66,13 +86,22 @@ export default function SettingsPage() {
     setSettings(s => ({ ...s, regions: s.regions.includes(r) ? s.regions.filter(x => x !== r) : [...s.regions, r] }));
   };
 
-  const runAgent = async (name: string, fn: () => Promise<any>) => {
+  const runAgent = async (name: string, fn: () => Promise<unknown>) => {
+    if (!canUseAi) {
+      setUpgradeOpen(true);
+      return;
+    }
     setRunningAgent(name);
     try {
       const result = await fn();
       toast({ title: `${name} complete`, description: JSON.stringify(result) });
-    } catch (e: any) {
-      toast({ title: `${name} failed`, description: e.message, variant: 'destructive' });
+    } catch (e: unknown) {
+      if (isEntitlementOrQuotaError(e)) {
+        setUpgradeOpen(true);
+        return;
+      }
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ title: `${name} failed`, description: msg, variant: 'destructive' });
     } finally {
       setRunningAgent(null);
     }
@@ -82,17 +111,20 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-2xl">
       <h1 className="font-serif text-2xl font-bold">Settings</h1>
 
-      <Tabs defaultValue="preferences">
+      <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
-          {(hasRole('admin') || hasRole('researcher')) && (
-            <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>
-          )}
+          <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
+          <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="preferences">
           <PreferencesTab />
+        </TabsContent>
+
+        <TabsContent value="billing">
+          <BillingTab />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
@@ -126,9 +158,12 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="agents">
+          <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="ai" />
           <div className="glass-panel rounded-xl p-6 space-y-4">
             <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Bot className="h-5 w-5 text-primary" />Intelligence agents</h3>
-            <p className="text-xs text-muted-foreground">Manually trigger AI research agents.</p>
+            <p className="text-xs text-muted-foreground">
+              Manually trigger AI research agents. Runs count against your daily AI allowance; start a trial or subscribe if you need more.
+            </p>
             <div className="space-y-3">
               {agents.map(agent => {
                 const Icon = agent.icon;
@@ -150,6 +185,84 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function BillingTab() {
+  const { toast } = useToast();
+  const { loading, plan, limits, usage, hasStripeCustomer, staffBypass, refresh } = useEntitlements();
+  const [busy, setBusy] = useState<'checkout' | 'portal' | null>(null);
+
+  const starterPrice = import.meta.env.VITE_STRIPE_PRICE_STARTER as string | undefined;
+
+  return (
+    <div className="glass-panel rounded-xl p-6 space-y-5 max-w-lg">
+      <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+        <CreditCard className="h-5 w-5 text-primary" />
+        Billing &amp; usage
+      </h3>
+      {staffBypass ? (
+        <p className="text-sm text-muted-foreground">Team access — billing limits do not apply to your account.</p>
+      ) : loading ? (
+        <p className="text-sm text-muted-foreground">Loading plan…</p>
+      ) : (
+        <div className="text-sm space-y-2 text-muted-foreground">
+          <p>
+            <span className="text-foreground font-medium capitalize">{plan}</span> plan — daily caps:{' '}
+            {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (CSV/PDF combined cap per export type in dashboard),{' '}
+            {limits.insightReadsPerDay} full insight reads.
+          </p>
+          <p>
+            Used today: {usage.ai_generation ?? 0} / {limits.aiPerDay} AI · {usage.export_csv ?? 0} / {limits.exportsPerDay} CSV ·{' '}
+            {usage.export_pdf ?? 0} / {limits.exportsPerDay} PDF · {usage.insight_read ?? 0} / {limits.insightReadsPerDay} reads
+          </p>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 pt-2">
+        <Button
+          className="teal-glow"
+          disabled={!!busy}
+          onClick={async () => {
+            setBusy('checkout');
+            try {
+              await startCheckoutSession(starterPrice);
+            } catch (e) {
+              toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+            } finally {
+              setBusy(null);
+            }
+          }}
+        >
+          {busy === 'checkout' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Subscribe / upgrade
+        </Button>
+        {hasStripeCustomer && (
+          <Button
+            variant="outline"
+            disabled={!!busy}
+            onClick={async () => {
+              setBusy('portal');
+              try {
+                await openCustomerPortal();
+              } catch (e) {
+                toast({ title: 'Portal failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+              } finally {
+                setBusy(null);
+              }
+            }}
+          >
+            {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+            Manage subscription
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+          Refresh usage
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        New subscriptions include a 3-day trial where limits still apply. Manage payment method and invoices in the Stripe customer portal.
+      </p>
     </div>
   );
 }

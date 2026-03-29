@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
 import { agentApi } from '@/lib/api/agents';
 import { filterReachableContacts } from '@/lib/contact-validation';
 import jsPDF from 'jspdf';
@@ -25,8 +28,10 @@ export default function Research() {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { canExportPdf, canUseAi, refresh: refreshEntitlements } = useEntitlements();
 
   // Poll active task
   const { data: activeTask } = useQuery({
@@ -70,6 +75,10 @@ export default function Research() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isSubmitting) return;
+    if (!canUseAi) {
+      setUpgradeOpen(true);
+      return;
+    }
     setIsSubmitting(true);
     try {
       const result = await agentApi.runUserResearch(query.trim());
@@ -77,7 +86,11 @@ export default function Research() {
         setActiveTaskId(result.taskId);
         toast({ title: 'Research started', description: 'Watching agents work in real time...' });
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      if (isEntitlementOrQuotaError(err)) {
+        setUpgradeOpen(true);
+        return;
+      }
       toast({ title: 'Error', description: 'Failed to start research', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -169,8 +182,16 @@ export default function Research() {
     }
   };
 
-  const handleExportPDF = useCallback(() => {
+  const handleExportPDF = useCallback(async () => {
     if (!result || !activeTask) return;
+    if (!canExportPdf) {
+      toast({
+        title: 'PDF export limit',
+        description: 'You have reached your daily PDF export limit for your plan. Upgrade on Pricing or try again tomorrow.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const doc = new jsPDF();
     const margin = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -262,14 +283,23 @@ export default function Research() {
 
     const filename = `infradar-research-${activeTask.query.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     doc.save(filename);
+    const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { p_metric: 'export_pdf' });
+    if (rpcErr) {
+      toast({ title: 'Export saved', description: 'Could not update usage counter: ' + rpcErr.message, variant: 'destructive' });
+      return;
+    }
+    await refreshEntitlements();
     toast({ title: 'Report exported', description: `Saved as ${filename}` });
-  }, [result, activeTask, toast]);
+  }, [result, activeTask, toast, canExportPdf, refreshEntitlements]);
 
   return (
     <div className="space-y-6">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="ai" />
       <div>
         <h1 className="text-2xl font-bold">Research Hub</h1>
-        <p className="text-muted-foreground text-sm mt-1">Search for infrastructure projects and watch our AI agents research in real time</p>
+        <p className="text-muted-foreground text-sm mt-1">
+          Search for infrastructure projects and watch our AI agents research in real time. Runs use your daily AI allowance — start a trial or upgrade if you need more.
+        </p>
       </div>
 
       {/* Search Bar */}
@@ -391,7 +421,7 @@ export default function Research() {
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Discovered Projects</CardTitle>
-                <Button size="sm" variant="outline" onClick={handleExportPDF}>
+                <Button size="sm" variant="outline" onClick={() => void handleExportPDF()} disabled={!canExportPdf} title={!canExportPdf ? 'Daily PDF export limit reached' : undefined}>
                   <Download className="h-3 w-3 mr-1" /> Export PDF
                 </Button>
               </CardHeader>

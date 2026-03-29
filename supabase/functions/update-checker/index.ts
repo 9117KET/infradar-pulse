@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,6 +9,9 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const gate = await requireAiEntitlementOrRespond(req);
+  if (gate instanceof Response) return gate;
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -32,6 +36,7 @@ serve(async (req) => {
     const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects to check" } }).eq("id", taskId);
+      await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No projects to check" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -164,6 +169,8 @@ Analyze if there are meaningful changes. Return JSON with:
 
     const result = { success: true, projects_checked: Math.min(projects.length, 5), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+
+    await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {

@@ -35,4 +35,11 @@ export const agentApi = {
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
   runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),
+  /** Backfill `sources` on insights: extract URLs from text, merge legacy `source_url`, AI only if still empty. */
+  runInsightSourcesAgent: (opts?: {
+    insight_id?: string;
+    scope?: 'missing' | 'all';
+    dry_run?: boolean;
+    use_ai?: boolean;
+  }) => invokeAgentWithBody('insight-sources-agent', { ...(opts ?? {}) }),
 };

@@ -33,31 +33,48 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    // Fetch all profiles (admin RLS policy allows this)
-    const { data: profiles } = await supabase.from('profiles').select('*');
-    // Fetch all roles
-    const { data: roles } = await supabase.from('user_roles').select('*');
+    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
+    const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
 
-    if (profiles && roles) {
-      const roleMap = new Map<string, AppRole>();
-      for (const r of roles) {
-        const current = roleMap.get(r.user_id);
-        // Keep highest role: admin > researcher > user
-        if (!current || (r.role === 'admin') || (r.role === 'researcher' && current === 'user')) {
-          roleMap.set(r.user_id, r.role as AppRole);
-        }
-      }
-
-      const mapped: UserRow[] = profiles.map((p: any) => ({
-        id: p.id,
-        display_name: p.display_name,
-        company: p.company,
-        email: p.display_name || p.id.slice(0, 8),
-        role: roleMap.get(p.id) || 'user',
-        updated_at: p.updated_at,
-      }));
-      setUsers(mapped);
+    if (profilesError) {
+      toast({
+        title: 'Could not load profiles',
+        description: profilesError.message,
+        variant: 'destructive',
+      });
+      setUsers([]);
+      setLoading(false);
+      return;
     }
+
+    if (rolesError) {
+      toast({
+        title: 'Could not load roles',
+        description: `${rolesError.message} — Users will show as "user" until this is fixed.`,
+        variant: 'destructive',
+      });
+    }
+
+    const profilesList = profiles ?? [];
+    const roles = rolesRows ?? [];
+
+    const roleMap = new Map<string, AppRole>();
+    for (const r of roles) {
+      const current = roleMap.get(r.user_id);
+      if (!current || r.role === 'admin' || (r.role === 'researcher' && current === 'user')) {
+        roleMap.set(r.user_id, r.role as AppRole);
+      }
+    }
+
+    const mapped: UserRow[] = profilesList.map((p: { id: string; display_name: string | null; company: string | null; updated_at: string | null }) => ({
+      id: p.id,
+      display_name: p.display_name,
+      company: p.company,
+      email: p.display_name || p.id.slice(0, 8),
+      role: roleMap.get(p.id) || 'user',
+      updated_at: p.updated_at,
+    }));
+    setUsers(mapped);
     setLoading(false);
   };
 
@@ -89,7 +106,10 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-serif text-2xl font-bold">User Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage roles and access for platform users</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage platform access. Roles shown here come from the <code className="text-xs">user_roles</code> table
+            (admin / researcher / user), not the job title on a profile.
+          </p>
         </div>
         <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
           <DialogTrigger asChild>

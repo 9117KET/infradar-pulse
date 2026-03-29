@@ -10,6 +10,9 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
 
 const SECTOR_COLORS = [
   'hsl(var(--primary))', 'hsl(210, 60%, 55%)', 'hsl(40, 80%, 55%)',
@@ -18,9 +21,12 @@ const SECTOR_COLORS = [
 
 export default function AnalyticsReports() {
   const { projects, loading } = useProjects();
+  const { canExportCsv, canUseAi, refresh: refreshEntitlements } = useEntitlements();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [exportingCsv, setExportingCsv] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'ai' | 'export'>('ai');
 
   const filtered = regionFilter === 'all' ? projects : projects.filter(p => p.region === regionFilter);
   const regions = [...new Set(projects.map(p => p.region))];
@@ -65,7 +71,12 @@ export default function AnalyticsReports() {
   const avgConf = filtered.length ? Math.round(filtered.reduce((s, p) => s + p.confidence, 0) / filtered.length) : 0;
   const avgRisk = filtered.length ? Math.round(filtered.reduce((s, p) => s + p.riskScore, 0) / filtered.length) : 0;
 
-  const exportCsv = () => {
+  const exportCsv = async () => {
+    if (!canExportCsv) {
+      setUpgradeReason('export');
+      setUpgradeOpen(true);
+      return;
+    }
     setExportingCsv(true);
     try {
       const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Status', 'Value (USD)', 'Confidence %', 'Risk Score', 'Last Updated'];
@@ -81,6 +92,12 @@ export default function AnalyticsReports() {
       a.download = `infraradar-projects-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      const { error } = await supabase.rpc('increment_usage_metric', { p_metric: 'export_csv' });
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      await refreshEntitlements();
       toast.success(`Exported ${filtered.length} projects to CSV`);
     } finally {
       setExportingCsv(false);
@@ -88,6 +105,10 @@ export default function AnalyticsReports() {
   };
 
   const generateExecutiveReport = async () => {
+    if (!canUseAi) {
+      toast.error('Daily AI generation limit reached. Upgrade on Pricing or try again tomorrow.');
+      return;
+    }
     setGeneratingReport(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-insight', {
@@ -116,6 +137,7 @@ export default function AnalyticsReports() {
 
   return (
     <div className="space-y-6">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason={upgradeReason} />
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" /> Analytics & Reports
@@ -128,7 +150,7 @@ export default function AnalyticsReports() {
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={exportCsv} disabled={exportingCsv} size="sm" variant="outline">
+          <Button onClick={() => void exportCsv()} disabled={exportingCsv} size="sm" variant="outline">
             <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
             {exportingCsv ? 'Exporting…' : 'Export CSV'}
           </Button>

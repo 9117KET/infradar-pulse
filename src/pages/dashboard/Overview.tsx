@@ -28,8 +28,11 @@ const STAGE_COLORS: Record<string, string> = {
 export default function DashboardOverview() {
   const { profile } = useAuth();
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
-  const { projects, loading: projectsLoading } = useProjects(filters);
+  const { projects, allProjects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading, stats: alertStats } = useAlerts();
+  const hasPreferenceFilters =
+    !!profile?.onboarded &&
+    ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
   const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const queryClient = useQueryClient();
 
@@ -61,7 +64,48 @@ export default function DashboardOverview() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  // Aggregations
+  const focusProjectNames = useMemo(() => {
+    const s = new Set<string>();
+    projects.forEach((p) => {
+      s.add(p.name.trim().toLowerCase());
+    });
+    return s;
+  }, [projects]);
+
+  const focusAlerts = useMemo(
+    () => alerts.filter((a) => focusProjectNames.has((a.projectName || '').trim().toLowerCase())),
+    [alerts, focusProjectNames],
+  );
+
+  const focusAlertStats = useMemo(() => {
+    let unread = 0;
+    let critical = 0;
+    for (const a of focusAlerts) {
+      if (!a.read) unread++;
+      if (a.severity === 'critical') critical++;
+    }
+    return { unread, critical, total: focusAlerts.length };
+  }, [focusAlerts]);
+
+  // Platform-wide (full approved pipeline)
+  const marketTotalValue = useMemo(() => allProjects.reduce((s, p) => s + (p.valueUsd || 0), 0), [allProjects]);
+  const marketAvgConfidence = useMemo(
+    () => (allProjects.length ? Math.round(allProjects.reduce((s, p) => s + p.confidence, 0) / allProjects.length) : 0),
+    [allProjects],
+  );
+  const marketVerifiedCount = useMemo(() => allProjects.filter((p) => p.status === 'Verified').length, [allProjects]);
+
+  const globalRegionData = useMemo(() => {
+    const map: Record<string, number> = {};
+    allProjects.forEach((p) => {
+      map[p.region] = (map[p.region] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [allProjects]);
+
+  // Your coverage (onboarding / Settings preferences)
   const totalValue = useMemo(() => projects.reduce((s, p) => s + (p.valueUsd || 0), 0), [projects]);
   const avgConfidence = useMemo(() => projects.length ? Math.round(projects.reduce((s, p) => s + p.confidence, 0) / projects.length) : 0, [projects]);
   const verifiedCount = useMemo(() => projects.filter(p => p.status === 'Verified').length, [projects]);
@@ -112,12 +156,12 @@ export default function DashboardOverview() {
 
   const alertDistribution = useMemo(() => {
     const map: Record<string, Record<string, number>> = {};
-    alerts.forEach(a => {
+    focusAlerts.forEach(a => {
       if (!map[a.category]) map[a.category] = {};
       map[a.category][a.severity] = (map[a.category][a.severity] || 0) + 1;
     });
     return Object.entries(map).map(([category, sevs]) => ({ category, ...sevs }));
-  }, [alerts]);
+  }, [focusAlerts]);
 
   const confidenceTrend = useMemo(() => {
     const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
@@ -125,34 +169,97 @@ export default function DashboardOverview() {
     return months.map((month, i) => ({ month, value: Math.max(50, base - (5 - i) * 1.2 + Math.random() * 2) | 0 }));
   }, [avgConfidence]);
 
-  const KPIs = useMemo(() => [
-    { label: 'Projects tracked', value: projects.length, icon: Activity, color: 'text-primary' },
+  const marketKPIs = useMemo(() => [
+    { label: 'Projects (platform)', value: allProjects.length, icon: Activity, color: 'text-primary' },
+    { label: 'Verified (platform)', value: marketVerifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
+    { label: 'Avg confidence (platform)', value: `${marketAvgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
+    { label: 'Total value (platform)', value: marketTotalValue >= 1e9 ? `$${(marketTotalValue / 1e9).toFixed(1)}B` : `$${(marketTotalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
+    { label: 'Unread alerts (all)', value: alertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
+    { label: 'Critical alerts (all)', value: alertStats.critical, icon: Zap, color: 'text-red-400' },
+    { label: 'Pending review', value: pendingCount, icon: ClipboardCheck, color: 'text-amber-400' },
+  ], [allProjects.length, marketVerifiedCount, marketAvgConfidence, marketTotalValue, alertStats, pendingCount]);
+
+  const focusKPIs = useMemo(() => [
+    { label: 'Projects in your coverage', value: projects.length, icon: Activity, color: 'text-primary' },
     { label: 'Verified', value: verifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
     { label: 'Avg confidence', value: `${avgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
     { label: 'Total value', value: totalValue >= 1e9 ? `$${(totalValue / 1e9).toFixed(1)}B` : `$${(totalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
-    { label: 'Unread alerts', value: alertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Critical alerts', value: alertStats.critical, icon: Zap, color: 'text-red-400' },
-    { label: 'Pending review', value: pendingCount, icon: ClipboardCheck, color: 'text-amber-400' },
+    { label: 'Unread alerts (your projects)', value: focusAlertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
+    { label: 'Critical (your projects)', value: focusAlertStats.critical, icon: Zap, color: 'text-red-400' },
     { label: 'Data quality', value: `${dataQuality.overall}%`, icon: Users, color: dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400' },
-  ], [projects, verifiedCount, avgConfidence, totalValue, alertStats, pendingCount, dataQuality]);
-
-  const formatValue = (v: number) => v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`;
+  ], [projects.length, verifiedCount, avgConfidence, totalValue, focusAlertStats, dataQuality.overall]);
 
   return (
     <div className="space-y-6">
-      <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
+      <div>
+        <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
+        <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
+          <strong className="text-foreground">Platform pipeline</strong> shows every approved project in InfraRadar so you can see total market scale.
+          {' '}
+          <strong className="text-foreground">Your coverage</strong> filters by regions, sectors, and stages you chose in onboarding (editable in Settings).
+          Charts and the map below reflect your coverage; alert counts in that section only include alerts tied to projects in your coverage.
+        </p>
+      </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-8">
-        {KPIs.map(k => (
-          <div key={k.label} className="glass-panel rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <k.icon className={`h-4 w-4 ${k.color}`} />
+      <div className="space-y-2">
+        <h2 className="font-serif text-lg font-semibold text-foreground">Platform pipeline</h2>
+        <p className="text-xs text-muted-foreground">Full approved pipeline — compare scale before drilling into your preferences.</p>
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+          {marketKPIs.map(k => (
+            <div key={k.label} className="glass-panel rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <k.icon className={`h-4 w-4 ${k.color}`} />
+              </div>
+              {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
+              <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
             </div>
-            {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
-            <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
+          ))}
+        </div>
+        <div className="glass-panel rounded-xl p-5">
+          <h3 className="font-serif text-base font-semibold mb-3">Global snapshot — projects by region</h3>
+          {projectsLoading ? <Skeleton className="h-[200px] w-full" /> : (
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={globalRegionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2} stroke="none">
+                  {globalRegionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Pie>
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <h2 className="font-serif text-lg font-semibold text-foreground">Your coverage</h2>
+        {hasPreferenceFilters ? (
+          <div className="flex flex-wrap gap-2 text-xs">
+            {profile?.regions?.map((r) => (
+              <Badge key={r} variant="secondary" className="font-normal">Region: {r}</Badge>
+            ))}
+            {profile?.sectors?.map((s) => (
+              <Badge key={s} variant="outline" className="font-normal">Sector: {s}</Badge>
+            ))}
+            {profile?.stages?.map((st) => (
+              <Badge key={st} variant="outline" className="font-normal">Stage: {st}</Badge>
+            ))}
           </div>
-        ))}
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Select regions, sectors, and stages in <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link> or complete onboarding to narrow this view. Until then, coverage matches the full platform.
+          </p>
+        )}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+          {focusKPIs.map(k => (
+            <div key={k.label} className="glass-panel rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <k.icon className={`h-4 w-4 ${k.color}`} />
+              </div>
+              {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
+              <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Charts Row 1: Region donut + Sector bar */}
@@ -180,7 +287,7 @@ export default function DashboardOverview() {
         </div>
 
         <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Projects by sector</h3>
+          <h3 className="font-serif text-lg font-semibold mb-3">Projects by sector (your coverage)</h3>
           {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
@@ -196,13 +303,13 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Mini Map */}
+      {/* Mini Map — your coverage */}
       {!projectsLoading && <OverviewMap projects={projects} />}
 
       {/* Charts Row 2: Confidence trend + Alert distribution */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Confidence trend</h3>
+          <h3 className="font-serif text-lg font-semibold mb-3">Confidence trend (your coverage)</h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={confidenceTrend}>
               <defs>
@@ -221,7 +328,7 @@ export default function DashboardOverview() {
         </div>
 
         <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Alert distribution by category</h3>
+          <h3 className="font-serif text-lg font-semibold mb-3">Alert distribution (your projects)</h3>
           {alertsLoading ? <Skeleton className="h-[200px] w-full" /> : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={alertDistribution}>
@@ -242,7 +349,7 @@ export default function DashboardOverview() {
       {/* Data Quality Score */}
       <div className="glass-panel rounded-xl p-5">
         <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-primary" /> Data quality score
+          <ShieldCheck className="h-5 w-5 text-primary" /> Data quality score (your coverage)
           <span className={`ml-auto text-2xl font-bold ${dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
             {dataQuality.overall}%
           </span>
@@ -269,7 +376,7 @@ export default function DashboardOverview() {
       {/* Pipeline + Agent Activity + Pending */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Pipeline by stage</h3>
+          <h3 className="font-serif text-lg font-semibold mb-3">Pipeline by stage (your coverage)</h3>
           {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
@@ -344,7 +451,7 @@ export default function DashboardOverview() {
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {trackedProjects.slice(0, 6).map(tp => {
-              const project = projects.find(p => p.dbId === tp.project_id);
+              const project = allProjects.find(p => p.dbId === tp.project_id);
               if (!project) return null;
               return (
                 <Link key={tp.id} to={`/dashboard/projects/${project.id}`} className="rounded-lg border border-border/50 p-3 hover:border-primary/30 transition-colors block">
@@ -366,7 +473,7 @@ export default function DashboardOverview() {
 
       {/* Recent project updates table */}
       <div className="glass-panel rounded-xl p-5">
-        <h3 className="font-serif text-lg font-semibold mb-4">Recent project updates</h3>
+        <h3 className="font-serif text-lg font-semibold mb-4">Recent project updates (your coverage)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
