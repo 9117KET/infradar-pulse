@@ -29,8 +29,12 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { hasRole } = useAuth();
   const { projects, loading } = useProjects();
+  const { isTracked, toggleTrack } = useTrackedProjects();
   const project = projects.find(p => p.id === id);
+  const canEdit = hasRole('admin') || hasRole('researcher');
+  const canDelete = hasRole('admin');
 
   // Evidence form state
   const [showAddEvidence, setShowAddEvidence] = useState(false);
