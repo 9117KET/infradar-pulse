@@ -2,11 +2,12 @@ import { useEffect, useMemo } from 'react';
 import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
+import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, ShieldCheck, Activity, Clock, AlertTriangle, Bot, Search,
-  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users,
+  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users, Star,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
