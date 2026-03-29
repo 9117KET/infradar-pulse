@@ -28,7 +28,10 @@ export const agentApi = {
   runSentimentAnalyzer: () => invokeAgent('sentiment-analyzer'),
   runSupplyChainMonitor: () => invokeAgent('supply-chain-monitor'),
   runMarketIntel: () => invokeAgent('market-intel'),
-  runContactFinder: () => invokeAgent('contact-finder'),
+  runContactFinder: (projectId?: string) =>
+    projectId
+      ? invokeAgentWithBody('contact-finder', { project_id: projectId })
+      : invokeAgent('contact-finder'),
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
   runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),

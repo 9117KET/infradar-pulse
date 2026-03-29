@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star, Bot, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -22,6 +22,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { agentApi } from '@/lib/api/agents';
+import { isReachableContact } from '@/lib/contact-validation';
+import { canDeleteProject, canEditProject } from '@/lib/project-permissions';
 
 const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
 
@@ -29,12 +32,14 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasRole } = useAuth();
+  const { hasRole, user, roles } = useAuth();
   const { projects, loading } = useProjects();
   const { isTracked, toggleTrack } = useTrackedProjects();
   const project = projects.find(p => p.id === id);
-  const canEdit = hasRole('admin') || hasRole('researcher');
-  const canDelete = hasRole('admin');
+  const canEditMetadata = project ? canEditProject(user?.id, roles, project) : false;
+  const canDelete = project ? canDeleteProject(user?.id, roles, project) : false;
+  /** Verify, evidence, contacts, agents — researcher + admin only (plan table). */
+  const canModerate = hasRole('admin') || hasRole('researcher');
 
   // Evidence form state
   const [showAddEvidence, setShowAddEvidence] = useState(false);
@@ -51,7 +56,9 @@ export default function ProjectDetail() {
   const [ctOrg, setCtOrg] = useState('');
   const [ctPhone, setCtPhone] = useState('');
   const [ctEmail, setCtEmail] = useState('');
+  const [ctSourceUrl, setCtSourceUrl] = useState('');
   const [ctType, setCtType] = useState('general');
+  const [contactFinderLoading, setContactFinderLoading] = useState(false);
   // Verification toggle state
   const [showVerifyDialog, setShowVerifyDialog] = useState(false);
   const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
@@ -151,6 +158,14 @@ export default function ProjectDetail() {
 
   const handleAddContact = async () => {
     if (!project.dbId || !ctName.trim()) return;
+    if (!isReachableContact({ name: ctName, email: ctEmail || null, phone: ctPhone || null, source_url: ctSourceUrl })) {
+      toast({
+        title: 'Incomplete contact',
+        description: 'Add name, email or phone, and an http(s) source URL where this person is listed.',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
       await supabase.from('project_contacts').insert({
         project_id: project.dbId,
@@ -161,13 +176,30 @@ export default function ProjectDetail() {
         email: ctEmail || null,
         contact_type: ctType,
         source: 'Manual entry',
+        source_url: ctSourceUrl.trim(),
         added_by: 'human',
       } as any);
       toast({ title: 'Contact added' });
       setShowAddContact(false);
-      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail(''); setCtType('general');
+      setCtName(''); setCtRole(''); setCtOrg(''); setCtPhone(''); setCtEmail(''); setCtSourceUrl(''); setCtType('general');
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleRunContactFinder = async () => {
+    if (!project.dbId) return;
+    setContactFinderLoading(true);
+    try {
+      const res = await agentApi.runContactFinder(project.dbId) as { contacts_added?: number; note?: string };
+      toast({
+        title: 'Contact finder finished',
+        description: res?.note || (typeof res?.contacts_added === 'number' ? `Added ${res.contacts_added} contact(s). Refresh if needed.` : 'Done. Refresh if new contacts do not appear.'),
+      });
+    } catch (err: any) {
+      toast({ title: 'Contact finder failed', description: err?.message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setContactFinderLoading(false);
     }
   };
 
@@ -223,14 +255,14 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
-          {/* Track/Bookmark button — all roles */}
+          {/* Track/bookmark button (all roles) */}
           {project.dbId && (
             <Button size="sm" variant="outline" onClick={() => toggleTrack(project.dbId!)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>
               <Star className={`h-3 w-3 mr-1 ${isTracked(project.dbId) ? 'fill-amber-400' : ''}`} />
               {isTracked(project.dbId) ? 'Tracked' : 'Track'}
             </Button>
           )}
-          {canEdit && (
+          {canModerate && (
             <>
               {project.status === 'Verified' ? (
                 <Button size="sm" variant="outline" className="text-destructive border-destructive/30" onClick={() => { setVerifyAction('unverified'); setShowVerifyDialog(true); }}>
@@ -241,10 +273,18 @@ export default function ProjectDetail() {
                   <ShieldCheck className="h-3 w-3 mr-1" />Mark Verified
                 </Button>
               )}
-              <Link to={`/dashboard/projects/${project.id}/edit`}>
-                <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
-              </Link>
             </>
+          )}
+          {canEditMetadata && (
+            <Link to={`/dashboard/projects/${project.id}/edit`}>
+              <Button size="sm" variant="outline"><Edit className="h-3 w-3 mr-1" />Edit</Button>
+            </Link>
+          )}
+          {canModerate && project.dbId && (
+            <Button size="sm" variant="outline" disabled={contactFinderLoading} onClick={handleRunContactFinder}>
+              {contactFinderLoading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Bot className="h-3 w-3 mr-1" />}
+              Contact finder
+            </Button>
           )}
           {canDelete && (
             <AlertDialog>
@@ -349,7 +389,12 @@ export default function ProjectDetail() {
         <TabsContent value="analysis">
           <div className="glass-panel rounded-xl p-5 space-y-2">
             {!project.detailedAnalysis && !project.keyRisks && !project.fundingSources && !project.environmentalImpact && !project.politicalContext ? (
-              <p className="text-sm text-muted-foreground">No analysis content yet. <Link to={`/dashboard/projects/${project.id}/edit`} className="text-primary hover:underline">Add analysis →</Link></p>
+              <p className="text-sm text-muted-foreground">
+                No analysis content yet.
+                {canEditMetadata && (
+                  <> <Link to={`/dashboard/projects/${project.id}/edit`} className="text-primary hover:underline">Add analysis →</Link></>
+                )}
+              </p>
             ) : (
               <>
                 <AnalysisSection title="Detailed Analysis" content={project.detailedAnalysis} />
@@ -367,7 +412,7 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Phone className="h-4 w-4" />Verification Contacts</h3>
-              {canEdit && (
+              {canModerate && (
                 <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
                   {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
                   {showAddContact ? 'Cancel' : 'Add Contact'}
@@ -382,6 +427,7 @@ export default function ProjectDetail() {
                   <Input value={ctRole} onChange={e => setCtRole(e.target.value)} placeholder="Role / Title" className="bg-black/20" />
                   <Input value={ctOrg} onChange={e => setCtOrg(e.target.value)} placeholder="Organization" className="bg-black/20" />
                 </div>
+                <Input value={ctSourceUrl} onChange={e => setCtSourceUrl(e.target.value)} placeholder="Source URL (https://...) *" className="bg-black/20" />
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Input value={ctPhone} onChange={e => setCtPhone(e.target.value)} placeholder="Phone number" className="bg-black/20" />
                   <Input value={ctEmail} onChange={e => setCtEmail(e.target.value)} placeholder="Email" className="bg-black/20" />
@@ -403,7 +449,7 @@ export default function ProjectDetail() {
 
             {contacts.length === 0 && <p className="text-sm text-muted-foreground">No contacts found yet. The Contact Finder agent will discover contacts automatically.</p>}
 
-            {/* Group contacts by type — contractors first */}
+            {/* Group contacts by type (contractors first) */}
             {(() => {
               const typeOrder = ['contractor', 'government', 'owner', 'financier', 'consultant', 'general'];
               const typeLabels: Record<string, string> = { contractor: 'Contractors', government: 'Government', owner: 'Project Owners', financier: 'Financiers', consultant: 'Consultants', general: 'Other' };
@@ -452,12 +498,16 @@ export default function ProjectDetail() {
                           {c.source && <p className="text-[10px] text-muted-foreground">Source: {c.source}</p>}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <button onClick={() => toggleContactVerified(c.id, c.verified)}>
-                            {c.verified
-                              ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
-                              : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
-                          </button>
-                          <button onClick={() => deleteContact(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                          {canModerate && (
+                            <>
+                              <button type="button" onClick={() => toggleContactVerified(c.id, c.verified)}>
+                                {c.verified
+                                  ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
+                                  : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
+                              </button>
+                              <button type="button" onClick={() => deleteContact(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -473,7 +523,7 @@ export default function ProjectDetail() {
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold">Evidence Sources</h3>
-              {canEdit && (
+              {canModerate && (
                 <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
                   {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
                   {showAddEvidence ? 'Cancel' : 'Add Source'}
@@ -516,15 +566,19 @@ export default function ProjectDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => toggleVerified(e.id, e.verified)}>
-                      {e.verified
-                        ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
-                        : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
-                    </button>
+                    {canModerate && (
+                      <>
+                        <button type="button" onClick={() => toggleVerified(e.id, e.verified)}>
+                          {e.verified
+                            ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
+                            : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
+                        </button>
+                        <button type="button" onClick={() => deleteEvidence(e.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                      </>
+                    )}
                     {e.url && e.url !== '#' && (
                       <a href={e.url} target="_blank" rel="noopener"><ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" /></a>
                     )}
-                    <button onClick={() => deleteEvidence(e.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
                   </div>
                 </div>
               ))}
@@ -540,7 +594,11 @@ export default function ProjectDetail() {
               {project.milestones.length === 0 && <p className="text-sm text-muted-foreground">No milestones yet.</p>}
               {project.milestones.map(m => (
                 <div key={m.id} className="flex items-center gap-3">
-                  <button onClick={() => toggleMilestone(m.id, m.completed)} className={`h-4 w-4 rounded-full shrink-0 border-2 cursor-pointer ${m.completed ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground hover:border-primary'}`} />
+                  {canModerate ? (
+                    <button type="button" onClick={() => toggleMilestone(m.id, m.completed)} className={`h-4 w-4 rounded-full shrink-0 border-2 cursor-pointer ${m.completed ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground hover:border-primary'}`} />
+                  ) : (
+                    <span className={`h-4 w-4 rounded-full shrink-0 border-2 ${m.completed ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground'}`} />
+                  )}
                   <div className="flex-1">
                     <span className="text-sm">{m.title}</span>
                     <span className="text-xs text-muted-foreground ml-2">{m.date}</span>

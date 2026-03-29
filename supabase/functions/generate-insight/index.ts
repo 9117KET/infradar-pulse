@@ -34,14 +34,14 @@ serve(async (req) => {
 
     const systemPrompt = `You are InfraRadar AI's senior infrastructure analyst. You write insightful, data-driven articles about global infrastructure development.
 
-Your tone is authoritative but accessible — like a top-tier consulting firm's research arm. Use specific data points from the provided context. Format in Markdown with ## headings, bullet points, and bold key terms.
+Your tone is authoritative but accessible, like a top-tier consulting firm's research arm. Use specific data points from the provided context. Format in Markdown with ## headings, bullet points, and bold key terms.
 
 Context about current projects and intelligence:
 ${JSON.stringify(context, null, 2)}`;
 
     const userPrompt = topic
       ? `Write a comprehensive insight article about: ${topic}. Include specific project references from our database where relevant.`
-      : `Based on the current project data, alerts, and research findings, identify the most important emerging trend or insight. Write a comprehensive article about it. Pick a specific, compelling angle — not a generic overview.`;
+      : `Based on the current project data, alerts, and research findings, identify the most important emerging trend or insight. Write a comprehensive article about it. Pick a specific, compelling angle, not a generic overview.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -113,7 +113,7 @@ ${JSON.stringify(context, null, 2)}`;
       tag: insight.tag,
       reading_time_min: insight.reading_time_min,
       ai_generated: true,
-      published: false, // Draft by default — admin must publish
+      published: false, // Draft by default; admin must publish
       author: "InfraRadar AI",
     }).select().single();
 

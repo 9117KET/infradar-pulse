@@ -120,7 +120,7 @@ serve(async (req) => {
         project_id: match?.id || null,
         project_name: f.related_project_name || `${f.country} regulatory`,
         severity: isCritical ? "critical" : (f.severity || "medium"),
-        message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country} — ${f.summary}`,
+        message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country}: ${f.summary}`,
         category: "regulatory",
         source_url: f.source_url || null,
       });

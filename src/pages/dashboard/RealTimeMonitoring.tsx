@@ -299,7 +299,7 @@ export default function RealTimeMonitoring() {
           <h3 className="font-serif text-sm font-semibold mb-3 flex items-center gap-2">
             <Clock className="h-4 w-4 text-amber-400" /> Confidence decay warning
           </h3>
-          <p className="text-xs text-muted-foreground mb-3">These projects haven't been updated in 30+ days — confidence may be declining.</p>
+          <p className="text-xs text-muted-foreground mb-3">These projects have not been updated in 30+ days; confidence may be declining.</p>
           <div className="flex flex-wrap gap-2">
             {staleProjects.slice(0, 10).map(p => (
               <Link key={p.id} to={`/dashboard/projects/${p.id}`}>
@@ -381,7 +381,7 @@ export default function RealTimeMonitoring() {
                           {u.new_value && <span className="text-emerald-400 truncate max-w-[80px]">{u.new_value}</span>}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-[10px]">{u.source || '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-[10px]">{u.source || '-'}</TableCell>
                       <TableCell className="text-muted-foreground text-[10px]">{new Date(u.created_at).toLocaleString()}</TableCell>
                     </TableRow>
                   );

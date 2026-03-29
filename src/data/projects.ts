@@ -1,7 +1,21 @@
 export type ProjectStage = 'Planned' | 'Tender' | 'Awarded' | 'Financing' | 'Construction' | 'Completed' | 'Cancelled' | 'Stopped';
 export type ProjectStatus = 'Verified' | 'Stable' | 'Pending' | 'At Risk';
 export type Region = 'MENA' | 'East Africa' | 'West Africa' | 'Southern Africa' | 'Central Africa' | 'North America' | 'South America' | 'Europe' | 'Central Asia' | 'South Asia' | 'East Asia' | 'Southeast Asia' | 'Oceania' | 'Caribbean';
-export type Sector = 'Urban Development' | 'Digital Infrastructure' | 'Renewable Energy' | 'Transport' | 'Water' | 'Energy';
+export type Sector =
+  | 'AI Infrastructure'
+  | 'Building Construction'
+  | 'Chemical'
+  | 'Data Centers'
+  | 'Digital Infrastructure'
+  | 'Energy'
+  | 'Industrial'
+  | 'Infrastructure'
+  | 'Mining'
+  | 'Oil & Gas'
+  | 'Renewable Energy'
+  | 'Transport'
+  | 'Urban Development'
+  | 'Water';
 
 export interface Evidence {
   id: string;
@@ -67,6 +81,10 @@ export interface Project {
   politicalContext?: string;
   sourceUrl?: string;
   dbId?: string;
+  /** Set when created via Project Editor */
+  createdByUserId?: string | null;
+  /** Set when saved from Research → review queue */
+  researchSavedByUserId?: string | null;
 }
 
 export const PROJECTS: Project[] = [
@@ -340,7 +358,22 @@ export const PROJECTS: Project[] = [
 ];
 
 export const REGIONS: Region[] = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
-export const SECTORS: Sector[] = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
+export const SECTORS: Sector[] = [
+  'AI Infrastructure',
+  'Building Construction',
+  'Chemical',
+  'Data Centers',
+  'Digital Infrastructure',
+  'Energy',
+  'Industrial',
+  'Infrastructure',
+  'Mining',
+  'Oil & Gas',
+  'Renewable Energy',
+  'Transport',
+  'Urban Development',
+  'Water',
+];
 export const STAGES: ProjectStage[] = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed', 'Cancelled', 'Stopped'];
 
 export const statusColor: Record<ProjectStatus, string> = {

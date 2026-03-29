@@ -23,6 +23,8 @@ export interface DbProject {
   created_at: string;
   ai_generated: boolean;
   approved: boolean;
+  created_by?: string | null;
+  research_saved_by?: string | null;
 }
 
 function dbToProject(
@@ -60,6 +62,8 @@ function dbToProject(
     politicalContext: (p as any).political_context || '',
     sourceUrl: (p as any).source_url || '',
     dbId: p.id,
+    createdByUserId: (p as any).created_by ?? null,
+    researchSavedByUserId: (p as any).research_saved_by ?? null,
   };
 }
 

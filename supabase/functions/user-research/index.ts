@@ -203,7 +203,7 @@ serve(async (req) => {
           const parsed = JSON.parse(toolCall.function.arguments);
           extractedProjects = (parsed.projects || []).map((p: Record<string, unknown>, idx: number) => ({
             ...p,
-            // Ensure every project has a source_url — fall back to search results
+            // Ensure every project has a source_url; fall back to search results
             source_url: p.source_url || searchResults[idx]?.url || searchResults[0]?.url || null,
           }));
         }
@@ -222,7 +222,7 @@ serve(async (req) => {
       message: `Extracted ${extractedProjects.length} projects. Enriching data...`,
     });
 
-    // ── Step 4: Enrich — find similar projects from DB ──
+    // Step 4: Enrich - find similar projects from DB
     await updateResult({
       step: "enriching",
       sources: searchResults.map((s) => ({ url: s.url, status: "scraped" })),

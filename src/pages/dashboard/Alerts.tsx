@@ -159,7 +159,7 @@ export default function Alerts() {
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
             <Shield className="h-3.5 w-3.5" /> Risk Trend
           </div>
-          <p className="text-lg font-bold">{brief ? `${trendIcon} ${brief.overall_risk_trend}` : '—'}</p>
+          <p className="text-lg font-bold">{brief ? `${trendIcon} ${brief.overall_risk_trend}` : '-'}</p>
           <p className="text-xs text-muted-foreground">{brief ? 'AI assessed' : 'Generate brief'}</p>
         </div>
       </div>

@@ -6,9 +6,9 @@ import { Link } from 'react-router-dom';
 import { Mail, Rocket, BellRing, Handshake, Check, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SECTORS } from '@/data/projects';
 
 const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
-const SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
 
 function NewsletterCard() {
   const [email, setEmail] = useState('');
@@ -37,7 +37,7 @@ function NewsletterCard() {
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-4 flex-1">
-        Curated infrastructure intelligence — project updates, risk signals, and market trends delivered weekly.
+        Curated infrastructure intelligence: project updates, risk signals, and market trends delivered weekly.
       </p>
       {done ? (
         <div className="flex items-center gap-2 text-primary text-sm"><Check className="h-4 w-4" /> Subscribed!</div>
@@ -66,7 +66,7 @@ function GetStartedCard() {
         </div>
       </div>
       <p className="text-sm text-muted-foreground mb-4 flex-1">
-        Create a free account and explore the platform immediately — track projects, set alerts, and access AI research tools.
+        Create a free account and explore the platform immediately: track projects, set alerts, and access AI research tools.
       </p>
       <Link to="/login">
         <Button className="w-full teal-glow" size="sm">Create free account</Button>
@@ -199,7 +199,7 @@ export function EngagementSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
           <h2 className="font-serif text-3xl font-bold mb-3">Stay Connected</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Choose how you want to engage with Infradar — subscribe for updates, start exploring, set custom alerts, or talk to our team.
+            Choose how you want to engage with Infradar: subscribe for updates, start exploring, set custom alerts, or talk to our team.
           </p>
         </motion.div>
 

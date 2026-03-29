@@ -36,7 +36,7 @@ export function Footer() {
               <span className="font-serif text-base font-semibold tracking-wide">INFRADAR</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Verified infrastructure intelligence for high-stakes decisions across MENA and Africa.
+              Verified infrastructure intelligence for high-stakes decisions across 14 global regions.
             </p>
           </div>
 

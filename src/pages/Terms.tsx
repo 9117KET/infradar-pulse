@@ -7,7 +7,7 @@ export default function Terms() {
           <p>Last updated: March 2026</p>
           <p>These Terms of Service govern your use of the Infradar platform and services. By accessing or using Infradar, you agree to be bound by these terms.</p>
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">1. Service Description</h2>
-          <p>Infradar provides infrastructure intelligence services including project monitoring, data verification, and analytical reporting for the MENA and Africa regions.</p>
+          <p>Infradar provides infrastructure intelligence services including project monitoring, data verification, and analytical reporting across the regions supported by the platform (currently modeled as 14 global regions).</p>
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">2. User Obligations</h2>
           <p>Users must maintain the confidentiality of their account credentials and are responsible for all activity under their account. Data accessed through the platform is for authorized business purposes only.</p>
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">3. Data Usage</h2>

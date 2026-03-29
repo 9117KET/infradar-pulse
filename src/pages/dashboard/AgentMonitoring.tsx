@@ -404,7 +404,7 @@ export default function AgentMonitoring() {
                   <p className="text-[8px] text-muted-foreground">Fail</p>
                 </div>
                 <div className="rounded bg-background/50 py-1">
-                  <p className="text-[10px] font-bold">{stats.successRate !== null ? `${stats.successRate}%` : '—'}</p>
+                  <p className="text-[10px] font-bold">{stats.successRate !== null ? `${stats.successRate}%` : '-'}</p>
                   <p className="text-[8px] text-muted-foreground">Rate</p>
                 </div>
               </div>
@@ -460,7 +460,7 @@ export default function AgentMonitoring() {
                       <div><span className="text-muted-foreground">Task Type:</span> <span className="text-foreground">{log.task_type}</span></div>
                       <div><span className="text-muted-foreground">Status:</span> <span className={getStatusColor(log.status)}>{log.status}</span></div>
                       <div><span className="text-muted-foreground">Created:</span> <span className="text-foreground">{new Date(log.created_at).toLocaleString()}</span></div>
-                      <div><span className="text-muted-foreground">Completed:</span> <span className="text-foreground">{log.completed_at ? new Date(log.completed_at).toLocaleString() : '—'}</span></div>
+                      <div><span className="text-muted-foreground">Completed:</span> <span className="text-foreground">{log.completed_at ? new Date(log.completed_at).toLocaleString() : '-'}</span></div>
                       <div className="col-span-2"><span className="text-muted-foreground">Query:</span> <span className="text-foreground">{log.query}</span></div>
                       {log.error && <div className="col-span-2"><span className="text-muted-foreground">Error:</span> <span className="text-destructive">{log.error}</span></div>}
                     </div>

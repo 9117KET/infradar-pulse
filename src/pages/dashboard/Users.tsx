@@ -77,7 +77,7 @@ export default function UsersPage() {
 
   const inviteResearcher = async () => {
     if (!inviteEmail.trim()) return;
-    // We store the email as a "pending invite" — when user signs up with this email, 
+    // We store the email as a "pending invite"; when user signs up with this email,
     // we can check and assign researcher role. For now, show confirmation.
     toast({ title: 'Researcher invite noted', description: `When ${inviteEmail} signs up, assign them the researcher role from this page.` });
     setInviteEmail('');
@@ -125,7 +125,7 @@ export default function UsersPage() {
                     <div className="font-medium">{u.display_name || 'Unnamed'}</div>
                     <div className="text-xs text-muted-foreground">{u.id.slice(0, 8)}…</div>
                   </td>
-                  <td className="p-3 text-muted-foreground">{u.company || '—'}</td>
+                  <td className="p-3 text-muted-foreground">{u.company || '-'}</td>
                   <td className="p-3">
                     <Badge variant="outline" className={`text-xs ${ROLE_COLORS[u.role]}`}>
                       <Shield className="mr-1 h-3 w-3" />
@@ -145,7 +145,7 @@ export default function UsersPage() {
                     </Select>
                   </td>
                   <td className="p-3 text-xs text-muted-foreground">
-                    {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '—'}
+                    {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '-'}
                   </td>
                 </tr>
               ))}

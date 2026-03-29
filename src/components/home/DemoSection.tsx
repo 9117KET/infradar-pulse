@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { REGIONS, SECTORS, statusColor, type Region, type Sector, type Project } from '@/data/projects';
+import { isCoveragePillarId, sectorsForPillar } from '@/data/coverage';
 import { useProjects } from '@/hooks/use-projects';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MapPin, TrendingUp, Shield, Calendar, Users, X } from 'lucide-react';
@@ -22,6 +24,7 @@ function mapStageToFilter(stage: string): StatusFilter {
 
 export function DemoSection() {
   const { projects: PROJECTS } = useProjects();
+  const [searchParams] = useSearchParams();
   const [selectedRegions, setSelectedRegions] = useState<Region[]>([]);
   const [selectedSectors, setSelectedSectors] = useState<Sector[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<StatusFilter[]>([]);
@@ -29,6 +32,13 @@ export function DemoSection() {
   const [highConfidence, setHighConfidence] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+
+  useEffect(() => {
+    const raw = searchParams.get('pillar');
+    if (!raw || !isCoveragePillarId(raw)) return;
+    const next = sectorsForPillar(raw);
+    setSelectedSectors(next);
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return PROJECTS.filter(p => {
@@ -59,7 +69,7 @@ export function DemoSection() {
         <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">03 Proof</div>
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">See the signal pipeline in action</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed mb-12">
-          Filter by region, inspect projects, and explore decision-ready intelligence—all from verified, multi-source data.
+          Filter by region, inspect projects, and explore decision-ready intelligence, all from verified, multi-source data.
         </p>
 
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">

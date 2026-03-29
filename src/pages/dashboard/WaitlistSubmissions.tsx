@@ -69,11 +69,11 @@ export default function WaitlistSubmissions() {
               <TableBody>
                 {submissions.map(s => (
                   <TableRow key={s.id} className="border-border/50">
-                    <TableCell className="font-medium">{s.name || '—'}</TableCell>
+                    <TableCell className="font-medium">{s.name || '-'}</TableCell>
                     <TableCell className="text-muted-foreground">{s.email}</TableCell>
-                    <TableCell>{s.company || '—'}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{s.role || '—'}</Badge></TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">{s.interest || '—'}</TableCell>
+                    <TableCell>{s.company || '-'}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{s.role || '-'}</Badge></TableCell>
+                    <TableCell className="max-w-[200px] truncate text-muted-foreground">{s.interest || '-'}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{format(new Date(s.created_at), 'MMM d, yyyy')}</TableCell>
                   </TableRow>
                 ))}

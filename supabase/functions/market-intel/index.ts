@@ -125,7 +125,7 @@ serve(async (req) => {
         project_id: null,
         project_name: i.company,
         severity: "low",
-        message: `Market intel: ${i.company} — ${i.event_type.replace(/_/g, " ")} — ${i.summary}`,
+        message: `Market intel: ${i.company}: ${i.event_type.replace(/_/g, " ")}: ${i.summary}`,
         category: "market",
         source_url: i.source_url || null,
       });

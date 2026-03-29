@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { agentApi } from '@/lib/api/agents';
+import { filterReachableContacts } from '@/lib/contact-validation';
 import jsPDF from 'jspdf';
 
 const STEPS = [
@@ -25,6 +26,7 @@ export default function Research() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Poll active task
   const { data: activeTask } = useQuery({
@@ -98,6 +100,7 @@ export default function Research() {
       const fallbackUrl = sources[0]?.url || '';
       const sourceUrl = project.source_url || fallbackUrl;
 
+      const { data: { user } } = await supabase.auth.getUser();
       const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const { data: inserted } = await supabase.from('projects').insert({
         name: project.name,
@@ -114,27 +117,53 @@ export default function Research() {
         ai_generated: true,
         source_url: sourceUrl,
         value_label: project.value_label || 'Undisclosed',
+        research_saved_by: user?.id ?? null,
       }).select('id').single();
 
-      // Also save contacts if present
+      const trackSavedProject = async (projectId: string) => {
+        if (!user?.id) return;
+        const { error } = await supabase.from('tracked_projects' as any).insert({ user_id: user.id, project_id: projectId });
+        if (error && (error as any).code !== '23505') {
+          console.warn('track project:', error.message);
+        }
+        queryClient.invalidateQueries({ queryKey: ['tracked-projects'] });
+      };
+
+      // Only store "reachable" contacts: name + email|phone + http source
       if (inserted?.id && project.contacts?.length) {
-        const contactRows = project.contacts.map((c: any) => ({
+        const resolveUrl = (c: any) => {
+          if (c.source_url && String(c.source_url).trim().startsWith('http')) return String(c.source_url).trim();
+          if (sourceUrl && String(sourceUrl).trim().startsWith('http')) return String(sourceUrl).trim();
+          if (fallbackUrl && String(fallbackUrl).trim().startsWith('http')) return String(fallbackUrl).trim();
+          return null;
+        };
+        const mapped = project.contacts.map((c: any) => ({
           project_id: inserted.id,
-          name: c.name || 'Unknown',
+          name: (c.name || 'Unknown').trim() || 'Unknown',
           role: c.role || '',
           organization: c.organization || '',
           email: c.email || null,
           phone: c.phone || null,
           source: 'user-research',
-          source_url: project.source_url || null,
+          source_url: resolveUrl(c),
           added_by: 'ai',
           contact_type: 'general',
         }));
-        await supabase.from('project_contacts').insert(contactRows);
+        const contactRows = filterReachableContacts(mapped);
+        if (contactRows.length) await supabase.from('project_contacts').insert(contactRows);
+        const skipped = (project.contacts?.length || 0) - contactRows.length;
+        await trackSavedProject(inserted.id);
+        setSavedProjects(prev => new Set(prev).add(key));
+        toast({
+          title: 'Saved to Review Queue',
+          description: `${project.name}: ${contactRows.length} reachable contact(s) saved${skipped ? ` (${skipped} skipped — need name, email or phone, and http source)` : ''}. Added to your tracked list.`,
+        });
+        return;
       }
 
+      if (inserted?.id) await trackSavedProject(inserted.id);
       setSavedProjects(prev => new Set(prev).add(key));
-      toast({ title: 'Saved to Review Queue', description: `${project.name} added with ${project.contacts?.length || 0} contacts` });
+      toast({ title: 'Saved to Review Queue', description: `${project.name} added and tracked on your dashboard.` });
     } catch {
       toast({ title: 'Error', description: 'Failed to save project', variant: 'destructive' });
     }
@@ -222,7 +251,7 @@ export default function Research() {
       addLine();
       addText('Similar Projects in Database', 14, true);
       similar.forEach((p: any) => {
-        addText(`• ${p.name} — ${p.country} · ${p.sector} · ${p.stage} (${p.confidence}% confidence)`, 9);
+        addText(`• ${p.name} - ${p.country} · ${p.sector} · ${p.stage} (${p.confidence}% confidence)`, 9);
       });
     }
 
@@ -357,7 +386,7 @@ export default function Research() {
             </Card>
           )}
 
-          {/* Report — Extracted Projects */}
+          {/* Report: extracted projects */}
           {isComplete && result?.projects && (result.projects as any[]).length > 0 && (
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between">

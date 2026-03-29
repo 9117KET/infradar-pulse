@@ -6,6 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function isHttpUrl(s: string | null | undefined): boolean {
+  return typeof s === "string" && s.trim().startsWith("http");
+}
+
+/** Name + (email or phone) + http source — same bar as contact-finder / HITL */
+function isReachableContactRow(
+  c: { name?: string; email?: string | null; phone?: string | null },
+  sourceUrl: string | null,
+): boolean {
+  const name = (c.name || "").trim();
+  if (!name) return false;
+  const hasEmail = !!(c.email && String(c.email).trim());
+  const hasPhone = !!(c.phone && String(c.phone).trim());
+  if (!hasEmail && !hasPhone) return false;
+  return isHttpUrl(sourceUrl);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -29,7 +46,7 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
 
-    // Get ALL projects (approved AND pending) — pending projects especially need source URLs
+    // Get ALL projects (approved AND pending); pending projects especially need source URLs
     const { data: projects } = await supabase.from("projects").select("*");
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects" } }).eq("id", taskId);
@@ -44,7 +61,7 @@ serve(async (req) => {
     const evidenceCounts: Record<string, number> = {};
     (allEvidence || []).forEach((e: any) => { evidenceCounts[e.project_id] = (evidenceCounts[e.project_id] || 0) + 1; });
 
-    // Score projects — source_url gaps are now highest priority
+    // Score projects; source_url gaps are now highest priority
     const scoredProjects = projects.map((p: any) => {
       let gaps = 0;
       if (!p.source_url || p.source_url === '' || p.source_url === '#') gaps += 5; // Highest priority
@@ -108,7 +125,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: "google/gemini-2.5-flash-lite",
             messages: [
-              { role: "system", content: "You extract structured project data from research text. The source_url field is the MOST IMPORTANT — it must be a real, verifiable URL (not a placeholder). Use citations provided when available." },
+              { role: "system", content: "You extract structured project data from research text. The source_url field is the MOST IMPORTANT: it must be a real, verifiable URL (not a placeholder). Use citations provided when available." },
               { role: "user", content: `Extract data for "${project.name}" from this research:\n${researchContent}\n\nCitations: ${JSON.stringify(citations)}\n\nExtract all available fields. source_url MUST be a real URL from the citations or content. For contacts, include name, role, organization, email if found.` },
             ],
             tools: [{
@@ -148,6 +165,7 @@ serve(async (req) => {
                           name: { type: "string" },
                           role: { type: "string" },
                           organization: { type: "string" },
+                          phone: { type: "string" },
                           email: { type: "string" },
                           contact_type: { type: "string", enum: ["contractor", "government", "consultant", "financier", "general"] },
                           source_url: { type: "string", description: "URL where this contact info was found" },
@@ -235,18 +253,22 @@ serve(async (req) => {
           }
         }
 
-        // Add contacts with proper source URLs
+        // Add contacts only when reachable (name + email|phone + http source)
         if (extracted.contacts?.length && !project.hasContacts) {
+          const projectFallback = extracted.source_url && isHttpUrl(extracted.source_url) ? extracted.source_url : null;
           for (const contact of extracted.contacts.slice(0, 5)) {
+            const perContactUrl = contact.source_url && isHttpUrl(contact.source_url) ? contact.source_url : projectFallback;
+            if (!isReachableContactRow(contact, perContactUrl)) continue;
             await supabase.from("project_contacts").insert({
               project_id: project.id,
               name: contact.name,
               role: contact.role || "",
               organization: contact.organization || "",
+              phone: contact.phone || null,
               email: contact.email || null,
               contact_type: contact.contact_type || "general",
               source: "Data Enrichment Agent",
-              source_url: contact.source_url || extracted.source_url || null,
+              source_url: perContactUrl,
               added_by: "ai",
             });
             contactsAdded++;

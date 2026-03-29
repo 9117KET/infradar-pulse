@@ -27,8 +27,8 @@ export default function OverviewMap({ projects }: { projects: MapProject[] }) {
     const timer = setTimeout(() => {
       if (!containerRef.current) return;
       const map = L.map(containerRef.current, {
-        center: [15, 35],
-        zoom: 3,
+        center: [20, 0],
+        zoom: 2,
         zoomControl: false,
         attributionControl: false,
         dragging: false,
@@ -54,7 +54,7 @@ export default function OverviewMap({ projects }: { projects: MapProject[] }) {
     projects.forEach(p => {
       const color = getRiskColor(p.riskScore);
       const marker = L.circleMarker([p.lat, p.lng], {
-        radius: 6,
+        radius: 0.5,
         fillColor: color,
         fillOpacity: 0.7,
         color,
@@ -68,7 +68,7 @@ export default function OverviewMap({ projects }: { projects: MapProject[] }) {
 
   return (
     <div className="glass-panel rounded-xl p-5">
-      <h3 className="font-serif text-lg font-semibold mb-3">Project locations — risk heatmap</h3>
+      <h3 className="font-serif text-lg font-semibold mb-3">Project locations (risk, dot map)</h3>
       <div ref={containerRef} className="w-full h-[280px] rounded-lg overflow-hidden" />
       <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" />Low</span>

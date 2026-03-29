@@ -17,6 +17,24 @@ const NEWS_SOURCES = [
   "Inter-American Development Bank infrastructure 2025",
 ];
 
+/** Must match public.project_sector (additive; legacy + coverage sectors). */
+const PROJECT_SECTORS = [
+  "AI Infrastructure",
+  "Building Construction",
+  "Chemical",
+  "Data Centers",
+  "Digital Infrastructure",
+  "Energy",
+  "Industrial",
+  "Infrastructure",
+  "Mining",
+  "Oil & Gas",
+  "Renewable Energy",
+  "Transport",
+  "Urban Development",
+  "Water",
+] as const;
+
 const RESEARCH_QUERIES = [
   "latest infrastructure megaprojects worldwide 2025 construction awarded",
   "new infrastructure projects Asia Europe Americas 2025 tender awarded financing",
@@ -142,7 +160,7 @@ serve(async (req) => {
       );
     }
 
-    // Step 3: AI extraction — source_url is now REQUIRED
+    // Step 3: AI extraction (source_url is now REQUIRED)
     console.log("Extracting structured data with AI...");
     const extractionPrompt = `Analyze the following infrastructure news and research content. Extract any NEW infrastructure projects you can identify.
 
@@ -152,7 +170,7 @@ For each project, extract:
 - name: project name
 - country: country where project is located
 - region: must be one of "MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"
-- sector: one of "Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"
+- sector: one of ${PROJECT_SECTORS.map((s) => `"${s}"`).join(", ")}
 - stage: one of "Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"
 - status: one of "Verified", "Stable", "Pending", "At Risk"
 - value_usd: estimated value in USD (number)
@@ -167,7 +185,7 @@ For each project, extract:
 - evidence_source: name of the source
 - evidence_url: URL of the source (MUST be a real, clickable URL)
 - evidence_type: one of "Satellite", "Filing", "News", "Registry", "Partner"
-- source_url: PRIMARY verifiable URL for this project (REQUIRED — real news article, government filing, or official project page)
+- source_url: PRIMARY verifiable URL for this project (REQUIRED: real news article, government filing, or official project page)
 
 Content to analyze:
 ${rawContent.join("\n\n---\n\n")}`;
@@ -201,7 +219,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                         name: { type: "string" },
                         country: { type: "string" },
                         region: { type: "string", enum: ["MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa", "North America", "South America", "Europe", "Central Asia", "South Asia", "East Asia", "Southeast Asia", "Oceania", "Caribbean"] },
-                        sector: { type: "string", enum: ["Urban Development", "Digital Infrastructure", "Renewable Energy", "Transport", "Water", "Energy"] },
+                        sector: { type: "string", enum: [...PROJECT_SECTORS] },
                         stage: { type: "string", enum: ["Planned", "Tender", "Awarded", "Financing", "Construction", "Completed", "Cancelled", "Stopped"] },
                         status: { type: "string", enum: ["Verified", "Stable", "Pending", "At Risk"] },
                         value_usd: { type: "number" },
@@ -352,7 +370,7 @@ ${rawContent.join("\n\n---\n\n")}`;
             );
           }
 
-          // Add evidence — always use a real URL
+          // Add evidence (always use a real URL)
           const evidenceUrl = ep.evidence_url || bestSourceUrl || "#";
           if (ep.evidence_source) {
             await supabase.from("evidence_sources").insert({
@@ -367,11 +385,17 @@ ${rawContent.join("\n\n---\n\n")}`;
             });
           }
 
-          if (ep.contacts?.length) {
-            const validContacts = ep.contacts.filter(c => c.name && (c.phone || c.email));
+          if (ep.contacts?.length && bestSourceUrl && String(bestSourceUrl).startsWith("http")) {
+            const validContacts = ep.contacts.filter((c: any) => {
+              const name = (c.name || "").trim();
+              if (!name) return false;
+              if (!(c.phone || c.email)) return false;
+              const url = (c.source_url && String(c.source_url).startsWith("http")) ? c.source_url : bestSourceUrl;
+              return url && String(url).startsWith("http");
+            });
             if (validContacts.length > 0) {
               await supabase.from("project_contacts").insert(
-                validContacts.map(c => ({
+                validContacts.map((c: any) => ({
                   project_id: newProject.id,
                   name: c.name,
                   role: c.role || '',
@@ -380,7 +404,7 @@ ${rawContent.join("\n\n---\n\n")}`;
                   email: c.email || null,
                   contact_type: c.contact_type || 'general',
                   source: ep.evidence_source || 'AI Research Agent',
-                  source_url: bestSourceUrl || null,
+                  source_url: (c.source_url && String(c.source_url).startsWith("http")) ? c.source_url : bestSourceUrl,
                   added_by: 'ai',
                 }))
               );
@@ -391,7 +415,7 @@ ${rawContent.join("\n\n---\n\n")}`;
             project_id: newProject.id,
             project_name: ep.name,
             severity: "medium",
-            message: `New project discovered: ${ep.name} (${ep.country}) — ${ep.value_label || "value TBD"}`,
+            message: `New project discovered: ${ep.name} (${ep.country}): ${ep.value_label || "value TBD"}`,
             category: "market",
             source_url: bestSourceUrl || null,
           });

@@ -5,6 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { isReachableContact } from '@/lib/contact-validation';
+import {
   Check, X, ExternalLink, Bot, MapPin, DollarSign,
   ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2,
   Mail, Phone, User, Building2
@@ -36,6 +42,8 @@ export default function ReviewQueue() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [approveGuardOpen, setApproveGuardOpen] = useState(false);
+  const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
 
   const { data: pending = [], isLoading } = useQuery({
     queryKey: ['pending-projects'],
@@ -115,16 +123,27 @@ export default function ReviewQueue() {
       const { error } = await supabase.from('projects').update({ approved: true }).eq('approved', false);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({ title: 'All projects approved' });
-    },
   });
 
   const hasSource = (project: any) => project.source_url && project.source_url.trim() !== '' && project.source_url !== '#';
   const projectEvidence = (id: string) => (evidenceMap as Record<string, EvidenceRow[]>)[id] || [];
   const projectContacts = (id: string) => (contactsMap as Record<string, ContactRow[]>)[id] || [];
+  const hasReachableContactRow = (id: string) => projectContacts(id).some(isReachableContact);
+
+  const requestApprove = (id: string) => {
+    if (hasReachableContactRow(id)) {
+      approveMutation.mutate(id);
+      return;
+    }
+    setPendingApproveId(id);
+    setApproveGuardOpen(true);
+  };
+
+  const confirmApproveWithoutReachableContact = () => {
+    if (pendingApproveId) approveMutation.mutate(pendingApproveId);
+    setApproveGuardOpen(false);
+    setPendingApproveId(null);
+  };
 
   const contactTypeIcon: Record<string, string> = {
     contractor: '🏗️', government: '🏛️', financier: '💰', consultant: '📋', owner: '👤', general: '📌',
@@ -159,11 +178,32 @@ export default function ReviewQueue() {
             Review Queue
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {pending.length} AI-discovered project{pending.length !== 1 ? 's' : ''} awaiting review
+            {pending.length} AI-discovered project{pending.length !== 1 ? 's' : ''} awaiting review.
+            Approve expects at least one reachable contact (name + email or phone + http source URL) unless you override.
           </p>
         </div>
         {pending.length > 1 && (
-          <Button size="sm" onClick={() => approveAll.mutate()} disabled={approveAll.isPending} className="teal-glow">
+          <Button
+            size="sm"
+            onClick={() => {
+              const lackingReachable = pending.filter((p: any) => !hasReachableContactRow(p.id)).length;
+              approveAll.mutate(undefined, {
+                onSuccess: () => {
+                  queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
+                  queryClient.invalidateQueries({ queryKey: ['projects'] });
+                  toast({
+                    title: 'All projects approved',
+                    description:
+                      lackingReachable > 0
+                        ? `${lackingReachable} project(s) had no reachable contact on file — consider follow-up.`
+                        : 'They will appear on the dashboard and globe.',
+                  });
+                },
+              });
+            }}
+            disabled={approveAll.isPending}
+            className="teal-glow"
+          >
             {approveAll.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
             Approve all ({pending.length})
           </Button>
@@ -240,7 +280,7 @@ export default function ReviewQueue() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => approveMutation.mutate(project.id)}
+                      onClick={() => requestApprove(project.id)}
                       disabled={approveMutation.isPending}
                       className="teal-glow"
                     >
@@ -279,7 +319,7 @@ export default function ReviewQueue() {
                       ) : (
                         <p className="text-xs text-red-400 flex items-center gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5" />
-                          Primary source link missing — requires enrichment before approval
+                          Primary source link missing; requires enrichment before approval
                         </p>
                       )}
 
@@ -335,6 +375,15 @@ export default function ReviewQueue() {
                               <div className="flex-1 min-w-0 space-y-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-medium">{contact.name}</span>
+                                  {isReachableContact(contact) ? (
+                                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                                      Reachable
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 bg-amber-500/10 text-amber-500 border-amber-500/25" title="Needs name + email or phone + http(s) source URL">
+                                      Incomplete
+                                    </Badge>
+                                  )}
                                   {contact.verified && (
                                     <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/15 text-emerald-400">Verified</Badge>
                                   )}
@@ -371,7 +420,7 @@ export default function ReviewQueue() {
                       ) : (
                         <p className="text-xs text-amber-400 flex items-center gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5" />
-                          No contacts found — Contact Finder agent will attempt to discover stakeholders
+                          No contacts found. Contact Finder agent will attempt to discover stakeholders
                         </p>
                       )}
                     </div>
@@ -401,6 +450,21 @@ export default function ReviewQueue() {
           })}
         </div>
       )}
+
+      <AlertDialog open={approveGuardOpen} onOpenChange={setApproveGuardOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Approve without a reachable contact?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This project has no contact with a name, email or phone, and an http(s) source URL. Approve only if you accept publishing without a verifiable stakeholder reach path.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingApproveId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmApproveWithoutReachableContact}>Approve anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

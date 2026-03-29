@@ -147,7 +147,7 @@ serve(async (req) => {
           project_id: match?.id || null,
           project_name: u.project_name,
           severity: u.severity || "high",
-          message: `Financial alert: ${u.project_name} — ${u.summary}`,
+          message: `Financial alert: ${u.project_name}: ${u.summary}`,
           category: "financial",
           source_url: u.source_url || null,
         });

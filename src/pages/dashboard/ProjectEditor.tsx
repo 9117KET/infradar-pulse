@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
+import { canEditProject } from '@/lib/project-permissions';
 import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,7 +21,9 @@ export default function ProjectEditor() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { projects } = useProjects();
+  const { user, roles, hasRole } = useAuth();
+  const { projects, loading: projectsLoading } = useProjects();
+  const canCreate = hasRole('admin') || hasRole('researcher');
 
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
@@ -119,7 +123,11 @@ export default function ProjectEditor() {
         await supabase.from('project_stakeholders').delete().eq('project_id', projectId);
         await supabase.from('project_milestones').delete().eq('project_id', projectId);
       } else {
-        const { data, error } = await supabase.from('projects').insert(projectData as any).select('id').single();
+        const insertPayload = {
+          ...projectData,
+          ...(user?.id ? { created_by: user.id } : {}),
+        };
+        const { data, error } = await supabase.from('projects').insert(insertPayload as any).select('id').single();
         if (error) throw error;
         projectId = data.id;
       }
@@ -146,6 +154,35 @@ export default function ProjectEditor() {
       setSaving(false);
     }
   };
+
+  const existing = isEdit ? projects.find(p => p.id === id) : undefined;
+  if (!isEdit && !canCreate) {
+    return <Navigate to="/dashboard/projects" replace />;
+  }
+  if (isEdit && projectsLoading) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        <div className="h-8 w-48 bg-muted/40 rounded animate-pulse" />
+        <div className="h-64 w-full bg-muted/20 rounded-xl animate-pulse" />
+      </div>
+    );
+  }
+  if (isEdit && !projectsLoading && id && !existing) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Link to="/dashboard/projects"><Button variant="outline">Back to projects</Button></Link>
+      </div>
+    );
+  }
+  if (isEdit && existing && !canEditProject(user?.id, roles, existing)) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        <p className="text-muted-foreground">You do not have permission to edit this project.</p>
+        <Link to="/dashboard/projects"><Button variant="outline">Back to projects</Button></Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl">

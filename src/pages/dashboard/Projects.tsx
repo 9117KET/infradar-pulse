@@ -37,6 +37,7 @@ export default function Projects() {
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
+  const [listScope, setListScope] = useState<'all' | 'tracked'>('all');
   const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function Projects() {
 
   const filtered = useMemo(() => {
     return projects.filter(p => {
+      if (listScope === 'tracked' && (!p.dbId || !isTracked(p.dbId))) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
       if (stage !== 'all' && p.stage !== stage) return false;
       if (sector !== 'all' && p.sector !== sector) return false;
@@ -61,7 +63,7 @@ export default function Projects() {
       if (confFilter === 'low' && p.confidence >= 70) return false;
       return true;
     });
-  }, [projects, search, stage, sector, confFilter]);
+  }, [projects, search, stage, sector, confFilter, listScope, isTracked]);
 
   // Aggregations for charts
   const totalValue = useMemo(() => filtered.reduce((s, p) => s + (p.valueUsd || 0), 0), [filtered]);
@@ -299,6 +301,13 @@ export default function Projects() {
             <SelectItem value="high">High (≥90%)</SelectItem>
             <SelectItem value="medium">Medium (70–89%)</SelectItem>
             <SelectItem value="low">Low (&lt;70%)</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={listScope} onValueChange={v => setListScope(v as 'all' | 'tracked')}>
+          <SelectTrigger className="w-[150px] bg-black/20"><SelectValue placeholder="List" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All projects</SelectItem>
+            <SelectItem value="tracked">Tracked only</SelectItem>
           </SelectContent>
         </Select>
       </div>
