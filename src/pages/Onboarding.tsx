@@ -8,6 +8,7 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SECTORS as PROFILE_SECTORS } from '@/data/projects';
 import {
   ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
   FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Bot, Sparkles
@@ -29,7 +30,7 @@ const ROLES = [
 ];
 
 const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
-const SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
+const SECTORS = PROFILE_SECTORS;
 const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 
 const CORE_FEATURES = [
@@ -40,7 +41,7 @@ const CORE_FEATURES = [
 
 const INTEL_FEATURES = [
   { icon: Globe, name: 'Geo Intelligence', desc: 'Interactive maps showing project clusters, infrastructure corridors, and regional investment patterns.' },
-  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers — satellite imagery, filings, news, and registry data for each project.' },
+  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers: satellite imagery, filings, news, and registry data for each project.' },
   { icon: AlertTriangle, name: 'Risk & Anomaly Signals', desc: 'AI-powered risk scoring with political, financial, regulatory, and environmental signal detection.' },
   { icon: BarChart3, name: 'Analytics & Reports', desc: 'Custom dashboards with sector breakdowns, investment flows, and exportable PDF reports.' },
   { icon: BookOpen, name: 'Insights & Briefings', desc: 'AI-generated intelligence briefings on market trends, regulatory changes, and emerging opportunities.' },
@@ -235,7 +236,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Step 3: Platform Tour — Core Features */}
+        {/* Step 3: Platform tour, core features */}
         {step === 3 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
@@ -256,7 +257,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Step 4: Platform Tour — Intelligence & Analysis */}
+        {/* Step 4: Platform tour, intelligence and analysis */}
         {step === 4 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
@@ -277,7 +278,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Step 5: Getting Started — Role-specific tips + summary */}
+        {/* Step 5: Getting started, role-specific tips and summary */}
         {step === 5 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">

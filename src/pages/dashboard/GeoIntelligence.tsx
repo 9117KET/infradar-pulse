@@ -52,15 +52,8 @@ export default function GeoIntelligence() {
     return '#8b5cf6';
   };
 
-  const getRadius = (p: typeof projects[0]) => {
-    if (overlay === 'value') {
-      if (p.valueUsd >= 10_000_000_000) return 14;
-      if (p.valueUsd >= 5_000_000_000) return 11;
-      if (p.valueUsd >= 1_000_000_000) return 8;
-      return 6;
-    }
-    return 8;
-  };
+  // Fixed small dots so dense areas stay readable; value/risk is encoded by color only.
+  const DOT = { radius: 0.5, weight: 0.5, fillOpacity: 0.88 };
 
   // Initialize map after loading completes
   useEffect(() => {
@@ -103,14 +96,13 @@ export default function GeoIntelligence() {
     // Add new markers
     filtered.forEach(p => {
       const color = getColor(p);
-      const radius = getRadius(p);
       const marker = L.circleMarker([p.lat, p.lng], {
-        radius,
+        radius: DOT.radius,
         fillColor: color,
-        fillOpacity: 0.7,
+        fillOpacity: DOT.fillOpacity,
         color,
-        weight: 1.5,
-        opacity: 0.9,
+        weight: DOT.weight,
+        opacity: 1,
       });
 
       const popupHtml = `
@@ -138,7 +130,7 @@ export default function GeoIntelligence() {
     // Fit bounds
     if (filtered.length > 0) {
       const bounds = L.latLngBounds(filtered.map(p => [p.lat, p.lng] as [number, number]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 8 });
     }
   }, [filtered, overlay, mapReady]);
 

@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { REGIONS } from '@/data/projects';
+import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +34,6 @@ const ROLE_OPTIONS = [
   { value: 'supply_chain', label: 'Supply Chain / Logistics' },
 ];
 
-const ALL_SECTORS = ['Urban Development', 'Digital Infrastructure', 'Renewable Energy', 'Transport', 'Water', 'Energy'];
 const ALL_STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 
 const agents = [
@@ -218,7 +217,7 @@ function PreferencesTab() {
         <div>
           <Label className="mb-2 block">Sectors</Label>
           <div className="flex flex-wrap gap-3">
-            {ALL_SECTORS.map(s => (
+            {SECTORS.map(s => (
               <label key={s} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={sectors.includes(s)} onCheckedChange={() => toggle(sectors, s, setSectors)} />
                 <span className="text-sm">{s}</span>

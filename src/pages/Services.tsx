@@ -16,7 +16,7 @@ export default function Services() {
     <div className="py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-4">Services</h1>
-        <p className="text-muted-foreground max-w-2xl mb-12">Platform modules designed for infrastructure intelligence professionals across MENA and Africa.</p>
+        <p className="text-muted-foreground max-w-2xl mb-12">Platform modules designed for infrastructure intelligence professionals worldwide, organized around 14 regional coverage buckets.</p>
 
         <div className="grid gap-6 md:grid-cols-2 mb-12">
           {MODULES.map((m, i) => (

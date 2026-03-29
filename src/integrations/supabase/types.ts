@@ -415,6 +415,7 @@ export type Database = {
           approved: boolean
           confidence: number
           country: string
+          created_by: string | null
           created_at: string
           description: string
           detailed_analysis: string | null
@@ -428,6 +429,7 @@ export type Database = {
           name: string
           political_context: string | null
           region: Database["public"]["Enums"]["project_region"]
+          research_saved_by: string | null
           risk_score: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -443,6 +445,7 @@ export type Database = {
           approved?: boolean
           confidence?: number
           country: string
+          created_by?: string | null
           created_at?: string
           description?: string
           detailed_analysis?: string | null
@@ -456,6 +459,7 @@ export type Database = {
           name: string
           political_context?: string | null
           region: Database["public"]["Enums"]["project_region"]
+          research_saved_by?: string | null
           risk_score?: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -471,6 +475,7 @@ export type Database = {
           approved?: boolean
           confidence?: number
           country?: string
+          created_by?: string | null
           created_at?: string
           description?: string
           detailed_analysis?: string | null
@@ -484,6 +489,7 @@ export type Database = {
           name?: string
           political_context?: string | null
           region?: Database["public"]["Enums"]["project_region"]
+          research_saved_by?: string | null
           risk_score?: number
           sector?: Database["public"]["Enums"]["project_sector"]
           slug?: string
@@ -688,12 +694,20 @@ export type Database = {
         | "Oceania"
         | "Caribbean"
       project_sector:
-        | "Urban Development"
+        | "AI Infrastructure"
+        | "Building Construction"
+        | "Chemical"
+        | "Data Centers"
         | "Digital Infrastructure"
+        | "Energy"
+        | "Industrial"
+        | "Infrastructure"
+        | "Mining"
+        | "Oil & Gas"
         | "Renewable Energy"
         | "Transport"
+        | "Urban Development"
         | "Water"
-        | "Energy"
       project_stage:
         | "Planned"
         | "Tender"
@@ -863,12 +877,20 @@ export const Constants = {
         "Caribbean",
       ],
       project_sector: [
-        "Urban Development",
+        "AI Infrastructure",
+        "Building Construction",
+        "Chemical",
+        "Data Centers",
         "Digital Infrastructure",
+        "Energy",
+        "Industrial",
+        "Infrastructure",
+        "Mining",
+        "Oil & Gas",
         "Renewable Energy",
         "Transport",
+        "Urban Development",
         "Water",
-        "Energy",
       ],
       project_stage: [
         "Planned",

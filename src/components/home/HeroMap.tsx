@@ -39,8 +39,8 @@ export function HeroMap({ projects, className }: { projects: HeroProject[]; clas
     const timer = setTimeout(() => {
       if (!containerRef.current) return;
       const map = L.map(containerRef.current, {
-        center: [15, 35],
-        zoom: 3,
+        center: [20, 0],
+        zoom: 2,
         zoomControl: false,
         attributionControl: false,
         dragging: true,
@@ -70,12 +70,12 @@ export function HeroMap({ projects, className }: { projects: HeroProject[]; clas
     projects.forEach(p => {
       const color = RISK_COLORS[getRiskLevel(p.riskScore)];
       const marker = L.circleMarker([p.lat, p.lng], {
-        radius: 7,
+        radius: 0.5,
         fillColor: color,
-        fillOpacity: 0.75,
+        fillOpacity: 0.9,
         color,
-        weight: 1.5,
-        opacity: 0.9,
+        weight: 0.5,
+        opacity: 1,
       });
 
       marker.bindPopup(`
@@ -95,7 +95,7 @@ export function HeroMap({ projects, className }: { projects: HeroProject[]; clas
 
     if (projects.length > 0) {
       const bounds = L.latLngBounds(projects.map(p => [p.lat, p.lng] as [number, number]));
-      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 5 });
+      map.fitBounds(bounds, { padding: [48, 48], maxZoom: 8 });
     }
   }, [projects, ready]);
 

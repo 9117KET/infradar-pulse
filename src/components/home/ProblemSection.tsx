@@ -15,7 +15,7 @@ export function ProblemSection() {
           Fragmented intelligence slows every high-stakes call
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          Stale data, conflicting signals, and manual workflows cost decision-makers weeks—when the market moves in hours.
+          Stale data, conflicting signals, and manual workflows cost decision-makers weeks when the market moves in hours.
         </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-3">

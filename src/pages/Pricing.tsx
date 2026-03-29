@@ -8,7 +8,7 @@ export default function Pricing() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
         <h1 className="font-serif text-4xl font-bold mb-4">Pricing</h1>
         <p className="text-muted-foreground max-w-xl mx-auto mb-12">
-          Infradar pricing is tailored to your scope—regions covered, seats needed, and integration requirements. Start with a pilot to see the value first.
+          Infradar pricing is tailored to your scope: regions covered, seats needed, and integration requirements. Start with a pilot to see the value first.
         </p>
 
         <div className="glass-panel rounded-xl p-10 teal-glow mb-8">

@@ -91,7 +91,7 @@ export default function AnalyticsReports() {
     setGeneratingReport(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-insight', {
-        body: { topic: `Executive briefing: Infrastructure pipeline summary for ${regionFilter === 'all' ? 'MENA and Africa' : regionFilter} covering ${filtered.length} active projects, key risk factors, and investment outlook.` },
+        body: { topic: `Executive briefing: Infrastructure pipeline summary for ${regionFilter === 'all' ? 'all 14 global regions' : regionFilter} covering ${filtered.length} active projects, key risk factors, and investment outlook.` },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

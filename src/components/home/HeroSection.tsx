@@ -29,7 +29,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Track high-value projects across <span className="text-foreground font-medium">every continent</span> with <span className="text-foreground font-medium">AI-assisted, human-verified</span> signals—one decision-ready pipeline in hours, not weeks.
+            Track high-value projects across <span className="text-foreground font-medium">every continent</span> with <span className="text-foreground font-medium">AI-assisted, human-verified</span> signals: one decision-ready pipeline in hours, not weeks.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -46,7 +46,7 @@ export function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Right — Globe */}
+        {/* Right: globe */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center">
           <HeroLiveTracker projects={projects} />
         </motion.div>

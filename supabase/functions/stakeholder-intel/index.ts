@@ -137,7 +137,7 @@ serve(async (req) => {
           project_id: matchedProject?.id || null,
           project_name: f.related_project_name || f.stakeholder_name,
           severity: f.severity || "medium",
-          message: `Stakeholder alert: ${f.stakeholder_name} — ${f.summary}`,
+          message: `Stakeholder alert: ${f.stakeholder_name}: ${f.summary}`,
           category: "stakeholder",
           source_url: f.source_url || null,
         });

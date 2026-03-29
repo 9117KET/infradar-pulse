@@ -196,7 +196,7 @@ export default function EvidenceVerification() {
                         hasType ? 'bg-amber-500/15 text-amber-400' :
                         'bg-muted/30 text-muted-foreground/30'
                       }`}>
-                        {verified ? '✓' : hasType ? '●' : '—'}
+                        {verified ? '✓' : hasType ? '●' : '-'}
                       </div>
                     );
                   })}

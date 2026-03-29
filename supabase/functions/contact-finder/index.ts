@@ -6,10 +6,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function isHttpUrl(s: string | null | undefined): boolean {
+  return typeof s === "string" && s.trim().startsWith("http");
+}
+
+/** HITL: name + (email or phone) + http source for provenance */
+function isReachableRow(c: { name?: string; email?: string | null; phone?: string | null; source_url?: string | null }): boolean {
+  const name = (c.name || "").trim();
+  if (!name) return false;
+  const hasEmail = !!(c.email && String(c.email).trim());
+  const hasPhone = !!(c.phone && String(c.phone).trim());
+  if (!hasEmail && !hasPhone) return false;
+  return isHttpUrl(c.source_url);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    let bodyProjectId: string | undefined;
+    if (req.method === "POST") {
+      try {
+        const j = await req.json();
+        if (typeof j?.project_id === "string" && j.project_id.trim()) bodyProjectId = j.project_id.trim();
+      } catch {
+        /* empty body */
+      }
+    }
+
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -23,20 +47,9 @@ serve(async (req) => {
 
     const { data: task } = await supabase
       .from("research_tasks")
-      .insert({ task_type: "contact-finder", query: "Auto contact & contractor discovery", status: "running" })
+      .insert({ task_type: "contact-finder", query: bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", status: "running" })
       .select()
       .single();
-
-    const { data: allProjects } = await supabase
-      .from("projects")
-      .select("id, name, country, region, sector, source_url")
-      .order("created_at", { ascending: false })
-      .limit(50);
-
-    if (!allProjects?.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No projects found" }, completed_at: new Date().toISOString() }).eq("id", task.id);
-      return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     const { data: existingContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
@@ -44,11 +57,40 @@ serve(async (req) => {
       contactCounts[c.project_id] = (contactCounts[c.project_id] || 0) + 1;
     });
 
-    const needsContacts = allProjects.filter(p => (contactCounts[p.id] || 0) < 2).slice(0, 10);
+    const selectCols = "id, name, country, region, sector, source_url, approved";
 
-    if (needsContacts.length === 0) {
-      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: "All projects have sufficient contacts" }, completed_at: new Date().toISOString() }).eq("id", task.id);
-      return new Response(JSON.stringify({ success: true, message: "All projects covered" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    let needsContacts: { id: string; name: string; country: string; region: string; sector: string; source_url: string | null; approved: boolean | null }[] = [];
+
+    if (bodyProjectId) {
+      const { data: one } = await supabase.from("projects").select(selectCols).eq("id", bodyProjectId).maybeSingle();
+      needsContacts = one ? [one as any] : [];
+    } else {
+      const { data: pendingList } = await supabase
+        .from("projects")
+        .select(selectCols)
+        .eq("approved", false)
+        .order("created_at", { ascending: false })
+        .limit(150);
+      const { data: approvedList } = await supabase
+        .from("projects")
+        .select(selectCols)
+        .eq("approved", true)
+        .order("created_at", { ascending: false })
+        .limit(150);
+
+      const seen = new Set<string>();
+      const merged: { id: string; name: string; country: string; region: string; sector: string; source_url: string | null; approved: boolean | null }[] = [];
+      for (const p of [...(pendingList || []), ...(approvedList || [])]) {
+        if (!p || seen.has(p.id)) continue;
+        seen.add(p.id);
+        merged.push(p);
+      }
+      needsContacts = merged.filter((p) => (contactCounts[p.id] || 0) < 2).slice(0, 25);
+    }
+
+    if (!needsContacts.length) {
+      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      return new Response(JSON.stringify({ success: true, message: "No work" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const projectIds = needsContacts.map(p => p.id);
@@ -64,6 +106,7 @@ serve(async (req) => {
     });
 
     let totalInserted = 0;
+    const perplexityWarning = !PERPLEXITY_API_KEY ? "PERPLEXITY_API_KEY not set — discovery quality is reduced." : undefined;
 
     for (const project of needsContacts) {
       const rawContent: string[] = [];
@@ -191,17 +234,20 @@ serve(async (req) => {
           (existingForProject || []).map((c: any) => `${c.name.toLowerCase()}|${(c.organization || '').toLowerCase()}`)
         );
 
+        const fallbackSourceUrl = citationUrls[0] || (project as any).source_url || null;
+
         const newContacts = contacts.filter((c: any) => {
           const key = `${c.name.toLowerCase()}|${(c.organization || '').toLowerCase()}`;
-          return !existingKeys.has(key) && (c.phone || c.email);
+          if (existingKeys.has(key)) return false;
+          if (!(c.phone || c.email)) return false;
+          const resolvedUrl = isHttpUrl(c.source_url) ? String(c.source_url).trim() : (isHttpUrl(fallbackSourceUrl) ? String(fallbackSourceUrl).trim() : null);
+          return isReachableRow({ name: c.name, email: c.email, phone: c.phone, source_url: resolvedUrl });
         });
 
         if (newContacts.length > 0) {
-          // Use the best available source URL: per-contact > first citation > project source_url
-          const fallbackSourceUrl = citationUrls[0] || (project as any).source_url || null;
-
-          await supabase.from("project_contacts").insert(
-            newContacts.map((c: any) => ({
+          const rows = newContacts.map((c: any) => {
+            const resolvedUrl = isHttpUrl(c.source_url) ? String(c.source_url).trim() : (isHttpUrl(fallbackSourceUrl) ? String(fallbackSourceUrl).trim() : null);
+            return {
               project_id: project.id,
               name: c.name,
               role: c.role || '',
@@ -210,10 +256,12 @@ serve(async (req) => {
               email: c.email || null,
               contact_type: c.contact_type || 'general',
               source: c.organization || 'AI Research',
-              source_url: (c.source_url && c.source_url.startsWith("http")) ? c.source_url : fallbackSourceUrl,
+              source_url: resolvedUrl,
               added_by: 'ai',
-            }))
-          );
+            };
+          });
+
+          await supabase.from("project_contacts").insert(rows);
 
           const contractorCount = newContacts.filter((c: any) => c.contact_type === 'contractor').length;
           const alertMsg = contractorCount > 0
@@ -226,7 +274,7 @@ serve(async (req) => {
             severity: "low",
             message: alertMsg,
             category: "stakeholder",
-            source_url: fallbackSourceUrl,
+            source_url: rows[0]?.source_url || null,
           });
 
           totalInserted += newContacts.length;
@@ -239,7 +287,7 @@ serve(async (req) => {
     if (task) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted },
+        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning },
         completed_at: new Date().toISOString(),
       }).eq("id", task.id);
     }
@@ -247,7 +295,7 @@ serve(async (req) => {
     console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
 
     return new Response(
-      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted }),
+      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

@@ -106,7 +106,9 @@ export default function InsightsManagement() {
           {isLoading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Loading…</p>
           ) : insights.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">No insights yet. Generate one above!</p>
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {canGenerate ? 'No insights yet. Generate one above!' : 'No published insights to show yet.'}
+            </p>
           ) : (
             <Table>
               <TableHeader>

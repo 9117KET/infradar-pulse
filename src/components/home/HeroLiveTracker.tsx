@@ -1,6 +1,23 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Zap, Droplets, Train, Wifi, Sun, Shield, Activity } from 'lucide-react';
+import {
+  Building2,
+  Zap,
+  Droplets,
+  Train,
+  Wifi,
+  Sun,
+  Shield,
+  Activity,
+  Cpu,
+  Factory,
+  Fuel,
+  Hexagon,
+  Home,
+  Landmark,
+  Mountain,
+  Server,
+} from 'lucide-react';
 
 interface TrackerProject {
   id: string;
@@ -16,21 +33,37 @@ interface TrackerProject {
 }
 
 const SECTOR_ICONS: Record<string, typeof Building2> = {
-  'Urban Development': Building2,
+  'AI Infrastructure': Cpu,
+  'Building Construction': Home,
+  'Chemical': Hexagon,
+  'Data Centers': Server,
   'Digital Infrastructure': Wifi,
+  'Energy': Zap,
+  'Industrial': Factory,
+  'Infrastructure': Landmark,
+  'Mining': Mountain,
+  'Oil & Gas': Fuel,
   'Renewable Energy': Sun,
   'Transport': Train,
+  'Urban Development': Building2,
   'Water': Droplets,
-  'Energy': Zap,
 };
 
 const SECTOR_COLORS: Record<string, { text: string; hsl: string }> = {
-  'Urban Development': { text: 'text-blue-400', hsl: '217 91% 60%' },
+  'AI Infrastructure': { text: 'text-fuchsia-400', hsl: '292 84% 61%' },
+  'Building Construction': { text: 'text-sky-400', hsl: '199 89% 48%' },
+  'Chemical': { text: 'text-lime-400', hsl: '82 85% 45%' },
+  'Data Centers': { text: 'text-slate-300', hsl: '215 20% 65%' },
   'Digital Infrastructure': { text: 'text-violet-400', hsl: '263 70% 60%' },
+  'Energy': { text: 'text-orange-400', hsl: '25 95% 53%' },
+  'Industrial': { text: 'text-stone-400', hsl: '30 6% 55%' },
+  'Infrastructure': { text: 'text-amber-400', hsl: '38 92% 50%' },
+  'Mining': { text: 'text-yellow-600', hsl: '43 96% 42%' },
+  'Oil & Gas': { text: 'text-rose-400', hsl: '350 89% 60%' },
   'Renewable Energy': { text: 'text-emerald-400', hsl: '160 84% 39%' },
   'Transport': { text: 'text-amber-400', hsl: '38 92% 50%' },
+  'Urban Development': { text: 'text-blue-400', hsl: '217 91% 60%' },
   'Water': { text: 'text-cyan-400', hsl: '188 78% 41%' },
-  'Energy': { text: 'text-orange-400', hsl: '25 95% 53%' },
 };
 
 const COUNTRY_CODES: Record<string, string> = {
@@ -168,7 +201,7 @@ export function HeroLiveTracker({ projects }: { projects: TrackerProject[] }) {
   const regionRisk = useMemo(() => {
     const regions: Record<string, { total: number; count: number }> = {};
     projects.forEach(p => {
-      const r = (p as any).region || 'MENA';
+      const r = p.region || 'Unknown';
       if (!regions[r]) regions[r] = { total: 0, count: 0 };
       regions[r].total += p.riskScore; regions[r].count++;
     });

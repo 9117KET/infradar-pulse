@@ -217,11 +217,11 @@ function ProjectMarkers({ projects }: { projects: Project[] }) {
             onPointerOver={() => setHovered(m.id)}
             onPointerOut={() => setHovered(null)}
           >
-            <sphereGeometry args={[0.035, 16, 16]} />
-            <meshBasicMaterial color={m.color} transparent opacity={hovered === m.id ? 0.5 : 0.18} />
+            <sphereGeometry args={[0.02, 12, 12]} />
+            <meshBasicMaterial color={m.color} transparent opacity={hovered === m.id ? 0.35 : 0.12} />
           </mesh>
           <mesh position={m.position}>
-            <sphereGeometry args={[0.015, 12, 12]} />
+            <sphereGeometry args={[0.007, 10, 10]} />
             <meshBasicMaterial color={m.color} />
           </mesh>
           {hovered === m.id && (

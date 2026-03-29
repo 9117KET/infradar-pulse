@@ -129,7 +129,7 @@ serve(async (req) => {
           project_id: null,
           project_name: `${r.commodity} supply chain`,
           severity: r.severity || "medium",
-          message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")} — ${r.summary}`,
+          message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")}: ${r.summary}`,
           category: "supply_chain",
           source_url: r.source_url || null,
         });

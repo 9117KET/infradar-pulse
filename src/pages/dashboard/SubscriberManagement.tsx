@@ -106,12 +106,12 @@ export default function SubscriberManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground">{s.email}</TableCell>
-                      <TableCell className="font-medium">{s.name || '—'}</TableCell>
-                      <TableCell>{s.company || '—'}</TableCell>
+                      <TableCell className="font-medium">{s.name || '-'}</TableCell>
+                      <TableCell>{s.company || '-'}</TableCell>
                       <TableCell className="max-w-[200px] truncate text-muted-foreground text-xs">
                         {s.preferences && Object.keys(s.preferences).length > 0
                           ? Object.entries(s.preferences).map(([k, v]) => `${k}: ${v}`).join(', ')
-                          : '—'}
+                          : '-'}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">{format(new Date(s.created_at), 'MMM d, yyyy')}</TableCell>
                     </TableRow>
