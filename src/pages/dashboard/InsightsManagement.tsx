@@ -16,6 +16,10 @@ export default function InsightsManagement() {
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState('');
   const queryClient = useQueryClient();
+  const { hasRole } = useAuth();
+  const canGenerate = hasRole('admin') || hasRole('researcher');
+  const canPublish = hasRole('admin');
+  const canDeleteInsight = hasRole('admin');
 
   const generateInsight = async () => {
     setGenerating(true);
