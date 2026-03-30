@@ -35,6 +35,10 @@ export const agentApi = {
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
   runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),
+  runDigestAgent: (opts?: { rule_id?: string }) => invokeAgentWithBody('digest-agent', { ...(opts ?? {}) }),
+  runDatasetRefresh: (opts?: { dataset_key?: string }) => invokeAgentWithBody('dataset-refresh-agent', { ...(opts ?? {}) }),
+  runReportAgent: (opts?: { report_type?: string; days?: number }) => invokeAgentWithBody('report-agent', { ...(opts ?? {}) }),
+  runSourceIngest: (opts: { url: string; source_key?: string }) => invokeAgentWithBody('source-ingest-agent', opts),
   /** Backfill `sources` on insights: extract URLs from text, merge legacy `source_url`, AI only if still empty. */
   runInsightSourcesAgent: (opts?: {
     insight_id?: string;

@@ -170,23 +170,23 @@ export default function DashboardOverview() {
   }, [avgConfidence]);
 
   const marketKPIs = useMemo(() => [
-    { label: 'Projects (platform)', value: allProjects.length, icon: Activity, color: 'text-primary' },
-    { label: 'Verified (platform)', value: marketVerifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
-    { label: 'Avg confidence (platform)', value: `${marketAvgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
-    { label: 'Total value (platform)', value: marketTotalValue >= 1e9 ? `$${(marketTotalValue / 1e9).toFixed(1)}B` : `$${(marketTotalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
-    { label: 'Unread alerts (all)', value: alertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Critical alerts (all)', value: alertStats.critical, icon: Zap, color: 'text-red-400' },
-    { label: 'Pending review', value: pendingCount, icon: ClipboardCheck, color: 'text-amber-400' },
+    { label: 'Projects (platform)', value: allProjects.length, icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Verified (platform)', value: marketVerifiedCount, icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Avg confidence (platform)', value: `${marketAvgConfidence}%`, icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Total value (platform)', value: marketTotalValue >= 1e9 ? `$${(marketTotalValue / 1e9).toFixed(1)}B` : `$${(marketTotalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Unread alerts (all)', value: alertStats.unread, icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { label: 'Critical alerts (all)', value: alertStats.critical, icon: Zap, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Pending review', value: pendingCount, icon: ClipboardCheck, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   ], [allProjects.length, marketVerifiedCount, marketAvgConfidence, marketTotalValue, alertStats, pendingCount]);
 
   const focusKPIs = useMemo(() => [
-    { label: 'Projects in your coverage', value: projects.length, icon: Activity, color: 'text-primary' },
-    { label: 'Verified', value: verifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
-    { label: 'Avg confidence', value: `${avgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
-    { label: 'Total value', value: totalValue >= 1e9 ? `$${(totalValue / 1e9).toFixed(1)}B` : `$${(totalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
-    { label: 'Unread alerts (your projects)', value: focusAlertStats.unread, icon: AlertTriangle, color: 'text-destructive' },
-    { label: 'Critical (your projects)', value: focusAlertStats.critical, icon: Zap, color: 'text-red-400' },
-    { label: 'Data quality', value: `${dataQuality.overall}%`, icon: Users, color: dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400' },
+    { label: 'Projects in your coverage', value: projects.length, icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Verified', value: verifiedCount, icon: ShieldCheck, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+    { label: 'Avg confidence', value: `${avgConfidence}%`, icon: TrendingUp, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Total value', value: totalValue >= 1e9 ? `$${(totalValue / 1e9).toFixed(1)}B` : `$${(totalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400', bg: 'bg-amber-400/10' },
+    { label: 'Unread alerts (your projects)', value: focusAlertStats.unread, icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10' },
+    { label: 'Critical (your projects)', value: focusAlertStats.critical, icon: Zap, color: 'text-red-400', bg: 'bg-red-400/10' },
+    { label: 'Data quality', value: `${dataQuality.overall}%`, icon: Users, color: dataQuality.overall >= 70 ? 'text-emerald-400' : dataQuality.overall >= 40 ? 'text-amber-400' : 'text-red-400', bg: dataQuality.overall >= 70 ? 'bg-emerald-400/10' : dataQuality.overall >= 40 ? 'bg-amber-400/10' : 'bg-red-400/10' },
   ], [projects.length, verifiedCount, avgConfidence, totalValue, focusAlertStats, dataQuality.overall]);
 
   return (
@@ -204,11 +204,13 @@ export default function DashboardOverview() {
       <div className="space-y-2">
         <h2 className="font-serif text-lg font-semibold text-foreground">Platform pipeline</h2>
         <p className="text-xs text-muted-foreground">Full approved pipeline — compare scale before drilling into your preferences.</p>
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           {marketKPIs.map(k => (
             <div key={k.label} className="glass-panel rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <k.icon className={`h-4 w-4 ${k.color}`} />
+              <div className="mb-3">
+                <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
+                  <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+                </div>
               </div>
               {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
               <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
@@ -223,9 +225,19 @@ export default function DashboardOverview() {
                 <Pie data={globalRegionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2} stroke="none">
                   {globalRegionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
               </PieChart>
             </ResponsiveContainer>
+          )}
+          {!projectsLoading && (
+            <div className="flex flex-wrap gap-3 mt-2">
+              {globalRegionData.map((r, i) => (
+                <span key={r.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                  {r.name} ({r.value})
+                </span>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -249,11 +261,13 @@ export default function DashboardOverview() {
             Select regions, sectors, and stages in <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link> or complete onboarding to narrow this view. Until then, coverage matches the full platform.
           </p>
         )}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           {focusKPIs.map(k => (
             <div key={k.label} className="glass-panel rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <k.icon className={`h-4 w-4 ${k.color}`} />
+              <div className="mb-3">
+                <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
+                  <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+                </div>
               </div>
               {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
               <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
@@ -272,7 +286,7 @@ export default function DashboardOverview() {
                 <Pie data={regionData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3} stroke="none">
                   {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
               </PieChart>
             </ResponsiveContainer>
           )}
@@ -293,7 +307,7 @@ export default function DashboardOverview() {
               <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={120} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
                   {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Bar>
@@ -321,7 +335,7 @@ export default function DashboardOverview() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
               <XAxis dataKey="month" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis domain={[50, 100]} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+              <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
               <Area type="monotone" dataKey="value" stroke="hsl(170 55% 63%)" fill="url(#confGrad)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
@@ -335,7 +349,7 @@ export default function DashboardOverview() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
                 <XAxis dataKey="category" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
                 <Bar dataKey="critical" stackId="a" fill={SEVERITY_COLORS.critical} radius={[0, 0, 0, 0]} />
                 <Bar dataKey="high" stackId="a" fill={SEVERITY_COLORS.high} />
                 <Bar dataKey="medium" stackId="a" fill={SEVERITY_COLORS.medium} />
@@ -382,7 +396,7 @@ export default function DashboardOverview() {
               <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
                   {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
                 </Bar>

@@ -59,11 +59,13 @@ export function getDisplaySources(insight: Insight): InsightSource[] {
 export function useInsights(publishedOnly = true) {
   return useQuery({
     queryKey: ['insights', publishedOnly],
+    staleTime: 60_000,
     queryFn: async () => {
-      let query = supabase.from('insights').select('*').order('created_at', { ascending: false });
-      if (publishedOnly) {
-        query = query.eq('published', true);
-      }
+      let query = supabase
+        .from('insights')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (publishedOnly) query = query.eq('published', true);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Insight[];
@@ -74,6 +76,7 @@ export function useInsights(publishedOnly = true) {
 export function useInsight(slug: string) {
   return useQuery({
     queryKey: ['insight', slug],
+    staleTime: 120_000,
     queryFn: async () => {
       const { data, error } = await supabase.from('insights').select('*').eq('slug', slug).single();
       if (error) throw error;

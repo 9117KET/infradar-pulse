@@ -136,7 +136,7 @@ export default function EvidenceVerification() {
                 <Pie data={typeDistribution} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
                   {typeDistribution.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} />
               </PieChart>
             </ResponsiveContainer>
             <div className="flex flex-wrap gap-3 justify-center mt-2">
@@ -160,7 +160,7 @@ export default function EvidenceVerification() {
               <BarChart data={verificationRates} layout="vertical" margin={{ left: 60 }}>
                 <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={v => `${v}%`} />
                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={60} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(v: number) => `${v}%`} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} formatter={(v: number) => `${v}%`} />
                 <Bar dataKey="rate" radius={[0, 4, 4, 0]}>
                   {verificationRates.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                 </Bar>

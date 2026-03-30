@@ -16,6 +16,8 @@ export function useAlerts() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     async function fetchAlerts() {
       setLoading(true);
       const { data } = await supabase
@@ -23,6 +25,7 @@ export function useAlerts() {
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (!mounted) return;
       if (data) {
         setAlerts(data.map((a: any) => ({
           id: a.id,
@@ -45,11 +48,14 @@ export function useAlerts() {
     const channel = supabase
       .channel('alerts-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => {
-        fetchAlerts();
+        if (mounted) fetchAlerts();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const stats: AlertStats = (() => {
@@ -71,11 +77,13 @@ export function useAlerts() {
   };
 
   const markAsRead = async (id: string) => {
-    await supabase.from('alerts').update({ read: true }).eq('id', id);
+    const { error } = await supabase.from('alerts').update({ read: true }).eq('id', id);
+    if (error) console.error('Failed to mark alert as read:', error.message);
   };
 
   const markAllAsRead = async () => {
-    await supabase.from('alerts').update({ read: true }).eq('read', false);
+    const { error } = await supabase.from('alerts').update({ read: true }).eq('read', false);
+    if (error) console.error('Failed to mark all alerts as read:', error.message);
   };
 
   return { alerts, loading, stats, filterByCategory, markAsRead, markAllAsRead };

@@ -204,27 +204,32 @@ export default function ProjectDetail() {
   };
 
   const toggleContactVerified = async (contactId: string, current: boolean) => {
-    await supabase.from('project_contacts').update({ verified: !current } as any).eq('id', contactId);
+    const { error } = await supabase.from('project_contacts').update({ verified: !current } as any).eq('id', contactId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: current ? 'Marked unverified' : 'Marked verified' });
   };
 
   const deleteContact = async (contactId: string) => {
-    await supabase.from('project_contacts').delete().eq('id', contactId);
+    const { error } = await supabase.from('project_contacts').delete().eq('id', contactId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Contact removed' });
   };
 
   const toggleVerified = async (evidenceId: string, current: boolean) => {
-    await supabase.from('evidence_sources').update({ verified: !current } as any).eq('id', evidenceId);
+    const { error } = await supabase.from('evidence_sources').update({ verified: !current } as any).eq('id', evidenceId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: current ? 'Marked unverified' : 'Marked verified' });
   };
 
   const deleteEvidence = async (evidenceId: string) => {
-    await supabase.from('evidence_sources').delete().eq('id', evidenceId);
+    const { error } = await supabase.from('evidence_sources').delete().eq('id', evidenceId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: 'Source removed' });
   };
 
   const toggleMilestone = async (milestoneId: string, current: boolean) => {
-    await supabase.from('project_milestones').update({ completed: !current }).eq('id', milestoneId);
+    const { error } = await supabase.from('project_milestones').update({ completed: !current }).eq('id', milestoneId);
+    if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: current ? 'Milestone uncompleted' : 'Milestone completed' });
   };
 

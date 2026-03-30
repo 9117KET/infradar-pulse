@@ -77,7 +77,8 @@ export default function SettingsPage() {
   }, [searchParams, setSearchParams, toast]);
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('infradar_settings');
-    return saved ? JSON.parse(saved) : defaults;
+    if (!saved) return defaults;
+    try { return JSON.parse(saved); } catch { return defaults; }
   });
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);

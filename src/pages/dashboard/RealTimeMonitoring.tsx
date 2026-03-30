@@ -28,7 +28,9 @@ interface ProjectUpdate {
 
 const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
 const SEVERITY_COLORS: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#3b82f6', low: '#64748b' };
-const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 };
+const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' };
+const TOOLTIP_LABEL_STYLE = { color: 'hsl(180 10% 92%)' };
+const TOOLTIP_ITEM_STYLE = { color: 'hsl(180 10% 92%)' };
 
 export default function RealTimeMonitoring() {
   const { projects, loading } = useProjects();
@@ -208,7 +210,7 @@ export default function RealTimeMonitoring() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
               <XAxis dataKey="day" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
               <Area type="monotone" dataKey="count" stroke="hsl(170 55% 63%)" fill="url(#updateGrad)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
@@ -221,7 +223,7 @@ export default function RealTimeMonitoring() {
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
               <XAxis dataKey="day" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
+              <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
               <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={24} fill="#38bdf8" />
             </BarChart>
           </ResponsiveContainer>
@@ -237,7 +239,7 @@ export default function RealTimeMonitoring() {
               <BarChart data={fieldDistribution} layout="vertical" margin={{ left: 5, right: 15 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={12}>
                   {fieldDistribution.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Bar>
@@ -255,7 +257,7 @@ export default function RealTimeMonitoring() {
                   <Pie data={alertSeverityData} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" paddingAngle={3} stroke="none">
                     {alertSeverityData.map(s => <Cell key={s.name} fill={SEVERITY_COLORS[s.name] || '#64748b'} />)}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-2 mt-1 justify-center">
@@ -278,7 +280,7 @@ export default function RealTimeMonitoring() {
                   <Pie data={agentStatusData} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value" paddingAngle={3} stroke="none">
                     {agentStatusData.map(s => <Cell key={s.name} fill={agentStatusColors[s.name] || '#64748b'} />)}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-2 mt-1 justify-center">

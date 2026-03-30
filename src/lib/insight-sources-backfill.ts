@@ -59,7 +59,7 @@ export async function runClientInsightSourcesBackfill(
 ): Promise<ClientBackfillSummary> {
   const { data: rows, error } = await supabase
     .from('insights' as never)
-    .select('id, title, excerpt, content, source_url, sources, published')
+    .select('*')
     .order('created_at', { ascending: false })
     .limit(250);
 

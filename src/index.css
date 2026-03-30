@@ -104,6 +104,18 @@
   }
 }
 
+/* Recharts tooltip — force light text on dark background.
+   Recharts hardcodes `color: entry.color || '#000'` as an inline style on
+   each tooltip item; !important overrides inline styles in all browsers. */
+.recharts-tooltip-label,
+.recharts-tooltip-item,
+.recharts-tooltip-item-name,
+.recharts-tooltip-item-separator,
+.recharts-tooltip-item-value,
+.recharts-tooltip-item-unit {
+  color: hsl(180 10% 92%) !important;
+}
+
 /* Leaflet dark popup */
 .leaflet-popup-content-wrapper {
   background: hsl(210 15% 10%) !important;

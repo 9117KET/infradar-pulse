@@ -20,8 +20,9 @@ export default function InsightDetail() {
     countedRef.current = false;
   }, [slug]);
 
+  // Don't reveal content while entitlements are still loading — avoids flash
   const showFullContent =
-    !user || staffBypass || canReadInsightFull || (user && entLoading);
+    !user || staffBypass || (!entLoading && canReadInsightFull);
 
   useEffect(() => {
     if (!user || entLoading || !insight || !canReadInsightFull || staffBypass) return;
