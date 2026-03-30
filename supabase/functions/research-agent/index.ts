@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 const NEWS_SOURCES = [
-  "MEED infrastructure projects 2025",
+  "global infrastructure projects 2025",
   "IJGlobal infrastructure projects worldwide",
   "World Bank new infrastructure projects 2025",
   "Construction Week global megaprojects",

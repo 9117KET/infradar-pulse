@@ -27,7 +27,9 @@ const STAGE_COLORS: Record<string, string> = {
   Construction: '#22c55e', Completed: '#14b8a6', Cancelled: '#ef4444', Stopped: '#dc2626',
 };
 
-const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 };
+const TOOLTIP_STYLE = { background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' };
+const TOOLTIP_LABEL_STYLE = { color: 'hsl(180 10% 92%)' };
+const TOOLTIP_ITEM_STYLE = { color: 'hsl(180 10% 92%)' };
 
 export default function Projects() {
   const { toast } = useToast();
@@ -57,7 +59,8 @@ export default function Projects() {
       .select('project_id')
       .eq('action', 'unverified')
       .gte('created_at', sevenDaysAgo)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Failed to fetch verification log:', error.message); return; }
         if (data) setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
       });
   }, []);
@@ -148,7 +151,8 @@ export default function Projects() {
   };
 
   const saveSearch = () => {
-    const saved = JSON.parse(localStorage.getItem('infradar_saved_searches') || '[]');
+    let saved: unknown[] = [];
+    try { saved = JSON.parse(localStorage.getItem('infradar_saved_searches') || '[]'); } catch { saved = []; }
     saved.push({ search, stage, sector, confFilter, ts: new Date().toISOString() });
     localStorage.setItem('infradar_saved_searches', JSON.stringify(saved));
     toast({ title: 'Search saved', description: 'Filters saved to your profile.' });
@@ -203,7 +207,7 @@ export default function Projects() {
                   <Pie data={regionData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
                     {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-2 mt-1">
@@ -226,7 +230,7 @@ export default function Projects() {
                   <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
                     {statusData.map(s => <Cell key={s.name} fill={STATUS_COLORS[s.name] || '#64748b'} />)}
                   </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="flex flex-wrap gap-2 mt-1">
@@ -248,7 +252,7 @@ export default function Projects() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
                 <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} fill="hsl(170 55% 63%)" />
               </BarChart>
             </ResponsiveContainer>
@@ -265,7 +269,7 @@ export default function Projects() {
               <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
                   {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
                 </Bar>
@@ -282,7 +286,7 @@ export default function Projects() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
                 <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`$${v}B`, 'Value']} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} formatter={(v: number) => [`$${v}B`, 'Value']} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} fill="#38bdf8" />
               </BarChart>
             </ResponsiveContainer>
@@ -296,7 +300,7 @@ export default function Projects() {
               <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
                   {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Bar>

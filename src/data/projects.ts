@@ -165,7 +165,7 @@ export const PROJECTS: Project[] = [
       { id: 'm2', title: 'Financial close', date: '2025-04', completed: false },
     ],
     evidence: [
-      { id: 'e1', source: 'MEED Projects', url: '#', type: 'Registry', verified: true, date: '2025-03-12' },
+      { id: 'e1', source: 'Infrastructure Registry', url: '#', type: 'Registry', verified: true, date: '2025-03-12' },
     ],
     lastUpdated: '2025-03-14',
     timeline: '2024–2028',

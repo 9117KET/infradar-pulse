@@ -109,8 +109,8 @@ function InsightBodyPreview({ content }: { content: string }) {
 function SourcesList({ sources }: { sources: InsightSource[] }) {
   if (!sources.length) {
     return (
-      <p className="text-sm text-amber-500/90">
-        No references yet — add at least one verifiable URL before publishing.
+      <p className="text-sm text-muted-foreground/70 italic">
+        No references attached to this article.
       </p>
     );
   }
@@ -147,9 +147,25 @@ export default function InsightsManagement() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const [viewing, setViewing] = useState<Insight | null>(null);
+  const [viewingLoading, setViewingLoading] = useState(false);
   const [editing, setEditing] = useState<{ id: string; form: EditForm } | null>(null);
   const [saving, setSaving] = useState(false);
   const [backfillMode, setBackfillMode] = useState<'missing' | 'all' | null>(null);
+
+  const openView = async (insight: Insight) => {
+    if (insight.content) { setViewing(insight); return; }
+    setViewingLoading(true);
+    setViewing(insight); // open dialog immediately with metadata
+    const { data } = await supabase.from('insights').select('*').eq('id', insight.id).single();
+    if (data) setViewing(data as Insight);
+    setViewingLoading(false);
+  };
+
+  const openEdit = async (insight: Insight) => {
+    if (insight.content) { setEditing({ id: insight.id, form: insightToEditForm(insight) }); return; }
+    const { data } = await supabase.from('insights').select('*').eq('id', insight.id).single();
+    if (data) setEditing({ id: insight.id, form: insightToEditForm(data as Insight) });
+  };
 
   const generateInsight = async () => {
     if (!canUseAi) {
@@ -180,11 +196,6 @@ export default function InsightsManagement() {
   };
 
   const togglePublish = async (insight: Insight) => {
-    const refs = getDisplaySources(insight);
-    if (!insight.published && refs.length === 0) {
-      toast.error('Add at least one reference (Sources) before publishing.');
-      return;
-    }
     const { error } = await supabase
       .from('insights')
       .update({ published: !insight.published })
@@ -273,25 +284,19 @@ export default function InsightsManagement() {
         }`
       );
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      const edgeUnreachable =
-        /Failed to send a request|Edge Function|fetch/i.test(msg) ||
-        msg.includes('network') ||
-        msg.includes('CORS');
-      if (edgeUnreachable) {
-        try {
-          const summary = await runClientInsightSourcesBackfill(scope);
-          queryClient.invalidateQueries({ queryKey: ['insights'] });
-          toast.success(
-            `References updated locally (edge function unavailable): processed ${summary.processed}, updated ${summary.updated}, skipped ${summary.skipped}${
-              summary.truncated ? ' — run again for more rows.' : ''
-            }`
-          );
-        } catch (inner: unknown) {
-          toast.error(inner instanceof Error ? inner.message : 'Reference backfill failed');
-        }
-      } else {
-        toast.error(msg || 'Reference agent failed');
+      // Edge function failed for any reason — fall back to client-side extraction (no AI, but reliable)
+      try {
+        const summary = await runClientInsightSourcesBackfill(scope);
+        queryClient.invalidateQueries({ queryKey: ['insights'] });
+        toast.success(
+          `References updated (client fallback): processed ${summary.processed}, updated ${summary.updated}, skipped ${summary.skipped}${
+            summary.truncated ? ' — run again for more rows.' : ''
+          }`
+        );
+      } catch (inner: unknown) {
+        const outerMsg = e instanceof Error ? e.message : String(e);
+        const innerMsg = inner instanceof Error ? inner.message : 'Reference backfill failed';
+        toast.error(`${innerMsg} (agent error: ${outerMsg})`);
       }
     } finally {
       setBackfillMode(null);
@@ -488,7 +493,7 @@ export default function InsightsManagement() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={() => setViewing(i)}
+                              onClick={() => openView(i)}
                               title="View draft / article"
                             >
                               <FileText className="h-3.5 w-3.5" />
@@ -497,7 +502,7 @@ export default function InsightsManagement() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={() => setEditing({ id: i.id, form: insightToEditForm(i) })}
+                              onClick={() => openEdit(i)}
                               title="Edit"
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -577,7 +582,13 @@ export default function InsightsManagement() {
                 </div>
                 {viewing && <SourcesList sources={getDisplaySources(viewing)} />}
               </div>
-              {viewing && <InsightBodyPreview content={viewing.content} />}
+              {viewingLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading article…
+                </div>
+              ) : viewing?.content ? (
+                <InsightBodyPreview content={viewing.content} />
+              ) : null}
             </div>
           </ScrollArea>
         </DialogContent>
@@ -588,7 +599,7 @@ export default function InsightsManagement() {
           <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle className="text-left">Edit insight</DialogTitle>
             <DialogDescription className="text-left">
-              Update copy and verifiable references. Researchers and admins can publish when sources are set.
+              Update copy, tag, and references. Researchers and admins can publish at any time.
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="flex-1 max-h-[min(72vh,520px)] px-6">

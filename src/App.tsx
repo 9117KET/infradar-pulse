@@ -40,6 +40,9 @@ import RealTimeMonitoring from "./pages/dashboard/RealTimeMonitoring";
 import RiskAnomalySignals from "./pages/dashboard/RiskAnomalySignals";
 import AgentMonitoring from "./pages/dashboard/AgentMonitoring";
 import Research from "./pages/dashboard/Research";
+import Digests from "./pages/dashboard/Digests";
+import Datasets from "./pages/dashboard/Datasets";
+import Reports from "./pages/dashboard/Reports";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -72,6 +75,9 @@ const App = () => (
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/research" element={<Research />} />
+              <Route path="/dashboard/digests" element={<Digests />} />
+              <Route path="/dashboard/datasets" element={<Datasets />} />
+              <Route path="/dashboard/reports" element={<Reports />} />
               <Route path="/dashboard/projects" element={<Projects />} />
               <Route path="/dashboard/projects/new" element={<ProjectEditor />} />
               <Route path="/dashboard/projects/:id/edit" element={<ProjectEditor />} />

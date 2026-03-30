@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +25,10 @@ const AGENTS = [
   { type: 'contact-finder', name: 'Contact Finder', icon: Phone, schedule: 'Every 3 hours', scheduleMinutes: 180, fn: agentApi.runContactFinder },
   { type: 'alert-intelligence', name: 'Alert Intelligence', icon: AlertTriangle, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runAlertIntelligence },
   { type: 'data-enrichment', name: 'Data Enrichment', icon: Database, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runDataEnrichment },
+  { type: 'digest-agent', name: 'Digest Agent', icon: Mail, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runDigestAgent() },
+  { type: 'dataset-refresh', name: 'Dataset Refresh', icon: Database, schedule: 'Hourly', scheduleMinutes: 60, fn: () => agentApi.runDatasetRefresh({ dataset_key: 'projects_v1' }) },
+  { type: 'report-agent', name: 'Report Agent', icon: FileText, schedule: 'Weekly', scheduleMinutes: 10080, fn: () => agentApi.runReportAgent({ report_type: 'weekly_market_snapshot', days: 7 }) },
+  { type: 'source-ingest', name: 'Source Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runSourceIngest({ url: '', source_key: 'infradar:manual' }) },
   { type: 'entity-dedup', name: 'Entity Dedup', icon: GitMerge, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runEntityDedup },
   { type: 'corporate-ma-monitor', name: 'Corporate / M&A', icon: Building2, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runCorporateMaMonitor },
   { type: 'esg-social-monitor', name: 'ESG & Social', icon: Leaf, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runEsgSocialMonitor },
@@ -343,7 +347,7 @@ export default function AgentMonitoring() {
                 </defs>
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={30} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }} />
+                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11, color: 'hsl(var(--foreground))' }} />
                 <Area type="monotone" dataKey="completed" stroke="hsl(var(--primary))" fill="url(#completedGrad)" strokeWidth={2} name="Completed" />
                 <Area type="monotone" dataKey="failed" stroke="hsl(var(--destructive))" fill="url(#failedGrad)" strokeWidth={2} name="Failed" />
               </AreaChart>

@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, ShieldCheck, BarChart3, Bot, User, Shield, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, ShieldCheck, BarChart3, Bot, User, Shield, ChevronDown, Mail, Database, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -30,6 +30,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
       { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
+      { title: 'Digests', url: '/dashboard/digests', icon: Mail, tourId: 'nav-digests' },
     ],
   },
   {
@@ -53,6 +54,8 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Analysis',
     items: [
       { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3, tourId: 'nav-analytics' },
+      { title: 'Reports', url: '/dashboard/reports', icon: FileText, tourId: 'nav-reports' },
+      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets' },
       { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
     ],
   },
@@ -333,7 +336,16 @@ function ProfileMenu() {
 
 export default function DashboardLayout() {
   const { user, loading, profile, profileLoading, completeTour } = useAuth();
+  const { pathname } = useLocation();
   const [showTour, setShowTour] = useState(false);
+
+  const pageTitle = (() => {
+    const allItems = NAV_GROUPS.flatMap(g => g.items);
+    const found = [...allItems]
+      .sort((a, b) => b.url.length - a.url.length)
+      .find(item => pathname === item.url || pathname.startsWith(item.url + '/'));
+    return found?.title ?? 'Dashboard';
+  })();
 
   useEffect(() => {
     if (profile && profile.onboarded && !profile.tour_completed) {
@@ -362,7 +374,7 @@ export default function DashboardLayout() {
         <div className="flex-1 flex flex-col">
           <header className="h-12 flex items-center border-b border-border px-4">
             <SidebarTrigger className="mr-4" />
-            <span className="text-sm text-muted-foreground hidden sm:inline">InfraRadar AI: Intelligence Platform</span>
+            <span className="text-sm font-medium hidden sm:inline">{pageTitle}</span>
             <div className="ml-auto flex items-center gap-3">
               <div data-tour="header-search"><ProjectSearch /></div>
               <div data-tour="header-notifications"><NotificationBell /></div>
