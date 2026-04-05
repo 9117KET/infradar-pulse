@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'C:\\\\Users\\\\kinlo\\\\OneDrive - Constructor University\\\\Desktop\\\\dev\\\\projects\\\\2026\\\\Infradar Lovable\\\\infradar-pulse\\\\node_modules\\\\recharts' -name DefaultTooltipContent*)",
+      "Bash(xargs grep:*)",
+      "WebSearch",
+      "WebFetch(domain:data.adb.org)",
+      "WebFetch(domain:datahelpdesk.worldbank.org)",
+      "WebFetch(domain:documents1.worldbank.org)",
+      "WebFetch(domain:datacatalog.worldbank.org)",
+      "WebFetch(domain:dev.socrata.com)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx supabase:*)",
+      "WebFetch(domain:docs.lovable.dev)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:lovable.dev)",
+      "WebFetch(domain:www.staticbot.dev)",
+      "WebFetch(domain:dreamlit.ai)"
+    ]
+  }
+}

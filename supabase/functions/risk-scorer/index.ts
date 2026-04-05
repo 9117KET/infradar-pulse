@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!await isAgentEnabled(supabase, "risk-scoring")) return pausedResponse("risk-scoring");
 
   // Log task start
   const { data: task } = await supabase.from("research_tasks").insert({
@@ -72,7 +75,7 @@ serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const projectSummaries = projects.slice(0, 10).map((p: any) =>
+    const projectSummaries = projects.slice(0, 25).map((p: any) =>
       `- ${p.name} (${p.country}, ${p.sector}, ${p.stage}, current risk: ${p.risk_score})`
     ).join("\n");
 
@@ -152,7 +155,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, projects_analyzed: Math.min(projects.length, 10), scored };
+    const result = { success: true, projects_analyzed: Math.min(projects.length, 25), scored };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);

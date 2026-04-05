@@ -57,15 +57,15 @@ function dbToProject(
     milestones,
     evidence,
     contacts,
-    detailedAnalysis: (p as any).detailed_analysis || '',
-    keyRisks: (p as any).key_risks || '',
-    fundingSources: (p as any).funding_sources || '',
-    environmentalImpact: (p as any).environmental_impact || '',
-    politicalContext: (p as any).political_context || '',
-    sourceUrl: (p as any).source_url || '',
+    detailedAnalysis: p.detailed_analysis || '',
+    keyRisks: p.key_risks || '',
+    fundingSources: p.funding_sources || '',
+    environmentalImpact: p.environmental_impact || '',
+    politicalContext: p.political_context || '',
+    sourceUrl: p.source_url || '',
     dbId: p.id,
-    createdByUserId: (p as any).created_by ?? null,
-    researchSavedByUserId: (p as any).research_saved_by ?? null,
+    createdByUserId: p.created_by ?? null,
+    researchSavedByUserId: p.research_saved_by ?? null,
   };
 }
 

@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,11 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 
 const AGENTS = [
   { type: 'discovery', name: 'Research Agent', icon: Search, schedule: 'Every 30 min', scheduleMinutes: 30, fn: agentApi.runResearchAgent },
+  { type: 'world-bank-ingest', name: 'World Bank Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runWorldBankIngest({ status: 'Active,Pipeline', limit: 200 }) },
+  { type: 'ifc-ingest', name: 'IFC Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runIfcIngest({ status: 'Active,Pipeline', limit: 200 }) },
+  { type: 'adb-ingest', name: 'ADB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runAdbIngest({ limit: 300 }) },
+  { type: 'afdb-ingest', name: 'AfDB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runAfdbIngest },
+  { type: 'ebrd-ingest', name: 'EBRD Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runEbrdIngest },
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
   { type: 'stakeholder-intel', name: 'Stakeholder Intel', icon: Users, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runStakeholderIntel },
@@ -28,7 +33,6 @@ const AGENTS = [
   { type: 'digest-agent', name: 'Digest Agent', icon: Mail, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runDigestAgent() },
   { type: 'dataset-refresh', name: 'Dataset Refresh', icon: Database, schedule: 'Hourly', scheduleMinutes: 60, fn: () => agentApi.runDatasetRefresh({ dataset_key: 'projects_v1' }) },
   { type: 'report-agent', name: 'Report Agent', icon: FileText, schedule: 'Weekly', scheduleMinutes: 10080, fn: () => agentApi.runReportAgent({ report_type: 'weekly_market_snapshot', days: 7 }) },
-  { type: 'source-ingest', name: 'Source Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runSourceIngest({ url: '', source_key: 'infradar:manual' }) },
   { type: 'entity-dedup', name: 'Entity Dedup', icon: GitMerge, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runEntityDedup },
   { type: 'corporate-ma-monitor', name: 'Corporate / M&A', icon: Building2, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runCorporateMaMonitor },
   { type: 'esg-social-monitor', name: 'ESG & Social', icon: Leaf, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runEsgSocialMonitor },
@@ -53,7 +57,7 @@ interface LogEntry {
   status: string;
   query: string;
   error: string | null;
-  result: any;
+  result: Record<string, unknown> | null;
   created_at: string;
   completed_at: string | null;
 }
@@ -62,9 +66,11 @@ const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
 
 export default function AgentMonitoring() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { canUseAi, isFreeTier, staffBypass, loading: entLoading } = useEntitlements();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
+  const [togglingAgent, setTogglingAgent] = useState<string | null>(null);
   const [liveLogs, setLiveLogs] = useState<LogEntry[]>([]);
   const [isStreaming, setIsStreaming] = useState(true);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
@@ -114,6 +120,44 @@ export default function AgentMonitoring() {
     },
     refetchInterval: 60000,
   });
+
+  // Agent enabled/paused state
+  const { data: agentConfigs } = useQuery({
+    queryKey: ['agent-configs'],
+    queryFn: async () => {
+      const { data } = await supabase.from('agent_config').select('agent_type, enabled');
+      const map: Record<string, boolean> = {};
+      (data || []).forEach((row: { agent_type: string; enabled: boolean }) => { map[row.agent_type] = row.enabled !== false; });
+      return map;
+    },
+    refetchInterval: 30000,
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ agentType, enabled }: { agentType: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from('agent_config')
+        .upsert({ agent_type: agentType, enabled, updated_at: new Date().toISOString() }, { onConflict: 'agent_type' });
+      if (error) throw error;
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-configs'] }); },
+  });
+
+  const toggleAgent = async (agentType: string, currentlyEnabled: boolean) => {
+    if (!staffBypass) {
+      toast({ title: 'Team access required', description: 'Only admin and researcher accounts can pause agents.', variant: 'destructive' });
+      return;
+    }
+    setTogglingAgent(agentType);
+    try {
+      await toggleMutation.mutateAsync({ agentType, enabled: !currentlyEnabled });
+      toast({ title: currentlyEnabled ? `Agent paused` : `Agent resumed`, description: currentlyEnabled ? 'Agent will not run until resumed.' : 'Agent is now active.' });
+    } catch (e) {
+      toast({ title: 'Failed to update agent', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setTogglingAgent(null);
+    }
+  };
 
   // Seed live logs
   useEffect(() => {
@@ -419,20 +463,28 @@ export default function AgentMonitoring() {
           const Icon = agent.icon;
           const isRunningNow = runningAgent === agent.name || stats.running > 0;
           const stale = isStale(agent);
+          const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
+          const isPaused = !isEnabled;
+          const isToggling = togglingAgent === agent.type;
 
           return (
-            <div key={agent.type} className={`glass-panel rounded-xl p-4 space-y-2.5 ${stale && !isRunningNow ? 'border border-amber-400/30' : ''}`}>
+            <div
+              key={agent.type}
+              className={`glass-panel rounded-xl p-4 space-y-2.5 transition-opacity ${isPaused ? 'opacity-50 border border-muted/30' : stale && !isRunningNow ? 'border border-amber-400/30' : ''}`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Icon className="h-3.5 w-3.5 text-primary" />
+                  <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${isPaused ? 'bg-muted/30' : 'bg-primary/10'}`}>
+                    <Icon className={`h-3.5 w-3.5 ${isPaused ? 'text-muted-foreground' : 'text-primary'}`} />
                   </div>
                   <div>
                     <h3 className="text-xs font-semibold">{agent.name}</h3>
                     <p className="text-[9px] text-muted-foreground">{agent.schedule}</p>
                   </div>
                 </div>
-                {isRunningNow ? (
+                {isPaused ? (
+                  <Badge variant="outline" className="text-[9px] text-muted-foreground border-muted/40">Paused</Badge>
+                ) : isRunningNow ? (
                   <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30 animate-pulse">Running</Badge>
                 ) : stale ? (
                   <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30">⚠ Stale</Badge>
@@ -464,10 +516,35 @@ export default function AgentMonitoring() {
                 <span>
                   {stats.lastRun ? `Last: ${timeAgo(stats.lastRun.created_at)}` : 'Never run'}
                 </span>
-                <Button variant="ghost" size="sm" className="h-5 text-[9px] px-1.5" disabled={!!runningAgent} onClick={() => runAgent(agent.name, agent.fn)}>
-                  {runningAgent === agent.name ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5 mr-0.5" />}
-                  Run
-                </Button>
+                <div className="flex items-center gap-1">
+                  {/* Pause / Resume toggle */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-5 w-5 p-0 ${isPaused ? 'text-emerald-400 hover:text-emerald-300' : 'text-muted-foreground hover:text-amber-400'}`}
+                    disabled={isToggling}
+                    title={isPaused ? 'Resume agent' : 'Pause agent'}
+                    onClick={() => toggleAgent(agent.type, isEnabled)}
+                  >
+                    {isToggling
+                      ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      : isPaused
+                        ? <Play className="h-2.5 w-2.5" />
+                        : <Pause className="h-2.5 w-2.5" />
+                    }
+                  </Button>
+                  {/* Run now */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 text-[9px] px-1.5"
+                    disabled={!!runningAgent || isPaused}
+                    onClick={() => runAgent(agent.name, agent.fn)}
+                  >
+                    {runningAgent === agent.name ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5 mr-0.5" />}
+                    Run
+                  </Button>
+                </div>
               </div>
             </div>
           );

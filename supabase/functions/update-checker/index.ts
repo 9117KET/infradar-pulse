@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!await isAgentEnabled(supabase, "update-check")) return pausedResponse("update-check");
 
   // Log task start
   const { data: task } = await supabase.from("research_tasks").insert({
@@ -44,7 +47,7 @@ serve(async (req) => {
     let updatedCount = 0;
     let alertsCreated = 0;
 
-    for (const project of projects.slice(0, 5)) {
+    for (const project of projects.slice(0, 20)) {
       // Confidence decay
       const daysSinceUpdate = Math.floor((Date.now() - new Date(project.last_updated).getTime()) / (1000 * 60 * 60 * 24));
       const weeksSinceUpdate = Math.floor(daysSinceUpdate / 7);
@@ -71,7 +74,7 @@ serve(async (req) => {
               model: "sonar",
               messages: [
                 { role: "system", content: "You are an infrastructure analyst. Report any recent updates, delays, cancellations, or progress on the given project. Be specific and factual." },
-                { role: "user", content: `What is the latest status update on "${project.name}" infrastructure project in ${project.country}? Any delays, stage changes, or new developments in 2025?` },
+                { role: "user", content: `What is the latest status update on "${project.name}" infrastructure project in ${project.country}? Any delays, stage changes, or new developments in ${new Date().getFullYear()}?` },
               ],
               search_recency_filter: "week",
             }),
@@ -163,7 +166,7 @@ Analyze if there are meaningful changes. Return JSON with:
       }
     }
 
-    const result = { success: true, projects_checked: Math.min(projects.length, 5), updated: updatedCount, alerts_created: alertsCreated };
+    const result = { success: true, projects_checked: Math.min(projects.length, 20), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);

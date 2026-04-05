@@ -109,11 +109,6 @@ export default function DashboardOverview() {
   const totalValue = useMemo(() => projects.reduce((s, p) => s + (p.valueUsd || 0), 0), [projects]);
   const avgConfidence = useMemo(() => projects.length ? Math.round(projects.reduce((s, p) => s + p.confidence, 0) / projects.length) : 0, [projects]);
   const verifiedCount = useMemo(() => projects.filter(p => p.status === 'Verified').length, [projects]);
-  const recentRuns = useMemo(() => {
-    const cutoff = Date.now() - 86400000;
-    return researchTasks.filter(t => new Date(t.created_at).getTime() > cutoff).length;
-  }, [researchTasks]);
-
   // Data Quality Score
   const dataQuality = useMemo(() => {
     if (!projects.length) return { overall: 0, fields: [] };
@@ -165,8 +160,9 @@ export default function DashboardOverview() {
 
   const confidenceTrend = useMemo(() => {
     const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+    const offsets = [1, 0, 1, -1, 0, 1];
     const base = avgConfidence || 80;
-    return months.map((month, i) => ({ month, value: Math.max(50, base - (5 - i) * 1.2 + Math.random() * 2) | 0 }));
+    return months.map((month, i) => ({ month, value: Math.max(50, base - (5 - i) * 1.2 + offsets[i]) | 0 }));
   }, [avgConfidence]);
 
   const marketKPIs = useMemo(() => [
@@ -323,7 +319,8 @@ export default function DashboardOverview() {
       {/* Charts Row 2: Confidence trend + Alert distribution */}
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Confidence trend (your coverage)</h3>
+          <h3 className="font-serif text-lg font-semibold mb-1">Confidence trend (your coverage)</h3>
+          <p className="text-xs text-muted-foreground mb-3">Illustrative — historical time-series not yet available</p>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={confidenceTrend}>
               <defs>

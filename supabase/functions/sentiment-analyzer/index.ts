@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,10 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  // Hoist task and supabase so the outer catch can update task status on crash
+  let task: { id: string } | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -22,9 +27,11 @@ serve(async (req) => {
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase
+    if (!await isAgentEnabled(supabase, "sentiment-analyzer")) return pausedResponse("sentiment-analyzer");
+
+    const { data: taskData } = await supabase
       .from("research_tasks")
       .insert({
         task_type: "sentiment-analyzer",
@@ -33,14 +40,15 @@ serve(async (req) => {
         requested_by: gate.userId,
       })
       .select().single();
+    task = taskData;
 
     const { data: projects } = await supabase.from("projects").select("id, name, country").eq("approved", true).limit(15);
 
     const rawContent: string[] = [];
 
-    // Scrape news about existing projects
+    // Scrape news about existing projects — increased from 5 to 15
     if (FIRECRAWL_API_KEY && projects?.length) {
-      const sampleProjects = projects.slice(0, 5);
+      const sampleProjects = projects.slice(0, 15);
       for (const p of sampleProjects) {
         try {
           const res = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -141,6 +149,16 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, analyses: analyses.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Sentiment analyzer error:", e);
+    // Best-effort: mark the task as failed if it was created before the crash
+    if (task && supabase) {
+      try {
+        await supabase.from("research_tasks").update({
+          status: "failed",
+          error: e instanceof Error ? e.message : "Unknown error",
+          completed_at: new Date().toISOString(),
+        }).eq("id", task.id);
+      } catch { /* best-effort */ }
+    }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
