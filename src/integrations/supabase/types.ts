@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_config: {
+        Row: {
+          agent_type: string
+          enabled: boolean
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent_type: string
+          enabled?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent_type?: string
+          enabled?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           category: Database["public"]["Enums"]["alert_category"]
@@ -187,7 +211,9 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string | null
+          critical_only: boolean | null
           display_name: string | null
+          email_alerts: boolean | null
           id: string
           onboarded: boolean | null
           regions: string[] | null
@@ -196,11 +222,14 @@ export type Database = {
           stages: string[] | null
           tour_completed: boolean | null
           updated_at: string | null
+          weekly_digest: boolean | null
         }
         Insert: {
           company?: string | null
           created_at?: string | null
+          critical_only?: boolean | null
           display_name?: string | null
+          email_alerts?: boolean | null
           id: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -209,11 +238,14 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
+          weekly_digest?: boolean | null
         }
         Update: {
           company?: string | null
           created_at?: string | null
+          critical_only?: boolean | null
           display_name?: string | null
+          email_alerts?: boolean | null
           id?: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -222,6 +254,7 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
+          weekly_digest?: boolean | null
         }
         Relationships: []
       }

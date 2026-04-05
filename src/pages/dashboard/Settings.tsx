@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -17,14 +17,13 @@ import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
 import { openCustomerPortal, startCheckoutSession } from '@/lib/billing/stripeClient';
 
-interface Settings {
+interface NotifSettings {
   emailAlerts: boolean;
   weeklyDigest: boolean;
   criticalOnly: boolean;
-  regions: string[];
 }
 
-const defaults: Settings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false, regions: [] };
+const defaults: NotifSettings = { emailAlerts: true, weeklyDigest: true, criticalOnly: false };
 
 const ROLE_OPTIONS = [
   { value: 'investor', label: 'Investor / CFO' },
@@ -61,6 +60,7 @@ const agents = [
 
 export default function SettingsPage() {
   const { toast } = useToast();
+  const { profile, refreshProfile } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') || 'preferences';
   const setTab = (v: string) => {
@@ -75,23 +75,40 @@ export default function SettingsPage() {
     if (!next.get('tab')) next.set('tab', 'billing');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, toast]);
-  const [settings, setSettings] = useState<Settings>(() => {
-    const saved = localStorage.getItem('infradar_settings');
-    if (!saved) return defaults;
-    try { return JSON.parse(saved); } catch { return defaults; }
-  });
+
+  const [settings, setSettings] = useState<NotifSettings>(defaults);
+  const [saving, setSaving] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { canUseAi, staffBypass } = useEntitlements();
 
-  const save = () => {
-    localStorage.setItem('infradar_settings', JSON.stringify(settings));
-    toast({ title: 'Settings saved' });
-  };
+  // Sync notification prefs from profile once it loads
+  useEffect(() => {
+    if (!profile) return;
+    setSettings({
+      emailAlerts: profile.email_alerts ?? defaults.emailAlerts,
+      weeklyDigest: profile.weekly_digest ?? defaults.weeklyDigest,
+      criticalOnly: profile.critical_only ?? defaults.criticalOnly,
+    });
+  }, [profile?.id]);
 
-  const toggleRegion = (r: string) => {
-    setSettings(s => ({ ...s, regions: s.regions.includes(r) ? s.regions.filter(x => x !== r) : [...s.regions, r] }));
-  };
+  const save = useCallback(async () => {
+    if (!profile) return;
+    setSaving(true);
+    const { error } = await supabase.from('profiles').update({
+      email_alerts: settings.emailAlerts,
+      weekly_digest: settings.weeklyDigest,
+      critical_only: settings.criticalOnly,
+      updated_at: new Date().toISOString(),
+    }).eq('id', profile.id);
+    if (error) {
+      toast({ title: 'Error saving', description: error.message, variant: 'destructive' });
+    } else {
+      await refreshProfile();
+      toast({ title: 'Settings saved' });
+    }
+    setSaving(false);
+  }, [profile, settings, toast, refreshProfile]);
 
   const runAgent = async (name: string, fn: () => Promise<unknown>) => {
     if (!staffBypass) {
@@ -167,17 +184,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="glass-panel rounded-xl p-6 space-y-4">
-            <h3 className="font-serif text-lg font-semibold">Region preferences</h3>
-            {REGIONS.map(r => (
-              <label key={r} className="flex items-center gap-2 cursor-pointer">
-                <Checkbox checked={settings.regions.includes(r)} onCheckedChange={() => toggleRegion(r)} />
-                <span className="text-sm">{r}</span>
-              </label>
-            ))}
-          </div>
-
-          <Button onClick={save} className="teal-glow">Save settings</Button>
+          <Button onClick={save} disabled={saving} className="teal-glow">{saving ? 'Saving…' : 'Save settings'}</Button>
         </TabsContent>
 
         <TabsContent value="agents">

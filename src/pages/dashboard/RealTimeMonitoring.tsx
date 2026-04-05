@@ -57,11 +57,11 @@ export default function RealTimeMonitoring() {
     },
   });
 
-  const { data: dbProjects = [] } = useQuery({
+  const { data: dbProjects = [] } = useQuery<{ id: string; name: string; slug: string }[]>({
     queryKey: ['db-projects-lookup'],
     queryFn: async () => {
       const { data } = await supabase.from('projects').select('id, name, slug').eq('approved', true);
-      return data || [];
+      return (data || []) as { id: string; name: string; slug: string }[];
     },
   });
 
@@ -92,7 +92,7 @@ export default function RealTimeMonitoring() {
     return () => { supabase.removeChannel(channel); };
   }, [queryClient]);
 
-  const dbProjectMap = new Map(dbProjects.map((p: any) => [p.id, p]));
+  const dbProjectMap = new Map(dbProjects.map(p => [p.id, p]));
 
   // KPI computations
   const activeProjects = useMemo(() => projects.filter(p => ['Construction', 'Financing', 'Awarded'].includes(p.stage)).length, [projects]);
@@ -372,7 +372,7 @@ export default function RealTimeMonitoring() {
                     <TableRow key={u.id} className="border-border/50">
                       <TableCell className="text-xs font-medium">
                         {proj ? (
-                          <Link to={`/dashboard/projects/${(proj as any).slug}`} className="text-primary hover:underline">{(proj as any).name}</Link>
+                          <Link to={`/dashboard/projects/${proj.slug}`} className="text-primary hover:underline">{proj.name}</Link>
                         ) : <span className="text-muted-foreground">Unknown</span>}
                       </TableCell>
                       <TableCell><Badge variant="outline" className="text-[10px] capitalize">{u.field_changed}</Badge></TableCell>

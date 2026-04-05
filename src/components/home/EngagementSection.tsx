@@ -9,9 +9,7 @@ import type { Database, Json } from '@/integrations/supabase/types';
 
 type SubscriberInsert = Database['public']['Tables']['subscribers']['Insert'];
 import { toast } from 'sonner';
-import { SECTORS } from '@/data/projects';
-
-const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
+import { SECTORS, REGIONS } from '@/data/projects';
 
 function NewsletterCard() {
   const [email, setEmail] = useState('');

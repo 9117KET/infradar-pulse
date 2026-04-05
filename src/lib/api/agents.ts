@@ -47,6 +47,14 @@ export const agentApi = {
     use_ai?: boolean;
   }) => invokeAgentWithBody('insight-sources-agent', { ...(opts ?? {}) }),
 
+  runWorldBankIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
+    invokeAgentWithBody('world-bank-ingest-agent', { ...(opts ?? {}) }),
+  runIfcIngest: (opts?: { status?: string; limit?: number }) =>
+    invokeAgentWithBody('ifc-ingest-agent', { ...(opts ?? {}) }),
+  runAdbIngest: (opts?: { limit?: number }) =>
+    invokeAgentWithBody('adb-ingest-agent', { ...(opts ?? {}) }),
+  runAfdbIngest: () => invokeAgent('afdb-ingest-agent'),
+  runEbrdIngest: () => invokeAgent('ebrd-ingest-agent'),
   runEntityDedup: () => invokeAgent('entity-dedup'),
   runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
   runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),

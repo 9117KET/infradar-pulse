@@ -19,7 +19,7 @@ export function useTrackedProjects() {
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase
-        .from('tracked_projects' as any)
+        .from('tracked_projects')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -34,7 +34,7 @@ export function useTrackedProjects() {
   const trackProject = useMutation({
     mutationFn: async (projectId: string) => {
       if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase.from('tracked_projects' as any).insert({
+      const { error } = await supabase.from('tracked_projects').insert({
         user_id: user.id,
         project_id: projectId,
       });
@@ -47,7 +47,7 @@ export function useTrackedProjects() {
     mutationFn: async (projectId: string) => {
       if (!user) throw new Error('Not authenticated');
       const { error } = await supabase
-        .from('tracked_projects' as any)
+        .from('tracked_projects')
         .delete()
         .eq('user_id', user.id)
         .eq('project_id', projectId);

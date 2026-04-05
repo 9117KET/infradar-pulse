@@ -55,12 +55,12 @@ export default function Projects() {
   useEffect(() => {
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     supabase
-      .from('project_verification_log' as any)
+      .from('project_verification_log')
       .select('project_id')
       .eq('action', 'unverified')
       .gte('created_at', sevenDaysAgo)
       .then(({ data, error }) => {
-        if (error) { console.error('Failed to fetch verification log:', error.message); return; }
+        if (error) { return; }
         if (data) setRecentlyUnverified(new Set(data.map((d: any) => d.project_id)));
       });
   }, []);
@@ -364,10 +364,10 @@ export default function Projects() {
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={7} className="p-3"><Skeleton className="h-6 w-full" /></td></tr>
+                  <tr key={i}><td colSpan={8} className="p-3"><Skeleton className="h-6 w-full" /></td></tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
                   <td className="p-3">

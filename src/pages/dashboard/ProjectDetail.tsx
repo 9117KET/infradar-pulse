@@ -64,13 +64,13 @@ export default function ProjectDetail() {
   const [verifyAction, setVerifyAction] = useState<'verified' | 'unverified'>('verified');
   const [verifyReason, setVerifyReason] = useState('');
   const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verificationLog, setVerificationLog] = useState<any[]>([]);
+  const [verificationLog, setVerificationLog] = useState<{ id: string; action: string; reason: string; performed_by: string | null; created_at: string }[]>([]);
 
   // Fetch verification log
   useEffect(() => {
     if (!project?.dbId) return;
     supabase
-      .from('project_verification_log' as any)
+      .from('project_verification_log')
       .select('*')
       .eq('project_id', project.dbId)
       .order('created_at', { ascending: false })
@@ -109,7 +109,7 @@ export default function ProjectDetail() {
       const newStatus = verifyAction === 'verified' ? 'Verified' : 'Pending';
       await supabase.from('projects').update({ status: newStatus as any }).eq('id', project.dbId);
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('project_verification_log' as any).insert({
+      await supabase.from('project_verification_log').insert({
         project_id: project.dbId,
         action: verifyAction,
         reason: verifyReason,

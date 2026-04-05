@@ -14,6 +14,9 @@ export interface UserProfile {
   stages: string[];
   onboarded: boolean;
   tour_completed: boolean;
+  email_alerts: boolean;
+  weekly_digest: boolean;
+  critical_only: boolean;
 }
 
 interface AuthCtx {
@@ -107,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    window.location.href = '/login';
   };
 
   return (

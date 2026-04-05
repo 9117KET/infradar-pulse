@@ -3,21 +3,24 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const NEWS_SOURCES = [
-  "global infrastructure projects 2025",
+  `global infrastructure projects ${CURRENT_YEAR}`,
   "IJGlobal infrastructure projects worldwide",
-  "World Bank new infrastructure projects 2025",
+  `World Bank new infrastructure projects ${CURRENT_YEAR}`,
   "Construction Week global megaprojects",
-  "infrastructure mega projects worldwide 2025",
-  "Asian Development Bank infrastructure 2025",
-  "European Investment Bank infrastructure 2025",
-  "Inter-American Development Bank infrastructure 2025",
+  `infrastructure mega projects worldwide ${CURRENT_YEAR}`,
+  `Asian Development Bank infrastructure ${CURRENT_YEAR}`,
+  `European Investment Bank infrastructure ${CURRENT_YEAR}`,
+  `Inter-American Development Bank infrastructure ${CURRENT_YEAR}`,
 ];
 
 /** Must match public.project_sector (additive; legacy + coverage sectors). */
@@ -38,12 +41,68 @@ const PROJECT_SECTORS = [
   "Water",
 ] as const;
 
-const RESEARCH_QUERIES = [
-  "latest infrastructure megaprojects worldwide 2025 construction awarded",
-  "new infrastructure projects Asia Europe Americas 2025 tender awarded financing",
-  "major construction projects global 2025 transport energy water",
-  "renewable energy infrastructure projects worldwide 2025 solar wind",
-  "transport rail port airport projects global 2025",
+const RESEARCH_QUERIES: { query: string; group: string }[] = [
+  // --- core: current year new announcements ---
+  { group: "core", query: `infrastructure megaprojects worldwide ${CURRENT_YEAR} construction awarded financing` },
+  { group: "core", query: `major transport rail port airport projects global ${CURRENT_YEAR} tender awarded` },
+  { group: "core", query: `water sanitation dam irrigation projects worldwide ${CURRENT_YEAR} construction` },
+  { group: "core", query: `energy power grid transmission projects global ${CURRENT_YEAR} awarded` },
+
+  // --- ongoing: multi-year active construction (no single-year restriction) ---
+  { group: "ongoing", query: `major infrastructure megaproject currently under construction worldwide multi-year active status 2020 2021 2022 2023 2024 completion 2026 2027 2028` },
+  { group: "ongoing", query: `infrastructure megaproject construction phase ongoing active 5 billion 10 billion worldwide dam railway highway port` },
+  { group: "ongoing", query: `metro subway LRT airport expansion under construction ongoing worldwide active project commissioning` },
+  { group: "ongoing", query: `Belt and Road Initiative BRI project under construction ongoing status update Africa Asia 2022 2023 2024 2025` },
+
+  // --- historical: completed projects for intelligence, benchmarks & contacts ---
+  { group: "historical", query: `infrastructure megaproject completed commissioned 2022 2023 2024 Africa Asia Middle East Latin America lessons` },
+  { group: "historical", query: `major infrastructure project delivered finished 2021 2022 2023 transport energy water stakeholders contractor` },
+  { group: "historical", query: `World Bank AfDB ADB infrastructure project completed 2020 2021 2022 2023 final report evaluation` },
+
+  // --- renewables ---
+  { group: "renewables", query: `renewable energy solar wind offshore projects worldwide ${CURRENT_YEAR} awarded financing` },
+  { group: "renewables", query: `green hydrogen infrastructure projects ${CURRENT_YEAR} MENA Africa Asia announced` },
+  { group: "renewables", query: `solar farm wind park under construction ongoing commissioning 2023 2024 2025 2026 Africa Asia` },
+
+  // --- digital / data centers ---
+  { group: "digital", query: `data center hyperscale AI GPU cluster infrastructure construction ${CURRENT_YEAR} awarded billion` },
+  { group: "digital", query: `subsea cable digital infrastructure projects ${CURRENT_YEAR} Africa Asia Pacific announced` },
+  { group: "digital", query: `data center construction project ongoing 2022 2023 2024 2025 hyperscale colocation Africa Asia Middle East` },
+
+  // --- mining ---
+  { group: "mining", query: `mining infrastructure projects ${CURRENT_YEAR} Africa Central Asia awarded copper lithium cobalt` },
+  { group: "mining", query: `mineral processing plant smelter construction ${CURRENT_YEAR} awarded financing billion` },
+  { group: "mining", query: `copper gold lithium mine construction ongoing 2021 2022 2023 2024 2025 production ramp-up Africa South America` },
+
+  // --- oil & gas / chemical ---
+  { group: "oilgas", query: `LNG terminal pipeline oil gas infrastructure ${CURRENT_YEAR} awarded construction MENA Africa` },
+  { group: "oilgas", query: `petrochemical refinery industrial complex ${CURRENT_YEAR} construction awarded billion` },
+  { group: "oilgas", query: `LNG facility refinery under construction ongoing 2021 2022 2023 2024 2025 MENA Africa Asia` },
+
+  // --- urban development ---
+  { group: "urban", query: `smart city urban development megaproject ${CURRENT_YEAR} construction awarded Middle East Africa Asia` },
+  { group: "urban", query: `new city giga-project urban district construction ongoing 2020 2021 2022 2023 2024 NEOM Lusail Diamniadio` },
+
+  // --- MENA ---
+  { group: "mena", query: `Saudi Arabia UAE Qatar infrastructure megaprojects ${CURRENT_YEAR} awarded construction` },
+  { group: "mena", query: `Egypt Iraq Kuwait Oman infrastructure projects ${CURRENT_YEAR} tender awarded financing` },
+  { group: "mena", query: `Saudi Vision 2030 UAE giga-project infrastructure under construction ongoing progress update 2024 2025` },
+
+  // --- Africa ---
+  { group: "africa", query: `Sub-Saharan Africa infrastructure projects ${CURRENT_YEAR} awarded construction energy transport` },
+  { group: "africa", query: `Nigeria Kenya Ethiopia Tanzania infrastructure ${CURRENT_YEAR} construction awarded billion` },
+  { group: "africa", query: `Africa infrastructure under construction ongoing 2021 2022 2023 2024 World Bank AfDB funded transport energy water` },
+
+  // --- Asia ---
+  { group: "asia", query: `Southeast Asia infrastructure projects ${CURRENT_YEAR} Vietnam Indonesia Philippines Thailand awarded construction` },
+  { group: "asia", query: `South Asia India Bangladesh Pakistan Sri Lanka infrastructure ${CURRENT_YEAR} awarded construction` },
+  { group: "asia", query: `Central Asia Kazakhstan Uzbekistan Tajikistan infrastructure ${CURRENT_YEAR} construction awarded` },
+  { group: "asia", query: `Asia infrastructure megaproject under construction ongoing 2022 2023 2024 2025 ADB AIIB funded` },
+
+  // --- Americas ---
+  { group: "americas", query: `Latin America Brazil Mexico Colombia Chile Peru infrastructure ${CURRENT_YEAR} construction awarded` },
+  { group: "americas", query: `North America Canada US infrastructure megaprojects ${CURRENT_YEAR} awarded construction IDB` },
+  { group: "americas", query: `Latin America infrastructure under construction ongoing 2021 2022 2023 2024 IDB funded transport energy` },
 ];
 
 interface ExtractedProject {
@@ -75,6 +134,10 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  // Hoist task and supabase so the outer catch can update task status on crash
+  let task: { id: string } | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
@@ -83,9 +146,11 @@ serve(async (req) => {
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase
+    if (!await isAgentEnabled(supabase, "discovery")) return pausedResponse("discovery");
+
+    const { data: taskData } = await supabase
       .from("research_tasks")
       .insert({
         task_type: "discovery",
@@ -95,67 +160,85 @@ serve(async (req) => {
       })
       .select()
       .single();
+    task = taskData;
 
     const rawContent: string[] = [];
 
-    // Step 1: Scrape news sources with Firecrawl
+    // Step 1: Scrape 2 news sources with Firecrawl
     if (FIRECRAWL_API_KEY) {
       console.log("Searching with Firecrawl...");
-      try {
-        const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)],
-            limit: 5,
-            scrapeOptions: { formats: ["markdown"] },
-          }),
-        });
-        const searchData = await searchResponse.json();
-        if (searchData?.data) {
-          for (const result of searchData.data.slice(0, 3)) {
-            if (result.markdown) {
-              rawContent.push(`Source: ${result.url}\n${result.markdown.slice(0, 3000)}`);
+      const firecrawlQueries = [
+        NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)],
+        NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)],
+      ];
+      for (const fcQuery of firecrawlQueries) {
+        try {
+          const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: fcQuery,
+              limit: 5,
+              scrapeOptions: { formats: ["markdown"] },
+            }),
+          });
+          const searchData = await searchResponse.json();
+          if (searchData?.data) {
+            for (const result of searchData.data.slice(0, 3)) {
+              if (result.markdown) {
+                rawContent.push(`Source: ${result.url}\n${result.markdown.slice(0, 3000)}`);
+              }
             }
           }
+        } catch (e) {
+          console.error("Firecrawl error:", e);
         }
-      } catch (e) {
-        console.error("Firecrawl error:", e);
       }
     }
 
-    // Step 2: Deep research with Perplexity
+    // Step 2: Deep research with Perplexity — 4 queries per run, cycling through groups
     if (PERPLEXITY_API_KEY) {
       console.log("Researching with Perplexity...");
-      try {
-        const query = RESEARCH_QUERIES[Math.floor(Math.random() * RESEARCH_QUERIES.length)];
-        const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
-              { role: "user", content: query },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const pxData = await pxResponse.json();
-        if (pxData?.choices?.[0]?.message?.content) {
-          rawContent.push(`Perplexity Research:\n${pxData.choices[0].message.content}`);
-          if (pxData.citations) {
-            rawContent.push(`Citations: ${pxData.citations.join(", ")}`);
+
+      const groupNames = [...new Set(RESEARCH_QUERIES.map((q) => q.group))];
+      // Cycle offset based on current time so successive runs hit different groups
+      const cycleOffset = Math.floor(Date.now() / 1000) % groupNames.length;
+      const selectedGroups = Array.from({ length: 4 }, (_, i) =>
+        groupNames[(cycleOffset + i) % groupNames.length]
+      );
+
+      for (const group of selectedGroups) {
+        const queriesInGroup = RESEARCH_QUERIES.filter((q) => q.group === group);
+        const chosen = queriesInGroup[Math.floor(Math.random() * queriesInGroup.length)];
+        try {
+          const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "sonar",
+              messages: [
+                { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
+                { role: "user", content: chosen.query },
+              ],
+              search_recency_filter: "month",
+            }),
+          });
+          const pxData = await pxResponse.json();
+          if (pxData?.choices?.[0]?.message?.content) {
+            rawContent.push(`Perplexity Research [${group}]:\n${pxData.choices[0].message.content}`);
+            if (pxData.citations) {
+              rawContent.push(`Citations: ${pxData.citations.join(", ")}`);
+            }
           }
+        } catch (e) {
+          console.error(`Perplexity error for group ${group}:`, e);
         }
-      } catch (e) {
-        console.error("Perplexity error:", e);
       }
     }
 
@@ -291,6 +374,21 @@ ${rawContent.join("\n\n---\n\n")}`;
       }
     } catch (e) {
       console.error("Failed to parse AI response:", e);
+    }
+
+    // Guard: treat zero extractions as a failure, not silent success
+    if (extractedProjects.length === 0) {
+      if (task) {
+        await supabase.from("research_tasks").update({
+          status: "failed",
+          error: "AI returned 0 projects — possible tool_call parse failure or genuinely empty result",
+          completed_at: new Date().toISOString(),
+        }).eq("id", task.id);
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: "AI extracted 0 projects", raw_content_length: rawContent.length }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Step 4: Upsert into database
@@ -452,6 +550,16 @@ ${rawContent.join("\n\n---\n\n")}`;
     );
   } catch (e) {
     console.error("Research agent error:", e);
+    // Best-effort: mark the task as failed if it was created before the crash
+    if (task && supabase) {
+      try {
+        await supabase.from("research_tasks").update({
+          status: "failed",
+          error: e instanceof Error ? e.message : "Unknown error",
+          completed_at: new Date().toISOString(),
+        }).eq("id", task.id);
+      } catch { /* best-effort */ }
+    }
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

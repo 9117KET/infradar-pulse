@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Alert, AlertCategory } from '@/data/alerts';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 export interface AlertStats {
   total: number;
@@ -78,12 +79,12 @@ export function useAlerts() {
 
   const markAsRead = async (id: string) => {
     const { error } = await supabase.from('alerts').update({ read: true }).eq('id', id);
-    if (error) console.error('Failed to mark alert as read:', error.message);
+    if (error) toast.error('Failed to mark alert as read');
   };
 
   const markAllAsRead = async () => {
     const { error } = await supabase.from('alerts').update({ read: true }).eq('read', false);
-    if (error) console.error('Failed to mark all alerts as read:', error.message);
+    if (error) toast.error('Failed to mark all alerts as read');
   };
 
   return { alerts, loading, stats, filterByCategory, markAsRead, markAllAsRead };

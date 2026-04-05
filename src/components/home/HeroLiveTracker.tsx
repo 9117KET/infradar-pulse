@@ -215,10 +215,11 @@ export function HeroLiveTracker({ projects }: { projects: TrackerProject[] }) {
   }, [projects]);
 
   const sparkData = useMemo(() => {
-    // Simulate activity distribution from sector counts
     const base = sectorData.map(s => s.count);
     const padded = [...base];
-    while (padded.length < 12) padded.push(Math.floor(Math.random() * 5) + 1);
+    const filler = [3, 1, 4, 2, 5, 2, 3, 1, 4, 2, 3, 1];
+    let fi = 0;
+    while (padded.length < 12) padded.push(filler[fi++ % filler.length]);
     return padded;
   }, [sectorData]);
 

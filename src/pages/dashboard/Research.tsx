@@ -135,10 +135,7 @@ export default function Research() {
 
       const trackSavedProject = async (projectId: string) => {
         if (!user?.id) return;
-        const { error } = await supabase.from('tracked_projects' as any).insert({ user_id: user.id, project_id: projectId });
-        if (error && (error as any).code !== '23505') {
-          console.warn('track project:', error.message);
-        }
+        const { error } = await supabase.from('tracked_projects').insert({ user_id: user.id, project_id: projectId });
         queryClient.invalidateQueries({ queryKey: ['tracked-projects'] });
       };
 

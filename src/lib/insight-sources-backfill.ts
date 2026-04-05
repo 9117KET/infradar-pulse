@@ -3,6 +3,7 @@
  * (not deployed, CORS, network). Mirrors extract + merge logic from the edge function — no AI.
  */
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { getDisplaySources, type Insight, type InsightSource } from '@/hooks/use-insights';
 
 const MAX_PER_RUN = 35;
@@ -58,7 +59,7 @@ export async function runClientInsightSourcesBackfill(
   scope: 'missing' | 'all',
 ): Promise<ClientBackfillSummary> {
   const { data: rows, error } = await supabase
-    .from('insights' as never)
+    .from('insights')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(250);
@@ -95,8 +96,8 @@ export async function runClientInsightSourcesBackfill(
     }
 
     const { error: upErr } = await supabase
-      .from('insights' as never)
-      .update({ sources: merged } as never)
+      .from('insights')
+      .update({ sources: merged as Json })
       .eq('id', row.id);
 
     if (upErr) {
