@@ -1,6 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useAlerts } from '@/hooks/use-alerts';
+import { useProjects } from '@/hooks/use-projects';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { ALERT_CATEGORIES, type AlertCategory } from '@/data/alerts';
+
+const PAGE_SIZE = 10;
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,12 +53,33 @@ interface IntelBrief {
 
 export default function Alerts() {
   const { alerts, loading, stats, filterByCategory, markAllAsRead } = useAlerts();
+  const { projects } = useProjects();
+  const { staffBypass } = useEntitlements();
   const [selectedCategory, setSelectedCategory] = useState<AlertCategory | 'all'>('all');
   const [brief, setBrief] = useState<IntelBrief | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
   const [briefOpen, setBriefOpen] = useState(true);
+  const [page, setPage] = useState(0);
 
-  const filtered = filterByCategory(selectedCategory);
+  // Coverage-filtered and role-filtered alerts
+  const coverageProjectNames = useMemo(() => {
+    const s = new Set<string>();
+    projects.forEach(p => s.add(p.name.trim().toLowerCase()));
+    return s;
+  }, [projects]);
+
+  const filtered = useMemo(() => {
+    let result = filterByCategory(selectedCategory);
+    // Filter to user's coverage projects
+    if (coverageProjectNames.size > 0) {
+      result = result.filter(a => coverageProjectNames.has((a.projectName || '').trim().toLowerCase()));
+    }
+    // Hide stakeholder alerts for normal users
+    if (!staffBypass) {
+      result = result.filter(a => a.category !== 'stakeholder');
+    }
+    return result;
+  }, [filterByCategory, selectedCategory, coverageProjectNames, staffBypass]);
 
   // Volume over time (last 30 days, grouped by day)
   const volumeByDay = useMemo(() => {
@@ -343,24 +368,26 @@ export default function Alerts() {
       {/* Category Filter Bar */}
       <div className="flex flex-wrap gap-1.5">
         <button
-          onClick={() => setSelectedCategory('all')}
+          onClick={() => { setSelectedCategory('all'); setPage(0); }}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
         >
-          All ({stats.total})
+          All ({filtered.length})
         </button>
-        {ALERT_CATEGORIES.map(c => {
-          const count = stats.byCategory[c.value] || 0;
-          if (count === 0) return null;
-          return (
-            <button
-              key={c.value}
-              onClick={() => setSelectedCategory(c.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === c.value ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-            >
-              {categoryIcon[c.value]} {c.label} ({count})
-            </button>
-          );
-        })}
+        {ALERT_CATEGORIES
+          .filter(c => staffBypass || c.value !== 'stakeholder')
+          .map(c => {
+            const count = stats.byCategory[c.value] || 0;
+            if (count === 0) return null;
+            return (
+              <button
+                key={c.value}
+                onClick={() => { setSelectedCategory(c.value); setPage(0); }}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === c.value ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+              >
+                {categoryIcon[c.value]} {c.label} ({count})
+              </button>
+            );
+          })}
       </div>
 
       {/* Alert List */}
@@ -369,7 +396,7 @@ export default function Alerts() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">No alerts in this category</p>
-        ) : filtered.map(a => (
+        ) : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(a => (
           <div key={a.id} className={`glass-panel rounded-xl p-5 flex items-start gap-4 ${!a.read ? 'border-primary/20' : ''}`}>
             <AlertTriangle className={`h-5 w-5 mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-destructive' : a.severity === 'high' ? 'text-amber-500' : 'text-muted-foreground'}`} />
             <div className="flex-1">
@@ -390,6 +417,27 @@ export default function Alerts() {
             </div>
           </div>
         ))}
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between pt-2">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1.5 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-muted-foreground">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / PAGE_SIZE) - 1, p + 1))}
+              disabled={(page + 1) * PAGE_SIZE >= filtered.length}
+              className="px-3 py-1.5 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

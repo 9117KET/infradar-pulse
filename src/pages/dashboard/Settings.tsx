@@ -156,7 +156,7 @@ export default function SettingsPage() {
           <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
           <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
-          <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>
+          {staffBypass && <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="preferences">
@@ -187,7 +187,7 @@ export default function SettingsPage() {
           <Button onClick={save} disabled={saving} className="teal-glow">{saving ? 'Saving…' : 'Save settings'}</Button>
         </TabsContent>
 
-        <TabsContent value="agents">
+        {staffBypass && <TabsContent value="agents">
           <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="ai" />
           <div className="glass-panel rounded-xl p-6 space-y-4">
             <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Bot className="h-5 w-5 text-primary" />Intelligence agents</h3>
@@ -213,7 +213,7 @@ export default function SettingsPage() {
               })}
             </div>
           </div>
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </div>
   );

@@ -26,7 +26,7 @@ export function CoverageSection() {
               transition={{ delay: i * 0.04 }}
             >
               <Link
-                to={`/?pillar=${encodeURIComponent(p.id)}#demo`}
+                to="/#demo"
                 className="glass-panel rounded-xl p-6 flex gap-4 h-full hover:border-primary/30 transition-colors group"
               >
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

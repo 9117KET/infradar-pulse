@@ -1,18 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useProjects } from '@/hooks/use-projects';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart3, FileText, Download, Loader2, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, FileText, Loader2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
 
 const SECTOR_COLORS = [
   'hsl(var(--primary))', 'hsl(210, 60%, 55%)', 'hsl(40, 80%, 55%)',
@@ -20,7 +19,10 @@ const SECTOR_COLORS = [
 ];
 
 export default function AnalyticsReports() {
-  const { projects, loading } = useProjects();
+  const { profile, hasRole } = useAuth();
+  const isStaff = hasRole('admin') || hasRole('researcher');
+  const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
+  const { projects, loading } = useProjects(filters);
   const { canExportCsv, canUseAi, refresh: refreshEntitlements } = useEntitlements();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [exportingCsv, setExportingCsv] = useState(false);
@@ -42,29 +44,6 @@ export default function AnalyticsReports() {
     return Object.entries(map).map(([name, d], i) => ({
       name, count: d.count, value: d.value, fill: SECTOR_COLORS[i % SECTOR_COLORS.length],
     })).sort((a, b) => b.value - a.value);
-  }, [filtered]);
-
-  // Region breakdown
-  const regionData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filtered.forEach(p => { map[p.region] = (map[p.region] || 0) + 1; });
-    return Object.entries(map).map(([name, count]) => ({ name, count }));
-  }, [filtered]);
-
-  // Confidence distribution
-  const confBuckets = useMemo(() => [
-    { range: '<60%', count: filtered.filter(p => p.confidence < 60).length },
-    { range: '60-69%', count: filtered.filter(p => p.confidence >= 60 && p.confidence < 70).length },
-    { range: '70-79%', count: filtered.filter(p => p.confidence >= 70 && p.confidence < 80).length },
-    { range: '80-89%', count: filtered.filter(p => p.confidence >= 80 && p.confidence < 90).length },
-    { range: '90%+', count: filtered.filter(p => p.confidence >= 90).length },
-  ], [filtered]);
-
-  // Stage distribution
-  const stageData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filtered.forEach(p => { map[p.stage] = (map[p.stage] || 0) + 1; });
-    return Object.entries(map).map(([name, count]) => ({ name, count }));
   }, [filtered]);
 
   const totalValue = filtered.reduce((s, p) => s + p.valueUsd, 0);
@@ -154,9 +133,11 @@ export default function AnalyticsReports() {
             <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
             {exportingCsv ? 'Exporting…' : 'Export CSV'}
           </Button>
-          <Button onClick={generateExecutiveReport} disabled={generatingReport} size="sm" className="teal-glow">
-            {generatingReport ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Generating…</> : <><FileText className="h-3.5 w-3.5 mr-1.5" />Executive Report</>}
-          </Button>
+          {isStaff && (
+            <Button onClick={generateExecutiveReport} disabled={generatingReport} size="sm" className="teal-glow">
+              {generatingReport ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Generating…</> : <><FileText className="h-3.5 w-3.5 mr-1.5" />Executive Report</>}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -188,79 +169,46 @@ export default function AnalyticsReports() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Sector Donut */}
-        <Card className="glass-panel border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Pipeline by Sector</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={sectorData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2}>
-                  {sectorData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} formatter={(v: number) => `$${(v / 1e9).toFixed(1)}B`} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex flex-wrap gap-3 justify-center mt-2">
-              {sectorData.map(s => (
-                <div key={s.name} className="flex items-center gap-1.5 text-xs">
-                  <div className="h-2.5 w-2.5 rounded-full" style={{ background: s.fill }} />
-                  <span className="text-muted-foreground">{s.name}</span>
-                  <span className="font-medium">{s.count}</span>
-                </div>
+      {/* Value by Sector */}
+      <Card className="glass-panel border-border">
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Investment Value by Sector</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-border">
+                <TableHead>Sector</TableHead>
+                <TableHead className="text-right">Projects</TableHead>
+                <TableHead className="text-right">Total Value</TableHead>
+                <TableHead className="text-right">Avg Value</TableHead>
+                <TableHead className="text-right">Avg Confidence</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sectorData.map((s, i) => (
+                <TableRow key={s.name} className="border-border/50">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: SECTOR_COLORS[i % SECTOR_COLORS.length] }} />
+                      {s.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">{s.count}</TableCell>
+                  <TableCell className="text-right font-medium">${(s.value / 1e9).toFixed(1)}B</TableCell>
+                  <TableCell className="text-right text-muted-foreground">${(s.value / s.count / 1e6).toFixed(0)}M</TableCell>
+                  <TableCell className="text-right">
+                    <span className={
+                      filtered.filter(p => p.sector === s.name).reduce((acc, p) => acc + p.confidence, 0) / s.count >= 80
+                        ? 'text-emerald-400' : 'text-amber-400'
+                    }>
+                      {Math.round(filtered.filter(p => p.sector === s.name).reduce((acc, p) => acc + p.confidence, 0) / s.count)}%
+                    </span>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Region Bar */}
-        <Card className="glass-panel border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Projects by Region</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={regionData} margin={{ left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Confidence Distribution */}
-        <Card className="glass-panel border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Confidence Distribution</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={confBuckets}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="range" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} />
-                <Bar dataKey="count" fill="hsl(160, 50%, 45%)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Stage Distribution */}
-        <Card className="glass-panel border-border">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Projects by Stage</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stageData} layout="vertical" margin={{ left: 80 }}>
-                <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
-                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={75} />
-                <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12, color: 'hsl(var(--foreground))' }} />
-                <Bar dataKey="count" fill="hsl(210, 60%, 55%)" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Project Table */}
       <Card className="glass-panel border-border">

@@ -161,11 +161,6 @@ export default function GeoIntelligence() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground max-w-2xl">
-        The map uses the full approved project pipeline. Turn on <strong className="text-foreground">Match my onboarding</strong> to limit dots and filters to the regions, sectors, and stages in your profile (
-        <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link>
-        ). Turn it off to explore everything, then narrow with the dropdowns.
-      </p>
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <Layers className="h-5 w-5 text-primary" /> Geospatial Intelligence
