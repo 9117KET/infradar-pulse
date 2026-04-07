@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+const PAGE_SIZE = 10;
 import { useProjects } from '@/hooks/use-projects';
 import { useAlerts } from '@/hooks/use-alerts';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,7 @@ import { Link } from 'react-router-dom';
 export default function RiskAnomalySignals() {
   const { projects, loading } = useProjects();
   const { alerts } = useAlerts();
+  const [page, setPage] = useState(0);
 
   const riskProjects = useMemo(() => {
     return projects
@@ -44,7 +46,6 @@ export default function RiskAnomalySignals() {
       <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
         <AlertTriangle className="h-5 w-5 text-primary" /> Risk & Anomaly Signals
       </h1>
-      <p className="text-sm text-muted-foreground">Automated detection of cost overruns, timeline drift, political risk factors, and supply chain disruptions.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <Card className="glass-panel border-border">
@@ -93,51 +94,79 @@ export default function RiskAnomalySignals() {
 
       {/* Flagged projects table */}
       <Card className="glass-panel border-border">
-        <CardHeader><CardTitle className="text-base">Flagged Projects</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Flagged Projects</CardTitle>
+          {riskProjects.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, riskProjects.length)} of {riskProjects.length}
+            </span>
+          )}
+        </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Loading…</p>
           ) : riskProjects.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">No risk anomalies detected</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border">
-                  <TableHead>Project</TableHead>
-                  <TableHead>Risk Score</TableHead>
-                  <TableHead>Anomalies</TableHead>
-                  <TableHead>Alerts</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {riskProjects.map(p => (
-                  <TableRow key={p.id} className="border-border/50">
-                    <TableCell>
-                      <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
-                      <div className="text-[10px] text-muted-foreground">{p.country} · {p.region}</div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {p.riskScore >= 50 ? <TrendingUp className="h-3 w-3 text-red-400" /> : <TrendingDown className="h-3 w-3 text-emerald-400" />}
-                        <span className={`font-bold ${p.riskScore >= 75 ? 'text-red-400' : p.riskScore >= 50 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                          {p.riskScore}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {p.anomalies.map(a => (
-                          <Badge key={a} variant="outline" className="text-[9px] border-red-500/30 text-red-400">{a}</Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{p.alertCount}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{p.status}</Badge></TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead>Project</TableHead>
+                    <TableHead>Risk Score</TableHead>
+                    <TableHead>Anomalies</TableHead>
+                    <TableHead>Alerts</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {riskProjects.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(p => (
+                    <TableRow key={p.id} className="border-border/50">
+                      <TableCell>
+                        <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                        <div className="text-[10px] text-muted-foreground">{p.country} · {p.region}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {p.riskScore >= 50 ? <TrendingUp className="h-3 w-3 text-red-400" /> : <TrendingDown className="h-3 w-3 text-emerald-400" />}
+                          <span className={`font-bold ${p.riskScore >= 75 ? 'text-red-400' : p.riskScore >= 50 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                            {p.riskScore}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {p.anomalies.map(a => (
+                            <Badge key={a} variant="outline" className="text-[9px] border-red-500/30 text-red-400">{a}</Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{p.alertCount}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">{p.status}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {riskProjects.length > PAGE_SIZE && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+                  <button
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                    className="px-3 py-1 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs text-muted-foreground">Page {page + 1} of {Math.ceil(riskProjects.length / PAGE_SIZE)}</span>
+                  <button
+                    onClick={() => setPage(p => Math.min(Math.ceil(riskProjects.length / PAGE_SIZE) - 1, p + 1))}
+                    disabled={(page + 1) * PAGE_SIZE >= riskProjects.length}
+                    className="px-3 py-1 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

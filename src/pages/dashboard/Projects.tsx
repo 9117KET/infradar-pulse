@@ -42,7 +42,8 @@ export default function Projects() {
   const hasPreferenceFilters =
     !!profile?.onboarded &&
     ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
-  const { projects, loading } = useProjects(preferenceFilters);
+  const { projects, allProjects, loading } = useProjects(preferenceFilters);
+  const [viewScope, setViewScope] = useState<'coverage' | 'all'>('coverage');
   const { isTracked, toggleTrack } = useTrackedProjects();
   const canCreate = hasRole('admin') || hasRole('researcher');
   const [search, setSearch] = useState('');
@@ -65,8 +66,10 @@ export default function Projects() {
       });
   }, []);
 
+  const projectSource = (!hasPreferenceFilters || viewScope === 'all') ? allProjects : projects;
+
   const filtered = useMemo(() => {
-    return projects.filter(p => {
+    return projectSource.filter(p => {
       if (listScope === 'tracked' && (!p.dbId || !isTracked(p.dbId))) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
       if (stage !== 'all' && p.stage !== stage) return false;
@@ -76,7 +79,7 @@ export default function Projects() {
       if (confFilter === 'low' && p.confidence >= 70) return false;
       return true;
     });
-  }, [projects, search, stage, sector, confFilter, listScope, isTracked]);
+  }, [projectSource, search, stage, sector, confFilter, listScope, isTracked]);
 
   // Aggregations for charts
   const totalValue = useMemo(() => filtered.reduce((s, p) => s + (p.valueUsd || 0), 0), [filtered]);
@@ -171,7 +174,23 @@ export default function Projects() {
             </p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {hasPreferenceFilters && (
+            <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+              <button
+                className={`px-3 py-1.5 transition-colors ${viewScope === 'coverage' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-white/[0.04]'}`}
+                onClick={() => setViewScope('coverage')}
+              >
+                My coverage
+              </button>
+              <button
+                className={`px-3 py-1.5 transition-colors ${viewScope === 'all' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-white/[0.04]'}`}
+                onClick={() => setViewScope('all')}
+              >
+                All projects
+              </button>
+            </div>
+          )}
           {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
           <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
           <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>

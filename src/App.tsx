@@ -74,13 +74,13 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
-              <Route path="/dashboard/research" element={<Research />} />
-              <Route path="/dashboard/digests" element={<Digests />} />
-              <Route path="/dashboard/datasets" element={<Datasets />} />
-              <Route path="/dashboard/reports" element={<Reports />} />
+              <Route path="/dashboard/research" element={<RoleGuard requiredRole="researcher"><Research /></RoleGuard>} />
+              <Route path="/dashboard/digests" element={<RoleGuard requiredRole="researcher"><Digests /></RoleGuard>} />
+              <Route path="/dashboard/datasets" element={<RoleGuard requiredRole="admin"><Datasets /></RoleGuard>} />
+              <Route path="/dashboard/reports" element={<RoleGuard requiredRole="researcher"><Reports /></RoleGuard>} />
               <Route path="/dashboard/projects" element={<Projects />} />
-              <Route path="/dashboard/projects/new" element={<ProjectEditor />} />
-              <Route path="/dashboard/projects/:id/edit" element={<ProjectEditor />} />
+              <Route path="/dashboard/projects/new" element={<RoleGuard requiredRole="researcher"><ProjectEditor /></RoleGuard>} />
+              <Route path="/dashboard/projects/:id/edit" element={<RoleGuard requiredRole="researcher"><ProjectEditor /></RoleGuard>} />
               <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
               <Route path="/dashboard/analytics-reports" element={<AnalyticsReports />} />
               <Route path="/dashboard/alerts" element={<Alerts />} />
@@ -88,12 +88,12 @@ const App = () => (
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<RoleGuard requiredRole="researcher"><ReviewQueue /></RoleGuard>} />
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
-              <Route path="/dashboard/insights" element={<InsightsManagement />} />
+              <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
               <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
               <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
-              <Route path="/dashboard/agents" element={<AgentMonitoring />} />
+              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentMonitoring /></RoleGuard>} />
               {/* Redirects for old routes */}
               <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/analytics-reports" replace />} />
               <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/analytics-reports" replace />} />

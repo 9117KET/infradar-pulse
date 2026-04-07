@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useProjects } from '@/hooks/use-projects';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -6,8 +6,8 @@ import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  TrendingUp, ShieldCheck, Activity, Clock, AlertTriangle, Bot, Search,
-  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users, Star,
+  TrendingUp, ShieldCheck, Activity, AlertTriangle, Bot, Search,
+  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users, Star, ExternalLink,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
@@ -26,7 +26,8 @@ const STAGE_COLORS: Record<string, string> = {
 };
 
 export default function DashboardOverview() {
-  const { profile } = useAuth();
+  const { profile, hasRole } = useAuth();
+  const isStaff = hasRole('admin') || hasRole('researcher');
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, allProjects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading, stats: alertStats } = useAlerts();
@@ -35,6 +36,7 @@ export default function DashboardOverview() {
     ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
   const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const queryClient = useQueryClient();
+  const [viewScope, setViewScope] = useState<'platform' | 'coverage'>(hasPreferenceFilters ? 'coverage' : 'platform');
 
   const { data: researchTasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['research-tasks'],
@@ -43,6 +45,7 @@ export default function DashboardOverview() {
       if (error) throw error;
       return data;
     },
+    enabled: isStaff,
   });
 
   const { data: pendingCount = 0 } = useQuery({
@@ -52,6 +55,7 @@ export default function DashboardOverview() {
       if (error) throw error;
       return count || 0;
     },
+    enabled: isStaff,
   });
 
   useEffect(() => {
@@ -187,89 +191,99 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
-        <p className="text-sm text-muted-foreground mt-2 max-w-3xl">
-          <strong className="text-foreground">Platform pipeline</strong> shows every approved project in InfraRadar so you can see total market scale.
-          {' '}
-          <strong className="text-foreground">Your coverage</strong> filters by regions, sectors, and stages you chose in onboarding (editable in Settings).
-          Charts and the map below reflect your coverage; alert counts in that section only include alerts tied to projects in your coverage.
-        </p>
-      </div>
+      <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
 
-      <div className="space-y-2">
-        <h2 className="font-serif text-lg font-semibold text-foreground">Platform pipeline</h2>
-        <p className="text-xs text-muted-foreground">Full approved pipeline — compare scale before drilling into your preferences.</p>
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-          {marketKPIs.map(k => (
-            <div key={k.label} className="glass-panel rounded-xl p-4">
-              <div className="mb-3">
-                <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
-                  <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
-                </div>
-              </div>
-              {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
-              <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
-            </div>
-          ))}
+      {/* Merged KPI section with Platform / My coverage toggle */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-serif text-lg font-semibold text-foreground">
+            {viewScope === 'platform' ? 'Platform pipeline' : 'My coverage'}
+          </h2>
+          <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+            <button
+              onClick={() => setViewScope('platform')}
+              className={`px-3 py-1.5 transition-colors ${viewScope === 'platform' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+              Platform
+            </button>
+            <button
+              onClick={() => setViewScope('coverage')}
+              className={`px-3 py-1.5 transition-colors ${viewScope === 'coverage' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'}`}
+            >
+              My coverage
+            </button>
+          </div>
         </div>
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-base font-semibold mb-3">Global snapshot — projects by region</h3>
-          {projectsLoading ? <Skeleton className="h-[200px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie data={globalRegionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2} stroke="none">
-                  {globalRegionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-          {!projectsLoading && (
-            <div className="flex flex-wrap gap-3 mt-2">
-              {globalRegionData.map((r, i) => (
-                <span key={r.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                  {r.name} ({r.value})
-                </span>
+
+        {viewScope === 'platform' ? (
+          <>
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              {marketKPIs.map(k => (
+                <div key={k.label} title={k.label} className="glass-panel rounded-xl p-4 cursor-default">
+                  <div className="mb-3">
+                    <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
+                      <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+                    </div>
+                  </div>
+                  {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
+                  <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
+                </div>
               ))}
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <h2 className="font-serif text-lg font-semibold text-foreground">Your coverage</h2>
-        {hasPreferenceFilters ? (
-          <div className="flex flex-wrap gap-2 text-xs">
-            {profile?.regions?.map((r) => (
-              <Badge key={r} variant="secondary" className="font-normal">Region: {r}</Badge>
-            ))}
-            {profile?.sectors?.map((s) => (
-              <Badge key={s} variant="outline" className="font-normal">Sector: {s}</Badge>
-            ))}
-            {profile?.stages?.map((st) => (
-              <Badge key={st} variant="outline" className="font-normal">Stage: {st}</Badge>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">
-            Select regions, sectors, and stages in <Link to="/dashboard/settings" className="text-primary hover:underline">Settings</Link> or complete onboarding to narrow this view. Until then, coverage matches the full platform.
-          </p>
-        )}
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-          {focusKPIs.map(k => (
-            <div key={k.label} className="glass-panel rounded-xl p-4">
-              <div className="mb-3">
-                <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
-                  <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+            <div className="glass-panel rounded-xl p-5">
+              <h3 className="font-serif text-base font-semibold mb-3">Global snapshot — projects by region</h3>
+              {projectsLoading ? <Skeleton className="h-[200px] w-full" /> : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={globalRegionData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={2} stroke="none">
+                      {globalRegionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+              {!projectsLoading && (
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {globalRegionData.map((r, i) => (
+                    <span key={r.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      {r.name} ({r.value})
+                    </span>
+                  ))}
                 </div>
-              </div>
-              {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
-              <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
+              )}
             </div>
-          ))}
-        </div>
+          </>
+        ) : (
+          <>
+            {hasPreferenceFilters && (
+              <div className="flex flex-wrap gap-2 text-xs">
+                {profile?.regions?.map((r) => (
+                  <Badge key={r} variant="secondary" className="font-normal">Region: {r}</Badge>
+                ))}
+                {profile?.sectors?.map((s) => (
+                  <Badge key={s} variant="outline" className="font-normal">Sector: {s}</Badge>
+                ))}
+                {profile?.stages?.map((st) => (
+                  <Badge key={st} variant="outline" className="font-normal">Stage: {st}</Badge>
+                ))}
+              </div>
+            )}
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+              {focusKPIs.map(k => (
+                <div key={k.label} title={k.label} className="glass-panel rounded-xl p-4 cursor-default">
+                  <div className="mb-3">
+                    <div className={`inline-flex p-1.5 rounded-lg ${k.bg}`}>
+                      <k.icon className={`h-3.5 w-3.5 ${k.color}`} />
+                    </div>
+                  </div>
+                  {projectsLoading ? <Skeleton className="h-7 w-12" /> : <div className="text-xl font-serif font-bold">{k.value}</div>}
+                  <div className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{k.label}</div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Charts Row 1: Region donut + Sector bar */}
@@ -385,7 +399,7 @@ export default function DashboardOverview() {
       </div>
 
       {/* Pipeline + Agent Activity + Pending */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={`grid gap-6 ${isStaff ? 'lg:grid-cols-3' : 'lg:grid-cols-1 max-w-md'}`}>
         <div className="glass-panel rounded-xl p-5">
           <h3 className="font-serif text-lg font-semibold mb-3">Pipeline by stage (your coverage)</h3>
           {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
@@ -402,55 +416,59 @@ export default function DashboardOverview() {
           )}
         </div>
 
-        <div className="glass-panel rounded-xl p-5 lg:col-span-1">
-          <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" /> Agent activity
-          </h3>
-          <div className="space-y-2 max-h-[220px] overflow-y-auto">
-            {tasksLoading ? (
-              Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
-            ) : researchTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No agent runs yet.</p>
-            ) : researchTasks.slice(0, 6).map(task => {
-              const isCompleted = task.status === 'completed';
-              const isFailed = task.status === 'failed';
-              const TaskIcon = task.task_type === 'discovery' ? Search : task.task_type === 'update_check' ? RefreshCw : ShieldAlert;
-              return (
-                <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/20">
-                  <div className={`rounded-full p-1 ${isCompleted ? 'bg-primary/20' : isFailed ? 'bg-destructive/20' : 'bg-amber-500/20'}`}>
-                    <TaskIcon className={`h-3 w-3 ${isCompleted ? 'text-primary' : isFailed ? 'text-destructive' : 'text-amber-500'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-medium capitalize truncate">
-                        {task.task_type === 'discovery' ? 'Research' : task.task_type === 'update_check' ? 'Update' : task.task_type}
-                      </span>
-                      <Badge variant="outline" className={`text-[9px] px-1 py-0 ${isCompleted ? 'text-primary border-primary/30' : isFailed ? 'text-destructive border-destructive/30' : 'text-amber-500 border-amber-500/30'}`}>
-                        {task.status}
-                      </Badge>
+        {isStaff && (
+          <div className="glass-panel rounded-xl p-5 lg:col-span-1">
+            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
+              <Bot className="h-5 w-5 text-primary" /> Agent activity
+            </h3>
+            <div className="space-y-2 max-h-[220px] overflow-y-auto">
+              {tasksLoading ? (
+                Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+              ) : researchTasks.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">No agent runs yet.</p>
+              ) : researchTasks.slice(0, 6).map(task => {
+                const isCompleted = task.status === 'completed';
+                const isFailed = task.status === 'failed';
+                const TaskIcon = task.task_type === 'discovery' ? Search : task.task_type === 'update_check' ? RefreshCw : ShieldAlert;
+                return (
+                  <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/30 border border-border/20">
+                    <div className={`rounded-full p-1 ${isCompleted ? 'bg-primary/20' : isFailed ? 'bg-destructive/20' : 'bg-amber-500/20'}`}>
+                      <TaskIcon className={`h-3 w-3 ${isCompleted ? 'text-primary' : isFailed ? 'text-destructive' : 'text-amber-500'}`} />
                     </div>
-                    <p className="text-[10px] text-muted-foreground/60">{new Date(task.created_at).toLocaleString()}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-medium capitalize truncate">
+                          {task.task_type === 'discovery' ? 'Research' : task.task_type === 'update_check' ? 'Update' : task.task_type}
+                        </span>
+                        <Badge variant="outline" className={`text-[9px] px-1 py-0 ${isCompleted ? 'text-primary border-primary/30' : isFailed ? 'text-destructive border-destructive/30' : 'text-amber-500 border-amber-500/30'}`}>
+                          {task.status}
+                        </Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground/60">{new Date(task.created_at).toLocaleString()}</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-primary" /> Pending review
-          </h3>
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="text-5xl font-serif font-bold text-primary">{pendingCount}</div>
-            <p className="text-sm text-muted-foreground mt-2">AI-discovered projects</p>
-            {pendingCount > 0 && (
-              <Link to="/dashboard/review" className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
-                <CheckCircle2 className="h-4 w-4" /> Review now
-              </Link>
-            )}
+        {isStaff && (
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" /> Pending review
+            </h3>
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-5xl font-serif font-bold text-primary">{pendingCount}</div>
+              <p className="text-sm text-muted-foreground mt-2">AI-discovered projects</p>
+              {pendingCount > 0 && (
+                <Link to="/dashboard/review" className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline">
+                  <CheckCircle2 className="h-4 w-4" /> Review now
+                </Link>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tracked Projects */}
@@ -482,37 +500,57 @@ export default function DashboardOverview() {
         </div>
       )}
 
-      {/* Recent project updates table */}
+      {/* Recent alerts & signals for tracked projects */}
       <div className="glass-panel rounded-xl p-5">
-        <h3 className="font-serif text-lg font-semibold mb-4">Recent project updates (your coverage)</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="pb-2 font-medium text-muted-foreground">Project</th>
-                <th className="pb-2 font-medium text-muted-foreground">Region</th>
-                <th className="pb-2 font-medium text-muted-foreground">Status</th>
-                <th className="pb-2 font-medium text-muted-foreground">Confidence</th>
-                <th className="pb-2 font-medium text-muted-foreground">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projectsLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={5} className="py-2"><Skeleton className="h-5 w-full" /></td></tr>
-                ))
-              ) : projects.slice(0, 5).map(p => (
-                <tr key={p.id} className="border-b border-border/50">
-                  <td className="py-2"><Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline text-xs">{p.name}</Link></td>
-                  <td className="py-2 text-muted-foreground text-xs">{p.region}</td>
-                  <td className="py-2"><Badge variant="outline" className="text-[10px]">{p.status}</Badge></td>
-                  <td className="py-2 text-xs">{p.confidence}%</td>
-                  <td className="py-2 text-xs">{p.valueLabel}</td>
-                </tr>
+        <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-400" /> Recent alerts & signals
+          <span className="text-sm font-normal text-muted-foreground ml-auto">
+            {trackedProjects.length > 0 ? 'Tracked projects' : 'Your coverage'}
+          </span>
+        </h3>
+        {alertsLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full rounded-lg mb-2" />)
+        ) : (() => {
+          const trackedNames = new Set(
+            trackedProjects
+              .map(tp => allProjects.find(p => p.dbId === tp.project_id)?.name?.trim().toLowerCase())
+              .filter(Boolean) as string[]
+          );
+          const feed = (trackedNames.size > 0
+            ? focusAlerts.filter(a => trackedNames.has((a.projectName || '').trim().toLowerCase()))
+            : focusAlerts
+          ).slice(0, 8);
+
+          return feed.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              {trackedProjects.length > 0 ? 'No alerts for your tracked projects.' : 'No alerts in your coverage area.'}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {feed.map(a => (
+                <div key={a.id} className="flex items-start gap-3 rounded-lg border border-border/50 p-3">
+                  <AlertTriangle className={`h-4 w-4 mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-destructive' : a.severity === 'high' ? 'text-amber-500' : 'text-muted-foreground'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{a.message}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground">{a.projectName}</span>
+                      <Badge variant="outline" className={`text-[9px] capitalize ${a.severity === 'critical' ? 'text-destructive border-destructive/30' : a.severity === 'high' ? 'text-amber-500 border-amber-500/30' : 'border-border'}`}>{a.severity}</Badge>
+                      <span className="text-[10px] text-muted-foreground ml-auto">{a.time}</span>
+                    </div>
+                  </div>
+                  {a.sourceUrl && (
+                    <a href={a.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary shrink-0">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <Link to="/dashboard/alerts" className="block text-center text-xs text-primary hover:underline pt-1">
+                View all alerts →
+              </Link>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

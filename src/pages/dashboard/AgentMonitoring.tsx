@@ -287,6 +287,16 @@ export default function AgentMonitoring() {
     }
   };
 
+  const visibleAgents = staffBypass
+    ? AGENTS
+    : AGENTS.filter(agent => {
+        const stats = getAgentStats(agent.type);
+        const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
+        const isPaused = !isEnabled;
+        const isRunningNow = stats.running > 0;
+        return isPaused || isRunningNow;
+      });
+
   const totalRuns = tasks?.length || 0;
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
@@ -431,34 +441,41 @@ export default function AgentMonitoring() {
         </div>
       </div>
 
-      {/* Data Coverage Dashboard */}
-      <div className="glass-panel rounded-xl p-5">
-        <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
-          <Database className="h-4 w-4 text-primary" /> Data Coverage ({projects?.length || 0} projects)
-        </h2>
-        <div className="grid gap-3 md:grid-cols-3">
-          {dataCoverage.map(metric => (
-            <div key={metric.label} className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{metric.label}</span>
-                <span className={`font-medium ${metric.pct >= 70 ? 'text-emerald-400' : metric.pct >= 40 ? 'text-amber-400' : 'text-destructive'}`}>
-                  {metric.count}/{metric.total} ({metric.pct}%)
-                </span>
+      {/* Data Coverage Dashboard — staff only */}
+      {staffBypass && (
+        <div className="glass-panel rounded-xl p-5">
+          <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
+            <Database className="h-4 w-4 text-primary" /> Data Coverage ({projects?.length || 0} projects)
+          </h2>
+          <div className="grid gap-3 md:grid-cols-3">
+            {dataCoverage.map(metric => (
+              <div key={metric.label} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">{metric.label}</span>
+                  <span className={`font-medium ${metric.pct >= 70 ? 'text-emerald-400' : metric.pct >= 40 ? 'text-amber-400' : 'text-destructive'}`}>
+                    {metric.count}/{metric.total} ({metric.pct}%)
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${metric.pct >= 70 ? 'bg-emerald-400' : metric.pct >= 40 ? 'bg-amber-400' : 'bg-destructive'}`}
+                    style={{ width: `${metric.pct}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${metric.pct >= 70 ? 'bg-emerald-400' : metric.pct >= 40 ? 'bg-amber-400' : 'bg-destructive'}`}
-                  style={{ width: `${metric.pct}%` }}
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Agent grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {AGENTS.map(agent => {
+        {visibleAgents.length === 0 && !staffBypass && (
+          <div className="col-span-full text-center py-8 text-sm text-muted-foreground">
+            No agents are currently running or paused.
+          </div>
+        )}
+        {visibleAgents.map(agent => {
           const stats = getAgentStats(agent.type);
           const Icon = agent.icon;
           const isRunningNow = runningAgent === agent.name || stats.running > 0;
@@ -516,7 +533,7 @@ export default function AgentMonitoring() {
                 <span>
                   {stats.lastRun ? `Last: ${timeAgo(stats.lastRun.created_at)}` : 'Never run'}
                 </span>
-                <div className="flex items-center gap-1">
+                {staffBypass && <div className="flex items-center gap-1">
                   {/* Pause / Resume toggle */}
                   <Button
                     variant="ghost"
@@ -544,7 +561,7 @@ export default function AgentMonitoring() {
                     {runningAgent === agent.name ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5 mr-0.5" />}
                     Run
                   </Button>
-                </div>
+                </div>}
               </div>
             </div>
           );

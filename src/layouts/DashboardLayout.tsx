@@ -28,9 +28,9 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Core',
     items: [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
-      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
+      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research', minRole: 'researcher' as AppRole },
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
-      { title: 'Digests', url: '/dashboard/digests', icon: Mail, tourId: 'nav-digests' },
+      { title: 'Digests', url: '/dashboard/digests', icon: Mail, tourId: 'nav-digests', minRole: 'researcher' as AppRole },
     ],
   },
   {
@@ -46,17 +46,17 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity, tourId: 'nav-monitoring' },
       { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
-      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review', minRole: 'researcher' },
+      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents', minRole: 'researcher' as AppRole },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review', minRole: 'researcher' as AppRole },
     ],
   },
   {
     label: 'Analysis',
     items: [
       { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3, tourId: 'nav-analytics' },
-      { title: 'Reports', url: '/dashboard/reports', icon: FileText, tourId: 'nav-reports' },
-      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets' },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
+      { title: 'Reports', url: '/dashboard/reports', icon: FileText, tourId: 'nav-reports', minRole: 'researcher' as AppRole },
+      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
     ],
   },
   {

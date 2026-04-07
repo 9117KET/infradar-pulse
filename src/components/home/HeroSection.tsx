@@ -2,10 +2,9 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { HeroLiveTracker } from '@/components/home/HeroLiveTracker';
-import { useProjects } from '@/hooks/use-projects';
+import { SAMPLE_PROJECTS } from '@/data/sampleProjects';
 
 export function HeroSection() {
-  const { projects } = useProjects();
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
@@ -48,7 +47,7 @@ export function HeroSection() {
 
         {/* Right: globe */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center">
-          <HeroLiveTracker projects={projects} />
+          <HeroLiveTracker projects={SAMPLE_PROJECTS} />
         </motion.div>
       </div>
     </section>
