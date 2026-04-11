@@ -7,10 +7,9 @@ const GlobeGL = lazy(() => import('react-globe.gl'));
 interface GlobeProject {
   lat: number;
   lng: number;
-  riskScore: number;
+  risk_score: number;
   name: string;
   sector?: string;
-  valueLabel?: string;
   country?: string;
 }
 
@@ -23,7 +22,7 @@ interface PointDatum {
 }
 
 function riskColor(score: number): string {
-  if (score >= 75) return '#ef4444'; // red   – critical
+  if (score >= 75) return '#dc2626'; // red   – critical
   if (score >= 50) return '#f59e0b'; // amber – high
   if (score >= 25) return '#22c55e'; // green – medium
   return '#6bd8cb';                  // teal  – low
@@ -109,15 +108,15 @@ export function DemoGlobe({
     }
   }, []);
 
-  // Deep ocean material — shown wherever no polygon covers the sphere
+  // Deep ocean material — matches the CartoDB dark map water color
   const oceanMaterial = useMemo(
     () =>
       new THREE.MeshPhongMaterial({
-        color: new THREE.Color('#071525'),   // deep ocean navy
-        emissive: new THREE.Color('#0a1e35'),
-        emissiveIntensity: 0.4,
-        shininess: 8,
-        specular: new THREE.Color('#1a4a6a'),
+        color: new THREE.Color('#0a0f14'),   // near-black, matches map bg
+        emissive: new THREE.Color('#0d131a'),
+        emissiveIntensity: 0.3,
+        shininess: 6,
+        specular: new THREE.Color('#1a2030'),
       }),
     []
   );
@@ -125,24 +124,18 @@ export function DemoGlobe({
   const pointsData: PointDatum[] = projects.map(p => ({
     lat: p.lat,
     lng: p.lng,
-    color: riskColor(p.riskScore),
+    color: riskColor(p.risk_score),
     size: 0.45,
     label: `
       <div style="
-        background:rgba(5,13,26,0.95);
-        border:1px solid rgba(107,216,203,0.3);
-        border-radius:8px;
-        padding:10px 12px;
-        min-width:180px;
+        background:rgba(10,15,20,0.95);
+        border:1px solid rgba(107,216,203,0.25);
+        border-radius:6px;
+        padding:7px 10px;
         font-family:system-ui,sans-serif;
-        box-shadow:0 0 24px rgba(107,216,203,0.15);
+        box-shadow:0 0 16px rgba(107,216,203,0.1);
       ">
-        <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px">${p.name}</div>
-        ${p.country ? `<div style="font-size:11px;color:#9ca3af;margin-bottom:2px">${p.country}</div>` : ''}
-        ${p.sector ? `<div style="font-size:11px;color:#9ca3af">${p.sector}${p.valueLabel ? ' · ' + p.valueLabel : ''}</div>` : ''}
-        <div style="margin-top:6px;font-size:10px;color:${riskColor(p.riskScore)}">
-          Risk score: ${p.riskScore}
-        </div>
+        <div style="font-size:12px;font-weight:600;color:#fff">${p.name}</div>
       </div>
     `,
   }));
@@ -169,9 +162,9 @@ export function DemoGlobe({
           // Country polygons
           polygonsData={countries}
           polygonAltitude={0.01}
-          polygonCapColor={() => '#0f2235'}      // dark navy continent fill
-          polygonSideColor={() => '#0a1a2e'}
-          polygonStrokeColor={() => '#1e4060'}   // teal-tinted border lines
+          polygonCapColor={() => '#1a1f24'}      // dark charcoal continent fill — matches CartoDB land
+          polygonSideColor={() => '#141820'}
+          polygonStrokeColor={() => '#252b35'}   // subtle gray border lines
           polygonLabel={(d: any) => d?.properties?.NAME ?? ''}
           // Project markers
           pointsData={pointsData}
@@ -191,7 +184,7 @@ export function DemoGlobe({
       {/* Base ocean fill – rendered behind the WebGL canvas */}
       <div
         className="pointer-events-none absolute inset-0 -z-10 rounded-xl"
-        style={{ background: '#050d1a' }}
+        style={{ background: '#0a0f14' }}
       />
 
       {/* Fade edges to blend into the section background */}

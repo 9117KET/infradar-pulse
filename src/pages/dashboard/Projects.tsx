@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star } from 'lucide-react';
+import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -164,6 +164,41 @@ export default function Projects() {
   return (
     <div className="space-y-6">
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="export" />
+      {/* Coverage banner */}
+      {!loading && (() => {
+        const isStaff = hasRole('admin') || hasRole('researcher');
+        const isFiltered = hasPreferenceFilters && viewScope === 'coverage' && projects.length < allProjects.length;
+        const regionList = profile?.regions?.slice(0, 3).join(', ') ?? '';
+        const moreRegions = (profile?.regions?.length ?? 0) > 3 ? ` +${(profile.regions?.length ?? 0) - 3} more` : '';
+
+        if (isStaff) {
+          // Staff see the full count — admin-level info
+          return (
+            <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              Viewing all {allProjects.length} globally tracked projects.
+            </div>
+          );
+        }
+        if (isFiltered) {
+          return (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-500">
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                Showing projects in your coverage regions: {regionList}{moreRegions}.{' '}
+                <Link to="/dashboard/settings" className="underline hover:text-amber-400">Expand in Settings</Link> to see more.
+              </span>
+            </div>
+          );
+        }
+        return (
+          <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-500">
+            <Info className="h-3.5 w-3.5 shrink-0" />
+            Viewing your full global coverage.
+          </div>
+        );
+      })()}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
