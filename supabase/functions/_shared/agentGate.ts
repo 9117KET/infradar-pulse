@@ -1,4 +1,4 @@
-/**
+ /**
  * agentGate.ts
  *
  * Shared utility for checking whether an agent is currently enabled.
