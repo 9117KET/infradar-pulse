@@ -186,7 +186,6 @@ export function HeroLiveTracker({ projects }: { projects: TrackerProject[] }) {
 
   const sorted = useMemo(() => [...projects].sort((a, b) => b.valueUsd - a.valueUsd), [projects]);
   const totalValue = useMemo(() => projects.reduce((s, p) => s + p.valueUsd, 0), [projects]);
-  const animatedCount = useCountUp(projects.length, 1500);
   const animatedValue = useCountUp(totalValue, 2000);
 
   const sectorData = useMemo(() => {
@@ -374,16 +373,9 @@ export function HeroLiveTracker({ projects }: { projects: TrackerProject[] }) {
 
         {/* Stats Footer */}
         <div className="flex items-center justify-between px-5 py-2.5 bg-muted/15">
-          <div className="flex items-center gap-4">
-            <div>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono">Projects</p>
-              <p className="text-sm font-bold text-foreground font-mono">{animatedCount}</p>
-            </div>
-            <div className="w-px h-5 bg-border/30" />
-            <div>
-              <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono">Pipeline</p>
-              <p className="text-sm font-bold text-foreground font-mono">{formatValue(animatedValue)}</p>
-            </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-mono">Pipeline</p>
+            <p className="text-sm font-bold text-foreground font-mono">{formatValue(animatedValue)}</p>
           </div>
           <span className="text-[9px] font-mono text-muted-foreground/40">INFRADAR v1.0</span>
         </div>
