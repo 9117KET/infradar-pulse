@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,10 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { SECTORS as PROFILE_SECTORS } from '@/data/projects';
 import {
   ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
-  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Bot, Sparkles
+  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star
 } from 'lucide-react';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const ROLES = [
   { value: 'investor', label: 'Investor / CFO', desc: 'Portfolio tracking, risk assessment' },
@@ -87,6 +89,36 @@ export default function Onboarding() {
   const [regions, setRegions] = useState<string[]>([]);
   const [sectors, setSectors] = useState<string[]>([]);
   const [stages, setStages] = useState<string[]>([]);
+  const [suggestedProjects, setSuggestedProjects] = useState<{ id: string; name: string; country: string; sector: string; stage: string; value_usd: number | null }[]>([]);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  const [loadingProjects, setLoadingProjects] = useState(false);
+
+  // Load suggested projects when the user reaches step 3 (project selection)
+  useEffect(() => {
+    if (step !== 3) return;
+    if (suggestedProjects.length > 0) return; // already loaded
+    setLoadingProjects(true);
+    let query = supabase
+      .from('projects')
+      .select('id, name, country, sector, stage, value_usd')
+      .eq('approved', true)
+      .order('confidence_score', { ascending: false })
+      .limit(24);
+    if (regions.length > 0) query = query.in('region', regions);
+    else if (sectors.length > 0) query = query.in('sector', sectors);
+    query.then(({ data }) => {
+      setSuggestedProjects(data ?? []);
+      setLoadingProjects(false);
+    });
+  }, [step]);
+
+  const toggleProject = (id: string) => {
+    setSelectedProjectIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const toggle = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
@@ -110,6 +142,15 @@ export default function Onboarding() {
       toast({ title: 'Error saving profile', description: error.message, variant: 'destructive' });
       setSaving(false);
       return;
+    }
+    // Seed portfolio with selected projects
+    if (selectedProjectIds.size > 0) {
+      const rows = Array.from(selectedProjectIds).map(project_id => ({
+        user_id: user.id,
+        project_id,
+        notes: '',
+      }));
+      await supabase.from('tracked_projects').upsert(rows, { onConflict: 'user_id,project_id' });
     }
     await refreshProfile();
     navigate('/dashboard', { replace: true });
@@ -236,8 +277,73 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Step 3: Platform tour, core features */}
+        {/* Step 3: Project selection — seed portfolio */}
         {step === 3 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
+              <Star className="h-5 w-5 text-primary" /> Start your portfolio
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Select projects to add to your portfolio. You can add more anytime from the Projects page.
+            </p>
+            {loadingProjects ? (
+              <div className="grid grid-cols-1 gap-2">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+              </div>
+            ) : suggestedProjects.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No projects found for your selected regions yet — you can track projects from the dashboard.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                {suggestedProjects.map(p => {
+                  const selected = selectedProjectIds.has(p.id);
+                  const valueLabel = p.value_usd
+                    ? p.value_usd >= 1e9 ? `$${(p.value_usd / 1e9).toFixed(1)}B`
+                    : p.value_usd >= 1e6 ? `$${(p.value_usd / 1e6).toFixed(0)}M`
+                    : `$${p.value_usd.toLocaleString()}`
+                    : null;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => toggleProject(p.id)}
+                      className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 ${
+                        selected
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/40 hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <Star className={`h-4 w-4 mt-0.5 shrink-0 transition-colors ${selected ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{p.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          <span className="text-[10px] text-muted-foreground">{p.country}</span>
+                          <Badge variant="outline" className="text-[9px] py-0">{p.stage}</Badge>
+                          <Badge variant="secondary" className="text-[9px] py-0">{p.sector}</Badge>
+                          {valueLabel && <span className="text-[10px] text-muted-foreground">{valueLabel}</span>}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {selectedProjectIds.size > 0 && (
+              <p className="text-xs text-primary text-center">{selectedProjectIds.size} project{selectedProjectIds.size !== 1 ? 's' : ''} selected</p>
+            )}
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(4)} className="flex-1">
+                {selectedProjectIds.size === 0 ? 'Skip' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Platform tour, core features */}
+        {step === 4 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
               <Sparkles className="h-5 w-5 text-primary" /> Core Features
@@ -245,27 +351,6 @@ export default function Onboarding() {
             <p className="text-sm text-muted-foreground">Here's what powers your intelligence workflow:</p>
             <div className="space-y-3">
               {CORE_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={() => setStep(4)} className="flex-1">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Platform tour, intelligence and analysis */}
-        {step === 4 && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
-              <Activity className="h-5 w-5 text-primary" /> Intelligence & Analysis
-            </div>
-            <p className="text-sm text-muted-foreground">Deep analytical tools for informed decisions:</p>
-            <div className="space-y-3">
-              {INTEL_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
@@ -278,8 +363,29 @@ export default function Onboarding() {
           </div>
         )}
 
-        {/* Step 5: Getting started, role-specific tips and summary */}
+        {/* Step 5: Platform tour, intelligence and analysis */}
         {step === 5 && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
+              <Activity className="h-5 w-5 text-primary" /> Intelligence & Analysis
+            </div>
+            <p className="text-sm text-muted-foreground">Deep analytical tools for informed decisions:</p>
+            <div className="space-y-3">
+              {INTEL_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setStep(4)} className="flex-1">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <Button onClick={() => setStep(6)} className="flex-1">
+                Continue <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Getting started, role-specific tips and summary */}
+        {step === 6 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
               <Rocket className="h-5 w-5 text-primary" /> You're all set!
@@ -320,7 +426,7 @@ export default function Onboarding() {
             <p className="text-xs text-muted-foreground text-center">You can change these preferences anytime in Settings.</p>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(4)} className="flex-1">
+              <Button variant="outline" onClick={() => setStep(5)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button onClick={finish} disabled={saving} className="flex-1">

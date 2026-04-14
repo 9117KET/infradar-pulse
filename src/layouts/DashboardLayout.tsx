@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Activity, Globe, ShieldCheck, BarChart3, Bot, User, Shield, ChevronDown, Mail, Database, FileText } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -28,35 +28,35 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Core',
     items: [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
-      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research', minRole: 'researcher' as AppRole },
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
-      { title: 'Digests', url: '/dashboard/digests', icon: Mail, tourId: 'nav-digests', minRole: 'researcher' as AppRole },
+      { title: 'My Portfolio', url: '/dashboard/portfolio', icon: Briefcase, tourId: 'nav-portfolio' },
+      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
+      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research', minRole: 'researcher' as AppRole },
+      { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries', minRole: 'researcher' as AppRole },
     ],
   },
   {
     label: 'Intelligence',
     items: [
       { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
-      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
-      { title: 'Risk Signals', url: '/dashboard/risk', icon: AlertTriangle, tourId: 'nav-risk' },
+      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders' },
+      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries' },
+      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence', minRole: 'researcher' as AppRole },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { title: 'Monitoring', url: '/dashboard/monitoring', icon: Activity, tourId: 'nav-monitoring' },
-      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents', minRole: 'researcher' as AppRole },
       { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review', minRole: 'researcher' as AppRole },
     ],
   },
   {
-    label: 'Analysis',
+    label: 'Content',
+    minRole: 'researcher' as AppRole,
     items: [
-      { title: 'Analytics & Reports', url: '/dashboard/analytics-reports', icon: BarChart3, tourId: 'nav-analytics' },
-      { title: 'Reports', url: '/dashboard/reports', icon: FileText, tourId: 'nav-reports', minRole: 'researcher' as AppRole },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
       { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
     ],
   },
   {

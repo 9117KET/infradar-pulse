@@ -3,6 +3,8 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { ALERT_CATEGORIES, type AlertCategory } from '@/data/alerts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertRulesTab } from '@/components/alerts/AlertRulesTab';
 
 const PAGE_SIZE = 10;
 import { Badge } from '@/components/ui/badge';
@@ -156,6 +158,18 @@ export default function Alerts() {
           </Button>
         </div>
       </div>
+
+      <Tabs defaultValue="feed">
+        <TabsList className="mb-2">
+          <TabsTrigger value="feed">Alert Feed</TabsTrigger>
+          <TabsTrigger value="rules">Notification Rules</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="rules">
+          <AlertRulesTab />
+        </TabsContent>
+
+        <TabsContent value="feed" className="space-y-6">
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -439,6 +453,8 @@ export default function Alerts() {
           </div>
         )}
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

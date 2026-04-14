@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Layers, Filter, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 
 const RISK_COLORS: Record<string, string> = {
@@ -26,12 +26,13 @@ function getRiskLevel(score: number) {
 export default function GeoIntelligence() {
   const { profile, hasRole } = useAuth();
   const { allProjects, loading } = useProjects();
+  const [searchParams] = useSearchParams();
   const hasPrefs =
     !!profile?.onboarded &&
     ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
   const [matchOnboarding, setMatchOnboarding] = useState(true);
-  const [regionFilter, setRegionFilter] = useState<string>('all');
-  const [sectorFilter, setSectorFilter] = useState<string>('all');
+  const [regionFilter, setRegionFilter] = useState<string>(searchParams.get('region') || 'all');
+  const [sectorFilter, setSectorFilter] = useState<string>(searchParams.get('sector') || 'all');
   const [overlay, setOverlay] = useState<'risk' | 'confidence' | 'value'>('risk');
   const mapRef = useRef<L.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
