@@ -7,23 +7,19 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, ShieldCheck, Activity, AlertTriangle, Bot, Search,
-  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users, Star, ExternalLink,
+  RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users,
+  ExternalLink, Award, Star, Briefcase,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
+  PieChart, Pie, Cell, AreaChart, Area,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import OverviewMap from '@/components/dashboard/OverviewMap';
 
 const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
-const SEVERITY_COLORS: Record<string, string> = { critical: '#dc2626', high: '#f59e0b', medium: '#3b82f6', low: '#64748b' };
-const STAGE_COLORS: Record<string, string> = {
-  Planned: '#64748b', Tender: '#8b5cf6', Awarded: '#3b82f6', Financing: '#f59e0b',
-  Construction: '#22c55e', Completed: '#14b8a6', Cancelled: '#ef4444', Stopped: '#dc2626',
-};
 
 export default function DashboardOverview() {
   const { profile, hasRole } = useAuth();
@@ -58,6 +54,40 @@ export default function DashboardOverview() {
     enabled: isStaff,
   });
 
+  const { data: portfolioUpdateCount = 0 } = useQuery({
+    queryKey: ['portfolio-update-count', trackedProjects.map(t => t.project_id)],
+    queryFn: async () => {
+      const ids = trackedProjects.map(t => t.project_id);
+      if (!ids.length) return 0;
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from('project_updates')
+        .select('id', { count: 'exact', head: true })
+        .in('project_id', ids)
+        .gte('created_at', sevenDaysAgo);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !trackedLoading,
+  });
+
+  const { data: tenderCount = 0 } = useQuery({
+    queryKey: ['tender-count'],
+    queryFn: async () => {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const { count, error } = await supabase
+        .from('alerts')
+        .select('id', { count: 'exact', head: true })
+        .eq('category', 'construction')
+        .ilike('message', 'Contract: %')
+        .gte('created_at', monthStart.toISOString());
+      if (error) return 0;
+      return count || 0;
+    },
+  });
+
   useEffect(() => {
     const channel = supabase
       .channel('overview-realtime')
@@ -70,9 +100,7 @@ export default function DashboardOverview() {
 
   const focusProjectNames = useMemo(() => {
     const s = new Set<string>();
-    projects.forEach((p) => {
-      s.add(p.name.trim().toLowerCase());
-    });
+    projects.forEach((p) => { s.add(p.name.trim().toLowerCase()); });
     return s;
   }, [projects]);
 
@@ -91,7 +119,7 @@ export default function DashboardOverview() {
     return { unread, critical, total: focusAlerts.length };
   }, [focusAlerts]);
 
-  // Platform-wide (full approved pipeline)
+  // Platform-wide
   const marketTotalValue = useMemo(() => allProjects.reduce((s, p) => s + (p.valueUsd || 0), 0), [allProjects]);
   const marketAvgConfidence = useMemo(
     () => (allProjects.length ? Math.round(allProjects.reduce((s, p) => s + p.confidence, 0) / allProjects.length) : 0),
@@ -101,19 +129,15 @@ export default function DashboardOverview() {
 
   const globalRegionData = useMemo(() => {
     const map: Record<string, number> = {};
-    allProjects.forEach((p) => {
-      map[p.region] = (map[p.region] || 0) + 1;
-    });
-    return Object.entries(map)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    allProjects.forEach((p) => { map[p.region] = (map[p.region] || 0) + 1; });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [allProjects]);
 
-  // Your coverage (onboarding / Settings preferences)
+  // Coverage
   const totalValue = useMemo(() => projects.reduce((s, p) => s + (p.valueUsd || 0), 0), [projects]);
   const avgConfidence = useMemo(() => projects.length ? Math.round(projects.reduce((s, p) => s + p.confidence, 0) / projects.length) : 0, [projects]);
   const verifiedCount = useMemo(() => projects.filter(p => p.status === 'Verified').length, [projects]);
-  // Data Quality Score
+
   const dataQuality = useMemo(() => {
     if (!projects.length) return { overall: 0, fields: [] };
     const fieldChecks = [
@@ -133,34 +157,6 @@ export default function DashboardOverview() {
     const overall = Math.round(fields.reduce((s, f) => s + f.pct, 0) / fields.length);
     return { overall, fields };
   }, [projects]);
-
-  const regionData = useMemo(() => {
-    const map: Record<string, number> = {};
-    projects.forEach(p => { map[p.region] = (map[p.region] || 0) + 1; });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
-  }, [projects]);
-
-  const sectorData = useMemo(() => {
-    const map: Record<string, number> = {};
-    projects.forEach(p => { map[p.sector] = (map[p.sector] || 0) + 1; });
-    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-  }, [projects]);
-
-  const stageData = useMemo(() => {
-    const stages = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
-    const map: Record<string, number> = {};
-    projects.forEach(p => { map[p.stage] = (map[p.stage] || 0) + 1; });
-    return stages.map(name => ({ name, value: map[name] || 0 }));
-  }, [projects]);
-
-  const alertDistribution = useMemo(() => {
-    const map: Record<string, Record<string, number>> = {};
-    focusAlerts.forEach(a => {
-      if (!map[a.category]) map[a.category] = {};
-      map[a.category][a.severity] = (map[a.category][a.severity] || 0) + 1;
-    });
-    return Object.entries(map).map(([category, sevs]) => ({ category, ...sevs }));
-  }, [focusAlerts]);
 
   const confidenceTrend = useMemo(() => {
     const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
@@ -193,7 +189,7 @@ export default function DashboardOverview() {
     <div className="space-y-6">
       <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
 
-      {/* Merged KPI section with Platform / My coverage toggle */}
+      {/* KPI section with Platform / My coverage toggle */}
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="font-serif text-lg font-semibold text-foreground">
@@ -286,89 +282,106 @@ export default function DashboardOverview() {
         )}
       </div>
 
-      {/* Charts Row 1: Region donut + Sector bar */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Projects by region</h3>
-          {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={regionData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} dataKey="value" paddingAngle={3} stroke="none">
-                  {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-          <div className="flex flex-wrap gap-3 mt-2">
-            {regionData.map((r, i) => (
-              <span key={r.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                {r.name} ({r.value})
-              </span>
-            ))}
-          </div>
-        </div>
+      {/* Action Hub */}
+      <div className="space-y-3">
+        <h2 className="font-serif text-lg font-semibold">Needs your attention</h2>
+        <div className={`grid gap-3 grid-cols-1 sm:grid-cols-2 ${isStaff ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+          {/* Critical alerts */}
+          <Link to="/dashboard/alerts" className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`inline-flex p-1.5 rounded-lg ${focusAlertStats.critical > 0 ? 'bg-red-400/10' : 'bg-muted'}`}>
+                <AlertTriangle className={`h-4 w-4 ${focusAlertStats.critical > 0 ? 'text-red-400' : 'text-muted-foreground'}`} />
+              </div>
+              {focusAlertStats.critical > 0 && (
+                <span className="text-[10px] font-medium text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">Action needed</span>
+              )}
+            </div>
+            {alertsLoading ? <Skeleton className="h-7 w-12 mb-1" /> : (
+              <div className={`text-2xl font-serif font-bold ${focusAlertStats.critical > 0 ? 'text-red-400' : ''}`}>
+                {focusAlertStats.critical}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-0.5">Critical alerts in your coverage</div>
+            <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">View alerts →</div>
+          </Link>
 
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Projects by sector (your coverage)</h3>
-          {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={120} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={18}>
-                  {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Portfolio updates */}
+          <Link to="/dashboard/portfolio" className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`inline-flex p-1.5 rounded-lg ${portfolioUpdateCount > 0 ? 'bg-amber-400/10' : 'bg-muted'}`}>
+                <Star className={`h-4 w-4 ${portfolioUpdateCount > 0 ? 'text-amber-400' : 'text-muted-foreground'}`} />
+              </div>
+              {trackedProjects.length > 0 && (
+                <span className="text-[10px] text-muted-foreground">{trackedProjects.length} tracked</span>
+              )}
+            </div>
+            {trackedLoading ? <Skeleton className="h-7 w-12 mb-1" /> : (
+              <div className={`text-2xl font-serif font-bold ${portfolioUpdateCount > 0 ? 'text-amber-400' : ''}`}>
+                {portfolioUpdateCount}
+              </div>
+            )}
+            <div className="text-xs text-muted-foreground mt-0.5">Portfolio updates in last 7 days</div>
+            <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">View portfolio →</div>
+          </Link>
+
+          {/* Tender events */}
+          <Link to="/dashboard/tenders" className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
+            <div className="flex items-start justify-between mb-3">
+              <div className={`inline-flex p-1.5 rounded-lg ${tenderCount > 0 ? 'bg-blue-400/10' : 'bg-muted'}`}>
+                <Award className={`h-4 w-4 ${tenderCount > 0 ? 'text-blue-400' : 'text-muted-foreground'}`} />
+              </div>
+              <span className="text-[10px] text-muted-foreground">this month</span>
+            </div>
+            <div className={`text-2xl font-serif font-bold ${tenderCount > 0 ? 'text-blue-400' : ''}`}>
+              {tenderCount}
+            </div>
+            <div className="text-xs text-muted-foreground mt-0.5">Tender & contract events</div>
+            <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">View tenders →</div>
+          </Link>
+
+          {/* Pending review (staff only) */}
+          {isStaff && (
+            <Link to="/dashboard/review" className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`inline-flex p-1.5 rounded-lg ${pendingCount > 0 ? 'bg-amber-400/10' : 'bg-muted'}`}>
+                  <ClipboardCheck className={`h-4 w-4 ${pendingCount > 0 ? 'text-amber-400' : 'text-muted-foreground'}`} />
+                </div>
+                {pendingCount > 0 && (
+                  <span className="text-[10px] font-medium text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Review needed</span>
+                )}
+              </div>
+              <div className={`text-2xl font-serif font-bold ${pendingCount > 0 ? 'text-amber-400' : ''}`}>
+                {pendingCount}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">AI-discovered projects pending review</div>
+              <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Review now →</div>
+            </Link>
           )}
         </div>
       </div>
 
-      {/* Mini Map — your coverage */}
+      {/* Mini Map */}
       {!projectsLoading && <OverviewMap projects={projects} />}
 
-      {/* Charts Row 2: Confidence trend + Alert distribution */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-1">Confidence trend (your coverage)</h3>
-          <p className="text-xs text-muted-foreground mb-3">Illustrative — historical time-series not yet available</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={confidenceTrend}>
-              <defs>
-                <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(170 55% 63%)" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="hsl(170 55% 63%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
-              <XAxis dataKey="month" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[50, 100]} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-              <Area type="monotone" dataKey="value" stroke="hsl(170 55% 63%)" fill="url(#confGrad)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Alert distribution (your projects)</h3>
-          {alertsLoading ? <Skeleton className="h-[200px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={alertDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
-                <XAxis dataKey="category" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-                <Bar dataKey="critical" stackId="a" fill={SEVERITY_COLORS.critical} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="high" stackId="a" fill={SEVERITY_COLORS.high} />
-                <Bar dataKey="medium" stackId="a" fill={SEVERITY_COLORS.medium} />
-                <Bar dataKey="low" stackId="a" fill={SEVERITY_COLORS.low} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+      {/* Confidence trend */}
+      <div className="glass-panel rounded-xl p-5">
+        <h3 className="font-serif text-lg font-semibold mb-1">Confidence trend (your coverage)</h3>
+        <p className="text-xs text-muted-foreground mb-3">Illustrative — historical time-series not yet available</p>
+        <ResponsiveContainer width="100%" height={200}>
+          <AreaChart data={confidenceTrend}>
+            <defs>
+              <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(170 55% 63%)" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="hsl(170 55% 63%)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
+            <XAxis dataKey="month" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis domain={[50, 100]} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
+            <Area type="monotone" dataKey="value" stroke="hsl(170 55% 63%)" fill="url(#confGrad)" strokeWidth={2} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
 
       {/* Data Quality Score */}
@@ -398,26 +411,10 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Pipeline + Agent Activity + Pending */}
-      <div className={`grid gap-6 ${isStaff ? 'lg:grid-cols-3' : 'lg:grid-cols-1 max-w-md'}`}>
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-3">Pipeline by stage (your coverage)</h3>
-          {projectsLoading ? <Skeleton className="h-[220px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
-                  {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {isStaff && (
-          <div className="glass-panel rounded-xl p-5 lg:col-span-1">
+      {/* Agent Activity + Pending (staff only) */}
+      {isStaff && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="glass-panel rounded-xl p-5">
             <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" /> Agent activity
             </h3>
@@ -451,9 +448,7 @@ export default function DashboardOverview() {
               })}
             </div>
           </div>
-        )}
 
-        {isStaff && (
           <div className="glass-panel rounded-xl p-5">
             <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5 text-primary" /> Pending review
@@ -468,39 +463,10 @@ export default function DashboardOverview() {
               )}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Tracked Projects */}
-      {trackedProjects.length > 0 && (
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-            <Star className="h-5 w-5 text-amber-400 fill-amber-400" /> Your tracked projects
-            <span className="text-sm font-normal text-muted-foreground ml-auto">{trackedProjects.length} tracked</span>
-          </h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {trackedProjects.slice(0, 6).map(tp => {
-              const project = allProjects.find(p => p.dbId === tp.project_id);
-              if (!project) return null;
-              return (
-                <Link key={tp.id} to={`/dashboard/projects/${project.id}`} className="rounded-lg border border-border/50 p-3 hover:border-primary/30 transition-colors block">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Star className="h-3 w-3 text-amber-400 fill-amber-400 shrink-0" />
-                    <span className="text-sm font-medium truncate">{project.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline" className="text-[10px]">{project.status}</Badge>
-                    <Badge variant="outline" className="text-[10px]">{project.stage}</Badge>
-                    <span className="text-[10px] text-muted-foreground ml-auto">{project.country}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
         </div>
       )}
 
-      {/* Recent alerts & signals for tracked projects */}
+      {/* Recent alerts & signals */}
       <div className="glass-panel rounded-xl p-5">
         <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-amber-400" /> Recent alerts & signals

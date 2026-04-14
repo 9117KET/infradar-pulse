@@ -43,6 +43,11 @@ import Research from "./pages/dashboard/Research";
 import Digests from "./pages/dashboard/Digests";
 import Datasets from "./pages/dashboard/Datasets";
 import Reports from "./pages/dashboard/Reports";
+import Portfolio from "./pages/dashboard/Portfolio";
+import IntelligenceSummaries from "./pages/dashboard/IntelligenceSummaries";
+import Tenders from "./pages/dashboard/Tenders";
+import Countries from "./pages/dashboard/Countries";
+import CountryDetail from "./pages/dashboard/CountryDetail";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -91,12 +96,21 @@ const App = () => (
               <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
-              <Route path="/dashboard/monitoring" element={<RealTimeMonitoring />} />
-              <Route path="/dashboard/risk" element={<RiskAnomalySignals />} />
+              <Route path="/dashboard/monitoring" element={<Navigate to="/dashboard/agents" replace />} />
+              <Route path="/dashboard/risk" element={<Navigate to="/dashboard/projects?tab=risk" replace />} />
               <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentMonitoring /></RoleGuard>} />
-              {/* Redirects for old routes */}
-              <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/analytics-reports" replace />} />
-              <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/analytics-reports" replace />} />
+              {/* New pages */}
+              <Route path="/dashboard/portfolio" element={<Portfolio />} />
+              <Route path="/dashboard/intelligence-summaries" element={<RoleGuard requiredRole="researcher"><IntelligenceSummaries /></RoleGuard>} />
+              <Route path="/dashboard/tenders" element={<Tenders />} />
+              <Route path="/dashboard/countries" element={<Countries />} />
+              <Route path="/dashboard/countries/:country" element={<CountryDetail />} />
+              {/* Redirects for consolidated/old routes */}
+              <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
+              <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
+              <Route path="/dashboard/reports" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
+              <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
+              <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/satellite" element={<Navigate to="/dashboard/evidence" replace />} />
               <Route path="/dashboard/validation" element={<Navigate to="/dashboard/evidence" replace />} />
             </Route>

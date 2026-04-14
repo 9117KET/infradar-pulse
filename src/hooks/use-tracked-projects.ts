@@ -56,6 +56,19 @@ export function useTrackedProjects() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tracked-projects'] }),
   });
 
+  const updateNotes = useMutation({
+    mutationFn: async ({ projectId, notes }: { projectId: string; notes: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('tracked_projects')
+        .update({ notes })
+        .eq('user_id', user.id)
+        .eq('project_id', projectId);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tracked-projects'] }),
+  });
+
   const isTracked = (projectId: string) => trackedIds.has(projectId);
 
   const toggleTrack = async (projectId: string) => {
@@ -66,5 +79,5 @@ export function useTrackedProjects() {
     }
   };
 
-  return { trackedProjects, isLoading, isTracked, toggleTrack, trackProject, untrackProject };
+  return { trackedProjects, isLoading, isTracked, toggleTrack, trackProject, untrackProject, updateNotes };
 }

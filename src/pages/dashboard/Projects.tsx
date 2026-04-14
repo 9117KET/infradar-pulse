@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { useProjects } from '@/hooks/use-projects';
+import { useAlerts } from '@/hooks/use-alerts';
 import { useAuth } from '@/contexts/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,7 +17,7 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
+  PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import OverviewMap from '@/components/dashboard/OverviewMap';
@@ -32,6 +34,9 @@ const TOOLTIP_LABEL_STYLE = { color: 'hsl(180 10% 92%)' };
 const TOOLTIP_ITEM_STYLE = { color: 'hsl(180 10% 92%)' };
 
 export default function Projects() {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'projects';
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { hasRole, profile } = useAuth();
   const { canExportCsv, refresh: refreshEntitlements } = useEntitlements();
@@ -43,14 +48,14 @@ export default function Projects() {
     !!profile?.onboarded &&
     ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
   const { projects, allProjects, loading } = useProjects(preferenceFilters);
+  const { alerts } = useAlerts();
   const [viewScope, setViewScope] = useState<'coverage' | 'all'>('coverage');
-  const { isTracked, toggleTrack } = useTrackedProjects();
+  const { isTracked, toggleTrack, trackedProjects } = useTrackedProjects();
   const canCreate = hasRole('admin') || hasRole('researcher');
   const [search, setSearch] = useState('');
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
-  const [listScope, setListScope] = useState<'all' | 'tracked'>('all');
   const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -70,7 +75,6 @@ export default function Projects() {
 
   const filtered = useMemo(() => {
     return projectSource.filter(p => {
-      if (listScope === 'tracked' && (!p.dbId || !isTracked(p.dbId))) return false;
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
       if (stage !== 'all' && p.stage !== stage) return false;
       if (sector !== 'all' && p.sector !== sector) return false;
@@ -79,9 +83,9 @@ export default function Projects() {
       if (confFilter === 'low' && p.confidence >= 70) return false;
       return true;
     });
-  }, [projectSource, search, stage, sector, confFilter, listScope, isTracked]);
+  }, [projectSource, search, stage, sector, confFilter]);
 
-  // Aggregations for charts
+  // Aggregations for KPIs + Analytics charts
   const totalValue = useMemo(() => filtered.reduce((s, p) => s + (p.valueUsd || 0), 0), [filtered]);
   const avgConfidence = useMemo(() => filtered.length ? Math.round(filtered.reduce((s, p) => s + p.confidence, 0) / filtered.length) : 0, [filtered]);
   const verifiedCount = useMemo(() => filtered.filter(p => p.status === 'Verified').length, [filtered]);
@@ -131,6 +135,44 @@ export default function Projects() {
     return Object.entries(map).map(([name, value]) => ({ name, value: +(value / 1e9).toFixed(1) }));
   }, [filtered]);
 
+  // ── Risk tab data ────────────────────────────────────────────────
+  const riskProjects = useMemo(() => {
+    return ((!hasPreferenceFilters || viewScope === 'all') ? allProjects : projects)
+      .map(p => {
+        const anomalies: string[] = [];
+        if (p.riskScore >= 70) anomalies.push('High risk score');
+        if (p.confidence < 50) anomalies.push('Low confidence');
+        if (p.status === 'At Risk') anomalies.push('At Risk status');
+        if (p.stage === 'Stopped' || p.stage === 'Cancelled') anomalies.push(`Project ${p.stage.toLowerCase()}`);
+        const projectAlerts = alerts.filter(a => a.projectName === p.name);
+        if (projectAlerts.some(a => a.severity === 'critical')) anomalies.push('Critical alert');
+        return { ...p, anomalies, alertCount: projectAlerts.length };
+      })
+      .filter(p => p.anomalies.length > 0 || p.riskScore >= 40)
+      .sort((a, b) => b.riskScore - a.riskScore);
+  }, [allProjects, projects, alerts, hasPreferenceFilters, viewScope]);
+
+  const riskDistribution = useMemo(() => [
+    { label: 'Low (0-24)', count: allProjects.filter(p => p.riskScore < 25).length, color: 'bg-emerald-500' },
+    { label: 'Medium (25-49)', count: allProjects.filter(p => p.riskScore >= 25 && p.riskScore < 50).length, color: 'bg-amber-500' },
+    { label: 'High (50-74)', count: allProjects.filter(p => p.riskScore >= 50 && p.riskScore < 75).length, color: 'bg-red-500' },
+    { label: 'Critical (75+)', count: allProjects.filter(p => p.riskScore >= 75).length, color: 'bg-red-700' },
+  ], [allProjects]);
+
+  // ── Analytics tab data ───────────────────────────────────────────
+  const sectorValueData = useMemo(() => {
+    const map: Record<string, { projects: number; totalValue: number; avgRisk: number }> = {};
+    allProjects.forEach(p => {
+      if (!map[p.sector]) map[p.sector] = { projects: 0, totalValue: 0, avgRisk: 0 };
+      map[p.sector].projects++;
+      map[p.sector].totalValue += p.valueUsd || 0;
+      map[p.sector].avgRisk = Math.round((map[p.sector].avgRisk * (map[p.sector].projects - 1) + p.riskScore) / map[p.sector].projects);
+    });
+    return Object.entries(map)
+      .map(([sector, d]) => ({ sector, ...d }))
+      .sort((a, b) => b.totalValue - a.totalValue);
+  }, [allProjects]);
+
   const exportCSV = async () => {
     if (!canExportCsv) {
       setUpgradeOpen(true);
@@ -161,9 +203,264 @@ export default function Projects() {
     toast({ title: 'Search saved', description: 'Filters saved to your profile.' });
   };
 
+  const viewOnMap = () => {
+    const params = new URLSearchParams();
+    if (sector !== 'all') params.set('sector', sector);
+    navigate(`/dashboard/geo${params.toString() ? '?' + params.toString() : ''}`);
+  };
+
+  const [riskPage, setRiskPage] = useState(0);
+  const RISK_PAGE_SIZE = 10;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="export" />
+
+      <Tabs defaultValue={activeTab}>
+        <TabsList>
+          <TabsTrigger value="projects">Projects</TabsTrigger>
+          <TabsTrigger value="risk">Risk Signals</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+        </TabsList>
+
+      {/* ── Analytics Tab ── */}
+      <TabsContent value="analytics" className="space-y-6">
+        <div>
+          <h2 className="text-lg font-bold">Sector Analytics</h2>
+          <p className="text-sm text-muted-foreground">Project count, pipeline value, and average risk by sector across all tracked projects.</p>
+        </div>
+        <div className="glass-panel rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left bg-black/20">
+                <th className="p-3 font-medium text-muted-foreground">Sector</th>
+                <th className="p-3 font-medium text-muted-foreground text-right">Projects</th>
+                <th className="p-3 font-medium text-muted-foreground text-right">Total Value</th>
+                <th className="p-3 font-medium text-muted-foreground text-right">Avg Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sectorValueData.map(row => (
+                <tr key={row.sector} className="border-b border-border/50 hover:bg-white/[0.02]">
+                  <td className="p-3 font-medium">{row.sector}</td>
+                  <td className="p-3 text-right text-muted-foreground">{row.projects}</td>
+                  <td className="p-3 text-right font-medium">
+                    {row.totalValue >= 1e9 ? `$${(row.totalValue / 1e9).toFixed(1)}B` : row.totalValue >= 1e6 ? `$${(row.totalValue / 1e6).toFixed(0)}M` : row.totalValue > 0 ? `$${row.totalValue.toLocaleString()}` : '—'}
+                  </td>
+                  <td className="p-3 text-right">
+                    <span className={`font-bold ${row.avgRisk >= 70 ? 'text-red-400' : row.avgRisk >= 40 ? 'text-amber-400' : 'text-emerald-400'}`}>{row.avgRisk}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-bold">Pipeline & Distribution</h2>
+          <p className="text-sm text-muted-foreground">Breakdown of the filtered project set by region, status, confidence, stage, and value.</p>
+        </div>
+
+        {/* Region donut + Status donut + Confidence histogram */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">By region</h3>
+            {loading ? <Skeleton className="h-[180px] w-full" /> : (
+              <>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={regionData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
+                      {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {regionData.map((r, i) => (
+                    <span key={r.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />{r.name}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">By status</h3>
+            {loading ? <Skeleton className="h-[180px] w-full" /> : (
+              <>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
+                      {statusData.map(s => <Cell key={s.name} fill={STATUS_COLORS[s.name] || '#64748b'} />)}
+                    </Pie>
+                    <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {statusData.map(s => (
+                    <span key={s.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLORS[s.name] || '#64748b' }} />{s.name} ({s.value})
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">Confidence distribution</h3>
+            {loading ? <Skeleton className="h-[180px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={confidenceDistribution}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
+                  <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} fill="hsl(170 55% 63%)" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+
+        {/* Stage bar + Value by region + Sector bar */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">Pipeline by stage</h3>
+            {loading ? <Skeleton className="h-[200px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
+                    {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">Value by region ($B)</h3>
+            {loading ? <Skeleton className="h-[200px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={valueByRegion}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
+                  <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} formatter={(v: number) => [`$${v}B`, 'Value']} />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} fill="#38bdf8" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="glass-panel rounded-xl p-5">
+            <h3 className="font-serif text-sm font-semibold mb-3">By sector</h3>
+            {loading ? <Skeleton className="h-[200px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
+                  <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
+                    {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </TabsContent>
+
+      {/* ── Risk Tab ── */}
+      <TabsContent value="risk" className="space-y-6">
+        <div>
+          <h2 className="text-lg font-bold flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-primary" /> Risk & Anomaly Signals</h2>
+          <p className="text-sm text-muted-foreground">Projects with high risk scores, low confidence, critical alerts, or anomalous status changes.</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          {[
+            { label: 'Avg Risk', value: allProjects.length ? Math.round(allProjects.reduce((s, p) => s + p.riskScore, 0) / allProjects.length) : 0, color: '' },
+            { label: 'Critical', value: riskProjects.filter(p => p.riskScore >= 75).length, color: 'text-red-400' },
+            { label: 'High', value: riskProjects.filter(p => p.riskScore >= 50 && p.riskScore < 75).length, color: 'text-amber-400' },
+            { label: 'Flagged', value: riskProjects.length, color: '' },
+          ].map(k => (
+            <div key={k.label} className="glass-panel border-border rounded-xl p-4">
+              <div className="text-xs text-muted-foreground mb-1">{k.label}</div>
+              <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="glass-panel border-border rounded-xl p-4">
+          <p className="text-sm font-semibold mb-3">Risk Distribution</p>
+          <div className="space-y-2">
+            {riskDistribution.map(d => (
+              <div key={d.label} className="flex items-center gap-3">
+                <span className="w-28 text-xs text-muted-foreground">{d.label}</span>
+                <div className="flex-1 h-5 rounded bg-border/30 overflow-hidden">
+                  <div className={`h-full rounded ${d.color}`} style={{ width: `${allProjects.length ? (d.count / allProjects.length) * 100 : 0}%` }} />
+                </div>
+                <span className="text-xs font-medium w-6 text-right">{d.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="glass-panel border-border rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <p className="text-sm font-semibold">Flagged Projects</p>
+            {riskProjects.length > 0 && <span className="text-xs text-muted-foreground">{riskPage * RISK_PAGE_SIZE + 1}–{Math.min((riskPage + 1) * RISK_PAGE_SIZE, riskProjects.length)} of {riskProjects.length}</span>}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left bg-black/20">
+                  <th className="p-3 font-medium text-muted-foreground">Project</th>
+                  <th className="p-3 font-medium text-muted-foreground">Risk Score</th>
+                  <th className="p-3 font-medium text-muted-foreground">Anomalies</th>
+                  <th className="p-3 font-medium text-muted-foreground">Alerts</th>
+                  <th className="p-3 font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {riskProjects.slice(riskPage * RISK_PAGE_SIZE, (riskPage + 1) * RISK_PAGE_SIZE).map((p: any) => (
+                  <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02]">
+                    <td className="p-3">
+                      <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                      <div className="text-[10px] text-muted-foreground">{p.country} · {p.region}</div>
+                    </td>
+                    <td className="p-3">
+                      <span className={`font-bold ${p.riskScore >= 75 ? 'text-red-400' : p.riskScore >= 50 ? 'text-amber-400' : 'text-emerald-400'}`}>{p.riskScore}</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex flex-wrap gap-1">
+                        {p.anomalies.map((a: string) => (
+                          <Badge key={a} variant="outline" className="text-[9px] border-red-500/30 text-red-400">{a}</Badge>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="p-3 text-muted-foreground">{p.alertCount}</td>
+                    <td className="p-3"><Badge variant="outline" className="text-xs">{p.status}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {riskProjects.length > RISK_PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <button onClick={() => setRiskPage(p => Math.max(0, p - 1))} disabled={riskPage === 0} className="px-3 py-1 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted">Previous</button>
+              <span className="text-xs text-muted-foreground">Page {riskPage + 1} of {Math.ceil(riskProjects.length / RISK_PAGE_SIZE)}</span>
+              <button onClick={() => setRiskPage(p => Math.min(Math.ceil(riskProjects.length / RISK_PAGE_SIZE) - 1, p + 1))} disabled={(riskPage + 1) * RISK_PAGE_SIZE >= riskProjects.length} className="px-3 py-1 text-xs rounded border border-border disabled:opacity-40 hover:bg-muted">Next</button>
+            </div>
+          )}
+        </div>
+      </TabsContent>
+
+      {/* ── Projects Tab ── */}
+      <TabsContent value="projects" className="space-y-6">
       {/* Coverage banner */}
       {!loading && (() => {
         const isStaff = hasRole('admin') || hasRole('researcher');
@@ -172,7 +469,6 @@ export default function Projects() {
         const moreRegions = (profile?.regions?.length ?? 0) > 3 ? ` +${(profile.regions?.length ?? 0) - 3} more` : '';
 
         if (isStaff) {
-          // Staff see the full count — admin-level info
           return (
             <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
               <Info className="h-3.5 w-3.5 shrink-0" />
@@ -226,7 +522,16 @@ export default function Projects() {
               </button>
             </div>
           )}
+          {trackedProjects.length > 0 && (
+            <Link to="/dashboard/portfolio">
+              <Button size="sm" variant="outline">
+                <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" />
+                Portfolio ({trackedProjects.length})
+              </Button>
+            </Link>
+          )}
           {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
+          <Button size="sm" variant="outline" onClick={viewOnMap}><MapPin className="h-3 w-3 mr-1" />View on Map</Button>
           <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
           <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
@@ -250,123 +555,6 @@ export default function Projects() {
         ))}
       </div>
 
-      {/* Charts Row 1: Region donut + Status donut + Confidence histogram */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">By region</h3>
-          {loading ? <Skeleton className="h-[180px] w-full" /> : (
-            <>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={regionData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
-                    {regionData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {regionData.map((r, i) => (
-                  <span key={r.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <span className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />{r.name}
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">By status</h3>
-          {loading ? <Skeleton className="h-[180px] w-full" /> : (
-            <>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={statusData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={3} stroke="none">
-                    {statusData.map(s => <Cell key={s.name} fill={STATUS_COLORS[s.name] || '#64748b'} />)}
-                  </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {statusData.map(s => (
-                  <span key={s.name} className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <span className="w-2 h-2 rounded-full" style={{ background: STATUS_COLORS[s.name] || '#64748b' }} />{s.name} ({s.value})
-                  </span>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">Confidence distribution</h3>
-          {loading ? <Skeleton className="h-[180px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={confidenceDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
-                <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={28} fill="hsl(170 55% 63%)" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Charts Row 2: Pipeline stages + Value by region + Sector bar */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">Pipeline by stage</h3>
-          {loading ? <Skeleton className="h-[200px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={stageData} layout="vertical" margin={{ left: 5, right: 15 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={80} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
-                  {stageData.map(s => <Cell key={s.name} fill={STAGE_COLORS[s.name] || '#64748b'} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">Value by region ($B)</h3>
-          {loading ? <Skeleton className="h-[200px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={valueByRegion}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
-                <XAxis dataKey="name" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} formatter={(v: number) => [`$${v}B`, 'Value']} />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32} fill="#38bdf8" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="glass-panel rounded-xl p-5">
-          <h3 className="font-serif text-sm font-semibold mb-3">By sector</h3>
-          {loading ? <Skeleton className="h-[200px] w-full" /> : (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={sectorData} layout="vertical" margin={{ left: 5, right: 15 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="name" width={110} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} itemStyle={TOOLTIP_ITEM_STYLE} />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={14}>
-                  {sectorData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Mini Map */}
-      {!loading && <OverviewMap projects={filtered} />}
-
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[200px]">
@@ -388,13 +576,6 @@ export default function Projects() {
             <SelectItem value="high">High (≥90%)</SelectItem>
             <SelectItem value="medium">Medium (70–89%)</SelectItem>
             <SelectItem value="low">Low (&lt;70%)</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={listScope} onValueChange={v => setListScope(v as 'all' | 'tracked')}>
-          <SelectTrigger className="w-[150px] bg-black/20"><SelectValue placeholder="List" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All projects</SelectItem>
-            <SelectItem value="tracked">Tracked only</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -456,6 +637,11 @@ export default function Projects() {
           </table>
         </div>
       </div>
+
+      {/* Map preview */}
+      {!loading && <OverviewMap projects={filtered} />}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
