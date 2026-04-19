@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
@@ -14,7 +14,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { Briefcase, Star, StickyNote, AlertTriangle, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { Briefcase, Star, StickyNote, AlertTriangle, TrendingUp, DollarSign, Activity, Sparkles } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -85,6 +85,22 @@ export default function Portfolio() {
   };
 
   const loading = trackLoading || projectsLoading;
+
+  const recommendations = useMemo(() => {
+    if (portfolioProjects.length < 2) return [];
+    const sectorCount: Record<string, number> = {};
+    const regionCount: Record<string, number> = {};
+    portfolioProjects.forEach(p => {
+      sectorCount[p.sector] = (sectorCount[p.sector] || 0) + 1;
+      regionCount[p.region] = (regionCount[p.region] || 0) + 1;
+    });
+    const topSectors = Object.entries(sectorCount).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([s]) => s);
+    const topRegions = Object.entries(regionCount).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([r]) => r);
+    return allProjects
+      .filter(p => p.dbId && !trackedIds.has(p.dbId) && (topSectors.includes(p.sector) || topRegions.includes(p.region)))
+      .sort((a, b) => b.confidence - a.confidence)
+      .slice(0, 6);
+  }, [portfolioProjects, allProjects, trackedIds]);
 
   return (
     <div className="space-y-6">
@@ -254,6 +270,42 @@ export default function Portfolio() {
                 })}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Smart Recommendations */}
+      {recommendations.length > 0 && (
+        <Card className="glass-panel border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary" /> Recommended for You
+              <span className="text-xs font-normal text-muted-foreground ml-1">based on your portfolio</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {recommendations.map(p => (
+                <div key={p.id} className="rounded-lg border border-border/40 bg-muted/10 p-3 flex flex-col gap-2">
+                  <Link to={`/dashboard/projects/${p.id}`} className="text-sm font-medium text-primary hover:underline leading-snug line-clamp-2">{p.name}</Link>
+                  <div className="text-xs text-muted-foreground">{p.country} · {p.sector}</div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
+                      <span className={`text-xs font-bold ${p.riskScore >= 70 ? 'text-red-400' : p.riskScore >= 40 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        Risk {p.riskScore}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => void toggleTrack(p.dbId!)}
+                      className="text-xs text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Star className="h-3 w-3" /> Track
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

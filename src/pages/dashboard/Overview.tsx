@@ -8,8 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   TrendingUp, ShieldCheck, Activity, AlertTriangle, Bot, Search,
   RefreshCw, ShieldAlert, CheckCircle2, ClipboardCheck, DollarSign, Zap, Users,
-  ExternalLink, Award, Star, Briefcase,
+  ExternalLink, Award, Star, Briefcase, ChevronDown, ChevronUp, Circle, X,
 } from 'lucide-react';
+import { useAlertRules } from '@/hooks/use-alert-rules';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -53,6 +54,42 @@ export default function DashboardOverview() {
     },
     enabled: isStaff,
   });
+
+  const { rules: alertRules } = useAlertRules();
+  const [checklistOpen, setChecklistOpen] = useState(true);
+  const [checklistDismissed, setChecklistDismissed] = useState(() => {
+    try { return localStorage.getItem('infradar_checklist_dismissed') === '1'; } catch { return false; }
+  });
+
+  const { data: userResearchCount = 0 } = useQuery({
+    queryKey: ['user-research-count'],
+    queryFn: async () => {
+      const { count } = await supabase.from('research_tasks').select('id', { count: 'exact', head: true }).eq('task_type', 'user-research');
+      return count || 0;
+    },
+  });
+
+  const checklistSteps = useMemo(() => [
+    {
+      id: 'track', label: 'Track 5 projects', desc: 'Build your portfolio to monitor what matters most.', done: trackedProjects.length >= 5,
+      action: { label: 'Browse projects', href: '/dashboard/projects' },
+    },
+    {
+      id: 'alert', label: 'Set up an alert rule', desc: 'Get notified when risk signals match your filters.', done: alertRules.length > 0,
+      action: { label: 'Configure alerts', href: '/dashboard/alerts' },
+    },
+    {
+      id: 'research', label: 'Run an AI research query', desc: 'Ask anything about infrastructure projects.', done: userResearchCount > 0,
+      action: { label: 'Open Research', href: '/dashboard/chat' },
+    },
+    {
+      id: 'profile', label: 'Complete your profile', desc: 'Set your regions and sectors for personalised coverage.', done: !!(profile?.company && profile?.display_name),
+      action: { label: 'Edit profile', href: '/dashboard/settings' },
+    },
+  ], [trackedProjects.length, alertRules.length, userResearchCount, profile]);
+
+  const checklistDone = checklistSteps.filter(s => s.done).length;
+  const allChecklistDone = checklistDone === checklistSteps.length;
 
   const { data: portfolioUpdateCount = 0 } = useQuery({
     queryKey: ['portfolio-update-count', trackedProjects.map(t => t.project_id)],
@@ -188,6 +225,55 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-6">
       <h1 className="font-serif text-2xl font-bold">Infrastructure intelligence overview</h1>
+
+      {/* Onboarding Checklist */}
+      {!checklistDismissed && !allChecklistDone && (
+        <div className="glass-panel rounded-xl border border-primary/20 overflow-hidden">
+          <div
+            className="flex items-center justify-between px-5 py-3.5 cursor-pointer select-none"
+            onClick={() => setChecklistOpen(o => !o)}
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                {checklistSteps.map(s => (
+                  <div key={s.id} className={`h-2 w-2 rounded-full ${s.done ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                ))}
+              </div>
+              <span className="text-sm font-medium">Getting started</span>
+              <span className="text-xs text-muted-foreground">{checklistDone}/{checklistSteps.length} complete</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={e => { e.stopPropagation(); localStorage.setItem('infradar_checklist_dismissed', '1'); setChecklistDismissed(true); }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground"
+                aria-label="Dismiss checklist"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              {checklistOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </div>
+          </div>
+          {checklistOpen && (
+            <div className="border-t border-border/30 divide-y divide-border/20">
+              {checklistSteps.map(step => (
+                <div key={step.id} className="flex items-center gap-4 px-5 py-3">
+                  {step.done
+                    ? <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                    : <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium ${step.done ? 'line-through text-muted-foreground' : 'text-foreground'}`}>{step.label}</p>
+                    <p className="text-xs text-muted-foreground">{step.desc}</p>
+                  </div>
+                  {!step.done && (
+                    <Link to={step.action.href} className="text-xs text-primary hover:underline shrink-0">{step.action.label} →</Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* KPI section with Platform / My coverage toggle */}
       <div className="space-y-3">

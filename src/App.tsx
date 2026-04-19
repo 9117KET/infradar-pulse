@@ -49,6 +49,11 @@ import IntelligenceSummaries from "./pages/dashboard/IntelligenceSummaries";
 import Tenders from "./pages/dashboard/Tenders";
 import Countries from "./pages/dashboard/Countries";
 import CountryDetail from "./pages/dashboard/CountryDetail";
+import Compare from "./pages/dashboard/Compare";
+import Pipeline from "./pages/dashboard/Pipeline";
+import TenderCalendar from "./pages/dashboard/TenderCalendar";
+import PortfolioChat from "./pages/dashboard/PortfolioChat";
+import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -107,6 +112,11 @@ const App = () => (
               <Route path="/dashboard/tenders" element={<Tenders />} />
               <Route path="/dashboard/countries" element={<Countries />} />
               <Route path="/dashboard/countries/:country" element={<CountryDetail />} />
+              <Route path="/dashboard/compare" element={<Compare />} />
+              <Route path="/dashboard/pipeline" element={<Pipeline />} />
+              <Route path="/dashboard/calendar" element={<TenderCalendar />} />
+              <Route path="/dashboard/chat" element={<PortfolioChat />} />
+              <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
