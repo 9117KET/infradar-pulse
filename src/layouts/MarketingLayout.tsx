@@ -1,8 +1,13 @@
+import { useLocation } from 'react-router-dom';
 import { Outlet } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { ConversionBar } from '@/components/home/ConversionBar';
 
 export default function MarketingLayout() {
+  const { pathname } = useLocation();
+  const showConversionBar = pathname === '/';
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -10,6 +15,7 @@ export default function MarketingLayout() {
         <Outlet />
       </main>
       <Footer />
+      {showConversionBar && <ConversionBar />}
     </div>
   );
 }

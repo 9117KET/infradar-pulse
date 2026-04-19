@@ -23,7 +23,15 @@ function getMarkerRadius(zoom: number) {
   return 3;
 }
 
-export function HeroMap({ projects, className }: { projects: PublicProjectLocation[]; className?: string }) {
+export function HeroMap({
+  projects,
+  className,
+  onProjectClick,
+}: {
+  projects: PublicProjectLocation[];
+  className?: string;
+  onProjectClick?: (project: PublicProjectLocation) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.CircleMarker[]>([]);
@@ -82,18 +90,21 @@ export function HeroMap({ projects, className }: { projects: PublicProjectLocati
         color,
         weight: 0.5,
         opacity: 1,
-        interactive: showName, // only interactive when name would be shown
+        interactive: true,
       });
 
-      if (showName) {
-        // Tooltip (hover) shows name only — no other project details on the public site
-        marker.bindTooltip(`<span style="font-size:12px;font-weight:600">${p.name}</span>`, {
-          permanent: false,
-          sticky: true,
-          direction: 'top',
-          offset: [0, -6],
-          className: 'leaflet-infradar-tooltip',
-        });
+      // Tooltip shows name on hover at all zoom levels
+      marker.bindTooltip(`<span style="font-size:12px;font-weight:600">${p.name}</span>`, {
+        permanent: false,
+        sticky: true,
+        direction: 'top',
+        offset: [0, -6],
+        className: 'leaflet-infradar-tooltip',
+      });
+
+      // Click opens the project drawer
+      if (onProjectClick) {
+        marker.on('click', () => onProjectClick(p));
       }
 
       marker.addTo(map);

@@ -9,6 +9,9 @@ export type PublicProjectLocation = {
   sector: string;
   name: string;
   country: string;
+  region: string | null;
+  value_usd: number | null;
+  stage: string | null;
 };
 
 /**
@@ -27,7 +30,7 @@ export function usePublicProjectLocations() {
       setLoading(true);
       const { data } = await supabase
         .from('projects')
-        .select('id, lat, lng, risk_score, sector, name, country')
+        .select('id, lat, lng, risk_score, sector, name, country, region, value_usd, stage')
         .eq('approved', true)
         .not('lat', 'is', null)
         .not('lng', 'is', null);
