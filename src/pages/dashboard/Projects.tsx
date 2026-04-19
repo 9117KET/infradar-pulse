@@ -6,11 +6,15 @@ import { useAlerts } from '@/hooks/use-alerts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
+import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -195,12 +199,28 @@ export default function Projects() {
     toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
   };
 
-  const saveSearch = () => {
-    let saved: unknown[] = [];
-    try { saved = JSON.parse(localStorage.getItem('infradar_saved_searches') || '[]'); } catch { saved = []; }
-    saved.push({ search, stage, sector, confFilter, ts: new Date().toISOString() });
-    localStorage.setItem('infradar_saved_searches', JSON.stringify(saved));
-    toast({ title: 'Search saved', description: 'Filters saved to your profile.' });
+  const { saveSearch: saveSearchMutation } = useSavedSearches();
+  const [saveSearchOpen, setSaveSearchOpen] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState('');
+  const [saveSearchNotify, setSaveSearchNotify] = useState(false);
+
+  const hasActiveFilters = search || stage !== 'all' || sector !== 'all' || confFilter !== 'all';
+
+  const handleSaveSearch = async () => {
+    if (!saveSearchName.trim()) return;
+    try {
+      await saveSearchMutation.mutateAsync({
+        name: saveSearchName.trim(),
+        filters: { search, stage, sector, confFilter },
+        notifyEmail: saveSearchNotify,
+      });
+      toast({ title: 'Search saved', description: 'Filters saved. View in Settings.' });
+      setSaveSearchOpen(false);
+      setSaveSearchName('');
+      setSaveSearchNotify(false);
+    } catch {
+      toast({ title: 'Failed to save search', variant: 'destructive' });
+    }
   };
 
   const viewOnMap = () => {
@@ -215,6 +235,40 @@ export default function Projects() {
   return (
     <div className="space-y-4">
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="export" />
+
+      {/* Save Search Dialog */}
+      <Dialog open={saveSearchOpen} onOpenChange={setSaveSearchOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Save Search</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="search-name">Name</Label>
+              <Input
+                id="search-name"
+                placeholder="e.g. MENA Energy Tenders"
+                value={saveSearchName}
+                onChange={e => setSaveSearchName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') void handleSaveSearch(); }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Email alerts</p>
+                <p className="text-xs text-muted-foreground">Notify me when new projects match</p>
+              </div>
+              <Switch checked={saveSearchNotify} onCheckedChange={setSaveSearchNotify} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveSearchOpen(false)}>Cancel</Button>
+            <Button onClick={() => void handleSaveSearch()} disabled={!saveSearchName.trim() || saveSearchMutation.isPending}>
+              {saveSearchMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Tabs defaultValue={activeTab}>
         <TabsList>
@@ -532,7 +586,7 @@ export default function Projects() {
           )}
           {canCreate && <Link to="/dashboard/projects/new"><Button size="sm"><Plus className="h-3 w-3 mr-1" />New Project</Button></Link>}
           <Button size="sm" variant="outline" onClick={viewOnMap}><MapPin className="h-3 w-3 mr-1" />View on Map</Button>
-          <Button size="sm" variant="outline" onClick={saveSearch}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
+          <Button size="sm" variant="outline" onClick={() => setSaveSearchOpen(true)} disabled={!hasActiveFilters}><Bookmark className="h-3 w-3 mr-1" />Save search</Button>
           <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
         </div>
       </div>

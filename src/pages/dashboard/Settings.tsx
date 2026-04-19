@@ -10,7 +10,9 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail } from 'lucide-react';
+import { useSavedSearches } from '@/hooks/use-saved-searches';
+import { Switch as UISwitch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -155,12 +157,17 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
+          <TabsTrigger value="saved-searches"><Bookmark className="h-4 w-4 mr-1" />Saved Searches</TabsTrigger>
           <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
           {staffBypass && <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="preferences">
           <PreferencesTab />
+        </TabsContent>
+
+        <TabsContent value="saved-searches">
+          <SavedSearchesTab />
         </TabsContent>
 
         <TabsContent value="billing">
@@ -215,6 +222,82 @@ export default function SettingsPage() {
           </div>
         </TabsContent>}
       </Tabs>
+    </div>
+  );
+}
+
+function SavedSearchesTab() {
+  const { savedSearches, isLoading, deleteSearch, updateNotify } = useSavedSearches();
+  const { toast } = useToast();
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSearch.mutateAsync(id);
+      toast({ title: 'Search deleted' });
+    } catch {
+      toast({ title: 'Failed to delete', variant: 'destructive' });
+    }
+  };
+
+  const handleToggleNotify = async (id: string, current: boolean) => {
+    try {
+      await updateNotify.mutateAsync({ id, notifyEmail: !current });
+    } catch {
+      toast({ title: 'Failed to update', variant: 'destructive' });
+    }
+  };
+
+  const formatFilters = (filters: Record<string, unknown>) => {
+    const parts: string[] = [];
+    if (filters.search) parts.push(`"${filters.search}"`);
+    if (filters.stage && filters.stage !== 'all') parts.push(`Stage: ${filters.stage}`);
+    if (filters.sector && filters.sector !== 'all') parts.push(`Sector: ${filters.sector}`);
+    if (filters.confFilter && filters.confFilter !== 'all') parts.push(`Confidence: ${filters.confFilter}`);
+    return parts.length ? parts.join(' · ') : 'All projects';
+  };
+
+  if (isLoading) {
+    return <div className="space-y-2 mt-4">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 rounded-lg bg-muted/20 animate-pulse" />)}</div>;
+  }
+
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <h2 className="text-sm font-semibold">Saved Searches</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Searches saved from the Projects page. Toggle email alerts to be notified of new matches.</p>
+      </div>
+      {savedSearches.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/50 p-8 text-center">
+          <Bookmark className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-sm font-medium text-muted-foreground">No saved searches yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Use the "Save search" button on the Projects page to save filters here.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {savedSearches.map(s => (
+            <div key={s.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/30 bg-muted/10">
+              <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">{s.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{formatFilters(s.filters)}</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="flex items-center gap-1.5" title="Email notifications">
+                  <Mail className="h-3 w-3 text-muted-foreground" />
+                  <UISwitch
+                    checked={s.notify_email}
+                    onCheckedChange={() => void handleToggleNotify(s.id, s.notify_email)}
+                    className="scale-75"
+                  />
+                </div>
+                <button onClick={() => void handleDelete(s.id)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
