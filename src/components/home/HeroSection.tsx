@@ -1,10 +1,42 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { HeroLiveTracker } from '@/components/home/HeroLiveTracker';
-import { SAMPLE_PROJECTS } from '@/data/sampleProjects';
+import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
+
+function formatPipelineValue(total: number): string {
+  if (total >= 1e12) return `$${(total / 1e12).toFixed(1)}T`;
+  if (total >= 1e9) return `$${(total / 1e9).toFixed(0)}B`;
+  if (total >= 1e6) return `$${(total / 1e6).toFixed(0)}M`;
+  return `$${total.toLocaleString()}`;
+}
 
 export function HeroSection() {
+  const { locations, loading } = usePublicProjectLocations();
+
+  const trackerProjects = useMemo(() =>
+    locations.map(p => ({
+      id: p.id,
+      name: p.name,
+      country: p.country,
+      sector: p.sector,
+      stage: p.stage ?? '',
+      status: 'Verified',
+      valueUsd: p.value_usd ?? 0,
+      valueLabel: p.value_usd ? formatPipelineValue(p.value_usd) : '',
+      riskScore: p.risk_score,
+      region: p.region ?? undefined,
+    })),
+    [locations]
+  );
+
+  const stats = useMemo(() => ({
+    projects: locations.length,
+    countries: new Set(locations.map(p => p.country)).size,
+    pipelineValue: locations.reduce((s, p) => s + (p.value_usd ?? 0), 0),
+  }), [locations]);
+
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
@@ -37,17 +69,29 @@ export function HeroSection() {
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-            <span><strong className="text-foreground">20+</strong> Data sources</span>
-            <span className="hidden sm:inline text-border">·</span>
-            <span><strong className="text-foreground">24h</strong> Alert latency</span>
-            <span className="hidden sm:inline text-border">·</span>
-            <span><em className="text-primary not-italic">Read-only</em> Preview available</span>
+            {loading ? (
+              <span className="text-muted-foreground/50">Loading live data…</span>
+            ) : (
+              <>
+                <span>
+                  <strong className="text-foreground">{stats.projects.toLocaleString()}</strong> verified projects
+                </span>
+                <span className="hidden sm:inline text-border">·</span>
+                <span>
+                  <strong className="text-foreground">{stats.countries}</strong> countries
+                </span>
+                <span className="hidden sm:inline text-border">·</span>
+                <Link to="/explore" className="text-primary hover:underline underline-offset-2">
+                  Explore the dataset →
+                </Link>
+              </>
+            )}
           </div>
         </motion.div>
 
-        {/* Right: globe */}
+        {/* Right: live tracker */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center">
-          <HeroLiveTracker projects={SAMPLE_PROJECTS} />
+          <HeroLiveTracker projects={trackerProjects} />
         </motion.div>
       </div>
     </section>

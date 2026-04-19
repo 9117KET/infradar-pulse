@@ -13,6 +13,7 @@ import Services from "./pages/Services";
 import Pricing from "./pages/Pricing";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import Explore from "./pages/Explore";
 
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -62,6 +63,7 @@ const App = () => (
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/explore" element={<Explore />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/insights/:slug" element={<InsightDetail />} />
               <Route path="/services" element={<Services />} />

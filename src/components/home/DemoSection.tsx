@@ -1,16 +1,18 @@
-import { useMemo } from 'react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Globe, Map } from 'lucide-react';
 import { HeroMap } from './HeroMap';
 import { DemoGlobe } from './DemoGlobe';
+import { PublicProjectDrawer } from './PublicProjectDrawer';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
+import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
 
 type ViewMode = 'globe' | 'map';
 
 export function DemoSection() {
   const [viewMode, setViewMode] = useState<ViewMode>('globe');
+  const [selectedProject, setSelectedProject] = useState<PublicProjectLocation | null>(null);
   const { locations, loading } = usePublicProjectLocations();
 
   const topSectors = useMemo(
@@ -74,14 +76,16 @@ export function DemoSection() {
               </div>
               {!loading && locations.length > 0 && (
                 <div className="absolute top-4 right-4 z-10 text-[10px] font-mono text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                  Live pipeline data
+                  Live pipeline data · click map view to explore
                 </div>
               )}
             </>
           ) : (
-            <>
-              <HeroMap projects={locations} className="w-full h-full" />
-            </>
+            <HeroMap
+              projects={locations}
+              className="w-full h-full"
+              onProjectClick={setSelectedProject}
+            />
           )}
         </motion.div>
 
@@ -89,10 +93,15 @@ export function DemoSection() {
         {!loading && topSectors.length > 0 && (
           <div className="mt-4 glass-panel rounded-xl p-4 text-center">
             <div className="text-xs font-medium">{topSectors.join(' · ')}</div>
-            <div className="text-xs text-muted-foreground mt-1">Sectors tracked</div>
+            <div className="text-xs text-muted-foreground mt-1">Sectors tracked · Switch to Map and click a project to preview</div>
           </div>
         )}
       </div>
+
+      <PublicProjectDrawer
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+      />
     </section>
   );
 }
