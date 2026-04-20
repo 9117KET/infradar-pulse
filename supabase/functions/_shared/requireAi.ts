@@ -44,5 +44,6 @@ export async function recordAiUsage(
   supabaseAdmin: ReturnType<typeof createClient>,
   userId: string
 ): Promise<void> {
+  if (userId === "service_role") return; // cron/internal calls: no per-user tracking
   await incrementUsage(supabaseAdmin, userId, "ai_generation");
 }
