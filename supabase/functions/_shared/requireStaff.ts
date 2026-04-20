@@ -27,6 +27,20 @@ export async function requireStaffOrRespond(req: Request): Promise<
       headers: corsJson,
     });
   }
+  // Allow service_role JWTs (used by pg_cron scheduled invocations).
+  // Service role tokens have no `sub` claim so getUser() returns null - bypass
+  // the normal user lookup and grant admin access directly.
+  const rawAuth = req.headers.get("Authorization") ?? "";
+  if (rawAuth.startsWith("Bearer ")) {
+    try {
+      const payload = JSON.parse(atob(rawAuth.slice(7).split(".")[1]));
+      if (payload?.role === "service_role") {
+        const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+        return { userId: "service_role", supabaseAdmin };
+      }
+    } catch { /* not decodeable - fall through to normal auth */ }
+  }
+
   const user = await getUserFromBearer(req, supabaseUrl, anonKey);
   if (!user) {
     return new Response(JSON.stringify({ error: "Sign in required." }), {
