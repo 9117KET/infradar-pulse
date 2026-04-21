@@ -1,19 +1,39 @@
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 
-const METRICS = [
-  { label: 'Verification speed', value: 'Hours, not weeks' },
-  { label: 'Coverage', value: 'Global' },
-  { label: 'Signal quality', value: 'Confidence scored' },
-  { label: 'Decision cadence', value: 'Weekly pipeline' },
-];
-
-const CHANGES = [
-  '20+ sources ingested automatically',
-  'Satellite verification for construction milestones',
-  'Automated alerts on delay and risk signals',
-  'Confidence scoring on every project record',
-  'Decision-ready reports in hours',
+const CASES = [
+  {
+    label: 'Case A - DFI portfolio team',
+    title: 'Regional infrastructure fund',
+    context: 'A sovereign wealth fund managing $8B in African infrastructure replaced fragmented spreadsheets with unified, verified signals.',
+    flow: [
+      { phase: 'Before', desc: 'Spreadsheets, manual calls, 2-3 week signal lag across 12 markets.' },
+      { phase: 'During', desc: 'Onboarded InfraRadar with satellite verification and multi-source ingestion.' },
+      { phase: 'After', desc: 'Unified signal dashboard, automated alerts, weekly confidence-scored pipeline reviews.' },
+      { phase: 'Impact', desc: 'Reduced diligence cycle from 6 weeks to 5 days. Caught 3 delay risks before competitors.' },
+    ],
+    metrics: [
+      { label: 'Diligence cycle', value: '6 weeks to 5 days' },
+      { label: 'Signal lag', value: 'Real-time vs. 3 weeks' },
+      { label: 'Cost vs. incumbents', value: '97% less' },
+    ],
+  },
+  {
+    label: 'Case B - EPC contractor',
+    title: 'Global engineering contractor',
+    context: 'An EPC contractor active in MENA and East Africa used InfraRadar to surface tender opportunities ahead of competitors and track project health across 40+ active sites.',
+    flow: [
+      { phase: 'Before', desc: 'Relying on informal networks and MEED subscriptions for regional tender intelligence.' },
+      { phase: 'During', desc: 'Configured InfraRadar for MENA tenders by sector and value threshold, with contractor win-rate tracking.' },
+      { phase: 'After', desc: 'Real-time tender alerts, stakeholder maps, and competitor bid activity across 20+ procurement portals.' },
+      { phase: 'Impact', desc: 'Identified $2.1B in tenders not covered by previous sources. Reduced tender research time by 80%.' },
+    ],
+    metrics: [
+      { label: 'Tender sources', value: '20+ portals automated' },
+      { label: 'Research time', value: '80% reduction' },
+      { label: 'New pipeline found', value: '$2.1B identified' },
+    ],
+  },
 ];
 
 export function UseCaseSection() {
@@ -21,42 +41,36 @@ export function UseCaseSection() {
     <section id="work" className="relative py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">06 Use case spotlight</div>
-        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">Regional infrastructure fund</h2>
+        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How teams use InfraRadar</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          A sovereign wealth fund managing $8B in African infrastructure replaced fragmented spreadsheets with unified, verified signals.
+          From DFI analysts replacing manual spreadsheets to EPC contractors finding tenders before competitors - one platform, multiple workflows.
         </p>
 
-        {/* Flow */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-4">
-          {[
-            { phase: 'Before', desc: 'Spreadsheets, manual calls, 2–3 week signal lag across 12 markets.' },
-            { phase: 'During', desc: 'Onboarded Infradar pipeline with satellite verification and multi-source ingestion.' },
-            { phase: 'After', desc: 'Unified signal dashboard, automated alerts, weekly confidence-scored pipeline reviews.' },
-            { phase: 'Impact', desc: 'Reduced diligence cycle from 6 weeks to 5 days. Caught 3 delay risks before competitors.' },
-          ].map((s, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="glass-panel rounded-xl p-5">
-              <div className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">{s.phase}</div>
-              <p className="text-sm text-muted-foreground">{s.desc}</p>
+        <div className="mt-12 grid gap-10 lg:grid-cols-2">
+          {CASES.map((c, ci) => (
+            <motion.div key={ci} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: ci * 0.15 }}>
+              <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">{c.label}</div>
+              <h3 className="font-serif text-xl font-bold mb-2">{c.title}</h3>
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">{c.context}</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                {c.flow.map((s, i) => (
+                  <div key={i} className="glass-panel rounded-xl p-4">
+                    <div className="text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">{s.phase}</div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {c.metrics.map(m => (
+                  <Badge key={m.label} variant="outline" className="border-primary/30 text-xs py-1.5 px-3">
+                    <span className="text-primary font-semibold mr-1">{m.label}:</span> {m.value}
+                  </Badge>
+                ))}
+              </div>
             </motion.div>
           ))}
-        </div>
-
-        {/* Metric chips */}
-        <div className="mt-8 flex flex-wrap gap-3">
-          {METRICS.map(m => (
-            <Badge key={m.label} variant="outline" className="border-primary/30 text-sm py-1.5 px-3">
-              <span className="text-primary font-semibold mr-1">{m.label}:</span> {m.value}
-            </Badge>
-          ))}
-        </div>
-
-        {/* What changed */}
-        <div className="mt-8 glass-panel rounded-xl p-6 max-w-xl">
-          <h3 className="font-serif text-lg font-semibold mb-3">What changed</h3>
-          <ul className="space-y-2">
-            {CHANGES.map(c => <li key={c} className="text-sm text-muted-foreground flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />{c}</li>)}
-          </ul>
         </div>
       </div>
     </section>

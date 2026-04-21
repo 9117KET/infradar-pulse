@@ -1,13 +1,16 @@
 import { motion } from 'framer-motion';
-import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText } from 'lucide-react';
+import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText, HardHat, TrendingDown, Search } from 'lucide-react';
 
 const MODULES = [
   { icon: Activity, title: 'Real-time project monitoring', desc: 'Live tracking of project milestones, delays, and status changes across your portfolio.', label: 'Module 01' },
-  { icon: Satellite, title: 'Satellite verification', desc: 'Independent construction progress confirmation via commercial satellite imagery analysis.', label: 'Module 02', wide: true },
+  { icon: Satellite, title: 'Satellite verification', desc: 'Independent construction progress confirmation via satellite imagery analysis - ground truth no analyst can fake.', label: 'Module 02', wide: true },
   { icon: ShieldCheck, title: 'Multi-source validation', desc: 'Cross-reference filings, news, registries, and partner data to eliminate false signals.', label: 'Module 03' },
   { icon: Globe, title: 'Geospatial intelligence', desc: 'Map-based situational awareness with location-enriched project and risk overlays.', label: 'Module 04' },
-  { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, and political risk indicators.', label: 'Module 05' },
-  { icon: FileText, title: 'Decision-ready reporting', desc: 'One-click exports with confidence scores, provenance chains, and executive summaries.', label: 'Module 06' },
+  { icon: TrendingDown, title: 'Delay prediction and early warning', desc: 'AI-powered signals 6-9 months ahead: contractor health, permit timelines, political calendars, and funding gaps combined into a single project health score.', label: 'Module 05' },
+  { icon: HardHat, title: 'Contractor intelligence', desc: 'Track which firms win bids globally. Get alerts when contractors on your portfolio show financial distress before it becomes a project crisis.', label: 'Module 06' },
+  { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, permit denials, and political risk indicators across 9 signal categories.', label: 'Module 07' },
+  { icon: Search, title: 'Procurement monitoring (20+ sources)', desc: 'Tenders from multilateral banks, national procurement portals, and UN agencies - surface opportunities before competitors find them.', label: 'Module 08', wide: true },
+  { icon: FileText, title: 'Decision-ready reporting', desc: 'One-click exports with confidence scores, provenance chains, and executive summaries.', label: 'Module 09' },
 ];
 
 export function CapabilitiesSection() {

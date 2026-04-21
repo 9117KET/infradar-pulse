@@ -60,7 +60,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Track high-value projects across <span className="text-foreground font-medium">every continent</span> with <span className="text-foreground font-medium">AI-assisted, human-verified</span> signals: one decision-ready pipeline in hours, not weeks.
+            The intelligence platform for DFI analysts, project finance teams, and EPC contractors. Real-time signals across <span className="text-foreground font-medium">14 regions</span> with <span className="text-foreground font-medium">AI-assisted research</span> and human-verified confidence scores - at a fraction of incumbent cost.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
