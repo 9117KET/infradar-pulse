@@ -13,6 +13,7 @@ import { trackUsage } from '@/lib/billing/trackUsage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 
 const SECTOR_COLORS = [
   'hsl(var(--primary))', 'hsl(210, 60%, 55%)', 'hsl(40, 80%, 55%)',
@@ -20,11 +21,11 @@ const SECTOR_COLORS = [
 ];
 
 export default function AnalyticsReports() {
-  const { profile, hasRole } = useAuth();
+  const { profile, hasRole, user } = useAuth();
   const isStaff = hasRole('admin') || hasRole('researcher');
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, loading } = useProjects(filters);
-  const { canExportCsv, canUseAi, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportCsv, canUseAi, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [exportingCsv, setExportingCsv] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -59,12 +60,17 @@ export default function AnalyticsReports() {
     }
     setExportingCsv(true);
     try {
+      const capped = applyExportCap(filtered, plan, staffBypass);
+      const watermark = buildWatermarkLabel(user?.email);
       const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Status', 'Value (USD)', 'Confidence %', 'Risk Score', 'Last Updated'];
-      const rows = filtered.map(p => [
+      const rows = capped.rows.map(p => [
         p.name, p.country, p.region, p.sector, p.stage, p.status,
         p.valueUsd.toString(), p.confidence.toString(), p.riskScore.toString(), p.lastUpdated,
       ]);
-      const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+      const preamble = buildCsvHeaderComment(watermark, capped);
+      const csv = [...preamble, headers, ...rows].map(r =>
+        Array.isArray(r) ? r.map(c => `"${c}"`).join(',') : r,
+      ).join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -85,7 +91,13 @@ export default function AnalyticsReports() {
         return;
       }
       await refreshEntitlements();
-      toast.success(`Exported ${filtered.length} projects to CSV`);
+      if (capped.truncated) {
+        toast.success(
+          `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps exports at ${capped.cap} rows — upgrade for more.`,
+        );
+      } else {
+        toast.success(`Exported ${capped.rows.length} projects to CSV`);
+      }
     } finally {
       setExportingCsv(false);
     }

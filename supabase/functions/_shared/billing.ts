@@ -27,3 +27,17 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
   enterprise: { aiPerDay: 9999, aiPerHour: 0,   exportsPerDay: 9999, exportsPerHour: 0,   insightReadsPerDay: 9999, insightReadsPerHour: 0 },
   lifetime:   { aiPerDay: 9999, aiPerHour: 0,   exportsPerDay: 9999, exportsPerHour: 0,   insightReadsPerDay: 9999, insightReadsPerHour: 0 },
 };
+
+/**
+ * Per-export ROW caps (sync with src/lib/billing/limits.ts). Server reads
+ * these to validate a row_count value reported by the client and reject
+ * obviously over-cap requests as defense-in-depth.
+ */
+export const EXPORT_ROW_CAPS: Record<PlanKey, number> = {
+  free:       25,
+  trialing:   100,
+  starter:    1000,
+  pro:        10000,
+  enterprise: 0,
+  lifetime:   0,
+};
