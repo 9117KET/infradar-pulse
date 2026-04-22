@@ -17,6 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 
 import type { AppRole } from '@/contexts/AuthContext';
 
@@ -386,6 +387,7 @@ export default function DashboardLayout() {
               <div data-tour="header-profile"><ProfileMenu /></div>
             </div>
           </header>
+          <EmailVerificationBanner />
           <main className="flex-1 p-6 overflow-auto">
             <Outlet />
           </main>

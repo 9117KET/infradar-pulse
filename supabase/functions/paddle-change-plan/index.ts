@@ -1,5 +1,9 @@
-// Upgrades / downgrades a user's Paddle subscription to a different price,
-// charging or crediting the prorated difference immediately.
+// Upgrades / downgrades a user's Paddle subscription to a different price.
+//
+// Proration mode depends on subscription status:
+// - trialing → do_not_bill (user keeps trial on the new plan, gets charged
+//   for the new plan when the trial ends — most user-friendly).
+// - active / past_due → prorated_immediately (charge or credit the diff now).
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getPaddleClient, gatewayFetch, type PaddleEnv } from '../_shared/paddle.ts';
@@ -36,7 +40,7 @@ serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('paddle_subscription_id')
+      .select('paddle_subscription_id, status')
       .eq('user_id', user.id)
       .eq('environment', env)
       .maybeSingle();
@@ -56,13 +60,21 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Price not found' }), { status: 404, headers: corsHeaders });
     }
 
+    // Pick proration mode based on subscription state. Paddle requires
+    // `do_not_bill` for trialing subs (it forbids charging during a trial).
+    const prorationBillingMode =
+      sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
+
     const paddle = getPaddleClient(env);
     const updated = await paddle.subscriptions.update(sub.paddle_subscription_id, {
       items: [{ priceId: paddlePriceId, quantity: 1 }],
-      prorationBillingMode: 'prorated_immediately',
+      prorationBillingMode,
     });
 
-    return new Response(JSON.stringify({ ok: true, status: updated.status }), { headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ ok: true, status: updated.status, prorationMode: prorationBillingMode }),
+      { headers: corsHeaders },
+    );
   } catch (e) {
     console.error('paddle-change-plan error:', e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {

@@ -20,6 +20,8 @@ import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/funct
 import { openCustomerPortal, changePlan, cancelSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
+import { Progress } from '@/components/ui/progress';
 
 interface NotifSettings {
   emailAlerts: boolean;
@@ -322,14 +324,36 @@ function daysUntil(iso: string | null): number | null {
 
 function BillingTab() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | null>(null);
+
+  // After Paddle checkout completes, poll the subscriptions table until the
+  // webhook lands (~2-30s). Without this, users see "Free plan" right after
+  // paying which is jarring.
+  const completion = useCheckoutCompletion(user?.id, async () => {
+    await refresh();
+    toast({ title: 'Subscription active', description: 'Your new plan is ready to use.' });
+  });
+
+  // If we already arrived via ?checkout=success, kick the poller off immediately.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success' && user?.id) {
+      completion.start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const upgrade = async (priceId: PlanPriceId, key: 'starter' | 'pro') => {
     setBusy(key);
     try {
       await openCheckout(priceId);
+      // Paddle's overlay closes on success — we begin polling at that point.
+      // (If the user just abandons the overlay, we'll still poll for 30s,
+      // which is harmless.)
+      completion.start();
     } catch (e) {
       toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
@@ -419,6 +443,30 @@ function BillingTab() {
         {willCancel && (
           <div className="rounded-lg border border-amber-400/40 bg-amber-100/10 px-3 py-2 text-xs text-foreground">
             Subscription will cancel on {formatDate(subInfo!.current_period_end)} ({periodDays} day{periodDays === 1 ? '' : 's'}). Resubscribe anytime before then to keep your plan.
+          </div>
+        )}
+
+        {/* Checkout completion poller — visible only while we wait for the webhook to land */}
+        {completion.status === 'polling' && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 text-xs text-foreground space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="font-medium">Activating your subscription…</span>
+            </div>
+            <Progress value={Math.min(100, (completion.elapsedSec / 30) * 100)} className="h-1.5" />
+            <p className="text-muted-foreground">
+              Confirming with our payment provider. This usually takes 5–15 seconds.
+            </p>
+          </div>
+        )}
+        {completion.status === 'timeout' && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground space-y-2">
+            <p>
+              Still processing. Your payment was likely successful — refresh in a minute, or contact support if your plan doesn't update.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => { completion.reset(); void refresh(); }}>
+              Refresh now
+            </Button>
           </div>
         )}
       </div>

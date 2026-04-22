@@ -1,4 +1,9 @@
 // Returns a Paddle customer portal URL for the signed-in user. Opens in a new tab.
+//
+// Important edge case: if the user only has a CANCELED subscription, we
+// still want to show them the portal (to download invoices, update payment
+// methods, etc.) — we just don't pass any subscription IDs to the portal
+// session call, which would 400 on a canceled sub.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
@@ -30,7 +35,7 @@ serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('paddle_customer_id, paddle_subscription_id, environment')
+      .select('paddle_customer_id, paddle_subscription_id, status, environment')
       .eq('user_id', user.id)
       .eq('environment', env)
       .maybeSingle();
@@ -42,10 +47,16 @@ serve(async (req) => {
       );
     }
 
+    // Only attach the subscription ID for portal links if the sub is still
+    // alive on Paddle's side. For canceled subs, Paddle returns an error
+    // when you try to bind the portal session to a non-actionable sub.
+    const stillActive =
+      sub.paddle_subscription_id && !['canceled'].includes(sub.status ?? '');
+
     const paddle = getPaddleClient(env);
     const portal = await paddle.customerPortalSessions.create(
       sub.paddle_customer_id,
-      sub.paddle_subscription_id ? [sub.paddle_subscription_id] : []
+      stillActive ? [sub.paddle_subscription_id!] : []
     );
 
     return new Response(
