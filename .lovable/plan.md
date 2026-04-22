@@ -1,46 +1,64 @@
 
 
-## Goal
+## Why Paddle rejected the domain
 
-Remove all Lovable branding and notifications from the live `infradarai.com` site so the production experience is fully Infradar-branded.
+When Paddle's reviewer visited `infradarai.com`, they saw a "Something went wrong — Error creating WebGL context" panel instead of the homepage. The site looked broken/offline, which matches Paddle's rejection reason "your website is offline" and "couldn't verify key information from your application."
 
-## Issues Identified
+The cause: the homepage's `<DemoGlobe>` (an interactive 3D globe built on `react-globe.gl` + `three.js`) requires WebGL. Paddle's review environment couldn't initialize WebGL, the component threw, and the page-level `ErrorBoundary` replaced the **entire homepage** with the error screen. Real visitors with normal browsers don't see this — but headless reviewers, low-end devices, locked-down corporate browsers, and bots do.
 
-1. **"Edit with Lovable" badge** appears on the published site (bottom corner). This is injected automatically by Lovable on published deployments and can be hidden via project settings (requires Pro plan or higher).
+Legal pages (Terms, Privacy, Refund) are already Paddle-compliant — those aren't the issue.
 
-2. **"We received your message" pop-up from Lovable** — this is the default Lovable toast/dialog text shown after the contact form submits. The site's contact form (`src/pages/Contact.tsx`) is using generic/Lovable-default messaging instead of Infradar-branded copy.
+## The fix
 
-## Changes
+Make the homepage degrade gracefully on every browser, then resubmit to Paddle.
 
-### 1. Hide the "Edit with Lovable" badge
-Use the publish settings to set badge visibility to hidden. After this, the badge will no longer appear on `infradarai.com` once you republish (Publish → Update).
+### 1. Isolate WebGL components behind a local error boundary + WebGL detection
 
-> Note: hiding the badge requires a Pro plan or higher on your Lovable workspace. If your current plan doesn't support it, the toggle will fail and you'll need to upgrade.
+- Detect WebGL support before mounting the globe. If unavailable, render a static fallback (still-image globe or a simple stat card) instead of attempting to render and throwing.
+- Wrap `<DemoGlobe>` and `<HeroLiveTracker>` in their own small `<ErrorBoundary>` so a failure inside them shows a tiny "Visualization unavailable in this browser" placeholder, **not** a full-page error screen.
+- Keep the rest of the homepage rendering normally regardless of WebGL.
 
-### 2. Audit and rebrand the contact form confirmation
-- Inspect `src/pages/Contact.tsx` and any related components/dialogs to find the "We received your message" text.
-- Inspect the transactional email template `supabase/functions/_shared/transactional-email-templates/contact-confirmation.tsx` (already Infradar-branded — confirmed).
-- Replace any default/generic toast or modal copy with Infradar-branded language, e.g.:
-  - Title: "Message received"
-  - Body: "Thanks for contacting Infradar — a member of our intelligence team will get back to you within one business day."
-- Verify the toast/dialog uses the project's existing `useToast` / `Sonner` styling (already Infradar-themed) rather than any imported Lovable component.
+### 2. Make the global ErrorBoundary less aggressive on marketing pages
 
-### 3. Wider Lovable-branding sweep
-Search the codebase for any remaining references to:
-- "Lovable" in UI strings, alt text, page titles, meta tags
-- The default Lovable favicon or OG image in `index.html` and `public/`
-- Any leftover placeholder copy ("Your app", "Welcome to Lovable", etc.)
-Replace all with Infradar equivalents (logo, name, OG image already exist at `public/infradar-mark.svg` and `public/og-image.svg`).
+Currently any throw in any marketing page replaces the whole page. Change behavior so:
+- The marketing-layout boundary renders an inline notice **above the page content** (or just logs and returns children when possible) rather than blanking the page.
+- Keep the existing full-screen recovery only as a last-resort fallback at the App root.
 
-### 4. Republish
-After the code changes, you'll need to click **Publish → Update** in the top-right to push the rebranded version live. Hard-refresh `infradarai.com` afterwards.
+### 3. Add a "no-JS / no-WebGL" friendly hero
 
-## Technical Details
+So crawlers and reviewers see clear product info immediately, ensure the hero text, value proposition, and pricing CTA appear in the initial HTML/SSR-equivalent paint regardless of any JS-heavy widget. The headline, subhead, "Get Started" button, and stats must render even when `react-globe.gl` fails.
 
-- Files to inspect/edit:
-  - `src/pages/Contact.tsx` (toast copy)
-  - `index.html` (title, meta, favicon)
-  - any component rendering a confirmation dialog after contact submit
-- Tool calls: `publish_settings--set_badge_visibility` with `hide_badge: true`
-- No database or edge function changes required for the branding fix; the contact-confirmation email template is already Infradar-branded.
+### 4. Tighten Paddle's appeal submission
+
+After deploying, in the Paddle "Submit additional information" form, include:
+- Confirmation the homepage now renders without WebGL.
+- Direct links to: `/pricing`, `/terms`, `/refund`, `/privacy`, `/about`, `/contact`.
+- One-line product description: *"Infradar (operated by Kinlo and Glen) is a B2B SaaS subscription providing verified infrastructure-project intelligence to DFI analysts, project finance teams, and EPC contractors. Plans: Free, Starter $29/mo, Pro $199/mo, Enterprise custom. 14-day refund guarantee. Paddle is referenced as Merchant of Record in Terms §7."*
+- Note that the AI features are research/analysis tools (not generative-image/video, not deepfakes), already disclosed in Terms §10 with "no reliance" wording.
+
+### 5. Verify before resubmitting
+
+- Load `infradarai.com` in an incognito window and confirm the hero, value prop, pricing, and footer all render.
+- Use a WebGL-disabled browser test (Chrome DevTools → Rendering → Disable WebGL) to confirm graceful degradation.
+- Confirm `/pricing`, `/terms`, `/refund`, `/privacy` all load publicly without auth.
+
+## Files to change
+
+- `src/components/ErrorBoundary.tsx` — add a `variant` prop (`page` vs `inline`) so layouts and small wrappers behave differently; default the marketing-layout one to `inline`.
+- `src/components/home/DemoGlobe.tsx` — add WebGL feature detection at top of component; render a static fallback panel when unavailable.
+- `src/components/home/HeroLiveTracker.tsx` — same WebGL/feature-detection guard if it uses canvas.
+- `src/components/home/DemoSection.tsx` — wrap `<DemoGlobe>` in a local `ErrorBoundary variant="inline"`.
+- `src/layouts/MarketingLayout.tsx` — switch its `ErrorBoundary` to `variant="inline"` so a single component error never blanks the whole marketing page.
+- (No DB, no edge function, no legal-text changes required.)
+
+## After deploying
+
+1. Click **Publish → Update**.
+2. Hard-refresh `infradarai.com` in incognito to confirm the homepage looks correct.
+3. Submit the Paddle appeal form with the wording above.
+4. Open the payments dashboard to monitor the readiness/verification step:
+
+<lov-actions>
+<lov-open-payments>Open payments dashboard</lov-open-payments>
+</lov-actions>
 
