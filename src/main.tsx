@@ -8,6 +8,9 @@ import "./index.css";
 if (typeof window !== "undefined") {
   const KNOWN_BENIGN = [
     "_destructor is not a function", // react-globe.gl unmount race
+    "renderObjs", // related globe teardown access errors
+    "Cannot read properties of undefined (reading '_destructor')",
+    "Cannot read properties of null (reading '_destructor')",
   ];
   const isBenign = (msg: string) =>
     KNOWN_BENIGN.some((s) => msg && msg.includes(s));
