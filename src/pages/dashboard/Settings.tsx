@@ -492,6 +492,12 @@ function BillingTab() {
             <Button variant="ghost" size="sm" onClick={() => void refresh()}>
               Refresh
             </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/dashboard/billing/audit">
+                <ScrollText className="h-4 w-4 mr-2" />
+                View billing audit log
+              </a>
+            </Button>
           </div>
         )}
       </div>
