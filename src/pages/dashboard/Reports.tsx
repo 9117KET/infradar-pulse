@@ -21,7 +21,7 @@ export default function Reports() {
   const { data: runs, isLoading, refetch } = useQuery({
     queryKey: ['report-runs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('report_runs')
         .select('id,report_type,status,title,markdown,created_at,completed_at')
         .order('created_at', { ascending: false })

@@ -129,7 +129,7 @@ export default function IntelligenceSummaries() {
   const { data: digests = [], isLoading: digestsLoading } = useQuery({
     queryKey: ['digests'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('digests')
         .select('id,title,summary,markdown,payload,read,status,created_at')
         .order('created_at', { ascending: false })
@@ -142,7 +142,7 @@ export default function IntelligenceSummaries() {
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
     queryKey: ['report-runs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('report_runs')
         .select('id,report_type,status,title,markdown,created_at,completed_at')
         .order('created_at', { ascending: false })
@@ -164,7 +164,7 @@ export default function IntelligenceSummaries() {
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('digests').update({ read: true }).eq('id', id);
+      const { error } = await (supabase as any).from('digests').update({ read: true }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['digests'] }),

@@ -104,8 +104,8 @@ export default function Onboarding() {
       .eq('approved', true)
       .order('confidence_score', { ascending: false })
       .limit(24);
-    if (regions.length > 0) query = query.in('region', regions);
-    else if (sectors.length > 0) query = query.in('sector', sectors);
+    if (regions.length > 0) query = query.in('region', regions as any);
+    else if (sectors.length > 0) query = query.in('sector', sectors as any);
     query.then(({ data }) => {
       setSuggestedProjects(data ?? []);
       setLoadingProjects(false);
