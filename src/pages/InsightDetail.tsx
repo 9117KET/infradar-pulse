@@ -68,6 +68,7 @@ export default function InsightDetail() {
 
   return (
     <div className="py-20">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="insight" />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Link to="/insights" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="h-4 w-4" /> Back to Insights
@@ -92,9 +93,14 @@ export default function InsightDetail() {
               You&apos;ve reached your daily limit for full insight reads on your current plan. Upgrade to keep reading with AI-assisted analysis and higher limits.
             </p>
             <p className="text-sm text-muted-foreground line-clamp-4">{insight.excerpt}</p>
-            <Button asChild className="teal-glow">
-              <Link to="/pricing">View plans &amp; pricing</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button className="teal-glow" onClick={() => setUpgradeOpen(true)}>
+                See upgrade options
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/pricing">View plans &amp; pricing</Link>
+              </Button>
+            </div>
           </div>
         )}
 
