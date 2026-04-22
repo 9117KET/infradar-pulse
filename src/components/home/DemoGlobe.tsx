@@ -6,7 +6,7 @@ import { feature, mesh } from 'topojson-client';
 import * as THREE from 'three';
 import { Globe as GlobeIcon } from 'lucide-react';
 import { isWebGLAvailable } from '@/lib/webgl';
-import landData from 'world-atlas/land-110m.json';
+import countriesData from 'world-atlas/countries-110m.json';
 
 interface GlobeProject {
   lat: number;
@@ -41,7 +41,7 @@ function createGlobeTexture(colors: { ocean: string; land: string; border: strin
   ctx.fillStyle = colors.ocean;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  const topology = landData as any;
+  const topology = countriesData as any;
   const land = feature(topology, topology.objects.land as any) as any;
   const borders = mesh(topology, topology.objects.countries as any, (a: any, b: any) => a !== b) as any;
   const projection = geoEquirectangular().fitExtent(
