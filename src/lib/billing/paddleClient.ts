@@ -27,6 +27,14 @@ export async function cancelSubscription(): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Reactivates a subscription that was scheduled to cancel at period end. */
+export async function resumeSubscription(): Promise<void> {
+  const { error } = await supabase.functions.invoke('paddle-resume', {
+    body: { environment: getPaddleEnvironment() },
+  });
+  if (error) throw new Error(error.message);
+}
+
 /** Triggers a JSON download of the signed-in user's data. */
 export async function exportAccountData(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
