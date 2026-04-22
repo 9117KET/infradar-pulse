@@ -25,6 +25,23 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
   lifetime:   { aiPerDay: 9999, aiPerHour: 0,   exportsPerDay: 9999, exportsPerHour: 0,   insightReadsPerDay: 9999, insightReadsPerHour: 0 },
 };
 
+/**
+ * Per-export ROW caps. Stops a free/trial user from dumping the full database
+ * in their one allowed export. 0 = unlimited.
+ */
+export const EXPORT_ROW_CAPS: Record<PlanKey, number> = {
+  free:       25,
+  trialing:   100,
+  starter:    1000,
+  pro:        10000,
+  enterprise: 0,
+  lifetime:   0,
+};
+
+export function getExportRowCap(plan: PlanKey): number {
+  return EXPORT_ROW_CAPS[plan] ?? 25;
+}
+
 export type SubscriptionRow = {
   status: string;
   plan_key: string | null;
