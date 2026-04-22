@@ -20,6 +20,7 @@ import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck,
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   PieChart, Pie, Cell, BarChart, Bar,
@@ -43,8 +44,8 @@ export default function Projects() {
   const activeTab = searchParams.get('tab') || 'projects';
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { hasRole, profile } = useAuth();
-  const { canExportCsv, refresh: refreshEntitlements } = useEntitlements();
+  const { hasRole, profile, user } = useAuth();
+  const { canExportCsv, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const preferenceFilters = profile?.onboarded
     ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages }
