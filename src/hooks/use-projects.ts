@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Project, Region, Sector, ProjectStage, ProjectStatus, Evidence, Milestone, Contact } from '@/data/projects';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { getReadRowCap } from '@/lib/billing/readCaps';
 
 export interface DbProject {
   id: string;
@@ -88,6 +90,9 @@ export function applyProjectFilters(all: Project[], filters?: ProjectFilters): P
 export function useProjects(filters?: ProjectFilters) {
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalAvailable, setTotalAvailable] = useState(0);
+  const { plan, staffBypass, loading: entLoading } = useEntitlements();
+  const rowCap = getReadRowCap(plan, staffBypass);
 
   const regionsKey = filters?.regions?.slice().sort().join('\0') ?? '';
   const sectorsKey = filters?.sectors?.slice().sort().join('\0') ?? '';
@@ -99,11 +104,30 @@ export function useProjects(filters?: ProjectFilters) {
     [allProjects, regionsKey, sectorsKey, stagesKey]
   );
 
+  /** True when the user's plan capped how many rows they could fetch. */
+  const truncated = rowCap > 0 && totalAvailable > rowCap;
+
   useEffect(() => {
+    // Wait for entitlements so we don't fetch the full table for a free user.
+    if (entLoading) return;
     async function fetchProjects() {
       setLoading(true);
+      // First, get the true row count so we can show "X of Y" copy.
+      const { count } = await supabase
+        .from('projects')
+        .select('id', { count: 'exact', head: true })
+        .eq('approved', true);
+      setTotalAvailable(count ?? 0);
+
+      let projectsQuery = supabase
+        .from('projects')
+        .select('*')
+        .eq('approved', true)
+        .order('value_usd', { ascending: false });
+      if (rowCap > 0) projectsQuery = projectsQuery.limit(rowCap);
+
       const [{ data: pData }, { data: sData }, { data: mData }, { data: eData }, { data: cData }] = await Promise.all([
-        supabase.from('projects').select('*').eq('approved', true).order('value_usd', { ascending: false }),
+        projectsQuery,
         supabase.from('project_stakeholders').select('*'),
         supabase.from('project_milestones').select('*'),
         supabase.from('evidence_sources').select('*'),
