@@ -41,21 +41,24 @@ export function DemoSection() {
           <div className="flex gap-1 self-start sm:self-auto shrink-0">
             <Button
               size="sm"
-              variant={viewMode === 'globe' ? 'default' : 'outline'}
-              className="gap-1.5 text-xs"
-              onClick={() => setViewMode('globe')}
-            >
-              <Globe className="h-3.5 w-3.5" />
-              Globe
-            </Button>
-            <Button
-              size="sm"
               variant={viewMode === 'map' ? 'default' : 'outline'}
               className="gap-1.5 text-xs"
               onClick={() => setViewMode('map')}
             >
               <Map className="h-3.5 w-3.5" />
               Map
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === 'globe' ? 'default' : 'outline'}
+              className="gap-1.5 text-xs"
+              onClick={() => {
+                setGlobeMounted(true);
+                setViewMode('globe');
+              }}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              3D Globe
             </Button>
           </div>
         </div>
@@ -69,11 +72,19 @@ export function DemoSection() {
           className="glass-panel rounded-xl overflow-hidden relative"
           style={{ height: 520 }}
         >
-          {viewMode === 'globe' ? (
+          {viewMode === 'map' ? (
+            <HeroMap
+              projects={locations}
+              className="w-full h-full"
+              onProjectClick={setSelectedProject}
+            />
+          ) : (
             <>
-              <ErrorBoundary variant="silent">
-                <DemoGlobe projects={locations} className="w-full h-full" />
-              </ErrorBoundary>
+              {globeMounted && (
+                <ErrorBoundary variant="silent">
+                  <DemoGlobe projects={locations} className="w-full h-full" />
+                </ErrorBoundary>
+              )}
               {/* Risk legend */}
               <div className="absolute bottom-4 left-4 z-10 flex gap-3 text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg px-3 py-2">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#6bd8cb]" />Low</span>
@@ -83,16 +94,10 @@ export function DemoSection() {
               </div>
               {!loading && locations.length > 0 && (
                 <div className="absolute top-4 right-4 z-10 text-[10px] font-mono text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                  Live pipeline data · click map view to explore
+                  Live pipeline data · click Map view to explore
                 </div>
               )}
             </>
-          ) : (
-            <HeroMap
-              projects={locations}
-              className="w-full h-full"
-              onProjectClick={setSelectedProject}
-            />
           )}
         </motion.div>
 
