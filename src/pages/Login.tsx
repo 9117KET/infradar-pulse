@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
+import { checkDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from '@/lib/disposable-email';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -26,6 +27,38 @@ export default function Login() {
     setLoading(true);
 
     if (isSignUp) {
+      // 1) Fast client-side disposable-email check
+      const localCheck = checkDisposableEmail(email);
+      if (!localCheck.ok) {
+        const description =
+          localCheck.reason === 'DISPOSABLE_EMAIL'
+            ? DISPOSABLE_EMAIL_MESSAGE
+            : 'Please enter a valid email address.';
+        toast({ title: 'Sign up blocked', description, variant: 'destructive' });
+        setLoading(false);
+        return;
+      }
+
+      // 2) Server-side re-check (defense in depth — list updates without a redeploy of the SPA)
+      try {
+        const { data: validation, error: validationError } = await supabase.functions.invoke(
+          'validate-signup-email',
+          { body: { email } },
+        );
+        if (validationError || (validation && validation.ok === false)) {
+          const description =
+            (validation && typeof validation.message === 'string' && validation.message) ||
+            DISPOSABLE_EMAIL_MESSAGE;
+          toast({ title: 'Sign up blocked', description, variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error('[Login] disposable-email validation failed', err);
+        // Fail closed on unexpected errors only if it looks like a rejection;
+        // otherwise we already passed the client check, so allow signup.
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
