@@ -150,7 +150,7 @@ export default function Terms() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">15. Contact</h2>
           <p>
-            Kinlo and Glen — questions about these Terms can be sent to{' '}
+            Kinlo and Glen , questions about these Terms can be sent to{' '}
             <a className="underline" href="mailto:legal@infradar.io">legal@infradar.io</a>.
           </p>
         </div>
