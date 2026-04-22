@@ -1,6 +1,11 @@
-// Deletes the signed-in user permanently. Cancels any active Paddle subscription
-// first (immediate effect, since the account is going away), then removes the
-// auth.users row — RLS cascades wipe profile, watchlists, alerts, etc.
+// Deletes the signed-in user permanently. Cancels any active Paddle
+// subscription FIRST, and only proceeds with auth deletion if the
+// cancellation succeeds. This avoids orphaned Paddle subs that keep
+// charging a deleted user.
+//
+// Already-canceled / paused subs are skipped. If Paddle is unreachable for
+// an active sub we return 502 and the user can retry — better than silently
+// deleting the account and leaving Paddle to keep billing.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
@@ -26,11 +31,14 @@ serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // 1. Cancel any active subscriptions in Paddle (best-effort, both envs).
+    // 1. Cancel any active subscriptions in Paddle. We must succeed at this
+    //    step — otherwise the user is gone but Paddle keeps billing.
     const { data: subs } = await admin
       .from('subscriptions')
       .select('paddle_subscription_id, environment, status')
       .eq('user_id', user.id);
+
+    const failed: { id: string; error: string }[] = [];
 
     for (const sub of subs ?? []) {
       if (!sub.paddle_subscription_id) continue;
@@ -39,8 +47,24 @@ serve(async (req) => {
         const paddle = getPaddleClient(sub.environment as PaddleEnv);
         await paddle.subscriptions.cancel(sub.paddle_subscription_id, { effectiveFrom: 'immediately' });
       } catch (e) {
-        console.warn('account-delete: failed to cancel paddle sub', sub.paddle_subscription_id, e);
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error('account-delete: failed to cancel paddle sub', sub.paddle_subscription_id, msg);
+        failed.push({ id: sub.paddle_subscription_id, error: msg });
       }
+    }
+
+    if (failed.length > 0) {
+      // Return 502 so the user sees a clear retry-able error. The auth row
+      // is intact, so they can come back and try again.
+      return new Response(
+        JSON.stringify({
+          error:
+            'Could not cancel your active subscription with our payment provider. Please try again in a minute, or contact support.',
+          code: 'PADDLE_CANCEL_FAILED',
+          details: failed,
+        }),
+        { status: 502, headers: corsHeaders },
+      );
     }
 
     // 2. Delete the user. ON DELETE CASCADE on profiles + tracked_projects +

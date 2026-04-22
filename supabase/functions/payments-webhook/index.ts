@@ -22,6 +22,30 @@ function priceIdToPlanKey(priceId: string | undefined): string {
   return 'starter';
 }
 
+/**
+ * Resolve the user_id for a webhook event.
+ *
+ * 1. Prefer customData.userId (set during checkout).
+ * 2. Fall back to looking up the existing subscription row by Paddle subscription ID.
+ *    Paddle's subscription.updated events sometimes drop customData, which would
+ *    otherwise drop the upsert and leave the local row stale.
+ */
+async function resolveUserId(
+  customData: { userId?: string } | null | undefined,
+  paddleSubscriptionId: string | undefined,
+  env: PaddleEnv,
+): Promise<string | null> {
+  if (customData?.userId) return customData.userId;
+  if (!paddleSubscriptionId) return null;
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('user_id')
+    .eq('paddle_subscription_id', paddleSubscriptionId)
+    .eq('environment', env)
+    .maybeSingle();
+  return data?.user_id ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -79,9 +103,12 @@ Deno.serve(async (req) => {
 async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) {
   const { id, customerId, items, status, currentBillingPeriod, customData, scheduledChange } = data;
 
-  const userId = customData?.userId;
+  // Try customData first (always set on subscription.created), fall back to
+  // looking up the existing row by Paddle sub ID for subscription.updated
+  // events that may drop customData.
+  const userId = await resolveUserId(customData, id, env);
   if (!userId) {
-    console.error('payments-webhook: no userId in customData; cannot link subscription', id);
+    console.error('payments-webhook: cannot resolve userId for sub', id, '(customData missing and no existing row)');
     return;
   }
 
@@ -112,19 +139,15 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     updated_at: new Date().toISOString(),
   };
 
-  if (isCreate) {
-    await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
-  } else {
-    // Use upsert too so a rogue 'updated' before 'created' doesn't drop the row.
-    await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
-  }
+  // Upsert in both create + update paths so a rogue 'updated' before 'created'
+  // doesn't drop the row.
+  const _ = isCreate; // kept for log clarity; same code path either way
+  await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
 
   // Anti-abuse: record that this user has now used a trial. Idempotent.
   // We only record on trialing status so paid subs don't burn the trial flag.
   if (status === 'trialing') {
     try {
-      // Look up the user's email to normalize and store, so the same person
-      // can't open a second account and start another trial.
       const { data: authUser } = await supabase.auth.admin.getUserById(userId);
       const email = authUser?.user?.email ?? null;
       await supabase.rpc('record_trial_started', {
@@ -148,22 +171,13 @@ async function logBillingEvent(event: any, env: PaddleEnv) {
     const subscriptionId = isSub ? data.id : data.subscriptionId ?? null;
     const customerId = data.customerId ?? null;
     const status = data.status ?? null;
-    let userId: string | null = data.customData?.userId ?? null;
     const item = data.items?.[0];
     const priceExt = item?.price?.importMeta?.externalId || item?.price?.id;
     const planKey =
       priceExt === 'pro_monthly' ? 'pro' : priceExt === 'starter_monthly' ? 'starter' : null;
 
-    // For transaction events, customData may be missing — look up via subscription row.
-    if (!userId && subscriptionId) {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('user_id')
-        .eq('paddle_subscription_id', subscriptionId)
-        .eq('environment', env)
-        .maybeSingle();
-      userId = sub?.user_id ?? null;
-    }
+    // Same fallback as upsertSubscription: prefer customData, fall back to lookup.
+    const userId = await resolveUserId(data.customData, subscriptionId, env);
 
     await supabase.from('billing_events').insert({
       user_id: userId,
