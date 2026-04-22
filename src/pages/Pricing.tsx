@@ -55,7 +55,8 @@ export default function Pricing() {
             <p className="text-xs text-muted-foreground mb-5">No credit card required</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 2 AI queries/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 3 insight reads/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 3 full insight reads/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 1 export/day (CSV or PDF)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Core project discovery</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio tracking</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Basic alerts</li>
@@ -77,8 +78,8 @@ export default function Pricing() {
             <p className="text-xs text-muted-foreground mb-5">3-day trial, then billed monthly</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 insight reads/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 exports/day (CSV + PDF)</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 exports/day (CSV + PDF combined)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full alert rules</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio chat (AI Q&amp;A)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
@@ -104,8 +105,8 @@ export default function Pricing() {
             <p className="text-xs text-muted-foreground mb-5">3-day trial, then billed monthly</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 insight reads/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day (CSV + PDF combined)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Delay risk scores</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Early warning alerts</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Contractor intelligence</li>
@@ -131,7 +132,7 @@ export default function Pricing() {
             <p className="text-3xl font-serif font-bold mb-1">Custom</p>
             <p className="text-xs text-muted-foreground mb-5">Annual contracts, invoicing available</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited everything</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited AI, insights &amp; exports</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full API access + webhooks</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> SSO / SAML</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> White-label reports</li>
