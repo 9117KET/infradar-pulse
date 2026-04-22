@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { supabase } from '@/integrations/supabase/client';
+import { trackUsage } from '@/lib/billing/trackUsage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
