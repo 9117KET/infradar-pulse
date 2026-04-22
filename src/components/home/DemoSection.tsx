@@ -69,6 +69,7 @@ export function DemoSection() {
             <>
               <ErrorBoundary variant="silent">
                 <DemoGlobe projects={locations} className="w-full h-full" />
+              </ErrorBoundary>
               {/* Risk legend */}
               <div className="absolute bottom-4 left-4 z-10 flex gap-3 text-[10px] text-muted-foreground bg-background/60 backdrop-blur-sm rounded-lg px-3 py-2">
                 <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#6bd8cb]" />Low</span>
