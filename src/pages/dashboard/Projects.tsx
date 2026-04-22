@@ -53,7 +53,7 @@ export default function Projects() {
   const hasPreferenceFilters =
     !!profile?.onboarded &&
     ((profile.regions?.length ?? 0) > 0 || (profile.sectors?.length ?? 0) > 0 || (profile.stages?.length ?? 0) > 0);
-  const { projects, allProjects, loading } = useProjects(preferenceFilters);
+  const { projects, allProjects, loading, truncated, totalAvailable, rowCap } = useProjects(preferenceFilters);
   const { alerts } = useAlerts();
   const [viewScope, setViewScope] = useState<'coverage' | 'all'>('coverage');
   const { isTracked, toggleTrack, trackedProjects } = useTrackedProjects();
@@ -534,6 +534,16 @@ export default function Projects() {
 
       {/* ── Projects Tab ── */}
       <TabsContent value="projects" className="space-y-6">
+      {/* Plan row-cap banner — surfaces when the user's plan limited the dataset they're seeing */}
+      {!loading && truncated && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-500">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Showing {rowCap.toLocaleString()} of {totalAvailable.toLocaleString()} projects on your current plan.{' '}
+            <Link to="/pricing" className="underline hover:text-amber-400">Upgrade</Link> to load the full pipeline.
+          </span>
+        </div>
+      )}
       {/* Coverage banner */}
       {!loading && (() => {
         const isStaff = hasRole('admin') || hasRole('researcher');

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useInsight, getDisplaySources } from '@/hooks/use-insights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { useCopyProtection } from '@/hooks/useCopyProtection';
 import { trackUsage } from '@/lib/billing/trackUsage';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,14 @@ export default function InsightDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { data: insight, isLoading, error } = useInsight(slug || '');
   const { user } = useAuth();
-  const { staffBypass, canReadInsightFull, loading: entLoading, refresh } = useEntitlements();
+  const { staffBypass, canReadInsightFull, isFreeTier, plan, loading: entLoading, refresh } = useEntitlements();
+  // Throttle copy/paste for free + trial users so the article body can't be
+  // bulk-lifted into a doc. Paid plans get a normal experience.
+  const protectContent = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
+  const copyProps = useCopyProtection(
+    protectContent,
+    `Excerpted from InfraRadar — full article: ${typeof window !== 'undefined' ? window.location.href : 'infraradar.app'} · Subscribe for unlimited access.`,
+  );
   const countedRef = useRef(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const { toast } = useToast();
@@ -113,13 +121,17 @@ export default function InsightDetail() {
         )}
 
         {(showFullContent || (user && entLoading)) && (
-          <div className="prose prose-invert prose-sm max-w-none
-            prose-headings:font-serif prose-headings:text-foreground
-            prose-p:text-muted-foreground prose-p:leading-relaxed
-            prose-strong:text-foreground
-            prose-li:text-muted-foreground
-            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-          ">
+          <div
+            {...copyProps}
+            className={`prose prose-invert prose-sm max-w-none
+              prose-headings:font-serif prose-headings:text-foreground
+              prose-p:text-muted-foreground prose-p:leading-relaxed
+              prose-strong:text-foreground
+              prose-li:text-muted-foreground
+              prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+              ${copyProps.className}
+            `}
+          >
             {user && entLoading ? (
               <p className="text-muted-foreground animate-pulse">Loading article…</p>
             ) : (
