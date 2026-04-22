@@ -91,8 +91,9 @@ export function useProjects(filters?: ProjectFilters) {
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalAvailable, setTotalAvailable] = useState(0);
-  const { plan, staffBypass, loading: entLoading } = useEntitlements();
-  const rowCap = getReadRowCap(plan, staffBypass);
+  const { plan, staffBypass, isAnonymous, loading: entLoading } = useEntitlements();
+  // Public marketing pages (anonymous visitors) skip caps; the dashboard is auth-gated.
+  const rowCap = isAnonymous ? 0 : getReadRowCap(plan, staffBypass);
 
   const regionsKey = filters?.regions?.slice().sort().join('\0') ?? '';
   const sectorsKey = filters?.sectors?.slice().sort().join('\0') ?? '';

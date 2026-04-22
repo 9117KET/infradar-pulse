@@ -133,6 +133,8 @@ export function useEntitlements() {
     staffBypass,
     hasPaddleCustomer,
     isFreeTier,
+    /** True when no user is signed in. Used to skip per-user caps on public pages. */
+    isAnonymous: !userId,
     subInfo,
     refresh,
     canUseAi,
