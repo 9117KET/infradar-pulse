@@ -10,14 +10,14 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail, Download, AlertTriangle, ArrowUpRight, ArrowDownRight, XCircle } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail, Download, AlertTriangle, ArrowUpRight, ArrowDownRight, XCircle, PlayCircle, Settings as SettingsIcon } from 'lucide-react';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { Switch as UISwitch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
-import { openCustomerPortal, changePlan, cancelSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
+import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
@@ -327,7 +327,7 @@ function BillingTab() {
   const { user } = useAuth();
   const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
-  const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | null>(null);
+  const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | 'resume' | null>(null);
 
   // After Paddle checkout completes, poll the subscriptions table until the
   // webhook lands (~2-30s). Without this, users see "Free plan" right after
@@ -389,8 +389,22 @@ function BillingTab() {
     try {
       await cancelSubscription();
       toast({ title: 'Cancellation scheduled', description: 'You keep access until the end of your current billing period.' });
+      await refresh();
     } catch (e) {
       toast({ title: 'Cancel failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const resume = async () => {
+    setBusy('resume');
+    try {
+      await resumeSubscription();
+      toast({ title: 'Subscription reactivated', description: 'Your plan will continue renewing — no break in access.' });
+      await refresh();
+    } catch (e) {
+      toast({ title: 'Reactivate failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -505,7 +519,12 @@ function BillingTab() {
                   Downgrade to Starter
                 </Button>
               )}
-              {!willCancel && (
+              {willCancel ? (
+                <Button className="teal-glow" disabled={!!busy} onClick={() => void resume()}>
+                  {busy === 'resume' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PlayCircle className="h-4 w-4 mr-2" />}
+                  Reactivate subscription
+                </Button>
+              ) : (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="outline" disabled={!!busy}>
@@ -532,20 +551,27 @@ function BillingTab() {
         )}
 
         {hasPaddleCustomer && (
-          <div className="pt-2 border-t border-border/40">
-            <Button variant="ghost" size="sm" disabled={!!busy} onClick={() => void portal()}>
-              {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
-              Update payment method / view invoices
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-              Refresh
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <a href="/dashboard/billing/audit">
-                <ScrollText className="h-4 w-4 mr-2" />
-                View billing audit log
-              </a>
-            </Button>
+          <div className="pt-3 mt-1 border-t border-border/40 space-y-2">
+            <p className="text-xs text-muted-foreground">
+              Paddle handles billing as Merchant of Record. Manage payment methods, download invoices, and request refunds via the secure customer portal (opens in a new tab).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void portal()}>
+                {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SettingsIcon className="h-4 w-4 mr-2" />}
+                Manage subscription
+                <ExternalLink className="h-3 w-3 ml-1.5 opacity-60" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                Refresh
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <a href="/dashboard/billing/audit">
+                  <ScrollText className="h-4 w-4 mr-1.5" />
+                  Billing audit log
+                </a>
+              </Button>
+            </div>
           </div>
         )}
       </div>
