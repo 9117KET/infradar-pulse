@@ -184,9 +184,14 @@ export default function Projects() {
       setUpgradeOpen(true);
       return;
     }
+    const capped = applyExportCap(filtered, plan, staffBypass);
+    const watermark = buildWatermarkLabel(user?.email);
     const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
-    const rows = filtered.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
-    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
+    const preamble = buildCsvHeaderComment(watermark, capped);
+    const csv = [...preamble, headers, ...rows].map(r =>
+      Array.isArray(r) ? r.map(c => `"${c}"`).join(',') : r,
+    ).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -203,7 +208,14 @@ export default function Projects() {
       return;
     }
     await refreshEntitlements();
-    toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
+    if (capped.truncated) {
+      toast({
+        title: 'Export truncated',
+        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
+      });
+    } else {
+      toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
+    }
   };
 
   const { saveSearch: saveSearchMutation } = useSavedSearches();
