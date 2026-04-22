@@ -890,6 +890,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_quota: {
+        Args: {
+          p_daily_cap: number
+          p_hourly_cap: number
+          p_metric: string
+          p_user_id: string
+        }
+        Returns: {
+          ok: boolean
+          reason: string
+          used_day: number
+          used_hour: number
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
@@ -908,6 +922,21 @@ export type Database = {
       increment_usage_metric: {
         Args: { metric_name: string; user_uuid: string }
         Returns: undefined
+      }
+      prune_old_usage_counters: { Args: never; Returns: undefined }
+      try_consume_quota: {
+        Args: {
+          p_daily_cap: number
+          p_hourly_cap: number
+          p_metric: string
+          p_user_id: string
+        }
+        Returns: {
+          ok: boolean
+          reason: string
+          used_day: number
+          used_hour: number
+        }[]
       }
     }
     Enums: {
