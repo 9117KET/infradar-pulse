@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Globe as GlobeIcon } from 'lucide-react';
 import { isWebGLAvailable } from '@/lib/webgl';
@@ -19,6 +19,12 @@ function riskColor(score: number): string {
   if (score >= 50) return 'hsl(38 92% 50%)';
   if (score >= 25) return 'hsl(142 71% 45%)';
   return 'hsl(var(--primary))';
+}
+
+function resolveCssHsl(variableName: string, fallback: string) {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+  return value ? `hsl(${value})` : fallback;
 }
 
 function latLngToVector(lat: number, lng: number, radius: number) {
@@ -76,7 +82,17 @@ function CameraRig() {
   return null;
 }
 
-function GlobeScene({ projects }: { projects: GlobeProject[] }) {
+function GlobeScene({
+  projects,
+  colors,
+}: {
+  projects: GlobeProject[];
+  colors: {
+    globe: string;
+    glow: string;
+    muted: string;
+  };
+}) {
   const groupRef = useRef<THREE.Group>(null);
   const pulseRefs = useRef<Array<THREE.Mesh | null>>([]);
 
@@ -115,14 +131,14 @@ function GlobeScene({ projects }: { projects: GlobeProject[] }) {
   return (
     <group ref={groupRef}>
       <ambientLight intensity={1.2} />
-      <directionalLight position={[3, 2, 4]} intensity={1.8} color="hsl(var(--primary))" />
-      <directionalLight position={[-4, -2, -3]} intensity={0.6} color="hsl(var(--muted-foreground))" />
+      <directionalLight position={[3, 2, 4]} intensity={1.8} color={colors.glow} />
+      <directionalLight position={[-4, -2, -3]} intensity={0.6} color={colors.muted} />
 
       <mesh>
         <sphereGeometry args={[1, 64, 64]} />
         <meshStandardMaterial
-          color={'hsl(var(--card))'}
-          emissive={'hsl(var(--primary))'}
+          color={colors.globe}
+          emissive={colors.glow}
           emissiveIntensity={0.08}
           roughness={0.92}
           metalness={0.08}
@@ -131,7 +147,7 @@ function GlobeScene({ projects }: { projects: GlobeProject[] }) {
 
       <mesh scale={1.025}>
         <sphereGeometry args={[1, 48, 48]} />
-        <meshBasicMaterial color={'hsl(var(--primary))'} transparent opacity={0.08} side={THREE.BackSide} />
+        <meshBasicMaterial color={colors.glow} transparent opacity={0.08} side={THREE.BackSide} />
       </mesh>
 
       {markers.map((marker, index) => {
@@ -180,19 +196,28 @@ export function DemoGlobe({
   className?: string;
 }) {
   const [webglOk] = useState<boolean>(() => isWebGLAvailable());
+  const colors = useMemo(
+    () => ({
+      background: resolveCssHsl('--background', 'hsl(210 15% 6%)'),
+      card: resolveCssHsl('--card', 'hsl(210 12% 9%)'),
+      primary: resolveCssHsl('--primary', 'hsl(170 55% 63%)'),
+      muted: resolveCssHsl('--muted-foreground', 'hsl(210 8% 55%)'),
+    }),
+    []
+  );
 
   if (!webglOk) {
     return (
       <div
         className={className}
-        style={{ position: 'relative', overflow: 'hidden', background: 'hsl(var(--background))' }}
+        style={{ position: 'relative', overflow: 'hidden', background: colors.background }}
       >
         <StaticGlobeFallback projectCount={projects.length} />
         <div
           className="pointer-events-none absolute inset-0 rounded-xl"
           style={{
             background:
-              'radial-gradient(ellipse at center, transparent 55%, hsl(var(--background)) 100%)',
+              `radial-gradient(ellipse at center, transparent 55%, ${colors.background} 100%)`,
           }}
         />
       </div>
@@ -206,15 +231,17 @@ export function DemoGlobe({
         position: 'relative',
         overflow: 'hidden',
         background:
-          'radial-gradient(circle at 50% 45%, hsl(var(--card)) 0%, hsl(var(--background)) 72%)',
+          `radial-gradient(circle at 50% 45%, ${colors.card} 0%, ${colors.background} 72%)`,
       }}
     >
       <Suspense fallback={<GlobeFallback />}>
         <Canvas dpr={[1, 1.75]} gl={{ antialias: true, alpha: true }} camera={{ fov: 34, near: 0.1, far: 100 }}>
-          <color attach="background" args={['#000000']} />
-          <fog attach="fog" args={['#05080b', 3.6, 6.6]} />
+          <fog attach="fog" args={[colors.background, 3.6, 6.6]} />
           <CameraRig />
-          <GlobeScene projects={projects} />
+          <GlobeScene
+            projects={projects}
+            colors={{ globe: colors.card, glow: colors.primary, muted: colors.muted }}
+          />
         </Canvas>
       </Suspense>
 
@@ -228,11 +255,15 @@ export function DemoGlobe({
         className="pointer-events-none absolute inset-0 rounded-xl"
         style={{
           background:
-            'radial-gradient(ellipse at center, transparent 52%, hsl(var(--background)) 100%)',
+            `radial-gradient(ellipse at center, transparent 52%, ${colors.background} 100%)`,
         }}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,hsl(var(--primary)/0.10),transparent_45%)]" />
-      <Html as="div" wrapperClass="hidden" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(circle at center, ${colors.primary}1A 0%, transparent 45%)`,
+        }}
+      />
     </div>
   );
 }
