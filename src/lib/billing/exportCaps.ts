@@ -46,58 +46,36 @@ export function buildCsvHeaderComment(label: string, truncated: CapResult<unknow
 }
 
 /**
- * Plans that get the loud diagonal "Licensed to..." banner across every page.
- * Free + trial only — paid customers get the discreet footer line so the
- * document still prints cleanly into board packs / client decks.
+ * Stamp a diagonal semi-transparent watermark + footer line on every page of
+ * a jsPDF document. Call AFTER all content has been drawn (so it appears on
+ * top) but BEFORE `doc.save(...)`.
  */
-const BANNER_PLANS: ReadonlySet<PlanKey> = new Set<PlanKey>(['free', 'trialing']);
-
-export function shouldShowWatermarkBanner(plan: PlanKey, staffBypass: boolean): boolean {
-  if (staffBypass) return false;
-  return BANNER_PLANS.has(plan);
-}
-
-/**
- * Stamp a forensic license footer on every page, plus (for free/trial plans)
- * a diagonal semi-transparent banner. The footer is the traceability layer —
- * tiny, always-on, lets us identify the source of a leaked PDF. The banner
- * is the visual deterrent reserved for unpaid tiers where leak risk is
- * highest. Call AFTER all content has been drawn but BEFORE `doc.save(...)`.
- */
-export function applyPdfWatermark(
-  doc: jsPDF,
-  label: string,
-  options: { plan: PlanKey; staffBypass: boolean },
-): void {
-  const showBanner = shouldShowWatermarkBanner(options.plan, options.staffBypass);
+export function applyPdfWatermark(doc: jsPDF, label: string): void {
   const pageCount = doc.getNumberOfPages();
-  const gState = (doc as unknown as { GState?: new (opts: { opacity: number }) => unknown }).GState;
-  const setGState = (doc as unknown as { setGState?: (gs: unknown) => void }).setGState;
-
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     const w = doc.internal.pageSize.getWidth();
     const h = doc.internal.pageSize.getHeight();
 
-    if (showBanner) {
-      // Diagonal watermark across the page (free / trial only).
-      if (gState && setGState) {
-        const transparent = new gState({ opacity: 0.12 });
-        setGState.call(doc, transparent);
-      }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(48);
-      doc.setTextColor(120, 120, 140);
-      doc.text(label, w / 2, h / 2, { align: 'center', angle: 30 });
+    // Diagonal watermark across the page.
+    const gState = (doc as unknown as { GState?: new (opts: { opacity: number }) => unknown }).GState;
+    const setGState = (doc as unknown as { setGState?: (gs: unknown) => void }).setGState;
+    if (gState && setGState) {
+      const transparent = new gState({ opacity: 0.12 });
+      setGState.call(doc, transparent);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(48);
+    doc.setTextColor(120, 120, 140);
+    doc.text(label, w / 2, h / 2, { align: 'center', angle: 30 });
 
-      // Reset opacity before drawing the footer.
-      if (gState && setGState) {
-        const opaque = new gState({ opacity: 1 });
-        setGState.call(doc, opaque);
-      }
+    // Reset opacity for the footer.
+    if (gState && setGState) {
+      const opaque = new gState({ opacity: 1 });
+      setGState.call(doc, opaque);
     }
 
-    // Forensic footer strip — every plan, every page.
+    // Footer strip.
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(120, 120, 120);
