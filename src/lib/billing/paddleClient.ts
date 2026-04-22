@@ -1,5 +1,5 @@
-// Thin wrapper used by Settings → Billing to open the Paddle customer portal.
-// Checkout itself is handled by usePaddleCheckout (Paddle.js overlay).
+// Thin wrappers used by Settings → Billing for plan changes, cancel, portal,
+// and account export/delete. All call edge functions; the user must be signed in.
 import { supabase } from '@/integrations/supabase/client';
 import { getPaddleEnvironment } from '@/lib/paddle';
 
@@ -11,4 +11,47 @@ export async function openCustomerPortal(): Promise<void> {
   const url = (data as { url?: string })?.url;
   if (!url) throw new Error('No portal URL returned');
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export async function changePlan(priceId: 'starter_monthly' | 'pro_monthly'): Promise<void> {
+  const { error } = await supabase.functions.invoke('paddle-change-plan', {
+    body: { priceId, environment: getPaddleEnvironment() },
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function cancelSubscription(): Promise<void> {
+  const { error } = await supabase.functions.invoke('paddle-cancel', {
+    body: { environment: getPaddleEnvironment() },
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Triggers a JSON download of the signed-in user's data. */
+export async function exportAccountData(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Sign in required');
+
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/account-export`;
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) throw new Error(`Export failed (${res.status})`);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = `infradar-account-${session.user.id}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(blobUrl);
+}
+
+export async function deleteAccount(): Promise<void> {
+  const { error } = await supabase.functions.invoke('account-delete', { body: {} });
+  if (error) throw new Error(error.message);
+  await supabase.auth.signOut();
+  window.location.href = '/';
 }
