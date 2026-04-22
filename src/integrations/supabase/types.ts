@@ -14,30 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      agent_config: {
-        Row: {
-          agent_type: string
-          enabled: boolean
-          notes: string | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          agent_type: string
-          enabled?: boolean
-          notes?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          agent_type?: string
-          enabled?: boolean
-          notes?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       alerts: {
         Row: {
           category: Database["public"]["Enums"]["alert_category"]
@@ -143,7 +119,6 @@ export type Database = {
           related_project_ids: string[] | null
           slug: string
           source_url: string | null
-          sources: Json
           tag: string
           title: string
           updated_at: string
@@ -161,7 +136,6 @@ export type Database = {
           related_project_ids?: string[] | null
           slug: string
           source_url?: string | null
-          sources?: Json
           tag?: string
           title: string
           updated_at?: string
@@ -179,7 +153,6 @@ export type Database = {
           related_project_ids?: string[] | null
           slug?: string
           source_url?: string | null
-          sources?: Json
           tag?: string
           title?: string
           updated_at?: string
@@ -211,9 +184,7 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string | null
-          critical_only: boolean | null
           display_name: string | null
-          email_alerts: boolean | null
           id: string
           onboarded: boolean | null
           regions: string[] | null
@@ -222,14 +193,11 @@ export type Database = {
           stages: string[] | null
           tour_completed: boolean | null
           updated_at: string | null
-          weekly_digest: boolean | null
         }
         Insert: {
           company?: string | null
           created_at?: string | null
-          critical_only?: boolean | null
           display_name?: string | null
-          email_alerts?: boolean | null
           id: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -238,14 +206,11 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
-          weekly_digest?: boolean | null
         }
         Update: {
           company?: string | null
           created_at?: string | null
-          critical_only?: boolean | null
           display_name?: string | null
-          email_alerts?: boolean | null
           id?: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -254,7 +219,6 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
-          weekly_digest?: boolean | null
         }
         Relationships: []
       }
@@ -451,7 +415,6 @@ export type Database = {
           approved: boolean
           confidence: number
           country: string
-          created_by: string | null
           created_at: string
           description: string
           detailed_analysis: string | null
@@ -465,7 +428,6 @@ export type Database = {
           name: string
           political_context: string | null
           region: Database["public"]["Enums"]["project_region"]
-          research_saved_by: string | null
           risk_score: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -481,7 +443,6 @@ export type Database = {
           approved?: boolean
           confidence?: number
           country: string
-          created_by?: string | null
           created_at?: string
           description?: string
           detailed_analysis?: string | null
@@ -495,7 +456,6 @@ export type Database = {
           name: string
           political_context?: string | null
           region: Database["public"]["Enums"]["project_region"]
-          research_saved_by?: string | null
           risk_score?: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -511,7 +471,6 @@ export type Database = {
           approved?: boolean
           confidence?: number
           country?: string
-          created_by?: string | null
           created_at?: string
           description?: string
           detailed_analysis?: string | null
@@ -525,7 +484,6 @@ export type Database = {
           name?: string
           political_context?: string | null
           region?: Database["public"]["Enums"]["project_region"]
-          research_saved_by?: string | null
           risk_score?: number
           sector?: Database["public"]["Enums"]["project_sector"]
           slug?: string
@@ -545,7 +503,6 @@ export type Database = {
           error: string | null
           id: string
           query: string
-          requested_by: string | null
           result: Json | null
           status: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -556,7 +513,6 @@ export type Database = {
           error?: string | null
           id?: string
           query: string
-          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -567,7 +523,6 @@ export type Database = {
           error?: string | null
           id?: string
           query?: string
-          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type?: string
@@ -636,84 +591,6 @@ export type Database = {
           },
         ]
       }
-      stripe_customers: {
-        Row: {
-          created_at: string
-          stripe_customer_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          stripe_customer_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          stripe_customer_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean
-          current_period_end: string | null
-          id: string
-          plan_key: string
-          price_id: string | null
-          status: string
-          stripe_subscription_id: string | null
-          trial_end: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean
-          current_period_end?: string | null
-          id?: string
-          plan_key?: string
-          price_id?: string | null
-          status?: string
-          stripe_subscription_id?: string | null
-          trial_end?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean
-          current_period_end?: string | null
-          id?: string
-          plan_key?: string
-          price_id?: string | null
-          status?: string
-          stripe_subscription_id?: string | null
-          trial_end?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      usage_counters: {
-        Row: {
-          count: number
-          metric: string
-          period_start: string
-          user_id: string
-        }
-        Insert: {
-          count?: number
-          metric: string
-          period_start: string
-          user_id: string
-        }
-        Update: {
-          count?: number
-          metric?: string
-          period_start?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_roles: {
         Row: {
           id: string
@@ -773,33 +650,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      admin_list_user_emails: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          user_id: string
-          email: string
-        }[]
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
-      }
-      is_staff: {
-        Args: {
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      increment_usage_metric: {
-        Args: { p_metric: string }
-        Returns: Json
-      }
-      increment_usage_for_user: {
-        Args: { p_metric: string; p_user_id: string }
-        Returns: undefined
       }
     }
     Enums: {
@@ -832,20 +688,12 @@ export type Database = {
         | "Oceania"
         | "Caribbean"
       project_sector:
-        | "AI Infrastructure"
-        | "Building Construction"
-        | "Chemical"
-        | "Data Centers"
+        | "Urban Development"
         | "Digital Infrastructure"
-        | "Energy"
-        | "Industrial"
-        | "Infrastructure"
-        | "Mining"
-        | "Oil & Gas"
         | "Renewable Energy"
         | "Transport"
-        | "Urban Development"
         | "Water"
+        | "Energy"
       project_stage:
         | "Planned"
         | "Tender"
@@ -1015,20 +863,12 @@ export const Constants = {
         "Caribbean",
       ],
       project_sector: [
-        "AI Infrastructure",
-        "Building Construction",
-        "Chemical",
-        "Data Centers",
+        "Urban Development",
         "Digital Infrastructure",
-        "Energy",
-        "Industrial",
-        "Infrastructure",
-        "Mining",
-        "Oil & Gas",
         "Renewable Energy",
         "Transport",
-        "Urban Development",
         "Water",
+        "Energy",
       ],
       project_stage: [
         "Planned",
