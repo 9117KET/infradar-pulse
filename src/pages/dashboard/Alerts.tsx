@@ -54,9 +54,9 @@ interface IntelBrief {
 }
 
 export default function Alerts() {
-  const { alerts, loading, stats, filterByCategory, markAllAsRead } = useAlerts();
+  const { alerts, loading, stats, filterByCategory, markAllAsRead, truncated, totalAvailable, rowCap } = useAlerts();
   const { projects } = useProjects();
-  const { staffBypass } = useEntitlements();
+  const { staffBypass, plan } = useEntitlements();
   const [selectedCategory, setSelectedCategory] = useState<AlertCategory | 'all'>('all');
   const [brief, setBrief] = useState<IntelBrief | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
