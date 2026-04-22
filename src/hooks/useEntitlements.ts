@@ -8,6 +8,13 @@ function todayUtc(): string {
 
 export type UsageMetric = 'ai_generation' | 'export_csv' | 'export_pdf' | 'insight_read';
 
+export type SubInfo = {
+  status: string | null;
+  trial_end: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+};
+
 export function useEntitlements() {
   const [userId, setUserId] = useState<string | null>(null);
   const [plan, setPlan] = useState<PlanKey>('free');
@@ -15,6 +22,7 @@ export function useEntitlements() {
   const [usage, setUsage] = useState<Partial<Record<UsageMetric, number>>>({});
   const [hasPaddleCustomer, setHasPaddleCustomer] = useState(false);
   const [staffBypass, setStaffBypass] = useState(false);
+  const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -32,6 +40,7 @@ export function useEntitlements() {
       setUsage({});
       setHasPaddleCustomer(false);
       setStaffBypass(false);
+      setSubInfo(null);
       setLoading(false);
       return;
     }
@@ -41,7 +50,7 @@ export function useEntitlements() {
       const [{ data: sub }, { data: counters }, { data: roleRow }] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('status, plan_key, trial_end, current_period_end, paddle_customer_id')
+          .select('status, plan_key, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
           .eq('user_id', userId)
           .maybeSingle(),
         supabase
@@ -53,6 +62,16 @@ export function useEntitlements() {
       ]);
 
       setHasPaddleCustomer(!!sub?.paddle_customer_id);
+      setSubInfo(
+        sub
+          ? {
+              status: sub.status,
+              trial_end: sub.trial_end,
+              current_period_end: sub.current_period_end,
+              cancel_at_period_end: !!sub.cancel_at_period_end,
+            }
+          : null,
+      );
 
       const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
       setStaffBypass(!!bypass);
@@ -79,6 +98,20 @@ export function useEntitlements() {
     void refresh();
   }, [refresh]);
 
+  // Realtime: refresh as soon as the webhook updates this user's subscription row.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`subscriptions:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
+        () => { void refresh(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [userId, refresh]);
+
   const limits = useMemo(() => {
     if (staffBypass) return PLAN_LIMITS.enterprise;
     return PLAN_LIMITS[plan];
@@ -100,6 +133,7 @@ export function useEntitlements() {
     staffBypass,
     hasPaddleCustomer,
     isFreeTier,
+    subInfo,
     refresh,
     canUseAi,
     canExportCsv,
