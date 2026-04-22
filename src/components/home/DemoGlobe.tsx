@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { isWebGLAvailable } from '@/lib/webgl';
 import { Globe as GlobeIcon } from 'lucide-react';
-
-// Lazy-load react-globe.gl so it doesn't block initial paint
-const GlobeGL = lazy(() => import('react-globe.gl'));
+import { isWebGLAvailable } from '@/lib/webgl';
 
 interface GlobeProject {
   lat: number;
@@ -15,25 +14,29 @@ interface GlobeProject {
   country?: string;
 }
 
-interface PointDatum {
-  lat: number;
-  lng: number;
-  color: string;
-  size: number;
-  label: string;
-}
-
 function riskColor(score: number): string {
-  if (score >= 75) return '#dc2626'; // red   – critical
-  if (score >= 50) return '#f59e0b'; // amber – high
-  if (score >= 25) return '#22c55e'; // green – medium
-  return '#6bd8cb';                  // teal  – low
+  if (score >= 75) return 'hsl(var(--destructive))';
+  if (score >= 50) return 'hsl(38 92% 50%)';
+  if (score >= 25) return 'hsl(142 71% 45%)';
+  return 'hsl(var(--primary))';
 }
 
-const GEOJSON_SOURCES = [
-  'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson',
-  'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json',
-];
+function resolveCssHsl(variableName: string, fallback: string) {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
+  return value ? `hsl(${value})` : fallback;
+}
+
+function latLngToVector(lat: number, lng: number, radius: number) {
+  const phi = (90 - lat) * (Math.PI / 180);
+  const theta = (lng + 180) * (Math.PI / 180);
+
+  return new THREE.Vector3(
+    -(radius * Math.sin(phi) * Math.cos(theta)),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
+  );
+}
 
 function GlobeFallback() {
   return (
@@ -46,6 +49,145 @@ function GlobeFallback() {
   );
 }
 
+function StaticGlobeFallback({ projectCount }: { projectCount: number }) {
+  return (
+    <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
+      <GlobeIcon className="h-10 w-10 text-primary/70" />
+      <p className="text-sm font-medium text-foreground">Global pipeline coverage across 14 regions</p>
+      <p className="text-xs text-muted-foreground max-w-sm">
+        {projectCount > 0
+          ? `${projectCount.toLocaleString()} verified infrastructure projects tracked.`
+          : 'Verified infrastructure projects across emerging and OECD markets.'}{' '}
+        Switch to Map view for a detailed 2D exploration.
+      </p>
+    </div>
+  );
+}
+
+function CameraRig() {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    camera.position.set(0, 0.5, 3.8);
+    camera.lookAt(0, 0, 0);
+  }, [camera]);
+
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime() * 0.08;
+    camera.position.x = Math.sin(t) * 0.35;
+    camera.position.z = 3.8 + Math.cos(t) * 0.1;
+    camera.lookAt(0, 0, 0);
+  });
+
+  return null;
+}
+
+function GlobeScene({
+  projects,
+  colors,
+}: {
+  projects: GlobeProject[];
+  colors: {
+    globe: string;
+    glow: string;
+    muted: string;
+  };
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const pulseRefs = useRef<Array<THREE.Mesh | null>>([]);
+
+  const markers = useMemo(
+    () =>
+      projects.slice(0, 300).map((project) => {
+        const position = latLngToVector(project.lat, project.lng, 1.03);
+        const normal = position.clone().normalize();
+        return {
+          ...project,
+          position,
+          normal,
+          color: riskColor(project.risk_score),
+        };
+      }),
+    [projects]
+  );
+
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = clock.getElapsedTime() * 0.08;
+    }
+
+    pulseRefs.current.forEach((mesh, index) => {
+      if (!mesh) return;
+      const t = clock.getElapsedTime() * 1.8 + index * 0.35;
+      const scale = 1 + ((Math.sin(t) + 1) / 2) * 1.6;
+      mesh.scale.setScalar(scale);
+      const material = mesh.material;
+      if (material instanceof THREE.MeshBasicMaterial) {
+        material.opacity = 0.12 + ((Math.sin(t) + 1) / 2) * 0.18;
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef}>
+      <ambientLight intensity={1.2} />
+      <directionalLight position={[3, 2, 4]} intensity={1.8} color={colors.glow} />
+      <directionalLight position={[-4, -2, -3]} intensity={0.6} color={colors.muted} />
+
+      <mesh>
+        <sphereGeometry args={[1, 64, 64]} />
+        <meshStandardMaterial
+          color={colors.globe}
+          emissive={colors.glow}
+          emissiveIntensity={0.08}
+          roughness={0.92}
+          metalness={0.08}
+        />
+      </mesh>
+
+      <mesh scale={1.025}>
+        <sphereGeometry args={[1, 48, 48]} />
+        <meshBasicMaterial color={colors.glow} transparent opacity={0.08} side={THREE.BackSide} />
+      </mesh>
+
+      {markers.map((marker, index) => {
+        const rotation = new THREE.Euler().setFromQuaternion(
+          new THREE.Quaternion().setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            marker.normal.clone().normalize()
+          )
+        );
+
+        return (
+          <group key={`${marker.name}-${index}`} position={marker.position} rotation={rotation}>
+            <mesh>
+              <cylinderGeometry args={[0.006, 0.006, 0.12, 8]} />
+              <meshStandardMaterial color={marker.color} emissive={marker.color} emissiveIntensity={0.45} />
+            </mesh>
+            <mesh position={[0, 0.075, 0]}>
+              <sphereGeometry args={[0.018, 12, 12]} />
+              <meshStandardMaterial color={marker.color} emissive={marker.color} emissiveIntensity={0.6} />
+            </mesh>
+            <mesh ref={(node) => (pulseRefs.current[index] = node)} position={[0, 0.075, 0]}>
+              <sphereGeometry args={[0.028, 16, 16]} />
+              <meshBasicMaterial color={marker.color} transparent opacity={0.18} />
+            </mesh>
+          </group>
+        );
+      })}
+
+      <OrbitControls
+        enablePan={false}
+        enableZoom={false}
+        minPolarAngle={Math.PI * 0.28}
+        maxPolarAngle={Math.PI * 0.72}
+        rotateSpeed={0.45}
+        autoRotate={false}
+      />
+    </group>
+  );
+}
+
 export function DemoGlobe({
   projects,
   className,
@@ -53,147 +195,29 @@ export function DemoGlobe({
   projects: GlobeProject[];
   className?: string;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const globeRef = useRef<any>(null);
-  const [dimensions, setDimensions] = useState({ w: 800, h: 520 });
-  const [countries, setCountries] = useState<object[]>([]);
-  const [ready, setReady] = useState(false);
-  // Detect WebGL once on mount. If unavailable, render a static fallback so
-  // the homepage stays usable for headless reviewers, locked-down browsers,
-  // and bots that can't initialize a WebGL context.
   const [webglOk] = useState<boolean>(() => isWebGLAvailable());
-
-  // Track container size
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(entries => {
-      const e = entries[0];
-      if (e) setDimensions({ w: e.contentRect.width, h: e.contentRect.height });
-    });
-    ro.observe(containerRef.current);
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    if (width > 0) setDimensions({ w: width, h: height });
-    return () => ro.disconnect();
-  }, []);
-
-  // Load GeoJSON country data with fallback
-  useEffect(() => {
-    let cancelled = false;
-    const tryLoad = async (index: number) => {
-      if (index >= GEOJSON_SOURCES.length) return;
-      try {
-        const res = await fetch(GEOJSON_SOURCES[index]);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        if (cancelled) return;
-        const features = data.features ?? (Array.isArray(data) ? data : []);
-        if (features.length > 0) setCountries(features);
-        else throw new Error('empty');
-      } catch {
-        tryLoad(index + 1);
-      }
-    };
-    tryLoad(0);
-    return () => { cancelled = true; };
-  }, []);
-
-  // Enable auto-rotation once globe is ready
-  const handleGlobeReady = useCallback(() => {
-    setReady(true);
-    if (globeRef.current) {
-      const controls = globeRef.current.controls();
-      if (controls) {
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5;
-        controls.enableZoom = false;
-        controls.minPolarAngle = Math.PI * 0.2;
-        controls.maxPolarAngle = Math.PI * 0.8;
-      }
-      // Tilt the camera slightly for a nicer perspective
-      globeRef.current.pointOfView({ lat: 20, lng: 10, altitude: 2.2 }, 0);
-
-      // Defensive: react-globe.gl's internal cleanup calls
-      // `state.renderObjs._destructor()` on unmount, but in some Three.js
-      // version combos `renderObjs` is a function (not an object with a
-      // _destructor method). That throws inside React's passive unmount
-      // phase — which ErrorBoundaries CANNOT catch — and blanks the whole
-      // page when navigating away from the homepage. Patching it to a
-      // no-op makes unmount safe across versions.
-      try {
-        const inst: any = globeRef.current;
-        const state = inst.__state || inst._state || inst.state || inst;
-        const ro = state?.renderObjs;
-        if (ro && typeof ro._destructor !== 'function') {
-          ro._destructor = () => {};
-        }
-        // Also patch the instance itself in case the lib reads it directly.
-        if (inst && typeof inst._destructor !== 'function') {
-          inst._destructor = () => {};
-        }
-      } catch {
-        // best-effort only
-      }
-    }
-  }, []);
-
-  // Deep ocean material — matches the CartoDB dark map water color
-  const oceanMaterial = useMemo(
-    () =>
-      new THREE.MeshPhongMaterial({
-        color: new THREE.Color('#0a0f14'),   // near-black, matches map bg
-        emissive: new THREE.Color('#0d131a'),
-        emissiveIntensity: 0.3,
-        shininess: 6,
-        specular: new THREE.Color('#1a2030'),
-      }),
+  const colors = useMemo(
+    () => ({
+      background: resolveCssHsl('--background', 'hsl(210 15% 6%)'),
+      card: resolveCssHsl('--card', 'hsl(210 12% 9%)'),
+      primary: resolveCssHsl('--primary', 'hsl(170 55% 63%)'),
+      muted: resolveCssHsl('--muted-foreground', 'hsl(210 8% 55%)'),
+    }),
     []
   );
 
-  const pointsData: PointDatum[] = projects.map(p => ({
-    lat: p.lat,
-    lng: p.lng,
-    color: riskColor(p.risk_score),
-    size: 0.45,
-    label: `
-      <div style="
-        background:rgba(10,15,20,0.95);
-        border:1px solid rgba(107,216,203,0.25);
-        border-radius:6px;
-        padding:7px 10px;
-        font-family:system-ui,sans-serif;
-        box-shadow:0 0 16px rgba(107,216,203,0.1);
-      ">
-        <div style="font-size:12px;font-weight:600;color:#fff">${p.name}</div>
-      </div>
-    `,
-  }));
-
-  // Static fallback when the browser can't initialize WebGL — keeps the
-  // homepage looking intentional rather than broken.
   if (!webglOk) {
     return (
       <div
-        ref={containerRef}
         className={className}
-        style={{ position: 'relative', overflow: 'hidden', background: '#0a0f14' }}
+        style={{ position: 'relative', overflow: 'hidden', background: colors.background }}
       >
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
-          <GlobeIcon className="h-10 w-10 text-primary/70" />
-          <p className="text-sm font-medium text-foreground">
-            Global pipeline coverage across 14 regions
-          </p>
-          <p className="text-xs text-muted-foreground max-w-sm">
-            {projects.length > 0
-              ? `${projects.length.toLocaleString()} verified infrastructure projects tracked.`
-              : 'Verified infrastructure projects across emerging and OECD markets.'}
-            {' '}Switch to Map view for an interactive 2D version.
-          </p>
-        </div>
+        <StaticGlobeFallback projectCount={projects.length} />
         <div
           className="pointer-events-none absolute inset-0 rounded-xl"
           style={{
             background:
-              'radial-gradient(ellipse at center, transparent 60%, hsl(var(--background)) 100%)',
+              `radial-gradient(ellipse at center, transparent 55%, ${colors.background} 100%)`,
           }}
         />
       </div>
@@ -202,66 +226,44 @@ export function DemoGlobe({
 
   return (
     <div
-      ref={containerRef}
       className={className}
-      style={{ position: 'relative', overflow: 'hidden', background: 'transparent' }}
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        background:
+          `radial-gradient(circle at 50% 45%, ${colors.card} 0%, ${colors.background} 72%)`,
+      }}
     >
       <Suspense fallback={<GlobeFallback />}>
-        <GlobeGL
-          ref={globeRef}
-          width={dimensions.w}
-          height={dimensions.h}
-          // Visuals
-          backgroundColor="rgba(0,0,0,0)"
-          showAtmosphere
-          atmosphereColor="#6bd8cb"
-          atmosphereAltitude={0.18}
-          showGlobe
-          globeImageUrl={null as any}
-          globeMaterial={oceanMaterial}
-          // Country polygons
-          polygonsData={countries}
-          polygonAltitude={0.01}
-          polygonCapColor={() => '#1a1f24'}      // dark charcoal continent fill — matches CartoDB land
-          polygonSideColor={() => '#141820'}
-          polygonStrokeColor={() => '#252b35'}   // subtle gray border lines
-          polygonLabel={(d: any) => d?.properties?.NAME ?? ''}
-          // Project markers
-          pointsData={pointsData}
-          pointLat="lat"
-          pointLng="lng"
-          pointColor="color"
-          pointRadius="size"
-          pointAltitude={0.01}
-          pointResolution={6}
-          pointLabel="label"
-          // Interaction
-          enablePointerInteraction
-          onGlobeReady={handleGlobeReady}
-        />
+        <Canvas dpr={[1, 1.75]} gl={{ antialias: true, alpha: true }} camera={{ fov: 34, near: 0.1, far: 100 }}>
+          <fog attach="fog" args={[colors.background, 3.6, 6.6]} />
+          <CameraRig />
+          <GlobeScene
+            projects={projects}
+            colors={{ globe: colors.card, glow: colors.primary, muted: colors.muted }}
+          />
+        </Canvas>
       </Suspense>
 
-      {/* Base ocean fill – rendered behind the WebGL canvas */}
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 rounded-xl"
-        style={{ background: '#0a0f14' }}
-      />
+      <div className="pointer-events-none absolute inset-x-0 top-4 flex justify-center px-4">
+        <div className="rounded-md border border-border/50 bg-background/60 px-3 py-1.5 text-[10px] font-mono text-muted-foreground backdrop-blur-sm">
+          Drag to rotate · risk signals pulse by severity
+        </div>
+      </div>
 
-      {/* Fade edges to blend into the section background */}
       <div
         className="pointer-events-none absolute inset-0 rounded-xl"
         style={{
           background:
-            'radial-gradient(ellipse at center, transparent 60%, hsl(var(--background)) 100%)',
+            `radial-gradient(ellipse at center, transparent 52%, ${colors.background} 100%)`,
         }}
       />
-
-      {/* Spinner overlay while globe initialises */}
-      {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <GlobeFallback />
-        </div>
-      )}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(circle at center, ${colors.primary}1A 0%, transparent 45%)`,
+        }}
+      />
     </div>
   );
 }
