@@ -183,7 +183,7 @@ export function useProjects(filters?: ProjectFilters) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [entLoading, rowCap]);
 
-  return { projects, allProjects, loading };
+  return { projects, allProjects, loading, truncated, totalAvailable, rowCap };
 }
