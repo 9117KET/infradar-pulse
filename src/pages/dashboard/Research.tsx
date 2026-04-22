@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { trackUsage } from '@/lib/billing/trackUsage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -280,11 +281,9 @@ export default function Research() {
 
     const filename = `infradar-research-${activeTask.query.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     doc.save(filename);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast({ title: 'Not signed in', variant: 'destructive' }); return; }
-    const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { metric_name: 'export_pdf', user_uuid: user.id });
-    if (rpcErr) {
-      toast({ title: 'Export saved', description: 'Could not update usage counter: ' + rpcErr.message, variant: 'destructive' });
+    const trackResult = await trackUsage('export_pdf');
+    if (!trackResult.ok) {
+      toast({ title: 'Export limit reached', description: trackResult.message, variant: 'destructive' });
       return;
     }
     await refreshEntitlements();

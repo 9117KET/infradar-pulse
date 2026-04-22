@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useInsight, getDisplaySources } from '@/hooks/use-insights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { supabase } from '@/integrations/supabase/client';
+import { trackUsage } from '@/lib/billing/trackUsage';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, User, Calendar, Link2 } from 'lucide-react';
@@ -29,8 +29,8 @@ export default function InsightDetail() {
     if (countedRef.current) return;
     countedRef.current = true;
     void (async () => {
-      const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { metric_name: 'insight_read', user_uuid: user.id });
-      if (!rpcErr) await refresh();
+      const result = await trackUsage('insight_read');
+      if (result.ok) await refresh();
     })();
   }, [user, entLoading, insight?.id, canReadInsightFull, staffBypass, refresh]);
 

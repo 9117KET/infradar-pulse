@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { supabase } from '@/integrations/supabase/client';
+import { trackUsage } from '@/lib/billing/trackUsage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -190,11 +191,10 @@ export default function Projects() {
     const a = document.createElement('a');
     a.href = url; a.download = 'infradar_projects.csv'; a.click();
     URL.revokeObjectURL(url);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { toast({ title: 'Not signed in', variant: 'destructive' }); return; }
-    const { error } = await supabase.rpc('increment_usage_metric', { metric_name: 'export_csv', user_uuid: user.id });
-    if (error) {
-      toast({ title: 'Could not record export', description: error.message, variant: 'destructive' });
+    const result = await trackUsage('export_csv');
+    if (!result.ok) {
+      if (result.overLimit) setUpgradeOpen(true);
+      toast({ title: 'Export limit reached', description: result.message, variant: 'destructive' });
       return;
     }
     await refreshEntitlements();
