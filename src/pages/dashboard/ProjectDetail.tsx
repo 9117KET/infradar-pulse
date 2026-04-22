@@ -27,6 +27,8 @@ import {
 import { agentApi } from '@/lib/api/agents';
 import { isReachableContact } from '@/lib/contact-validation';
 import { canDeleteProject, canEditProject } from '@/lib/project-permissions';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { useCopyProtection } from '@/hooks/useCopyProtection';
 
 const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
 
@@ -42,6 +44,14 @@ export default function ProjectDetail() {
   const canDelete = project ? canDeleteProject(user?.id, roles, project) : false;
   /** Verify, evidence, contacts, agents — researcher + admin only (plan table). */
   const canModerate = hasRole('admin') || hasRole('researcher');
+
+  // Copy/paste deterrent on the proprietary Analysis section for free + trial users.
+  const { staffBypass, isFreeTier, plan } = useEntitlements();
+  const protectAnalysis = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
+  const analysisCopyProps = useCopyProtection(
+    protectAnalysis,
+    `Excerpted from InfraRadar — full analysis: ${typeof window !== 'undefined' ? window.location.href : 'infraradar.app'} · Subscribe for unlimited access.`,
+  );
 
   // Evidence form state
   const [showAddEvidence, setShowAddEvidence] = useState(false);
@@ -429,7 +439,10 @@ export default function ProjectDetail() {
 
         {/* Analysis */}
         <TabsContent value="analysis">
-          <div className="glass-panel rounded-xl p-5 space-y-2">
+          <div
+            {...analysisCopyProps}
+            className={`glass-panel rounded-xl p-5 space-y-2 ${analysisCopyProps.className}`}
+          >
             {!project.detailedAnalysis && !project.keyRisks && !project.fundingSources && !project.environmentalImpact && !project.politicalContext ? (
               <p className="text-sm text-muted-foreground">
                 No analysis content yet.
