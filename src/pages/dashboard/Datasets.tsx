@@ -37,7 +37,7 @@ export default function Datasets() {
   const { data: snapshot, isLoading, refetch } = useQuery({
     queryKey: ['dataset-snapshot', datasetKey],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('dataset_snapshots')
         .select('id,dataset_key,generated_at,payload')
         .eq('dataset_key', datasetKey)

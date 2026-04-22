@@ -62,6 +62,8 @@ export interface Project {
   stage: ProjectStage;
   status: ProjectStatus;
   valueUsd: number;
+  /** Alias for valueUsd — kept for backward compatibility with dashboard pages. */
+  value?: number;
   valueLabel: string;
   confidence: number;
   riskScore: number;
