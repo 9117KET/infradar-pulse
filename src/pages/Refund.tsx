@@ -40,7 +40,7 @@ export default function Refund() {
             </li>
             <li>
               Email us at{' '}
-              <a className="underline" href="mailto:billing@infradar.io">billing@infradar.io</a> with
+              <a className="underline" href="mailto:billing@infradarai.com">billing@infradarai.com</a> with
               your order reference and we will assist with the refund through Paddle.
             </li>
           </ul>
@@ -79,7 +79,7 @@ export default function Refund() {
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Contact</h2>
           <p>
             For refund or billing questions, contact Kinlo and Glen at{' '}
-            <a className="underline" href="mailto:billing@infradar.io">billing@infradar.io</a>.
+            <a className="underline" href="mailto:billing@infradarai.com">billing@infradarai.com</a>.
           </p>
         </div>
       </div>
