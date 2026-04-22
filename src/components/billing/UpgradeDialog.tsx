@@ -9,8 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Sparkles, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { startCheckoutSession } from '@/lib/billing/stripeClient';
+import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { useToast } from '@/hooks/use-toast';
 
 type Reason = 'ai' | 'export' | 'insight' | 'default';
 
@@ -46,16 +46,20 @@ export function UpgradeDialog({
   onOpenChange: (open: boolean) => void;
   reason?: Reason;
 }) {
-  const [starting, setStarting] = useState(false);
-  const starterPrice = import.meta.env.VITE_STRIPE_PRICE_STARTER as string | undefined;
+  const { openCheckout, loading } = usePaddleCheckout();
+  const { toast } = useToast();
   const { title, description } = COPY[reason] ?? COPY.default;
 
   const startTrial = async () => {
-    setStarting(true);
     try {
-      await startCheckoutSession(starterPrice);
-    } catch {
-      setStarting(false);
+      await openCheckout('starter_monthly');
+      onOpenChange(false);
+    } catch (e) {
+      toast({
+        title: 'Checkout unavailable',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -80,8 +84,8 @@ export function UpgradeDialog({
               Billing & usage
             </Link>
           </Button>
-          <Button className="teal-glow" onClick={() => void startTrial()} disabled={starting}>
-            {starting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          <Button className="teal-glow" onClick={() => void startTrial()} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
             Start 3-day free trial
           </Button>
         </DialogFooter>
