@@ -173,10 +173,10 @@ export default function Alerts() {
 
       {truncated && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
-          <p className="text-amber-200">
+          <p className="text-foreground">
             Showing the {rowCap.toLocaleString()} most recent alerts of {totalAvailable.toLocaleString()} available on your{' '}
             <span className="capitalize font-medium">{plan}</span> plan.{' '}
-            <a href="/pricing" className="underline underline-offset-2 hover:text-amber-100">
+            <a href="/pricing" className="underline underline-offset-2 text-primary hover:text-primary/80">
               Upgrade
             </a>{' '}
             to see the full alert history.
