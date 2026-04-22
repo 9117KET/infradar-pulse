@@ -118,6 +118,25 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     // Use upsert too so a rogue 'updated' before 'created' doesn't drop the row.
     await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
   }
+
+  // Anti-abuse: record that this user has now used a trial. Idempotent.
+  // We only record on trialing status so paid subs don't burn the trial flag.
+  if (status === 'trialing') {
+    try {
+      // Look up the user's email to normalize and store, so the same person
+      // can't open a second account and start another trial.
+      const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+      const email = authUser?.user?.email ?? null;
+      await supabase.rpc('record_trial_started', {
+        p_user_id: userId,
+        p_email: email,
+        p_paddle_customer_id: customerId ?? null,
+        p_environment: env,
+      });
+    } catch (err) {
+      console.error('record_trial_started failed (non-fatal):', err);
+    }
+  }
 }
 
 // Records every Paddle event into billing_events for the user-facing audit log.
