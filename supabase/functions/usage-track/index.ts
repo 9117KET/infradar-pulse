@@ -6,6 +6,7 @@ import { getUserFromBearer } from "../_shared/auth.ts";
 import {
   consumeExportQuota,
   consumeInsightReadQuota,
+  requireVerifiedEmail,
 } from "../_shared/entitlementCheck.ts";
 
 const corsHeaders = {
@@ -52,6 +53,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+
+    // Email verification gate: stops throwaway accounts from burning quota.
+    const verified = await requireVerifiedEmail(supabaseAdmin, user.id);
+    if (verified.ok === false) {
+      return new Response(
+        JSON.stringify({ error: verified.message, code: "EMAIL_UNVERIFIED" }),
+        { status: 403, headers: corsHeaders },
+      );
+    }
 
     // Atomic gate + increment in a single DB transaction.
     // Returns ok=false if either the daily or hourly cap would be exceeded.
