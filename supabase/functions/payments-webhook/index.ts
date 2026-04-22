@@ -9,8 +9,16 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
+// Map of every active Paddle price external_id → internal plan_key.
+// Add new SKUs here when you create them.
+const PRICE_TO_PLAN: Record<string, string> = {
+  starter_monthly: 'starter',
+  pro_monthly: 'pro',
+};
+
 function priceIdToPlanKey(priceId: string | undefined): string {
-  if (priceId === 'pro_monthly') return 'pro';
+  if (priceId && PRICE_TO_PLAN[priceId]) return PRICE_TO_PLAN[priceId];
+  console.warn('payments-webhook: unknown price external_id, defaulting to starter:', priceId);
   return 'starter';
 }
 
@@ -28,8 +36,12 @@ Deno.serve(async (req) => {
 
     switch (event.eventType) {
       case EventName.SubscriptionCreated:
+        await upsertSubscription(event.data, env, true);
+        break;
+      // Updated covers: trial → active, active → past_due, paused, resumed, plan changes,
+      // and scheduled-cancel. Status field on payload tells us which.
       case EventName.SubscriptionUpdated:
-        await upsertSubscription(event.data, env, event.eventType === EventName.SubscriptionCreated);
+        await upsertSubscription(event.data, env, false);
         break;
       case EventName.SubscriptionCanceled:
         await supabase
@@ -73,9 +85,11 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
   const productId = item?.product?.importMeta?.externalId || item?.product?.id;
   const planKey = priceIdToPlanKey(priceId);
 
-  const trialEnd = status === 'trialing' && currentBillingPeriod?.endsAt
-    ? currentBillingPeriod.endsAt
-    : null;
+  // Trial end: prefer item.trialDates.endsAt (Paddle sets this on trial subs);
+  // fall back to currentBillingPeriod.endsAt while status === 'trialing'.
+  const trialEnd =
+    item?.trialDates?.endsAt ??
+    (status === 'trialing' && currentBillingPeriod?.endsAt ? currentBillingPeriod.endsAt : null);
 
   const row = {
     user_id: userId,
@@ -96,10 +110,7 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
   if (isCreate) {
     await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
   } else {
-    await supabase
-      .from('subscriptions')
-      .update(row)
-      .eq('paddle_subscription_id', id)
-      .eq('environment', env);
+    // Use upsert too so a rogue 'updated' before 'created' doesn't drop the row.
+    await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
   }
 }
