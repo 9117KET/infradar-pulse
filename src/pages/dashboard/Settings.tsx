@@ -10,15 +10,16 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail, Download, AlertTriangle, ArrowUpRight, ArrowDownRight, XCircle } from 'lucide-react';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { Switch as UISwitch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
-import { openCustomerPortal } from '@/lib/billing/paddleClient';
+import { openCustomerPortal, changePlan, cancelSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface NotifSettings {
   emailAlerts: boolean;
