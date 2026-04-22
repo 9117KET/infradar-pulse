@@ -30,6 +30,7 @@ export default function Research() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'ai' | 'export'>('ai');
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canExportPdf, canUseAi, refresh: refreshEntitlements } = useEntitlements();
@@ -283,7 +284,12 @@ export default function Research() {
     doc.save(filename);
     const trackResult = await trackUsage('export_pdf');
     if (!trackResult.ok) {
-      toast({ title: 'Export limit reached', description: trackResult.message, variant: 'destructive' });
+      if (trackResult.overLimit) {
+        setUpgradeReason('export');
+        setUpgradeOpen(true);
+      } else {
+        toast({ title: 'Could not record export', description: trackResult.message, variant: 'destructive' });
+      }
       return;
     }
     await refreshEntitlements();
@@ -292,7 +298,7 @@ export default function Research() {
 
   return (
     <div className="space-y-6">
-      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="ai" />
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason={upgradeReason} />
       <div>
         <h1 className="text-2xl font-bold">Research Hub</h1>
         <p className="text-muted-foreground text-sm mt-1">
