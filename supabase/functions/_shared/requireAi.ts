@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserFromBearer } from "./auth.ts";
-import { consumeAiQuota } from "./entitlementCheck.ts";
+import { consumeAiQuota, requireVerifiedEmail } from "./entitlementCheck.ts";
 
 export const corsJson = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +34,17 @@ export async function requireAiEntitlementOrRespond(req: Request): Promise<
     });
   }
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+
+  // Email verification gate: stops disposable/unconfirmed accounts from
+  // burning AI quota. Staff bypass.
+  const verified = await requireVerifiedEmail(supabaseAdmin, user.id);
+  if (verified.ok === false) {
+    return new Response(
+      JSON.stringify({ error: verified.message, code: "EMAIL_UNVERIFIED" }),
+      { status: 403, headers: corsJson },
+    );
+  }
+
   // Atomic: gates AND consumes one unit of AI quota in a single transaction.
   const gate = await consumeAiQuota(supabaseAdmin, user.id);
   if (gate.ok === false) {
