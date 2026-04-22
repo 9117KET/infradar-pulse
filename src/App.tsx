@@ -17,6 +17,7 @@ import Explore from "./pages/Explore";
 
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Refund from "./pages/Refund";
 import DataProtection from "./pages/DataProtection";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
@@ -82,6 +83,8 @@ const App = () => (
               
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/refund" element={<Refund />} />
+              <Route path="/refund-policy" element={<Refund />} />
               <Route path="/data-protection" element={<DataProtection />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/press" element={<Press />} />
