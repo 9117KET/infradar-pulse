@@ -445,6 +445,30 @@ function BillingTab() {
             Subscription will cancel on {formatDate(subInfo!.current_period_end)} ({periodDays} day{periodDays === 1 ? '' : 's'}). Resubscribe anytime before then to keep your plan.
           </div>
         )}
+
+        {/* Checkout completion poller — visible only while we wait for the webhook to land */}
+        {completion.status === 'polling' && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3 text-xs text-foreground space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="font-medium">Activating your subscription…</span>
+            </div>
+            <Progress value={Math.min(100, (completion.elapsedSec / 30) * 100)} className="h-1.5" />
+            <p className="text-muted-foreground">
+              Confirming with our payment provider. This usually takes 5–15 seconds.
+            </p>
+          </div>
+        )}
+        {completion.status === 'timeout' && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-foreground space-y-2">
+            <p>
+              Still processing. Your payment was likely successful — refresh in a minute, or contact support if your plan doesn't update.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => { completion.reset(); void refresh(); }}>
+              Refresh now
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
