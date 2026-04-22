@@ -15,7 +15,7 @@ export default function MarketingLayout() {
       <PaymentTestModeBanner />
       <Navbar />
       <main className="flex-1 pt-16">
-        <ErrorBoundary key={pathname}>
+        <ErrorBoundary key={pathname} variant="inline">
           <Outlet />
         </ErrorBoundary>
       </main>
