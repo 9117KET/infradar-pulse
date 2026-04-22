@@ -59,8 +59,11 @@ export function getDisplaySources(insight: Insight): InsightSource[] {
 }
 
 export function useInsights(publishedOnly = true) {
-  const { plan, staffBypass, loading: entLoading } = useEntitlements();
-  const rowCap = getReadRowCap(plan, staffBypass);
+  const { plan, staffBypass, isAnonymous, loading: entLoading } = useEntitlements();
+  // Public marketing reads (no signed-in user) bypass per-user caps so anonymous
+  // visitors don't see a truncated article list. Caps still apply to signed-in
+  // free/trial users on the dashboard.
+  const rowCap = isAnonymous ? 0 : getReadRowCap(plan, staffBypass);
 
   return useQuery({
     queryKey: ['insights', publishedOnly, rowCap],
