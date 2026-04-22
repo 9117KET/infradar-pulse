@@ -26,13 +26,13 @@ export default function Privacy() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">2. Purposes and Legal Bases</h2>
           <ul className="list-disc pl-5 space-y-1">
-            <li><strong>Providing the Service</strong> (account creation, authentication, delivering intelligence, alerts and dashboards) — performance of a contract with you.</li>
-            <li><strong>Billing and subscription management</strong> via our Merchant of Record — performance of a contract and compliance with legal obligations.</li>
-            <li><strong>Security, fraud prevention and abuse detection</strong> — legitimate interests in keeping the Service safe.</li>
-            <li><strong>Product improvement and analytics</strong> — legitimate interests in understanding usage and improving features.</li>
-            <li><strong>Customer support</strong> — performance of a contract and legitimate interests in responding to your requests.</li>
-            <li><strong>Marketing communications and digests</strong> — your consent, which you can withdraw at any time via your settings or unsubscribe links.</li>
-            <li><strong>Compliance with law</strong> — legal obligation, where applicable.</li>
+            <li><strong>Providing the Service</strong> (account creation, authentication, delivering intelligence, alerts and dashboards) : performance of a contract with you.</li>
+            <li><strong>Billing and subscription management</strong> via our Merchant of Record : performance of a contract and compliance with legal obligations.</li>
+            <li><strong>Security, fraud prevention and abuse detection</strong> : legitimate interests in keeping the Service safe.</li>
+            <li><strong>Product improvement and analytics</strong> : legitimate interests in understanding usage and improving features.</li>
+            <li><strong>Customer support</strong> : performance of a contract and legitimate interests in responding to your requests.</li>
+            <li><strong>Marketing communications and digests</strong> : your consent, which you can withdraw at any time via your settings or unsubscribe links.</li>
+            <li><strong>Compliance with law</strong> : legal obligation, where applicable.</li>
           </ul>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">3. How We Share Your Data</h2>

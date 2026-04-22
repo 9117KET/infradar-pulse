@@ -14,16 +14,16 @@ export default function Refund() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">30-Day Money-Back Guarantee</h2>
           <p>
-            We offer a 30-day money-back guarantee on your first paid charge for any Infradar
+            We offer a 14-day money-back guarantee on your first paid charge for any Infradar
             subscription plan. If you are not satisfied with the Service, you can request a full
-            refund of that first charge within 30 days of the order date — no specific reason
+            refund of that first charge within 14 days of the order date , no specific reason
             required.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Renewals</h2>
           <p>
             Subscription renewals (after the first paid charge) are not automatically eligible for a
-            refund. We understand that renewals can occasionally be unexpected — if you are charged
+            refund. We understand that renewals can occasionally be unexpected , if you are charged
             for a renewal you did not intend to keep, contact us or Paddle promptly and we will
             review your request in good faith on a case-by-case basis.
           </p>
@@ -55,7 +55,7 @@ export default function Refund() {
             You can cancel your subscription at any time from your account settings or via{' '}
             <a className="underline" href="https://paddle.net" target="_blank" rel="noreferrer">paddle.net</a>.
             Cancellation stops future renewals and takes effect at the end of your current paid
-            period; you keep access until that date. Cancelling does not, by itself, trigger a refund —
+            period; you keep access until that date. Cancelling does not, by itself, trigger a refund ,
             request one separately if eligible.
           </p>
 
@@ -78,7 +78,7 @@ export default function Refund() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Contact</h2>
           <p>
-            Kinlo and Glen — for refund or billing questions, email{' '}
+            Kinlo and Glen , for refund or billing questions, email{' '}
             <a className="underline" href="mailto:billing@infradar.io">billing@infradar.io</a>.
           </p>
         </div>
