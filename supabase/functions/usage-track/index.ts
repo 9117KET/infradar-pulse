@@ -1,12 +1,11 @@
 // Server-side gated usage tracking for exports and insight reads.
-// Replaces direct client RPC calls so limits cannot be bypassed by editing the browser.
+// Uses the atomic consume*Quota helpers so parallel requests cannot
+// bypass either the daily or the hourly cap.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserFromBearer } from "../_shared/auth.ts";
 import {
-  assertExportAllowed,
-  assertInsightReadAllowed,
-  incrementUsage,
-  Metric,
+  consumeExportQuota,
+  consumeInsightReadQuota,
 } from "../_shared/entitlementCheck.ts";
 
 const corsHeaders = {
@@ -54,22 +53,26 @@ Deno.serve(async (req: Request) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    // Gate before incrementing
+    // Atomic gate + increment in a single DB transaction.
+    // Returns ok=false if either the daily or hourly cap would be exceeded.
     let gate;
     if (action === "insight_read") {
-      gate = await assertInsightReadAllowed(supabaseAdmin, user.id);
+      gate = await consumeInsightReadQuota(supabaseAdmin, user.id);
     } else {
       const kind = action === "export_csv" ? "csv" : "pdf";
-      gate = await assertExportAllowed(supabaseAdmin, user.id, kind);
+      gate = await consumeExportQuota(supabaseAdmin, user.id, kind);
     }
     if (gate.ok === false) {
       return new Response(
-        JSON.stringify({ error: gate.message, code: "ENTITLEMENT", plan: gate.plan }),
+        JSON.stringify({
+          error: gate.message,
+          code: "ENTITLEMENT",
+          plan: gate.plan,
+          reason: gate.reason, // 'daily' | 'hourly'
+        }),
         { status: 402, headers: corsHeaders },
       );
     }
-
-    await incrementUsage(supabaseAdmin, user.id, action as Metric);
 
     return new Response(JSON.stringify({ ok: true }), {
       status: 200,
