@@ -592,6 +592,42 @@ export type Database = {
         }
         Relationships: []
       }
+      quota_requests: {
+        Row: {
+          created_at: string
+          current_plan: string
+          id: string
+          metric: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_plan: string
+          id?: string
+          metric: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_plan?: string
+          id?: string
+          metric?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       research_tasks: {
         Row: {
           completed_at: string | null
