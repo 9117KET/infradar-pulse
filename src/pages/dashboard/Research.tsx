@@ -280,7 +280,9 @@ export default function Research() {
 
     const filename = `infradar-research-${activeTask.query.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}.pdf`;
     doc.save(filename);
-    const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { p_metric: 'export_pdf' });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast({ title: 'Not signed in', variant: 'destructive' }); return; }
+    const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { metric_name: 'export_pdf', user_uuid: user.id });
     if (rpcErr) {
       toast({ title: 'Export saved', description: 'Could not update usage counter: ' + rpcErr.message, variant: 'destructive' });
       return;
