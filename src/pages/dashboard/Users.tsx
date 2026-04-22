@@ -35,7 +35,7 @@ export default function UsersPage() {
     setLoading(true);
     const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
     const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
-    const { data: emailRows, error: emailError } = await supabase.rpc('admin_list_user_emails');
+    const { data: emailRows, error: emailError } = await (supabase.rpc as any)('admin_list_user_emails');
 
     if (profilesError) {
       toast({
