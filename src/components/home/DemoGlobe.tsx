@@ -111,6 +111,28 @@ export function DemoGlobe({
       }
       // Tilt the camera slightly for a nicer perspective
       globeRef.current.pointOfView({ lat: 20, lng: 10, altitude: 2.2 }, 0);
+
+      // Defensive: react-globe.gl's internal cleanup calls
+      // `state.renderObjs._destructor()` on unmount, but in some Three.js
+      // version combos `renderObjs` is a function (not an object with a
+      // _destructor method). That throws inside React's passive unmount
+      // phase — which ErrorBoundaries CANNOT catch — and blanks the whole
+      // page when navigating away from the homepage. Patching it to a
+      // no-op makes unmount safe across versions.
+      try {
+        const inst: any = globeRef.current;
+        const state = inst.__state || inst._state || inst.state || inst;
+        const ro = state?.renderObjs;
+        if (ro && typeof ro._destructor !== 'function') {
+          ro._destructor = () => {};
+        }
+        // Also patch the instance itself in case the lib reads it directly.
+        if (inst && typeof inst._destructor !== 'function') {
+          inst._destructor = () => {};
+        }
+      } catch {
+        // best-effort only
+      }
     }
   }, []);
 
