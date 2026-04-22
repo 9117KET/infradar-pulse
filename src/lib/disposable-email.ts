@@ -1,0 +1,93 @@
+/**
+ * Client-side disposable email check. Mirrors the server-side list in
+ * `supabase/functions/_shared/disposableEmail.ts` so the UI can fail fast
+ * before hitting Supabase Auth. The server still re-validates as defense
+ * in depth.
+ */
+
+export const DISPOSABLE_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
+  // Mailinator family
+  "mailinator.com", "mailinator.net", "mailinator.org", "mailinator2.com",
+  "reallymymail.com", "binkmail.com", "bobmail.info", "chammy.info",
+  "devnullmail.com", "letthemeatspam.com", "mailinater.com", "mailinator.us",
+  "mailinator.info", "notmailinator.com", "spamherelots.com", "spamhereplease.com",
+  "streetwisemail.com", "suremail.info", "thisisnotmyrealemail.com",
+  "tradermail.info", "veryrealemail.com", "zippymail.info",
+  // Guerrilla Mail
+  "guerrillamail.com", "guerrillamail.net", "guerrillamail.org",
+  "guerrillamail.biz", "guerrillamail.de", "guerrillamailblock.com",
+  "grr.la", "sharklasers.com", "spam4.me", "pokemail.net",
+  // 10MinuteMail
+  "10minutemail.com", "10minutemail.net", "10minutemail.org",
+  "10minutemail.co.uk", "10minutemail.de", "20minutemail.com",
+  "30minutemail.com", "10minutesmail.com", "tempmailo.com",
+  // Temp-Mail
+  "temp-mail.org", "temp-mail.io", "tempmail.com", "tempmail.net",
+  "tempmail.dev", "tempmail.email", "tempmail.plus", "tempmailaddress.com",
+  "temp-mail.ru", "tempinbox.com", "tempmailer.com", "tempmailer.de",
+  // YOPmail
+  "yopmail.com", "yopmail.fr", "yopmail.net", "cool.fr.nf", "jetable.fr.nf",
+  "nospam.ze.tc", "nomail.xl.cx", "mega.zik.dj", "speed.1s.fr",
+  "courriel.fr.nf", "moncourrier.fr.nf", "monemail.fr.nf", "monmail.fr.nf",
+  // Trash mail
+  "trashmail.com", "trashmail.net", "trashmail.org", "trashmail.de",
+  "trashmail.io", "trashmail.me", "trash-mail.com", "trash-mail.de",
+  "wegwerfemail.de", "wegwerfmail.de", "wegwerfmail.net", "wegwerfmail.org",
+  "kurzepost.de", "objectmail.com", "proxymail.eu", "rcpt.at",
+  "fakeinbox.com", "fakemail.fr", "fakemailgenerator.com", "throwawaymail.com",
+  // GetNada
+  "getnada.com", "nada.email", "nada.ltd",
+  // Misc
+  "emailondeck.com", "maildrop.cc", "maildrop.email", "dispostable.com",
+  "mohmal.com", "mailnesia.com", "mintemail.com", "mytemp.email",
+  "mytrashmail.com", "inboxbear.com", "inboxkitten.com",
+  // Burner
+  "burnermail.io", "discard.email", "discardmail.com", "discardmail.de",
+  "spambog.com", "spambog.de", "spambog.ru", "spambox.us",
+  "spamgourmet.com", "spamgourmet.net", "spamgourmet.org",
+  "mailcatch.com", "mailtemp.info", "mail-temp.com", "mail-temporaire.fr",
+  "moakt.com", "mvrht.com", "owlpic.com", "tafmail.com",
+  "harakirimail.com", "tmpeml.info", "tmpmail.org", "tmpmail.net",
+  "tmpbox.net", "deadaddress.com", "byom.de",
+  "anonymouse.org", "anonymbox.com",
+  // Newer
+  "emltmp.com", "fakermail.com", "fexbox.org", "fexbox.ru", "fexpost.com",
+  "incognitomail.com", "instaddr.win", "kinglibrary.net", "linshiyouxiang.net",
+  "mailbox52.ga", "mailbox80.biz", "mailbox82.biz", "mailbox87.de", "mailbox92.biz",
+  "mintemail.net", "monumentmail.com", "rainmail.biz", "shitmail.me",
+  "shitware.nl", "smashmail.de", "spam.la", "spambox.info", "spamspot.com",
+  "tempemail.net", "tempr.email", "vomoto.com",
+  "mailpoof.com", "snapmail.cc", "luxusmail.org", "smailpro.com",
+  "etranquil.com", "mailtemp.uk", "tempmail.us.com", "minuteinbox.com",
+  "anonaddy.me",
+]);
+
+export type DisposableCheckResult =
+  | { ok: true; domain: string }
+  | { ok: false; reason: "INVALID_EMAIL" | "DISPOSABLE_EMAIL"; domain?: string };
+
+export function checkDisposableEmail(email: string | null | undefined): DisposableCheckResult {
+  if (!email || typeof email !== "string") {
+    return { ok: false, reason: "INVALID_EMAIL" };
+  }
+  const trimmed = email.trim().toLowerCase();
+  const at = trimmed.lastIndexOf("@");
+  if (at <= 0 || at === trimmed.length - 1) {
+    return { ok: false, reason: "INVALID_EMAIL" };
+  }
+  const domain = trimmed.slice(at + 1);
+  if (!domain.includes(".") || /\s/.test(domain)) {
+    return { ok: false, reason: "INVALID_EMAIL" };
+  }
+  const parts = domain.split(".");
+  for (let i = 0; i < parts.length - 1; i++) {
+    const candidate = parts.slice(i).join(".");
+    if (DISPOSABLE_EMAIL_DOMAINS.has(candidate)) {
+      return { ok: false, reason: "DISPOSABLE_EMAIL", domain: candidate };
+    }
+  }
+  return { ok: true, domain };
+}
+
+export const DISPOSABLE_EMAIL_MESSAGE =
+  "Please sign up with a real work email. Disposable / temporary email providers are not supported.";
