@@ -160,7 +160,7 @@ export default function Research() {
           contact_type: 'general',
         }));
         const contactRows = filterReachableContacts(mapped);
-        if (contactRows.length) await supabase.from('project_contacts').insert(contactRows);
+        if (contactRows.length) await supabase.from('project_contacts').insert(contactRows as any);
         const skipped = (project.contacts?.length || 0) - contactRows.length;
         await trackSavedProject(inserted.id);
         setSavedProjects(prev => new Set(prev).add(key));
