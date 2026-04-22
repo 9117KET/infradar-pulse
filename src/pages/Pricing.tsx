@@ -3,10 +3,7 @@ import { Link } from 'react-router-dom';
 import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { startCheckoutSession } from '@/lib/billing/stripeClient';
-
-const starterPrice = import.meta.env.VITE_STRIPE_PRICE_STARTER as string | undefined;
+import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 
 const COMPETITOR_TABLE = [
   { name: 'MEED', price: '$5k-$15k/yr', update: 'Quarterly PDF' },
@@ -18,19 +15,17 @@ const COMPETITOR_TABLE = [
 export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const { openCheckout, loading } = usePaddleCheckout();
 
-  const goCheckout = async () => {
-    setLoading(true);
+  const goCheckout = async (priceId: PlanPriceId) => {
     try {
-      await startCheckoutSession(starterPrice);
+      await openCheckout(priceId);
     } catch (e) {
       toast({
         title: 'Checkout unavailable',
-        description: e instanceof Error ? e.message : 'Configure Stripe price IDs and sign in.',
+        description: e instanceof Error ? e.message : 'Please try again.',
         variant: 'destructive',
       });
-      setLoading(false);
     }
   };
 
@@ -89,7 +84,7 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
             </ul>
             {user ? (
-              <Button className="w-full teal-glow" onClick={() => void goCheckout()} disabled={loading}>
+              <Button className="w-full teal-glow" onClick={() => void goCheckout('starter_monthly')} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Start trial
               </Button>
@@ -106,7 +101,7 @@ export default function Pricing() {
               <Zap className="h-4 w-4 text-primary" /> Pro
             </h2>
             <p className="text-3xl font-serif font-bold mb-1">$199<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-            <p className="text-xs text-muted-foreground mb-5">Save 20% with annual billing</p>
+            <p className="text-xs text-muted-foreground mb-5">3-day trial, then billed monthly</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 insight reads/day</li>
@@ -116,9 +111,16 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Contractor intelligence</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Permit &amp; regulatory tracker</li>
             </ul>
-            <Button variant="outline" asChild className="w-full">
-              <a href="/#connect">Contact us</a>
-            </Button>
+            {user ? (
+              <Button className="w-full" onClick={() => void goCheckout('pro_monthly')} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Start trial
+              </Button>
+            ) : (
+              <Button className="w-full" asChild>
+                <Link to="/login">Sign in to start trial</Link>
+              </Button>
+            )}
           </div>
 
           {/* Enterprise */}
@@ -137,7 +139,7 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> SLA guarantee</li>
             </ul>
             <Button variant="outline" asChild className="w-full">
-              <a href="/#connect">Contact sales</a>
+              <Link to="/contact">Contact sales</Link>
             </Button>
           </div>
         </div>

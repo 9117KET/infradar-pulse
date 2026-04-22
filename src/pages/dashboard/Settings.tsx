@@ -17,7 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
-import { openCustomerPortal, startCheckoutSession } from '@/lib/billing/stripeClient';
+import { openCustomerPortal } from '@/lib/billing/paddleClient';
+import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 
 interface NotifSettings {
   emailAlerts: boolean;
@@ -304,10 +305,39 @@ function SavedSearchesTab() {
 
 function BillingTab() {
   const { toast } = useToast();
-  const { loading, plan, limits, usage, hasStripeCustomer, staffBypass, refresh } = useEntitlements();
-  const [busy, setBusy] = useState<'checkout' | 'portal' | null>(null);
+  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, refresh } = useEntitlements();
+  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | null>(null);
 
-  const starterPrice = import.meta.env.VITE_STRIPE_PRICE_STARTER as string | undefined;
+  const upgrade = async (priceId: PlanPriceId, key: 'starter' | 'pro') => {
+    setBusy(key);
+    try {
+      await openCheckout(priceId);
+    } catch (e) {
+      toast({
+        title: 'Checkout failed',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const portal = async () => {
+    setBusy('portal');
+    try {
+      await openCustomerPortal();
+    } catch (e) {
+      toast({
+        title: 'Portal failed',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="glass-panel rounded-xl p-6 space-y-5 max-w-lg">
@@ -323,8 +353,7 @@ function BillingTab() {
         <div className="text-sm space-y-2 text-muted-foreground">
           <p>
             <span className="text-foreground font-medium capitalize">{plan}</span> plan — daily caps:{' '}
-            {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (CSV/PDF combined cap per export type in dashboard),{' '}
-            {limits.insightReadsPerDay} full insight reads.
+            {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (per type), {limits.insightReadsPerDay} full insight reads.
           </p>
           <p>
             Used today: {usage.ai_generation ?? 0} / {limits.aiPerDay} AI · {usage.export_csv ?? 0} / {limits.exportsPerDay} CSV ·{' '}
@@ -335,36 +364,22 @@ function BillingTab() {
       <div className="flex flex-wrap gap-2 pt-2">
         <Button
           className="teal-glow"
-          disabled={!!busy}
-          onClick={async () => {
-            setBusy('checkout');
-            try {
-              await startCheckoutSession(starterPrice);
-            } catch (e) {
-              toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-            } finally {
-              setBusy(null);
-            }
-          }}
+          disabled={!!busy || checkoutLoading}
+          onClick={() => void upgrade('starter_monthly', 'starter')}
         >
-          {busy === 'checkout' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Subscribe / upgrade
+          {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Start Starter trial — $29/mo
         </Button>
-        {hasStripeCustomer && (
-          <Button
-            variant="outline"
-            disabled={!!busy}
-            onClick={async () => {
-              setBusy('portal');
-              try {
-                await openCustomerPortal();
-              } catch (e) {
-                toast({ title: 'Portal failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
-              } finally {
-                setBusy(null);
-              }
-            }}
-          >
+        <Button
+          variant="outline"
+          disabled={!!busy || checkoutLoading}
+          onClick={() => void upgrade('pro_monthly', 'pro')}
+        >
+          {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          Start Pro trial — $199/mo
+        </Button>
+        {hasPaddleCustomer && (
+          <Button variant="outline" disabled={!!busy} onClick={() => void portal()}>
             {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
             Manage subscription
           </Button>
@@ -374,7 +389,7 @@ function BillingTab() {
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        New subscriptions include a 3-day trial where limits still apply. Manage payment method and invoices in the Stripe customer portal.
+        Both paid plans include a 3-day free trial. Manage payment method, invoices, and cancellation from your billing portal.
       </p>
     </div>
   );
