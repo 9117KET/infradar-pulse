@@ -21,6 +21,7 @@ import Refund from "./pages/Refund";
 import DataProtection from "./pages/DataProtection";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
+import Unsubscribe from "./pages/Unsubscribe";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/data-protection" element={<DataProtection />} />
               <Route path="/careers" element={<Careers />} />
               <Route path="/press" element={<Press />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
