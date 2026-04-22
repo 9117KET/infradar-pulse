@@ -1,64 +1,87 @@
 
+## Goal
 
-## Why Paddle rejected the domain
+Stop the persistent blank-page/error-screen navigation bug by removing the unstable homepage globe as a route-blocking failure point and making route transitions resilient even if that widget fails.
 
-When Paddle's reviewer visited `infradarai.com`, they saw a "Something went wrong — Error creating WebGL context" panel instead of the homepage. The site looked broken/offline, which matches Paddle's rejection reason "your website is offline" and "couldn't verify key information from your application."
+## Exact problem
 
-The cause: the homepage's `<DemoGlobe>` (an interactive 3D globe built on `react-globe.gl` + `three.js`) requires WebGL. Paddle's review environment couldn't initialize WebGL, the component threw, and the page-level `ErrorBoundary` replaced the **entire homepage** with the error screen. Real visitors with normal browsers don't see this — but headless reviewers, low-end devices, locked-down corporate browsers, and bots do.
+The issue is still the same `renderObjs._destructor is not a function` crash from the homepage `react-globe.gl` widget during unmount. That error happens while leaving `/`, so when the user navigates to pages like `/insights`, the outgoing homepage globe crashes during cleanup and the app falls into the full-page error state until a refresh.
 
-Legal pages (Terms, Privacy, Refund) are already Paddle-compliant — those aren't the issue.
+The current patch is not sufficient because:
+- the real failing cleanup path is still being reached inside the globe library
+- the homepage still mounts the globe by default
+- `src/App.tsx` still wraps the whole router in a root `ErrorBoundary`, so a route-transition failure can still replace the entire app with the error screen
 
-## The fix
+## Implementation plan
 
-Make the homepage degrade gracefully on every browser, then resubmit to Paddle.
+### 1. Remove the router-wide full-page failure mode
+Update `src/App.tsx` so the whole `<Routes>` tree is no longer wrapped in the root page-level `ErrorBoundary`.
 
-### 1. Isolate WebGL components behind a local error boundary + WebGL detection
+Result:
+- a single marketing-page widget failure will not blank the whole app
+- route/layout-level boundaries remain responsible for localized fallback UI
 
-- Detect WebGL support before mounting the globe. If unavailable, render a static fallback (still-image globe or a simple stat card) instead of attempting to render and throwing.
-- Wrap `<DemoGlobe>` and `<HeroLiveTracker>` in their own small `<ErrorBoundary>` so a failure inside them shows a tiny "Visualization unavailable in this browser" placeholder, **not** a full-page error screen.
-- Keep the rest of the homepage rendering normally regardless of WebGL.
+### 2. Make the homepage safe by default
+Update `src/components/home/DemoSection.tsx` so the default view is `map`, not `globe`.
 
-### 2. Make the global ErrorBoundary less aggressive on marketing pages
+Result:
+- normal visitors can still access the 3D globe manually
+- simple navigation from the homepage no longer immediately unmounts the unstable globe for every user
+- Paddle/compliance reviewers and locked-down browsers will see a fully working page without touching WebGL
 
-Currently any throw in any marketing page replaces the whole page. Change behavior so:
-- The marketing-layout boundary renders an inline notice **above the page content** (or just logs and returns children when possible) rather than blanking the page.
-- Keep the existing full-screen recovery only as a last-resort fallback at the App root.
+### 3. Gate globe mounting behind explicit user intent
+Refine `src/components/home/DemoSection.tsx` so the `DemoGlobe` is mounted only after the user explicitly switches to Globe view.
 
-### 3. Add a "no-JS / no-WebGL" friendly hero
+Add a small note beside the toggle such as “3D view may be limited on some browsers” if needed.
 
-So crawlers and reviewers see clear product info immediately, ensure the hero text, value proposition, and pricing CTA appear in the initial HTML/SSR-equivalent paint regardless of any JS-heavy widget. The headline, subhead, "Get Started" button, and stats must render even when `react-globe.gl` fails.
+Result:
+- the unstable dependency becomes optional instead of part of the default route lifecycle
+- most users never hit the crash path during routine navigation
 
-### 4. Tighten Paddle's appeal submission
+### 4. Harden `DemoGlobe` teardown instead of only patching on ready
+Refactor `src/components/home/DemoGlobe.tsx` to make cleanup defensive in a more reliable place:
+- keep WebGL detection
+- add explicit unmount cleanup around the globe ref
+- safely pause/dispose renderer/controls if available
+- guard every internal cleanup access before calling nested destructor paths
+- avoid assuming a single internal shape like `state.renderObjs`
 
-After deploying, in the Paddle "Submit additional information" form, include:
-- Confirmation the homepage now renders without WebGL.
-- Direct links to: `/pricing`, `/terms`, `/refund`, `/privacy`, `/about`, `/contact`.
-- One-line product description: *"Infradar (operated by Kinlo and Glen) is a B2B SaaS subscription providing verified infrastructure-project intelligence to DFI analysts, project finance teams, and EPC contractors. Plans: Free, Starter $29/mo, Pro $199/mo, Enterprise custom. 14-day refund guarantee. Paddle is referenced as Merchant of Record in Terms §7."*
-- Note that the AI features are research/analysis tools (not generative-image/video, not deepfakes), already disclosed in Terms §10 with "no reliance" wording.
+If the component still cannot be made stable without depending on undocumented internals, stop rendering `react-globe.gl` entirely and swap the globe tab to a styled static/2D fallback using the existing `HeroMap`.
 
-### 5. Verify before resubmitting
+### 5. Localize any remaining widget failures
+Keep the `silent` boundary around `DemoGlobe` in `src/components/home/DemoSection.tsx`, and keep the inline boundary in `src/layouts/MarketingLayout.tsx`.
 
-- Load `infradarai.com` in an incognito window and confirm the hero, value prop, pricing, and footer all render.
-- Use a WebGL-disabled browser test (Chrome DevTools → Rendering → Disable WebGL) to confirm graceful degradation.
-- Confirm `/pricing`, `/terms`, `/refund`, `/privacy` all load publicly without auth.
+This ensures:
+- optional visualization errors stay inside the visualization box
+- marketing pages continue rendering normally
 
-## Files to change
+### 6. Clean up the temporary global suppression
+Review `src/main.tsx` after the structural fix:
+- either remove the global `_destructor` suppression completely
+- or keep it narrowly scoped as a last-resort safeguard only if still needed
 
-- `src/components/ErrorBoundary.tsx` — add a `variant` prop (`page` vs `inline`) so layouts and small wrappers behave differently; default the marketing-layout one to `inline`.
-- `src/components/home/DemoGlobe.tsx` — add WebGL feature detection at top of component; render a static fallback panel when unavailable.
-- `src/components/home/HeroLiveTracker.tsx` — same WebGL/feature-detection guard if it uses canvas.
-- `src/components/home/DemoSection.tsx` — wrap `<DemoGlobe>` in a local `ErrorBoundary variant="inline"`.
-- `src/layouts/MarketingLayout.tsx` — switch its `ErrorBoundary` to `variant="inline"` so a single component error never blanks the whole marketing page.
-- (No DB, no edge function, no legal-text changes required.)
+The preferred outcome is to fix the lifecycle so the app does not rely on swallowing global errors.
 
-## After deploying
+## Files to edit
 
-1. Click **Publish → Update**.
-2. Hard-refresh `infradarai.com` in incognito to confirm the homepage looks correct.
-3. Submit the Paddle appeal form with the wording above.
-4. Open the payments dashboard to monitor the readiness/verification step:
+- `src/App.tsx`
+- `src/components/home/DemoSection.tsx`
+- `src/components/home/DemoGlobe.tsx`
+- `src/main.tsx`
 
-<lov-actions>
-<lov-open-payments>Open payments dashboard</lov-open-payments>
-</lov-actions>
+## Expected outcome
 
+After these changes:
+- navigating from `/` to `/insights` should no longer produce a blank page
+- refresh should no longer be required to recover
+- the homepage remains fully usable for reviewers and normal users
+- the 3D globe becomes optional instead of breaking route transitions
+
+## Verification after implementation
+
+1. Open `/`
+2. Navigate repeatedly to `/insights`, `/pricing`, `/about`, and back home
+3. Confirm no full-page error screen appears
+4. Confirm hard refresh is no longer required
+5. Confirm homepage still works when Globe is never opened
+6. If Globe is still exposed, toggle to Globe and navigate away/back several times to verify stability
