@@ -4,6 +4,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { ConversionBar } from '@/components/home/ConversionBar';
 import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function MarketingLayout() {
   const { pathname } = useLocation();
@@ -14,7 +15,9 @@ export default function MarketingLayout() {
       <PaymentTestModeBanner />
       <Navbar />
       <main className="flex-1 pt-16">
-        <Outlet />
+        <ErrorBoundary key={pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <Footer />
       {showConversionBar && <ConversionBar />}

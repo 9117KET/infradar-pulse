@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import MarketingLayout from "@/layouts/MarketingLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import Index from "./pages/Index";
@@ -71,6 +72,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+         <ErrorBoundary>
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
@@ -141,6 +143,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+         </ErrorBoundary>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
