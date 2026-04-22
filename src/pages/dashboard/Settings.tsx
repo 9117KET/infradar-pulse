@@ -161,6 +161,7 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
           <TabsTrigger value="saved-searches"><Bookmark className="h-4 w-4 mr-1" />Saved Searches</TabsTrigger>
           <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
+          <TabsTrigger value="account"><Shield className="h-4 w-4 mr-1" />Account</TabsTrigger>
           {staffBypass && <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>}
         </TabsList>
 
@@ -174,6 +175,10 @@ export default function SettingsPage() {
 
         <TabsContent value="billing">
           <BillingTab />
+        </TabsContent>
+
+        <TabsContent value="account">
+          <AccountTab />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
