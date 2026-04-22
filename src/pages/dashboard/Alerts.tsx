@@ -171,6 +171,19 @@ export default function Alerts() {
 
         <TabsContent value="feed" className="space-y-6">
 
+      {truncated && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+          <p className="text-amber-200">
+            Showing the {rowCap.toLocaleString()} most recent alerts of {totalAvailable.toLocaleString()} available on your{' '}
+            <span className="capitalize font-medium">{plan}</span> plan.{' '}
+            <a href="/pricing" className="underline underline-offset-2 hover:text-amber-100">
+              Upgrade
+            </a>{' '}
+            to see the full alert history.
+          </p>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="glass-panel rounded-xl p-4">
