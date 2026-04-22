@@ -5,6 +5,7 @@ import { Globe, Map } from 'lucide-react';
 import { HeroMap } from './HeroMap';
 import { DemoGlobe } from './DemoGlobe';
 import { PublicProjectDrawer } from './PublicProjectDrawer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
 
