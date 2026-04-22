@@ -35,7 +35,7 @@ export default function UsersPage() {
     setLoading(true);
     const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
     const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
-    const { data: emailRows, error: emailError } = await supabase.rpc('admin_list_user_emails');
+    const { data: emailRows, error: emailError } = await (supabase.rpc as any)('admin_list_user_emails');
 
     if (profilesError) {
       toast({
@@ -65,7 +65,7 @@ export default function UsersPage() {
 
     const profilesList = profiles ?? [];
     const roles = rolesRows ?? [];
-    const emailMap = new Map((emailRows ?? []).map((r) => [r.user_id, r.email]));
+    const emailMap = new Map<string, string>(((emailRows ?? []) as Array<{ user_id: string; email: string }>).map((r) => [r.user_id, r.email]));
 
     const roleMap = new Map<string, AppRole>();
     for (const r of roles) {

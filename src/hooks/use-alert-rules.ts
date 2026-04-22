@@ -40,12 +40,12 @@ export function useAlertRules() {
   const createRule = useMutation({
     mutationFn: async (input: { name: string; filters: AlertRuleFilters }) => {
       if (!user) throw new Error('Not authenticated');
-      const { error } = await supabase.from('alert_rules').insert({
+      const { error } = await supabase.from('alert_rules').insert([{
         user_id: user.id,
         name: input.name,
-        filters: input.filters,
+        filters: input.filters as any,
         enabled: true,
-      });
+      }]);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['alert-rules'] }),
