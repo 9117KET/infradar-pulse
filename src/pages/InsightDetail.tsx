@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useInsight, getDisplaySources } from '@/hooks/use-insights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { trackUsage } from '@/lib/billing/trackUsage';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, User, Calendar, Link2 } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function InsightDetail() {
   const { user } = useAuth();
   const { staffBypass, canReadInsightFull, loading: entLoading, refresh } = useEntitlements();
   const countedRef = useRef(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   useEffect(() => {
     countedRef.current = false;
@@ -24,13 +26,24 @@ export default function InsightDetail() {
   const showFullContent =
     !user || staffBypass || (!entLoading && canReadInsightFull);
 
+  // Auto-open upgrade prompt when user is signed-in and over the limit
+  useEffect(() => {
+    if (user && !entLoading && !staffBypass && !canReadInsightFull) {
+      setUpgradeOpen(true);
+    }
+  }, [user, entLoading, staffBypass, canReadInsightFull]);
+
   useEffect(() => {
     if (!user || entLoading || !insight || !canReadInsightFull || staffBypass) return;
     if (countedRef.current) return;
     countedRef.current = true;
     void (async () => {
       const result = await trackUsage('insight_read');
-      if (result.ok) await refresh();
+      if (result.ok) {
+        await refresh();
+      } else if (result.overLimit) {
+        setUpgradeOpen(true);
+      }
     })();
   }, [user, entLoading, insight?.id, canReadInsightFull, staffBypass, refresh]);
 
