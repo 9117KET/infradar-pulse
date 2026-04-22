@@ -193,6 +193,10 @@ export default function Projects() {
     URL.revokeObjectURL(url);
     const result = await trackUsage('export_csv');
     if (!result.ok) {
+      if (result.emailUnverified) {
+        toast({ title: 'Confirm your email', description: result.message, variant: 'destructive' });
+        return;
+      }
       if (result.overLimit) setUpgradeOpen(true);
       toast({ title: 'Export limit reached', description: result.message, variant: 'destructive' });
       return;

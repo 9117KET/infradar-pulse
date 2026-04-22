@@ -284,7 +284,9 @@ export default function Research() {
     doc.save(filename);
     const trackResult = await trackUsage('export_pdf');
     if (!trackResult.ok) {
-      if (trackResult.overLimit) {
+      if (trackResult.emailUnverified) {
+        toast({ title: 'Confirm your email', description: trackResult.message, variant: 'destructive' });
+      } else if (trackResult.overLimit) {
         setUpgradeReason('export');
         setUpgradeOpen(true);
       } else {

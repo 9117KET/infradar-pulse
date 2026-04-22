@@ -7,6 +7,30 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/**
+ * Returns ok=true when the user's email is verified. Staff (admin/researcher)
+ * bypass this check. Block AI/export/insight-read for unverified accounts so
+ * people can't sign up with throwaway emails to multiply free-tier quota.
+ */
+export async function requireVerifiedEmail(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (await hasStaffBypass(supabaseAdmin, userId)) return { ok: true };
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (error || !data?.user) {
+    return { ok: false, message: "Could not verify your account. Please sign in again." };
+  }
+  if (!data.user.email_confirmed_at) {
+    return {
+      ok: false,
+      message:
+        "Please confirm your email address before using this feature. Check your inbox for the verification link.",
+    };
+  }
+  return { ok: true };
+}
+
 function effectivePlan(
   status: string | null | undefined,
   planKey: string | null | undefined,

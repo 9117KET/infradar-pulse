@@ -74,7 +74,9 @@ export default function AnalyticsReports() {
       URL.revokeObjectURL(url);
       const result = await trackUsage('export_csv');
       if (!result.ok) {
-        if (result.overLimit) {
+        if (result.emailUnverified) {
+          toast.error(result.message);
+        } else if (result.overLimit) {
           setUpgradeReason('export');
           setUpgradeOpen(true);
         } else {
