@@ -13,7 +13,7 @@ export function useEntitlements() {
   const [plan, setPlan] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState<Partial<Record<UsageMetric, number>>>({});
-  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
+  const [hasPaddleCustomer, setHasPaddleCustomer] = useState(false);
   const [staffBypass, setStaffBypass] = useState(false);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function useEntitlements() {
     if (!userId) {
       setPlan('free');
       setUsage({});
-      setHasStripeCustomer(false);
+      setHasPaddleCustomer(false);
       setStaffBypass(false);
       setLoading(false);
       return;
@@ -38,9 +38,12 @@ export function useEntitlements() {
 
     setLoading(true);
     try {
-      const [{ data: sub }, { data: sc }, { data: counters }, { data: roleRow }] = await Promise.all([
-        supabase.from('subscriptions').select('status, plan_key, trial_end, current_period_end').eq('user_id', userId).maybeSingle(),
-        supabase.from('stripe_customers').select('stripe_customer_id').eq('user_id', userId).maybeSingle(),
+      const [{ data: sub }, { data: counters }, { data: roleRow }] = await Promise.all([
+        supabase
+          .from('subscriptions')
+          .select('status, plan_key, trial_end, current_period_end, paddle_customer_id')
+          .eq('user_id', userId)
+          .maybeSingle(),
         supabase
           .from('usage_counters')
           .select('metric, count')
@@ -49,7 +52,7 @@ export function useEntitlements() {
         supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
       ]);
 
-      setHasStripeCustomer(!!sc?.stripe_customer_id);
+      setHasPaddleCustomer(!!sub?.paddle_customer_id);
 
       const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
       setStaffBypass(!!bypass);
@@ -95,7 +98,7 @@ export function useEntitlements() {
     limits,
     usage,
     staffBypass,
-    hasStripeCustomer,
+    hasPaddleCustomer,
     isFreeTier,
     refresh,
     canUseAi,
