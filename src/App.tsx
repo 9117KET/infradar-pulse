@@ -54,6 +54,7 @@ import Pipeline from "./pages/dashboard/Pipeline";
 import TenderCalendar from "./pages/dashboard/TenderCalendar";
 import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
+import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -117,6 +118,7 @@ const App = () => (
               <Route path="/dashboard/calendar" element={<TenderCalendar />} />
               <Route path="/dashboard/chat" element={<PortfolioChat />} />
               <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />
+              <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
