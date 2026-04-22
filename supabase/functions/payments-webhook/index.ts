@@ -37,11 +37,13 @@ Deno.serve(async (req) => {
     switch (event.eventType) {
       case EventName.SubscriptionCreated:
         await upsertSubscription(event.data, env, true);
+        await logBillingEvent(event, env);
         break;
       // Updated covers: trial → active, active → past_due, paused, resumed, plan changes,
       // and scheduled-cancel. Status field on payload tells us which.
       case EventName.SubscriptionUpdated:
         await upsertSubscription(event.data, env, false);
+        await logBillingEvent(event, env);
         break;
       case EventName.SubscriptionCanceled:
         await supabase
@@ -49,12 +51,15 @@ Deno.serve(async (req) => {
           .update({ status: 'canceled', updated_at: new Date().toISOString() })
           .eq('paddle_subscription_id', event.data.id)
           .eq('environment', env);
+        await logBillingEvent(event, env);
         break;
       case EventName.TransactionCompleted:
         console.log('Transaction completed:', event.data.id);
+        await logBillingEvent(event, env);
         break;
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id);
+        await logBillingEvent(event, env);
         break;
       default:
         console.log('Unhandled event:', event.eventType);
