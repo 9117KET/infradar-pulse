@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
+import { isWebGLAvailable } from '@/lib/webgl';
+import { Globe as GlobeIcon } from 'lucide-react';
 
 // Lazy-load react-globe.gl so it doesn't block initial paint
 const GlobeGL = lazy(() => import('react-globe.gl'));
@@ -56,6 +58,10 @@ export function DemoGlobe({
   const [dimensions, setDimensions] = useState({ w: 800, h: 520 });
   const [countries, setCountries] = useState<object[]>([]);
   const [ready, setReady] = useState(false);
+  // Detect WebGL once on mount. If unavailable, render a static fallback so
+  // the homepage stays usable for headless reviewers, locked-down browsers,
+  // and bots that can't initialize a WebGL context.
+  const [webglOk] = useState<boolean>(() => isWebGLAvailable());
 
   // Track container size
   useEffect(() => {
@@ -139,6 +145,38 @@ export function DemoGlobe({
       </div>
     `,
   }));
+
+  // Static fallback when the browser can't initialize WebGL — keeps the
+  // homepage looking intentional rather than broken.
+  if (!webglOk) {
+    return (
+      <div
+        ref={containerRef}
+        className={className}
+        style={{ position: 'relative', overflow: 'hidden', background: '#0a0f14' }}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
+          <GlobeIcon className="h-10 w-10 text-primary/70" />
+          <p className="text-sm font-medium text-foreground">
+            Global pipeline coverage across 14 regions
+          </p>
+          <p className="text-xs text-muted-foreground max-w-sm">
+            {projects.length > 0
+              ? `${projects.length.toLocaleString()} verified infrastructure projects tracked.`
+              : 'Verified infrastructure projects across emerging and OECD markets.'}
+            {' '}Switch to Map view for an interactive 2D version.
+          </p>
+        </div>
+        <div
+          className="pointer-events-none absolute inset-0 rounded-xl"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 60%, hsl(var(--background)) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
