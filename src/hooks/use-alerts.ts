@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Alert, AlertCategory } from '@/data/alerts';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
+import { useEntitlements } from './useEntitlements';
+import { getReadRowCap } from '@/lib/billing/readCaps';
 
 export interface AlertStats {
   total: number;
@@ -15,18 +17,39 @@ export interface AlertStats {
 export function useAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalAvailable, setTotalAvailable] = useState(0);
+  const { plan, staffBypass, isAnonymous } = useEntitlements();
+
+  // Anonymous viewers (public marketing) get the same view as before; signed-in
+  // users hit the plan-based row cap mirroring EXPORT_ROW_CAPS so they can't
+  // sidestep export limits by scraping the dashboard.
+  const rowCap = isAnonymous ? 0 : getReadRowCap(plan, staffBypass);
 
   useEffect(() => {
     let mounted = true;
 
     async function fetchAlerts() {
       setLoading(true);
-      const { data } = await supabase
+
+      // Cheap HEAD count for the truncation banner. Falls back gracefully if
+      // the count call fails — we never block the page on it.
+      const { count } = await supabase
+        .from('alerts')
+        .select('id', { count: 'exact', head: true });
+
+      let query = supabase
         .from('alerts')
         .select('*')
         .order('created_at', { ascending: false });
 
+      if (rowCap > 0) {
+        query = query.limit(rowCap);
+      }
+
+      const { data } = await query;
+
       if (!mounted) return;
+      if (typeof count === 'number') setTotalAvailable(count);
       if (data) {
         setAlerts(data.map((a: any) => ({
           id: a.id,
@@ -57,7 +80,7 @@ export function useAlerts() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [rowCap]);
 
   const stats: AlertStats = (() => {
     const byCategory: Record<string, number> = {};
@@ -87,5 +110,17 @@ export function useAlerts() {
     if (error) toast.error('Failed to mark all alerts as read');
   };
 
-  return { alerts, loading, stats, filterByCategory, markAsRead, markAllAsRead };
+  const truncated = rowCap > 0 && totalAvailable > rowCap;
+
+  return {
+    alerts,
+    loading,
+    stats,
+    filterByCategory,
+    markAsRead,
+    markAllAsRead,
+    truncated,
+    totalAvailable,
+    rowCap,
+  };
 }
