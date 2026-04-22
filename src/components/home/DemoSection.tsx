@@ -12,7 +12,11 @@ import type { PublicProjectLocation } from '@/hooks/use-public-project-locations
 type ViewMode = 'globe' | 'map';
 
 export function DemoSection() {
-  const [viewMode, setViewMode] = useState<ViewMode>('globe');
+  // Default to the 2D map. The 3D globe is opt-in because react-globe.gl can
+  // throw during unmount on some browser/Three.js combos, which previously
+  // blanked the page on navigation. Map view is stable everywhere.
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [globeMounted, setGlobeMounted] = useState(false);
   const [selectedProject, setSelectedProject] = useState<PublicProjectLocation | null>(null);
   const { locations, loading } = usePublicProjectLocations();
 
