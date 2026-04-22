@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
+import { isWebGLAvailable } from '@/lib/webgl';
+import { Globe as GlobeIcon } from 'lucide-react';
 
 // Lazy-load react-globe.gl so it doesn't block initial paint
 const GlobeGL = lazy(() => import('react-globe.gl'));
@@ -56,6 +58,10 @@ export function DemoGlobe({
   const [dimensions, setDimensions] = useState({ w: 800, h: 520 });
   const [countries, setCountries] = useState<object[]>([]);
   const [ready, setReady] = useState(false);
+  // Detect WebGL once on mount. If unavailable, render a static fallback so
+  // the homepage stays usable for headless reviewers, locked-down browsers,
+  // and bots that can't initialize a WebGL context.
+  const [webglOk] = useState<boolean>(() => isWebGLAvailable());
 
   // Track container size
   useEffect(() => {
