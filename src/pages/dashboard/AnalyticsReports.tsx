@@ -71,11 +71,9 @@ export default function AnalyticsReports() {
       a.download = `infraradar-projects-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { toast.error('Not signed in'); return; }
-      const { error } = await supabase.rpc('increment_usage_metric', { metric_name: 'export_csv', user_uuid: user.id });
-      if (error) {
-        toast.error(error.message);
+      const result = await trackUsage('export_csv');
+      if (!result.ok) {
+        toast.error(result.overLimit ? `Export limit reached. ${result.message}` : result.message);
         return;
       }
       await refreshEntitlements();
