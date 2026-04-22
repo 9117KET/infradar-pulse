@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { getReadRowCap } from '@/lib/billing/readCaps';
 
 /** Verifiable references shown on articles and in the management UI. */
 export interface InsightSource {
@@ -57,15 +59,23 @@ export function getDisplaySources(insight: Insight): InsightSource[] {
 }
 
 export function useInsights(publishedOnly = true) {
+  const { plan, staffBypass, isAnonymous, loading: entLoading } = useEntitlements();
+  // Public marketing reads (no signed-in user) bypass per-user caps so anonymous
+  // visitors don't see a truncated article list. Caps still apply to signed-in
+  // free/trial users on the dashboard.
+  const rowCap = isAnonymous ? 0 : getReadRowCap(plan, staffBypass);
+
   return useQuery({
-    queryKey: ['insights', publishedOnly],
+    queryKey: ['insights', publishedOnly, rowCap],
     staleTime: 60_000,
+    enabled: !entLoading,
     queryFn: async () => {
       let query = supabase
         .from('insights')
         .select('*')
         .order('created_at', { ascending: false });
       if (publishedOnly) query = query.eq('published', true);
+      if (rowCap > 0) query = query.limit(rowCap);
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as Insight[];
