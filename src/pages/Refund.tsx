@@ -55,8 +55,8 @@ export default function Refund() {
             You can cancel your subscription at any time from your account settings or via{' '}
             <a className="underline" href="https://paddle.net" target="_blank" rel="noreferrer">paddle.net</a>.
             Cancellation stops future renewals and takes effect at the end of your current paid
-            period; you keep access until that date. Cancelling does not, by itself, trigger a refund ,
-            request one separately if eligible.
+            period; you keep access until that date. Cancelling does not, by itself, trigger a refund.
+            Request one separately if eligible.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Chargebacks and Disputes</h2>
@@ -78,7 +78,7 @@ export default function Refund() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Contact</h2>
           <p>
-            Kinlo and Glen , for refund or billing questions, email{' '}
+            For refund or billing questions, contact Kinlo and Glen at{' '}
             <a className="underline" href="mailto:billing@infradar.io">billing@infradar.io</a>.
           </p>
         </div>
