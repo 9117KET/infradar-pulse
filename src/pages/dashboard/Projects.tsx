@@ -190,7 +190,9 @@ export default function Projects() {
     const a = document.createElement('a');
     a.href = url; a.download = 'infradar_projects.csv'; a.click();
     URL.revokeObjectURL(url);
-    const { error } = await supabase.rpc('increment_usage_metric', { p_metric: 'export_csv' });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast({ title: 'Not signed in', variant: 'destructive' }); return; }
+    const { error } = await supabase.rpc('increment_usage_metric', { metric_name: 'export_csv', user_uuid: user.id });
     if (error) {
       toast({ title: 'Could not record export', description: error.message, variant: 'destructive' });
       return;
