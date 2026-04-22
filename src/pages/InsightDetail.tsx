@@ -29,7 +29,7 @@ export default function InsightDetail() {
     if (countedRef.current) return;
     countedRef.current = true;
     void (async () => {
-      const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { p_metric: 'insight_read' });
+      const { error: rpcErr } = await supabase.rpc('increment_usage_metric', { metric_name: 'insight_read', user_uuid: user.id });
       if (!rpcErr) await refresh();
     })();
   }, [user, entLoading, insight?.id, canReadInsightFull, staffBypass, refresh]);
