@@ -37,11 +37,13 @@ Deno.serve(async (req) => {
     switch (event.eventType) {
       case EventName.SubscriptionCreated:
         await upsertSubscription(event.data, env, true);
+        await logBillingEvent(event, env);
         break;
       // Updated covers: trial → active, active → past_due, paused, resumed, plan changes,
       // and scheduled-cancel. Status field on payload tells us which.
       case EventName.SubscriptionUpdated:
         await upsertSubscription(event.data, env, false);
+        await logBillingEvent(event, env);
         break;
       case EventName.SubscriptionCanceled:
         await supabase
@@ -49,12 +51,15 @@ Deno.serve(async (req) => {
           .update({ status: 'canceled', updated_at: new Date().toISOString() })
           .eq('paddle_subscription_id', event.data.id)
           .eq('environment', env);
+        await logBillingEvent(event, env);
         break;
       case EventName.TransactionCompleted:
         console.log('Transaction completed:', event.data.id);
+        await logBillingEvent(event, env);
         break;
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id);
+        await logBillingEvent(event, env);
         break;
       default:
         console.log('Unhandled event:', event.eventType);
@@ -112,5 +117,47 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
   } else {
     // Use upsert too so a rogue 'updated' before 'created' doesn't drop the row.
     await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
+  }
+}
+
+// Records every Paddle event into billing_events for the user-facing audit log.
+// deno-lint-ignore no-explicit-any
+async function logBillingEvent(event: any, env: PaddleEnv) {
+  try {
+    const data = event.data ?? {};
+    const isSub = String(event.eventType ?? '').startsWith('subscription.');
+    const subscriptionId = isSub ? data.id : data.subscriptionId ?? null;
+    const customerId = data.customerId ?? null;
+    const status = data.status ?? null;
+    let userId: string | null = data.customData?.userId ?? null;
+    const item = data.items?.[0];
+    const priceExt = item?.price?.importMeta?.externalId || item?.price?.id;
+    const planKey =
+      priceExt === 'pro_monthly' ? 'pro' : priceExt === 'starter_monthly' ? 'starter' : null;
+
+    // For transaction events, customData may be missing — look up via subscription row.
+    if (!userId && subscriptionId) {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('user_id')
+        .eq('paddle_subscription_id', subscriptionId)
+        .eq('environment', env)
+        .maybeSingle();
+      userId = sub?.user_id ?? null;
+    }
+
+    await supabase.from('billing_events').insert({
+      user_id: userId,
+      paddle_subscription_id: subscriptionId,
+      paddle_customer_id: customerId,
+      event_type: event.eventType,
+      status,
+      plan_key: planKey,
+      environment: env,
+      occurred_at: event.occurredAt ?? new Date().toISOString(),
+      payload: event,
+    });
+  } catch (err) {
+    console.error('logBillingEvent failed:', err);
   }
 }

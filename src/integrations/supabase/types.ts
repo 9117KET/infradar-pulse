@@ -103,6 +103,48 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          created_at: string
+          environment: string
+          event_type: string
+          id: string
+          occurred_at: string
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
+          payload: Json | null
+          plan_key: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
+          payload?: Json | null
+          plan_key?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
+          payload?: Json | null
+          plan_key?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       evidence_sources: {
         Row: {
           added_by: string | null
