@@ -13,6 +13,7 @@ import { trackUsage } from '@/lib/billing/trackUsage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 
 const SECTOR_COLORS = [
   'hsl(var(--primary))', 'hsl(210, 60%, 55%)', 'hsl(40, 80%, 55%)',
@@ -20,11 +21,11 @@ const SECTOR_COLORS = [
 ];
 
 export default function AnalyticsReports() {
-  const { profile, hasRole } = useAuth();
+  const { profile, hasRole, user } = useAuth();
   const isStaff = hasRole('admin') || hasRole('researcher');
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, loading } = useProjects(filters);
-  const { canExportCsv, canUseAi, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportCsv, canUseAi, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [exportingCsv, setExportingCsv] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
