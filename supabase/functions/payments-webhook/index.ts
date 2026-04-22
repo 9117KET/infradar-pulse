@@ -1,6 +1,7 @@
-// Paddle webhook handler. Receives subscription + transaction events and syncs
-// the public.subscriptions table. Webhook URL and secret are pre-registered by
-// the Lovable Paddle integration. ?env=sandbox|live picks the right secret.
+// Paddle webhook handler. Receives subscription, transaction, and adjustment
+// events and syncs the public.subscriptions table + billing_events audit log.
+// Webhook URL and secret are pre-registered by the Lovable Paddle integration.
+// ?env=sandbox|live picks the right secret.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { verifyWebhook, EventName, type PaddleEnv } from '../_shared/paddle.ts';
 
@@ -46,6 +47,23 @@ async function resolveUserId(
   return data?.user_id ?? null;
 }
 
+/** Look up the user via a Paddle customer_id (used for adjustment events). */
+async function userIdForCustomer(
+  customerId: string | undefined,
+  env: PaddleEnv,
+): Promise<string | null> {
+  if (!customerId) return null;
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('user_id')
+    .eq('paddle_customer_id', customerId)
+    .eq('environment', env)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.user_id ?? null;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -77,6 +95,13 @@ Deno.serve(async (req) => {
           .eq('environment', env);
         await logBillingEvent(event, env);
         break;
+      // Dedicated event for past_due. Stamp local status and surface an alert
+      // so the user sees it on next dashboard load.
+      case EventName.SubscriptionPastDue:
+        await upsertSubscription(event.data, env, false);
+        await logBillingEvent(event, env);
+        await emitPastDueAlert(event.data, env);
+        break;
       case EventName.TransactionCompleted:
         console.log('Transaction completed:', event.data.id);
         await logBillingEvent(event, env);
@@ -84,6 +109,13 @@ Deno.serve(async (req) => {
       case EventName.TransactionPaymentFailed:
         console.log('Payment failed:', event.data.id);
         await logBillingEvent(event, env);
+        break;
+      // Refund / chargeback events. Paddle is Merchant of Record so they
+      // process these — we just record them in the audit log so the user can
+      // see exactly what happened, when, and for how much.
+      case EventName.AdjustmentCreated:
+      case EventName.AdjustmentUpdated:
+        await logAdjustmentEvent(event, env);
         break;
       default:
         console.log('Unhandled event:', event.eventType);
@@ -192,5 +224,53 @@ async function logBillingEvent(event: any, env: PaddleEnv) {
     });
   } catch (err) {
     console.error('logBillingEvent failed:', err);
+  }
+}
+
+// Adjustments are refunds, credits, or chargebacks. Paddle handles the money;
+// we just log them for the user's audit trail.
+// deno-lint-ignore no-explicit-any
+async function logAdjustmentEvent(event: any, env: PaddleEnv) {
+  try {
+    const data = event.data ?? {};
+    const userId = await userIdForCustomer(data.customerId, env);
+    await supabase.from('billing_events').insert({
+      user_id: userId,
+      paddle_subscription_id: data.subscriptionId ?? null,
+      paddle_customer_id: data.customerId ?? null,
+      // event_type already encodes whether this is a refund / chargeback / credit
+      event_type: event.eventType,
+      // Adjustments use 'action' (refund | credit | chargeback | chargeback_warning | chargeback_reverse)
+      // and 'status' (pending | approved | rejected). Stash both in the status column
+      // for the audit table — formatted as "<action>:<status>" so the UI can split.
+      status: [data.action, data.status].filter(Boolean).join(':') || null,
+      plan_key: null,
+      environment: env,
+      occurred_at: event.occurredAt ?? new Date().toISOString(),
+      payload: event,
+    });
+  } catch (err) {
+    console.error('logAdjustmentEvent failed:', err);
+  }
+}
+
+// On past_due, drop a row into the public alerts table so it surfaces on the
+// dashboard. We tag it with category='financial' and severity='high' so the
+// existing alerts UI handles it without changes.
+// deno-lint-ignore no-explicit-any
+async function emitPastDueAlert(data: any, env: PaddleEnv) {
+  try {
+    const userId = await resolveUserId(data.customData, data.id, env);
+    if (!userId) return;
+    const { data: authUser } = await supabase.auth.admin.getUserById(userId);
+    const email = authUser?.user?.email ?? 'your account';
+    await supabase.from('alerts').insert({
+      project_name: 'Billing',
+      message: `Your last payment failed for ${email}. Update your payment method in Settings → Billing to keep access.`,
+      severity: 'high',
+      category: 'financial',
+    });
+  } catch (err) {
+    console.error('emitPastDueAlert failed (non-fatal):', err);
   }
 }
