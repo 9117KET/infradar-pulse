@@ -41,6 +41,12 @@ export default function InsightDetail() {
       const result = await trackUsage('insight_read');
       if (result.ok) {
         await refresh();
+      } else if (result.emailUnverified) {
+        toast({
+          title: 'Confirm your email',
+          description: result.message,
+          variant: 'destructive',
+        });
       } else if (result.overLimit) {
         setUpgradeOpen(true);
       }
