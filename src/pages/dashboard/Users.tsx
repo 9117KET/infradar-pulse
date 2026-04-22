@@ -65,7 +65,7 @@ export default function UsersPage() {
 
     const profilesList = profiles ?? [];
     const roles = rolesRows ?? [];
-    const emailMap = new Map((emailRows ?? []).map((r) => [r.user_id, r.email]));
+    const emailMap = new Map<string, string>(((emailRows ?? []) as Array<{ user_id: string; email: string }>).map((r) => [r.user_id, r.email]));
 
     const roleMap = new Map<string, AppRole>();
     for (const r of roles) {
