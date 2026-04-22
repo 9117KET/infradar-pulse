@@ -88,7 +88,7 @@ export default function Privacy() {
           <p>
             We will respond to verified rights requests within one month, extendable by a further two
             months for complex requests. To exercise any of these rights, contact us at{' '}
-            <a className="underline" href="mailto:privacy@infradar.io">privacy@infradar.io</a>.
+            <a className="underline" href="mailto:privacy@infradarai.com">privacy@infradarai.com</a>.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">7. Security</h2>
@@ -116,7 +116,7 @@ export default function Privacy() {
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">10. Contact</h2>
           <p>
             For privacy enquiries, write to Kinlo and Glen at{' '}
-            <a className="underline" href="mailto:privacy@infradar.io">privacy@infradar.io</a>.
+            <a className="underline" href="mailto:privacy@infradarai.com">privacy@infradarai.com</a>.
           </p>
         </div>
       </div>
