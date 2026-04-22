@@ -869,6 +869,10 @@ export type Database = {
         Args: { p_metric: string; p_user_id: string }
         Returns: undefined
       }
+      increment_usage_metric: {
+        Args: { metric_name: string; user_uuid: string }
+        Returns: undefined
+      }
     }
     Enums: {
       alert_category:
