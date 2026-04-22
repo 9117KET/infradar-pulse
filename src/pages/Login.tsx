@@ -29,7 +29,7 @@ export default function Login() {
     if (isSignUp) {
       // 1) Fast client-side disposable-email check
       const localCheck = checkDisposableEmail(email);
-      if (!localCheck.ok) {
+      if (localCheck.ok === false) {
         const description =
           localCheck.reason === 'DISPOSABLE_EMAIL'
             ? DISPOSABLE_EMAIL_MESSAGE
