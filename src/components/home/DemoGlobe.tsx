@@ -1,9 +1,12 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
+import { geoEquirectangular, geoGraticule10, geoPath } from 'd3-geo';
+import { feature, mesh } from 'topojson-client';
 import * as THREE from 'three';
 import { Globe as GlobeIcon } from 'lucide-react';
 import { isWebGLAvailable } from '@/lib/webgl';
+import countriesData from 'world-atlas/countries-110m.json';
 
 interface GlobeProject {
   lat: number;
@@ -25,6 +28,48 @@ function resolveCssHsl(variableName: string, fallback: string) {
   if (typeof window === 'undefined') return fallback;
   const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
   return value ? `hsl(${value})` : fallback;
+}
+
+function createGlobeTexture(colors: { ocean: string; land: string; border: string; grid: string }) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2048;
+  canvas.height = 1024;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = colors.ocean;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const topology = countriesData as any;
+  const land = feature(topology, topology.objects.land as any) as any;
+  const borders = mesh(topology, topology.objects.countries as any, (a: any, b: any) => a !== b) as any;
+  const projection = geoEquirectangular().fitExtent(
+    [[10, 10], [canvas.width - 10, canvas.height - 10]],
+    land
+  );
+  const path = geoPath(projection, ctx);
+
+  ctx.strokeStyle = colors.grid;
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.4;
+  path(geoGraticule10() as any);
+  ctx.stroke();
+
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = colors.land;
+  path(land);
+  ctx.fill();
+
+  ctx.strokeStyle = colors.border;
+  ctx.lineWidth = 1.25;
+  path(borders);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function latLngToVector(lat: number, lng: number, radius: number) {
@@ -88,13 +133,27 @@ function GlobeScene({
 }: {
   projects: GlobeProject[];
   colors: {
-    globe: string;
+    ocean: string;
+    land: string;
+    border: string;
     glow: string;
     muted: string;
+    grid: string;
   };
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const pulseRefs = useRef<Array<THREE.Mesh | null>>([]);
+  const globeTexture = useMemo(
+    () => createGlobeTexture({
+      ocean: colors.ocean,
+      land: colors.land,
+      border: colors.border,
+      grid: colors.grid,
+    }),
+    [colors.border, colors.grid, colors.land, colors.ocean]
+  );
+
+  useEffect(() => () => globeTexture?.dispose(), [globeTexture]);
 
   const markers = useMemo(
     () =>
@@ -137,10 +196,11 @@ function GlobeScene({
       <mesh>
         <sphereGeometry args={[1, 64, 64]} />
         <meshStandardMaterial
-          color={colors.globe}
+          map={globeTexture ?? undefined}
+          color={colors.land}
           emissive={colors.glow}
-          emissiveIntensity={0.08}
-          roughness={0.92}
+          emissiveIntensity={0.03}
+          roughness={0.88}
           metalness={0.08}
         />
       </mesh>
@@ -201,6 +261,7 @@ export function DemoGlobe({
       background: resolveCssHsl('--background', 'hsl(210 15% 6%)'),
       card: resolveCssHsl('--card', 'hsl(210 12% 9%)'),
       primary: resolveCssHsl('--primary', 'hsl(170 55% 63%)'),
+      foreground: resolveCssHsl('--foreground', 'hsl(180 10% 92%)'),
       muted: resolveCssHsl('--muted-foreground', 'hsl(210 8% 55%)'),
     }),
     []
@@ -240,7 +301,14 @@ export function DemoGlobe({
           <CameraRig />
           <GlobeScene
             projects={projects}
-            colors={{ globe: colors.card, glow: colors.primary, muted: colors.muted }}
+            colors={{
+              ocean: colors.background,
+              land: colors.foreground,
+              border: colors.card,
+              glow: colors.primary,
+              muted: colors.muted,
+              grid: colors.muted,
+            }}
           />
         </Canvas>
       </Suspense>
