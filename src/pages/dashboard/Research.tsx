@@ -14,6 +14,8 @@ import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
 import { agentApi } from '@/lib/api/agents';
 import { filterReachableContacts } from '@/lib/contact-validation';
+import { applyExportCap, applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
+import { useAuth } from '@/contexts/AuthContext';
 import jsPDF from 'jspdf';
 
 const STEPS = [
@@ -33,7 +35,8 @@ export default function Research() {
   const [upgradeReason, setUpgradeReason] = useState<'ai' | 'export'>('ai');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { canExportPdf, canUseAi, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportPdf, canUseAi, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
+  const { user } = useAuth();
 
   // Poll active task
   const { data: activeTask } = useQuery({
