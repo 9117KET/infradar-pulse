@@ -15,14 +15,3 @@ export const PLAN_LIMITS: Record<
   enterprise: { aiPerDay: 9999, exportsPerDay: 9999, insightReadsPerDay: 9999 },
   lifetime: { aiPerDay: 9999, exportsPerDay: 9999, insightReadsPerDay: 9999 },
 };
-
-export function resolvePlanKeyFromPriceId(priceId: string | null | undefined): PlanKey {
-  const starter = Deno.env.get("STRIPE_PRICE_STARTER");
-  const pro = Deno.env.get("STRIPE_PRICE_PRO");
-  const enterprise = Deno.env.get("STRIPE_PRICE_ENTERPRISE");
-  if (!priceId) return "starter";
-  if (priceId === starter) return "starter";
-  if (priceId === pro) return "pro";
-  if (priceId === enterprise) return "enterprise";
-  return "starter";
-}
