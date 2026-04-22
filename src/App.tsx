@@ -21,6 +21,9 @@ import DataProtection from "./pages/DataProtection";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import AuthCallback from "./pages/auth/AuthCallback";
 import Onboarding from "./pages/Onboarding";
 import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
@@ -84,6 +87,9 @@ const App = () => (
               <Route path="/press" element={<Press />} />
             </Route>
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
