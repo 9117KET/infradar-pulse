@@ -27,6 +27,9 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | '
 };
 
 function prettyEvent(t: string) {
+  if (t.startsWith('adjustment.')) {
+    return t.replace(/^adjustment\./, 'refund/credit: ').replace(/_/g, ' ');
+  }
   return t.replace(/^subscription\./, '').replace(/^transaction\./, 'txn: ').replace(/_/g, ' ');
 }
 
