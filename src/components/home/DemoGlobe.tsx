@@ -146,6 +146,38 @@ export function DemoGlobe({
     `,
   }));
 
+  // Static fallback when the browser can't initialize WebGL — keeps the
+  // homepage looking intentional rather than broken.
+  if (!webglOk) {
+    return (
+      <div
+        ref={containerRef}
+        className={className}
+        style={{ position: 'relative', overflow: 'hidden', background: '#0a0f14' }}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
+          <GlobeIcon className="h-10 w-10 text-primary/70" />
+          <p className="text-sm font-medium text-foreground">
+            Global pipeline coverage across 14 regions
+          </p>
+          <p className="text-xs text-muted-foreground max-w-sm">
+            {projects.length > 0
+              ? `${projects.length.toLocaleString()} verified infrastructure projects tracked.`
+              : 'Verified infrastructure projects across emerging and OECD markets.'}
+            {' '}Switch to Map view for an interactive 2D version.
+          </p>
+        </div>
+        <div
+          className="pointer-events-none absolute inset-0 rounded-xl"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 60%, hsl(var(--background)) 100%)',
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
