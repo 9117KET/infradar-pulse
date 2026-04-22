@@ -309,22 +309,29 @@ function SavedSearchesTab() {
   );
 }
 
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null;
+  const ms = new Date(iso).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / 86_400_000));
+}
+
 function BillingTab() {
   const { toast } = useToast();
-  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, refresh } = useEntitlements();
+  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
-  const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | null>(null);
+  const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | null>(null);
 
   const upgrade = async (priceId: PlanPriceId, key: 'starter' | 'pro') => {
     setBusy(key);
     try {
       await openCheckout(priceId);
     } catch (e) {
-      toast({
-        title: 'Checkout failed',
-        description: e instanceof Error ? e.message : 'Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -335,68 +342,245 @@ function BillingTab() {
     try {
       await openCustomerPortal();
     } catch (e) {
-      toast({
-        title: 'Portal failed',
-        description: e instanceof Error ? e.message : 'Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Portal failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
   };
 
+  const switchPlan = async (priceId: PlanPriceId) => {
+    setBusy('change');
+    try {
+      await changePlan(priceId);
+      toast({ title: 'Plan updated', description: 'Charges and access adjust immediately. New plan will sync in a few seconds.' });
+    } catch (e) {
+      toast({ title: 'Plan change failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const cancel = async () => {
+    setBusy('cancel');
+    try {
+      await cancelSubscription();
+      toast({ title: 'Cancellation scheduled', description: 'You keep access until the end of your current billing period.' });
+    } catch (e) {
+      toast({ title: 'Cancel failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const trialDays = daysUntil(subInfo?.trial_end ?? null);
+  const periodDays = daysUntil(subInfo?.current_period_end ?? null);
+  const isTrialing = subInfo?.status === 'trialing' && trialDays !== null && trialDays > 0;
+  const isPastDue = subInfo?.status === 'past_due';
+  const willCancel = !!subInfo?.cancel_at_period_end && subInfo?.status !== 'canceled';
+  const hasActiveSub = subInfo && ['active', 'trialing', 'past_due'].includes(subInfo.status ?? '');
+
   return (
-    <div className="glass-panel rounded-xl p-6 space-y-5 max-w-lg">
-      <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
-        <CreditCard className="h-5 w-5 text-primary" />
-        Billing &amp; usage
-      </h3>
-      {staffBypass ? (
-        <p className="text-sm text-muted-foreground">Team access — billing limits do not apply to your account.</p>
-      ) : loading ? (
-        <p className="text-sm text-muted-foreground">Loading plan…</p>
-      ) : (
-        <div className="text-sm space-y-2 text-muted-foreground">
-          <p>
-            <span className="text-foreground font-medium capitalize">{plan}</span> plan — daily caps:{' '}
-            {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (per type), {limits.insightReadsPerDay} full insight reads.
-          </p>
-          <p>
-            Used today: {usage.ai_generation ?? 0} / {limits.aiPerDay} AI · {usage.export_csv ?? 0} / {limits.exportsPerDay} CSV ·{' '}
-            {usage.export_pdf ?? 0} / {limits.exportsPerDay} PDF · {usage.insight_read ?? 0} / {limits.insightReadsPerDay} reads
-          </p>
-        </div>
-      )}
-      <div className="flex flex-wrap gap-2 pt-2">
-        <Button
-          className="teal-glow"
-          disabled={!!busy || checkoutLoading}
-          onClick={() => void upgrade('starter_monthly', 'starter')}
-        >
-          {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Start Starter trial — $29/mo
-        </Button>
-        <Button
-          variant="outline"
-          disabled={!!busy || checkoutLoading}
-          onClick={() => void upgrade('pro_monthly', 'pro')}
-        >
-          {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-          Start Pro trial — $199/mo
-        </Button>
-        {hasPaddleCustomer && (
-          <Button variant="outline" disabled={!!busy} onClick={() => void portal()}>
-            {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
-            Manage subscription
-          </Button>
+    <div className="space-y-4 max-w-lg">
+      <div className="glass-panel rounded-xl p-6 space-y-5">
+        <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-primary" />
+          Billing &amp; usage
+        </h3>
+
+        {staffBypass ? (
+          <p className="text-sm text-muted-foreground">Team access — billing limits do not apply to your account.</p>
+        ) : loading ? (
+          <p className="text-sm text-muted-foreground">Loading plan…</p>
+        ) : (
+          <div className="text-sm space-y-2 text-muted-foreground">
+            <p>
+              <span className="text-foreground font-medium capitalize">{plan}</span> plan — daily caps:{' '}
+              {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (per type), {limits.insightReadsPerDay} full insight reads.
+            </p>
+            <p>
+              Used today: {usage.ai_generation ?? 0} / {limits.aiPerDay} AI · {usage.export_csv ?? 0} / {limits.exportsPerDay} CSV ·{' '}
+              {usage.export_pdf ?? 0} / {limits.exportsPerDay} PDF · {usage.insight_read ?? 0} / {limits.insightReadsPerDay} reads
+            </p>
+          </div>
         )}
-        <Button variant="ghost" size="sm" onClick={() => void refresh()}>
-          Refresh usage
+
+        {/* Status banners */}
+        {isTrialing && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <strong>Trial ends in {trialDays} day{trialDays === 1 ? '' : 's'}</strong> ({formatDate(subInfo!.trial_end)}). Your card will be charged on that date unless you cancel.
+          </div>
+        )}
+        {isPastDue && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-foreground flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+            <span>Your last payment failed. Update your payment method in the billing portal to keep access.</span>
+          </div>
+        )}
+        {willCancel && (
+          <div className="rounded-lg border border-amber-400/40 bg-amber-100/10 px-3 py-2 text-xs text-foreground">
+            Subscription will cancel on {formatDate(subInfo!.current_period_end)} ({periodDays} day{periodDays === 1 ? '' : 's'}). Resubscribe anytime before then to keep your plan.
+          </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div className="glass-panel rounded-xl p-6 space-y-3">
+        {!hasActiveSub && !staffBypass && (
+          <>
+            <p className="text-xs text-muted-foreground">Both paid plans include a 3-day free trial. Card collected at checkout, charged on day 3 unless you cancel.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly', 'starter')}>
+                {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Start Starter trial — $29/mo
+              </Button>
+              <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly', 'pro')}>
+                {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Start Pro trial — $199/mo
+              </Button>
+            </div>
+          </>
+        )}
+
+        {hasActiveSub && !staffBypass && (
+          <>
+            <p className="text-xs text-muted-foreground">Switch plans (charges adjust immediately, prorated) or cancel.</p>
+            <div className="flex flex-wrap gap-2">
+              {plan !== 'pro' && (
+                <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly')}>
+                  {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
+                  Upgrade to Pro
+                </Button>
+              )}
+              {plan !== 'starter' && plan !== 'free' && (
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly')}>
+                  {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowDownRight className="h-4 w-4 mr-2" />}
+                  Downgrade to Starter
+                </Button>
+              )}
+              {!willCancel && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={!!busy}>
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancel subscription
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel your subscription?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You'll keep full access until {formatDate(subInfo?.current_period_end ?? null)}, then drop to the Free tier. You can resubscribe anytime.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep subscription</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void cancel()}>Yes, cancel</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          </>
+        )}
+
+        {hasPaddleCustomer && (
+          <div className="pt-2 border-t border-border/40">
+            <Button variant="ghost" size="sm" disabled={!!busy} onClick={() => void portal()}>
+              {busy === 'portal' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+              Update payment method / view invoices
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => void refresh()}>
+              Refresh
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AccountTab() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
+  const onExport = async () => {
+    setExporting(true);
+    try {
+      await exportAccountData();
+      toast({ title: 'Export started', description: 'Your account data is downloading as JSON.' });
+    } catch (e) {
+      toast({ title: 'Export failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const onDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+    } catch (e) {
+      toast({ title: 'Delete failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 max-w-lg">
+      <div className="glass-panel rounded-xl p-6 space-y-4">
+        <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+          <Download className="h-5 w-5 text-primary" />
+          Export your data
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Download a JSON file with your profile, watchlists, saved searches, alerts, and subscription history.
+        </p>
+        <Button variant="outline" disabled={exporting} onClick={() => void onExport()}>
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+          Export account data
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Both paid plans include a 3-day free trial. Manage payment method, invoices, and cancellation from your billing portal.
-      </p>
+
+      <div className="glass-panel rounded-xl p-6 space-y-4 border border-destructive/30">
+        <h3 className="font-serif text-lg font-semibold flex items-center gap-2 text-destructive">
+          <AlertTriangle className="h-5 w-5" />
+          Delete account
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Permanently deletes your profile, watchlist, saved searches, alerts, and cancels any active subscription. This cannot be undone.
+        </p>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" disabled={deleting}>
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Delete my account
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Permanently delete your account?</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-3">
+                <span>This will cancel any active subscription, delete all your data ({user?.email ?? 'your account'}), and sign you out. <strong>This cannot be undone.</strong></span>
+                <span className="block">Type <code className="px-1.5 py-0.5 rounded bg-muted text-foreground">delete</code> below to confirm:</span>
+                <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="delete" autoFocus />
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmText('')}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={confirmText.trim().toLowerCase() !== 'delete'}
+                onClick={() => void onDelete()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete forever
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
