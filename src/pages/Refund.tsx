@@ -12,18 +12,18 @@ export default function Refund() {
             Merchant of Record for all our orders and handles payments, refunds and returns.
           </p>
 
-          <h2 className="font-serif text-xl font-bold text-foreground pt-4">30-Day Money-Back Guarantee</h2>
+          <h2 className="font-serif text-xl font-bold text-foreground pt-4">14-Day Money-Back Guarantee</h2>
           <p>
             We offer a 14-day money-back guarantee on your first paid charge for any Infradar
             subscription plan. If you are not satisfied with the Service, you can request a full
-            refund of that first charge within 14 days of the order date , no specific reason
+            refund of that first charge within 14 days of the order date. No specific reason is
             required.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Renewals</h2>
           <p>
             Subscription renewals (after the first paid charge) are not automatically eligible for a
-            refund. We understand that renewals can occasionally be unexpected , if you are charged
+            refund. We understand that renewals can occasionally be unexpected. If you are charged
             for a renewal you did not intend to keep, contact us or Paddle promptly and we will
             review your request in good faith on a case-by-case basis.
           </p>
