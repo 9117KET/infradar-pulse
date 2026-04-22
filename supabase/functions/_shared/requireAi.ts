@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserFromBearer } from "./auth.ts";
-import { assertAiAllowed, incrementUsage } from "./entitlementCheck.ts";
+import { consumeAiQuota } from "./entitlementCheck.ts";
 
 export const corsJson = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +8,11 @@ export const corsJson = {
   "Content-Type": "application/json",
 };
 
-/** Returns userId if allowed, or a ready Response (401/402). */
+/**
+ * Returns userId if allowed, or a ready Response (401/402).
+ * The quota is atomically consumed (daily + hourly) when this resolves
+ * with a userId, so callers should NOT call recordAiUsage afterwards.
+ */
 export async function requireAiEntitlementOrRespond(req: Request): Promise<
   | { userId: string; supabaseAdmin: ReturnType<typeof createClient> }
   | Response
@@ -30,20 +34,25 @@ export async function requireAiEntitlementOrRespond(req: Request): Promise<
     });
   }
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-  const gate = await assertAiAllowed(supabaseAdmin, user.id);
+  // Atomic: gates AND consumes one unit of AI quota in a single transaction.
+  const gate = await consumeAiQuota(supabaseAdmin, user.id);
   if (gate.ok === false) {
-    return new Response(JSON.stringify({ error: gate.message, code: "ENTITLEMENT" }), {
-      status: 402,
-      headers: corsJson,
-    });
+    return new Response(
+      JSON.stringify({ error: gate.message, code: "ENTITLEMENT", reason: gate.reason }),
+      { status: 402, headers: corsJson },
+    );
   }
   return { userId: user.id, supabaseAdmin };
 }
 
+/**
+ * @deprecated Quota is now consumed inside requireAiEntitlementOrRespond.
+ * This is a no-op kept so existing call sites continue to compile. New code
+ * should not call this.
+ */
 export async function recordAiUsage(
-  supabaseAdmin: ReturnType<typeof createClient>,
-  userId: string
+  _supabaseAdmin: ReturnType<typeof createClient>,
+  _userId: string
 ): Promise<void> {
-  if (userId === "service_role") return; // cron/internal calls: no per-user tracking
-  await incrementUsage(supabaseAdmin, userId, "ai_generation");
+  // Intentionally a no-op. Quota was already consumed atomically by the gate.
 }

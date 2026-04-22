@@ -1,5 +1,5 @@
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { PLAN_LIMITS, PlanKey } from "./billing.ts";
+import { PLAN_LIMITS, PlanKey, PlanLimit } from "./billing.ts";
 
 export type Metric = "ai_generation" | "export_csv" | "export_pdf" | "insight_read";
 
@@ -44,7 +44,7 @@ export async function hasStaffBypass(
 export async function getEntitlementForUser(
   supabaseAdmin: SupabaseClient,
   userId: string
-): Promise<{ plan: PlanKey; limits: (typeof PLAN_LIMITS)[PlanKey]; bypass: boolean }> {
+): Promise<{ plan: PlanKey; limits: PlanLimit; bypass: boolean }> {
   const bypass = await hasStaffBypass(supabaseAdmin, userId);
   if (bypass) {
     return { plan: "enterprise", limits: PLAN_LIMITS.enterprise, bypass: true };
@@ -75,6 +75,118 @@ export async function getUsageCount(
     .maybeSingle();
   return data?.count ?? 0;
 }
+
+/**
+ * Atomically consume one unit of quota for a metric. Enforces both daily and
+ * hourly caps in a single transaction via the consume_quota RPC, which
+ * prevents N parallel requests from all sneaking through under the cap.
+ *
+ * Returns ok=true on success. On failure, returns ok=false with a friendly
+ * message and the dimension that was exceeded ('daily' | 'hourly').
+ */
+async function tryConsume(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  metric: Metric,
+  dailyCap: number,
+  hourlyCap: number,
+  plan: PlanKey,
+  humanLabel: string
+): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
+  const { data, error } = await supabaseAdmin.rpc("try_consume_quota", {
+    p_user_id: userId,
+    p_metric: metric,
+    p_daily_cap: dailyCap,
+    p_hourly_cap: hourlyCap,
+  });
+  if (error) {
+    // Fail closed: if RPC errors, assume not allowed but log.
+    console.error("try_consume_quota error", error);
+    return { ok: false, message: "Quota check failed. Please try again.", plan, reason: "daily" };
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row?.ok) {
+    if (row?.reason === "hourly") {
+      return {
+        ok: false,
+        message: `Hourly ${humanLabel} burst limit reached (${hourlyCap}/hour for ${plan} plan). Try again in a few minutes or upgrade.`,
+        plan,
+        reason: "hourly",
+      };
+    }
+    return {
+      ok: false,
+      message: `Daily ${humanLabel} limit reached (${dailyCap}/day for ${plan} plan). Upgrade or try again tomorrow.`,
+      plan,
+      reason: "daily",
+    };
+  }
+  return { ok: true };
+}
+
+/**
+ * Atomic AI gate: checks AND increments in one go. Replaces the old
+ * pattern of assertAiAllowed + later incrementUsage which was racey.
+ *
+ * Use this at the top of AI edge functions. If it returns ok=false,
+ * return 402 immediately. If ok=true, the quota is already consumed.
+ */
+export async function consumeAiQuota(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
+  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  if (ent.bypass) return { ok: true };
+  return tryConsume(
+    supabaseAdmin,
+    userId,
+    "ai_generation",
+    ent.limits.aiPerDay,
+    ent.limits.aiPerHour,
+    ent.plan,
+    "AI generation"
+  );
+}
+
+export async function consumeExportQuota(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  kind: "csv" | "pdf"
+): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
+  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  if (ent.bypass) return { ok: true };
+  const metric: Metric = kind === "csv" ? "export_csv" : "export_pdf";
+  return tryConsume(
+    supabaseAdmin,
+    userId,
+    metric,
+    ent.limits.exportsPerDay,
+    ent.limits.exportsPerHour,
+    ent.plan,
+    `${kind.toUpperCase()} export`
+  );
+}
+
+export async function consumeInsightReadQuota(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
+  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  if (ent.bypass) return { ok: true };
+  return tryConsume(
+    supabaseAdmin,
+    userId,
+    "insight_read",
+    ent.limits.insightReadsPerDay,
+    ent.limits.insightReadsPerHour,
+    ent.plan,
+    "full insight read"
+  );
+}
+
+// ── Legacy non-atomic helpers (kept for backwards compatibility) ────────────
+// Prefer the consume*Quota helpers above. These are still used by old code
+// paths but should be migrated.
 
 export async function assertAiAllowed(
   supabaseAdmin: SupabaseClient,
