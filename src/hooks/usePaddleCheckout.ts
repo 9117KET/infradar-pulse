@@ -4,10 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type PlanPriceId = 'starter_monthly' | 'pro_monthly';
 
+export type CheckoutResult = {
+  /** True if the user was eligible for a free trial when checkout opened. */
+  trialEligible: boolean;
+};
+
 export function usePaddleCheckout() {
   const [loading, setLoading] = useState(false);
 
-  const openCheckout = async (priceId: PlanPriceId): Promise<void> => {
+  /**
+   * Opens Paddle Checkout. Performs a server-side trial-eligibility check
+   * first so users who have already used their free trial don't see the
+   * trial CTA again (they go straight to a paid checkout).
+   */
+  const openCheckout = async (priceId: PlanPriceId): Promise<CheckoutResult> => {
     if (!isPaddleConfigured()) {
       throw new Error('Payments are not configured yet.');
     }
@@ -16,13 +26,31 @@ export function usePaddleCheckout() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Sign in required');
 
+      // Server-side trial eligibility check. If we lose this round-trip we
+      // fail closed (assume NOT eligible) so we never accidentally grant a
+      // second trial.
+      let trialEligible = false;
+      try {
+        const env = (import.meta.env.VITE_PADDLE_ENV ?? 'sandbox') as
+          | 'sandbox'
+          | 'live';
+        const { data, error } = await supabase.functions.invoke('checkout-precheck', {
+          body: { environment: env },
+        });
+        if (!error && data && typeof data.trialEligible === 'boolean') {
+          trialEligible = data.trialEligible;
+        }
+      } catch (e) {
+        console.warn('checkout-precheck failed; treating as no-trial', e);
+      }
+
       await initializePaddle();
       const paddlePriceId = await getPaddlePriceId(priceId);
 
       window.Paddle.Checkout.open({
         items: [{ priceId: paddlePriceId, quantity: 1 }],
         customer: user.email ? { email: user.email } : undefined,
-        customData: { userId: user.id },
+        customData: { userId: user.id, trialEligible },
         settings: {
           displayMode: 'overlay',
           successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout=success`,
@@ -30,6 +58,8 @@ export function usePaddleCheckout() {
           variant: 'one-page',
         },
       });
+
+      return { trialEligible };
     } finally {
       setLoading(false);
     }
