@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useInsight, getDisplaySources } from '@/hooks/use-insights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { trackUsage } from '@/lib/billing/trackUsage';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, User, Calendar, Link2 } from 'lucide-react';
@@ -15,6 +16,7 @@ export default function InsightDetail() {
   const { user } = useAuth();
   const { staffBypass, canReadInsightFull, loading: entLoading, refresh } = useEntitlements();
   const countedRef = useRef(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   useEffect(() => {
     countedRef.current = false;
@@ -24,13 +26,24 @@ export default function InsightDetail() {
   const showFullContent =
     !user || staffBypass || (!entLoading && canReadInsightFull);
 
+  // Auto-open upgrade prompt when user is signed-in and over the limit
+  useEffect(() => {
+    if (user && !entLoading && !staffBypass && !canReadInsightFull) {
+      setUpgradeOpen(true);
+    }
+  }, [user, entLoading, staffBypass, canReadInsightFull]);
+
   useEffect(() => {
     if (!user || entLoading || !insight || !canReadInsightFull || staffBypass) return;
     if (countedRef.current) return;
     countedRef.current = true;
     void (async () => {
       const result = await trackUsage('insight_read');
-      if (result.ok) await refresh();
+      if (result.ok) {
+        await refresh();
+      } else if (result.overLimit) {
+        setUpgradeOpen(true);
+      }
     })();
   }, [user, entLoading, insight?.id, canReadInsightFull, staffBypass, refresh]);
 
@@ -55,6 +68,7 @@ export default function InsightDetail() {
 
   return (
     <div className="py-20">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="insight" />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Link to="/insights" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="h-4 w-4" /> Back to Insights
@@ -79,9 +93,14 @@ export default function InsightDetail() {
               You&apos;ve reached your daily limit for full insight reads on your current plan. Upgrade to keep reading with AI-assisted analysis and higher limits.
             </p>
             <p className="text-sm text-muted-foreground line-clamp-4">{insight.excerpt}</p>
-            <Button asChild className="teal-glow">
-              <Link to="/pricing">View plans &amp; pricing</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button className="teal-glow" onClick={() => setUpgradeOpen(true)}>
+                See upgrade options
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/pricing">View plans &amp; pricing</Link>
+              </Button>
+            </div>
           </div>
         )}
 
