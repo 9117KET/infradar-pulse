@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_config: {
+        Row: {
+          agent_type: string
+          enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          agent_type: string
+          enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          agent_type?: string
+          enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      alert_rules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          filters: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          filters?: Json
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          filters?: Json
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           category: Database["public"]["Enums"]["alert_category"]
@@ -184,7 +229,9 @@ export type Database = {
         Row: {
           company: string | null
           created_at: string | null
+          critical_only: boolean
           display_name: string | null
+          email_alerts: boolean
           id: string
           onboarded: boolean | null
           regions: string[] | null
@@ -193,11 +240,14 @@ export type Database = {
           stages: string[] | null
           tour_completed: boolean | null
           updated_at: string | null
+          weekly_digest: boolean
         }
         Insert: {
           company?: string | null
           created_at?: string | null
+          critical_only?: boolean
           display_name?: string | null
+          email_alerts?: boolean
           id: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -206,11 +256,14 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
+          weekly_digest?: boolean
         }
         Update: {
           company?: string | null
           created_at?: string | null
+          critical_only?: boolean
           display_name?: string | null
+          email_alerts?: boolean
           id?: string
           onboarded?: boolean | null
           regions?: string[] | null
@@ -219,6 +272,7 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
+          weekly_digest?: boolean
         }
         Relationships: []
       }
@@ -526,6 +580,33 @@ export type Database = {
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type?: string
+        }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          name: string
+          notify_email: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name: string
+          notify_email?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          name?: string
+          notify_email?: boolean
+          user_id?: string
         }
         Relationships: []
       }
