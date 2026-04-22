@@ -20,6 +20,8 @@ import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/funct
 import { openCustomerPortal, changePlan, cancelSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
+import { Progress } from '@/components/ui/progress';
 
 interface NotifSettings {
   emailAlerts: boolean;
@@ -322,14 +324,36 @@ function daysUntil(iso: string | null): number | null {
 
 function BillingTab() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | null>(null);
+
+  // After Paddle checkout completes, poll the subscriptions table until the
+  // webhook lands (~2-30s). Without this, users see "Free plan" right after
+  // paying which is jarring.
+  const completion = useCheckoutCompletion(user?.id, async () => {
+    await refresh();
+    toast({ title: 'Subscription active', description: 'Your new plan is ready to use.' });
+  });
+
+  // If we already arrived via ?checkout=success, kick the poller off immediately.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'success' && user?.id) {
+      completion.start();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const upgrade = async (priceId: PlanPriceId, key: 'starter' | 'pro') => {
     setBusy(key);
     try {
       await openCheckout(priceId);
+      // Paddle's overlay closes on success — we begin polling at that point.
+      // (If the user just abandons the overlay, we'll still poll for 30s,
+      // which is harmless.)
+      completion.start();
     } catch (e) {
       toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
