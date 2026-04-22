@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, User, Calendar, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 export default function InsightDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -17,6 +18,7 @@ export default function InsightDetail() {
   const { staffBypass, canReadInsightFull, loading: entLoading, refresh } = useEntitlements();
   const countedRef = useRef(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     countedRef.current = false;
@@ -41,6 +43,12 @@ export default function InsightDetail() {
       const result = await trackUsage('insight_read');
       if (result.ok) {
         await refresh();
+      } else if (result.emailUnverified) {
+        toast({
+          title: 'Confirm your email',
+          description: result.message,
+          variant: 'destructive',
+        });
       } else if (result.overLimit) {
         setUpgradeOpen(true);
       }

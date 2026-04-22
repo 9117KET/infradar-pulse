@@ -804,6 +804,36 @@ export type Database = {
           },
         ]
       }
+      trial_history: {
+        Row: {
+          created_at: string
+          email_normalized: string
+          environment: string
+          id: string
+          paddle_customer_id: string | null
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_normalized: string
+          environment?: string
+          id?: string
+          paddle_customer_id?: string | null
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_normalized?: string
+          environment?: string
+          id?: string
+          paddle_customer_id?: string | null
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       usage_counters: {
         Row: {
           count: number
@@ -890,6 +920,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_trial_eligible: {
+        Args: {
+          p_email: string
+          p_environment: string
+          p_paddle_customer_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       consume_quota: {
         Args: {
           p_daily_cap: number
@@ -923,7 +962,17 @@ export type Database = {
         Args: { metric_name: string; user_uuid: string }
         Returns: undefined
       }
+      normalize_email: { Args: { p_email: string }; Returns: string }
       prune_old_usage_counters: { Args: never; Returns: undefined }
+      record_trial_started: {
+        Args: {
+          p_email: string
+          p_environment: string
+          p_paddle_customer_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       try_consume_quota: {
         Args: {
           p_daily_cap: number
