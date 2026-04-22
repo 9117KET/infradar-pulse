@@ -44,6 +44,7 @@ export default function Pricing() {
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             14-day refund guarantee on your first paid charge. Cancel anytime from your billing portal.
+            Daily quotas reset at 00:00 UTC. Trial users get 5 AI queries, 10 insight reads, and 3 exports per day.
           </p>
         </div>
 
