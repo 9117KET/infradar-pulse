@@ -9,11 +9,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { getPaddleEnvironment } from '@/lib/paddle';
 import { cn } from '@/lib/utils';
 
+// Competitor names are intentionally anonymized to keep the comparison
+// category-based and avoid singling out any specific vendor. The blurred
+// labels stand in for well-known incumbents in each segment (regional
+// intelligence publishers, global market research firms, energy/commodity
+// research houses, project finance data terminals, and emerging regional
+// MENA/Africa intelligence platforms).
 const COMPETITOR_TABLE = [
-  { name: 'MEED', price: '$5k-$15k/yr', update: 'Quarterly PDF' },
-  { name: 'GlobalData', price: '$10k-$50k/yr', update: 'Static reports' },
-  { name: 'Wood Mackenzie', price: '$50k-$200k/yr', update: 'Annual research' },
-  { name: 'InfraRadar', price: 'From $0/mo', update: 'Real-time AI', highlight: true },
+  { name: 'Regional intelligence publisher', price: '$5k–$15k / yr', update: 'Quarterly PDF', blur: true },
+  { name: 'Global market research vendor', price: '$10k–$50k / yr', update: 'Static reports', blur: true },
+  { name: 'Energy & commodity research house', price: '$50k–$200k / yr', update: 'Annual research', blur: true },
+  { name: 'Project finance data terminal', price: '$20k–$100k / yr', update: 'Financial feeds', blur: true },
+  { name: 'Regional MENA/Africa intel platform', price: '$3k–$12k / yr', update: 'Weekly updates', blur: true },
+  { name: 'Construction & tender aggregator', price: '$4k–$20k / yr', update: 'Daily, unverified', blur: true },
+  { name: 'InfraRadar', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
 ];
 
 const LIFETIME_MAX_SEATS = 100;
@@ -316,12 +325,13 @@ export default function Pricing() {
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
             Incumbents sell annual PDF reports gated behind long sales cycles. InfraRadar is self-serve, AI-native, and 100x cheaper.
+            Vendor names are anonymized by category — we compete on signal quality, not on calling out individual brands.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-muted-foreground text-xs uppercase tracking-wider border-b border-border">
-                  <th className="pb-3 pr-6">Vendor</th>
+                  <th className="pb-3 pr-6">Vendor category</th>
                   <th className="pb-3 pr-6">Typical price</th>
                   <th className="pb-3">Data freshness</th>
                 </tr>
@@ -329,9 +339,17 @@ export default function Pricing() {
               <tbody className="divide-y divide-border">
                 {COMPETITOR_TABLE.map(r => (
                   <tr key={r.name} className={r.highlight ? 'text-foreground font-medium' : 'text-muted-foreground'}>
-                    <td className="py-3 pr-6 flex items-center gap-2">
-                      {r.highlight && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                      {r.name}
+                    <td className="py-3 pr-6">
+                      <span className="flex items-center gap-2">
+                        {r.highlight && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                        <span
+                          className={cn(r.blur && 'blur-[3px] hover:blur-[2px] transition-all select-none')}
+                          aria-label={r.blur ? 'Competitor name redacted' : undefined}
+                          title={r.blur ? 'Vendor name intentionally redacted' : undefined}
+                        >
+                          {r.name}
+                        </span>
+                      </span>
                     </td>
                     <td className={`py-3 pr-6 ${r.highlight ? 'text-primary' : ''}`}>{r.price}</td>
                     <td className="py-3">{r.update}</td>
