@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText, HardHat, TrendingDown, Search } from 'lucide-react';
+import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText, HardHat, TrendingDown, Search, Sparkles } from 'lucide-react';
 
 const MODULES = [
   { icon: Activity, title: 'Real-time project monitoring', desc: 'Live tracking of project milestones, delays, and status changes across your portfolio.', label: 'Module 01' },
@@ -11,6 +11,7 @@ const MODULES = [
   { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, permit denials, and political risk indicators across 9 signal categories.', label: 'Module 07' },
   { icon: Search, title: 'Procurement monitoring (20+ sources)', desc: 'Tenders from multilateral banks, national procurement portals, and UN agencies - surface opportunities before competitors find them.', label: 'Module 08', wide: true },
   { icon: FileText, title: 'Decision-ready reporting', desc: 'One-click exports with confidence scores, provenance chains, and executive summaries.', label: 'Module 09' },
+  { icon: Sparkles, title: 'Ask in plain English', desc: 'Skip the filter forms. Ask "renewable energy projects in West Africa above $100M in tender stage" and get instant, ranked results powered by AI-driven query translation.', label: 'Module 10', wide: true },
 ];
 
 export function CapabilitiesSection() {
