@@ -1,21 +1,27 @@
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet-async';
+import { useEffect } from 'react';
 import { Globe2, Radar, ShieldCheck, Sparkles, Compass, Users } from 'lucide-react';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 
 export default function About() {
+  useEffect(() => {
+    const prevTitle = document.title;
+    document.title = 'About Infradar | Verified Infrastructure Intelligence';
+    const meta = document.querySelector('meta[name="description"]');
+    const prevDesc = meta?.getAttribute('content') ?? '';
+    meta?.setAttribute(
+      'content',
+      'Infradar is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data.',
+    );
+    return () => {
+      document.title = prevTitle;
+      if (prevDesc) meta?.setAttribute('content', prevDesc);
+    };
+  }, []);
+
   return (
     <div className="py-16 sm:py-20">
-      <Helmet>
-        <title>About Infradar | Verified Infrastructure Intelligence</title>
-        <meta
-          name="description"
-          content="Infradar is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data."
-        />
-        <link rel="canonical" href="https://infradarai.com/about" />
-      </Helmet>
-
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* Hero */}
         <header className="mb-14 text-center">
