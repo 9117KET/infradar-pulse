@@ -20,6 +20,20 @@ Reducing cognitive load: user role sees ≤8 nav items, researcher sees ≤13.
 
 ---
 
+## Strategic Roadmap
+
+Top-5 high-leverage features identified in product review. **Full build specs (data model, edge functions, files to touch, acceptance criteria) live in [`docs/roadmap/STRATEGIC_FEATURES.md`](docs/roadmap/STRATEGIC_FEATURES.md).** Update both this checklist AND that doc when status changes.
+
+| # | Feature | Status | Effort | Notes |
+|---|---|---|---|---|
+| 1 | Weekly Email Digest Delivery | 🔲 Todo | 2–3 days | Reuses `digest-agent` + `process-email-queue` |
+| 2 | Natural Language Project Search | 🔲 Todo | 3–4 days | New `/dashboard/ask` + `nl-search` edge fn |
+| 3 | Win-Probability Score per Project | 🔲 Todo | 4–5 days | New `project_scores` table + nightly agent |
+| 4 | Executive One-Pager PDF Export | 🔲 Todo | 2 days | New `project-onepager` edge fn |
+| 5 | Public REST API + Webhooks | 🔲 Todo | 1–2 weeks | Enterprise revenue unlock |
+
+---
+
 ## Phase 1 — Backend-Ready Features (ship first)
 
 Backend infrastructure is complete; these are purely UI additions.
@@ -68,11 +82,11 @@ Captured ideas for future consideration. Not yet sized or prioritized.
 
 | Idea | Origin | Notes |
 |---|---|---|
-| Natural language project search | Competitive analysis | Replace header search with AI-powered NL query (e.g., "power projects in West Africa $50M+") |
-| Executive one-pager PDF export per project | User need | Project-level PDF (not aggregate). Useful for consultants sharing with clients |
 | Trial timer / trial status in billing UI | Backend gap | Backend tracks `trial_end` but no UI surfaces it |
 | Saved search / search alerts | User need | Save a filter combination, get notified when new projects match |
 | Tender open/close notifications | Competitive | Alert when a project moves to Tender stage |
+
+> Moved to Strategic Roadmap (above): NL search, executive one-pager PDF.
 
 ---
 
