@@ -75,7 +75,7 @@ export function SectorSnapshotSection() {
               Where the global pipeline sits right now
             </h2>
             <p className="mt-3 max-w-xl text-muted-foreground leading-relaxed">
-              Project distribution across {sectorData.length} sectors — live from the database.
+              Project distribution across {sectorData.length} sectors, live from the database.
             </p>
           </div>
           <Link to="/explore" className="shrink-0">

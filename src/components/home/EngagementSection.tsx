@@ -46,7 +46,6 @@ export function EngagementSection() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">07 Get in touch</div>
           <h2 className="font-serif text-3xl font-bold sm:text-4xl mb-4">Request a Demo</h2>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
             Schedule a personalized walkthrough with our team and see how Infradar fits your workflow.

@@ -15,7 +15,6 @@ export function PersonasSection() {
     <section id="personas" className="relative py-24">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 80%, rgba(107,216,203,0.05) 0%, transparent 70%)' }} />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">05 Built for your role</div>
         <h2 className="font-serif text-3xl font-bold sm:text-4xl">One platform, six ways to win</h2>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,11 +1,16 @@
+import { useAuth } from '@/contexts/AuthContext';
+
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 
 export function PaymentTestModeBanner() {
+  const { hasRole } = useAuth();
+
   if (!clientToken?.startsWith('test_')) return null;
+  if (!hasRole('admin') && !hasRole('researcher')) return null;
 
   return (
     <div className="w-full bg-amber-100 dark:bg-amber-950/40 border-b border-amber-300/50 px-4 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
-      Payments are in test mode in the preview.{' '}
+      Payments are in test mode.{' '}
       <a
         href="https://docs.lovable.dev/features/payments#test-and-live-environments"
         target="_blank"

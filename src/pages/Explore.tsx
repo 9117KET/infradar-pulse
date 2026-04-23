@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Lock, ArrowRight, Globe, MapPin, TrendingUp } from 'lucide-react';
+import { CoverageSection } from '@/components/home/CoverageSection';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -129,6 +130,8 @@ export default function Explore() {
           </motion.div>
         </div>
       </section>
+
+      <CoverageSection />
 
       {/* Filters + Table */}
       <section className="py-10">

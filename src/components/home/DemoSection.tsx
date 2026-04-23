@@ -40,12 +40,11 @@ export function DemoSection() {
   return (
     <section id="demo" className="relative py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">03 Proof</div>
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">See the signal pipeline in action</h2>
             <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-              Every project we track, plotted in real time across the globe — from energy megaprojects to digital infrastructure buildouts.
+              Every project we track, plotted in real time across the globe, from energy megaprojects to digital infrastructure buildouts.
             </p>
           </div>
 
