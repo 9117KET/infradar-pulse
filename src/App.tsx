@@ -60,6 +60,7 @@ import TenderCalendar from "./pages/dashboard/TenderCalendar";
 import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
 import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
+import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
+              <Route path="/dashboard/ask" element={<Ask />} />
               <Route path="/dashboard/research" element={<RoleGuard requiredRole="researcher"><Research /></RoleGuard>} />
               <Route path="/dashboard/digests" element={<RoleGuard requiredRole="researcher"><Digests /></RoleGuard>} />
               <Route path="/dashboard/datasets" element={<RoleGuard requiredRole="admin"><Datasets /></RoleGuard>} />
