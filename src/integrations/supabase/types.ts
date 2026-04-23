@@ -372,6 +372,36 @@ export type Database = {
         }
         Relationships: []
       }
+      lifetime_grants: {
+        Row: {
+          environment: string
+          granted_at: string
+          id: string
+          paddle_customer_id: string | null
+          paddle_transaction_id: string | null
+          seat_number: number | null
+          user_id: string
+        }
+        Insert: {
+          environment?: string
+          granted_at?: string
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_transaction_id?: string | null
+          seat_number?: number | null
+          user_id: string
+        }
+        Update: {
+          environment?: string
+          granted_at?: string
+          id?: string
+          paddle_customer_id?: string | null
+          paddle_transaction_id?: string | null
+          seat_number?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pending_role_assignments: {
         Row: {
           created_at: string | null
@@ -852,6 +882,7 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          notified_trial_ending_at: string | null
           paddle_customer_id: string
           paddle_subscription_id: string
           plan_key: string
@@ -869,6 +900,7 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          notified_trial_ending_at?: string | null
           paddle_customer_id: string
           paddle_subscription_id: string
           plan_key?: string
@@ -886,6 +918,7 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          notified_trial_ending_at?: string | null
           paddle_customer_id?: string
           paddle_subscription_id?: string
           plan_key?: string
@@ -1079,6 +1112,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_lifetime_seat: {
+        Args: {
+          p_environment: string
+          p_max_seats?: number
+          p_paddle_customer_id: string
+          p_paddle_transaction_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       consume_quota: {
         Args: {
           p_daily_cap: number
@@ -1119,6 +1162,10 @@ export type Database = {
       increment_usage_metric: {
         Args: { metric_name: string; user_uuid: string }
         Returns: undefined
+      }
+      lifetime_seats_taken: {
+        Args: { p_environment?: string }
+        Returns: number
       }
       move_to_dlq: {
         Args: {

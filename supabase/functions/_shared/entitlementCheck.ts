@@ -74,6 +74,16 @@ export async function getEntitlementForUser(
     return { plan: "enterprise", limits: PLAN_LIMITS.enterprise, bypass: true };
   }
 
+  // Lifetime grants take precedence over normal subscription state.
+  const { data: lifetime } = await supabaseAdmin
+    .from("lifetime_grants")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (lifetime) {
+    return { plan: "lifetime", limits: PLAN_LIMITS.lifetime, bypass: false };
+  }
+
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
     .select("status, plan_key, trial_end, current_period_end")
