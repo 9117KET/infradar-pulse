@@ -13,7 +13,13 @@ export async function openCustomerPortal(): Promise<void> {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export async function changePlan(priceId: 'starter_monthly' | 'pro_monthly'): Promise<void> {
+export async function changePlan(
+  priceId:
+    | 'starter_monthly'
+    | 'starter_yearly'
+    | 'pro_monthly'
+    | 'pro_yearly',
+): Promise<void> {
   const { error } = await supabase.functions.invoke('paddle-change-plan', {
     body: { priceId, environment: getPaddleEnvironment() },
   });

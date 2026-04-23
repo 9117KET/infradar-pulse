@@ -213,8 +213,7 @@ async function logBillingEvent(event: any, env: PaddleEnv) {
     const status = data.status ?? null;
     const item = data.items?.[0];
     const priceExt = item?.price?.importMeta?.externalId || item?.price?.id;
-    const planKey =
-      priceExt === 'pro_monthly' ? 'pro' : priceExt === 'starter_monthly' ? 'starter' : null;
+    const planKey = priceExt && PRICE_TO_PLAN[priceExt] ? PRICE_TO_PLAN[priceExt] : null;
 
     // Same fallback as upsertSubscription: prefer customData, fall back to lookup.
     const userId = await resolveUserId(data.customData, subscriptionId, env);
@@ -280,5 +279,45 @@ async function emitPastDueAlert(data: any, env: PaddleEnv) {
     });
   } catch (err) {
     console.error('emitPastDueAlert failed (non-fatal):', err);
+  }
+}
+
+/**
+ * Lifetime grant handler. On `transaction.completed` with a lifetime price,
+ * call the atomic seat-claim RPC. Idempotent: if the user already has a
+ * grant we no-op. If all 100 founder seats are taken, the customer still
+ * gets lifetime access — just without a seat number (sold-out gracefully).
+ */
+// deno-lint-ignore no-explicit-any
+async function maybeGrantLifetime(data: any, env: PaddleEnv) {
+  try {
+    const items = data?.items ?? [];
+    const isLifetime = items.some((it: any) => {
+      const ext = it?.price?.importMeta?.externalId || it?.price?.id;
+      return LIFETIME_PRICE_IDS.has(ext);
+    });
+    if (!isLifetime) return;
+
+    const userId = await resolveUserId(data.customData, null, env)
+      ?? await userIdForCustomer(data.customerId, env);
+    if (!userId) {
+      console.error('maybeGrantLifetime: cannot resolve userId for txn', data.id);
+      return;
+    }
+
+    const { data: seat, error } = await supabase.rpc('claim_lifetime_seat', {
+      p_user_id: userId,
+      p_environment: env,
+      p_paddle_transaction_id: data.id ?? null,
+      p_paddle_customer_id: data.customerId ?? null,
+      p_max_seats: LIFETIME_MAX_SEATS,
+    });
+    if (error) {
+      console.error('claim_lifetime_seat failed:', error);
+      return;
+    }
+    console.log('Lifetime grant recorded for', userId, 'seat:', seat);
+  } catch (err) {
+    console.error('maybeGrantLifetime failed (non-fatal):', err);
   }
 }
