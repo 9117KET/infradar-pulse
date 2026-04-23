@@ -287,8 +287,7 @@ export default function Ask() {
       <UpgradeDialog
         open={upgradeOpen}
         onOpenChange={setUpgradeOpen}
-        feature="ai"
-        currentPlan={plan}
+        reason="ai"
       />
     </div>
   );
