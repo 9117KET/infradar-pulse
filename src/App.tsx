@@ -37,6 +37,7 @@ import Alerts from "./pages/dashboard/Alerts";
 import UsersPage from "./pages/dashboard/Users";
 import SettingsPage from "./pages/dashboard/Settings";
 import { RoleGuard } from "./components/RoleGuard";
+import { FeatureGate } from "./components/billing/FeatureGate";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
 import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
@@ -126,14 +127,14 @@ const App = () => (
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
               <Route path="/dashboard/intelligence-summaries" element={<RoleGuard requiredRole="researcher"><IntelligenceSummaries /></RoleGuard>} />
-              <Route path="/dashboard/tenders" element={<Tenders />} />
-              <Route path="/dashboard/countries" element={<Countries />} />
-              <Route path="/dashboard/countries/:country" element={<CountryDetail />} />
-              <Route path="/dashboard/compare" element={<Compare />} />
-              <Route path="/dashboard/pipeline" element={<Pipeline />} />
-              <Route path="/dashboard/calendar" element={<TenderCalendar />} />
-              <Route path="/dashboard/chat" element={<PortfolioChat />} />
-              <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />
+              <Route path="/dashboard/tenders" element={<FeatureGate feature="tender_intelligence"><Tenders /></FeatureGate>} />
+              <Route path="/dashboard/countries" element={<FeatureGate feature="country_intelligence"><Countries /></FeatureGate>} />
+              <Route path="/dashboard/countries/:country" element={<FeatureGate feature="country_intelligence"><CountryDetail /></FeatureGate>} />
+              <Route path="/dashboard/compare" element={<FeatureGate feature="compare_projects"><Compare /></FeatureGate>} />
+              <Route path="/dashboard/pipeline" element={<FeatureGate feature="pipeline_view"><Pipeline /></FeatureGate>} />
+              <Route path="/dashboard/calendar" element={<FeatureGate feature="tender_calendar"><TenderCalendar /></FeatureGate>} />
+              <Route path="/dashboard/chat" element={<FeatureGate feature="portfolio_chat"><PortfolioChat /></FeatureGate>} />
+              <Route path="/dashboard/stakeholders" element={<FeatureGate feature="stakeholder_intel"><StakeholderIntel /></FeatureGate>} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
