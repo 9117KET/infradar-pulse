@@ -1,67 +1,65 @@
 
 
 ## Goal
+Ship **Feature 2 — Natural Language Project Search** end-to-end: a new `/dashboard/ask` page where users type questions like *"Power projects in West Africa above $100M in tender stage"* and get matched projects from the live database. Existing search/filter UI stays untouched.
 
-Create a permanent, build-ready specification for the **Top 5 strategic features** identified in the previous analysis, so any future session (or contributor) can pick up an item and ship it without re-deriving the design. Also wire these items into the existing `FEATURES.md` tracker so progress is always visible.
+## What gets built
 
-## Deliverables
+### 1. New edge function — `supabase/functions/nl-search/index.ts`
+- Auth + AI-quota gate via existing `requireAiEntitlementOrRespond` (same metric as other AI features → 1 unit/call).
+- Calls **Lovable AI Gateway** (`google/gemini-2.5-flash`) with a strict tool-call schema → returns structured filters (regions, sectors, stages, statuses, countries, value range, keyword, ordering) + a one-sentence interpretation.
+- Server sanitizes against whitelists from `src/data/projects.ts` (no SQL injection — no raw SQL ever sent).
+- Builds a typed Supabase query against `projects` (`approved=true` only), applies filters, returns up to 50 rows.
+- Surfaces `429` (rate limit) and `402` (credits) errors back to the client.
 
-### 1. New file: `docs/roadmap/STRATEGIC_FEATURES.md`
+### 2. New page — `src/pages/dashboard/Ask.tsx`
+- Header with `Sparkles` icon + plain-English explanation.
+- Single search input (max 500 chars) + **5 example prompts** as one-click pills.
+- Loading state, "How I understood your question" interpretation strip with badges showing every applied filter, and a results grid (2-col on md+) of project cards linking to `/dashboard/projects/:slug`.
+- Empty-state CTA pointing to `/dashboard/projects` (the classic filter view) so users always have a fallback.
+- Quota-exhausted / rate-limit errors trigger the existing `<UpgradeDialog />`.
 
-A single source-of-truth document with one section per feature. Each section follows the same template so it reads like a build ticket:
+### 3. Wiring
+- `src/lib/api/agents.ts` → add `agentApi.runNlSearch(query)`.
+- `src/App.tsx` → register route `/dashboard/ask` (under `<DashboardLayout />`, no extra role guard — gated by AI quota only).
+- `src/layouts/DashboardLayout.tsx` → add **"Ask AI"** nav item under Core (with `Sparkles` icon, `tourId: 'nav-ask'`). The existing header `<ProjectSearch />` (instant fuzzy match) is kept exactly as is.
 
-```text
-## Feature N — <Name>
-- Status: 🔲 Todo | 🔄 In Progress | ✅ Done
-- Why it matters (1-2 lines)
-- User-facing surface (route, component, entry point)
-- Data model (new tables / columns / RPCs)
-- Backend (edge functions, cron, external APIs)
-- Frontend (pages, hooks, components to create or edit)
-- Entitlement / pricing gate
-- Acceptance criteria (checklist)
-- Estimated effort
-- Files to touch (with paths)
-```
+### 4. Marketing pages — light touches
+- `src/components/home/CapabilitiesSection.tsx`: replace the "Procurement monitoring" tile copy or add a 10th module **"Ask in plain English"** highlighting the new capability (linking to `/dashboard/ask` for signed-in users, `/login` otherwise).
+- `src/pages/Pricing.tsx`: add a one-line bullet **"Natural-language project search"** to Starter / Pro / Lifetime feature lists (free tier sees it as upgrade copy via the existing AI-quota gate).
 
-The five features documented:
+### 5. Docs
+- Flip Feature #2 status in `FEATURES.md` and `docs/roadmap/STRATEGIC_FEATURES.md` from 🔲 Todo → ✅ Done with the acceptance-criteria checkboxes ticked.
 
-| # | Feature | Primary surface |
-|---|---|---|
-| 1 | **Weekly Email Digest Delivery** | Resend integration + `digest_subscriptions` table + cron schedule |
-| 2 | **Natural Language Project Search** | New `/dashboard/ask` page + `nl-search` edge function (Lovable AI → SQL filter translator) |
-| 3 | **Win-Probability Score per Project** | `project_scores` table + `win-probability-agent` edge function + ProjectDetail badge |
-| 4 | **Executive One-Pager PDF Export** | Reuse `report-agent` pattern, add `project-onepager` edge function + Download button on ProjectDetail |
-| 5 | **Public REST API + Webhooks** | `api_keys` table, `api/v1/*` edge functions with rate-limit, `webhook_subscriptions` table, `/dashboard/api-access` page |
+## Data model & migrations
+**None.** Reuses `public.projects` and the existing AI-quota infrastructure (`usage_counters`, `consume_quota` RPC, plan limits in `_shared/billing.ts`).
 
-For each, the doc lists the **exact files to create/edit** referencing the existing patterns already in the codebase:
-- Edge function template → mirror `supabase/functions/report-agent/index.ts` (uses `agentGate`, `getUserFromBearer`, `assertAiAllowed`, `incrementUsage`)
-- Client invocation → add to `src/lib/api/agents.ts` under `agentApi.*`
-- Entitlement gating → extend `src/lib/billing/limits.ts` + mirror in `supabase/functions/_shared/billing.ts`
-- New routes → register in `src/App.tsx` and `NAV_GROUPS` in `src/layouts/DashboardLayout.tsx`
-- Pricing tier mapping → update `useEntitlements.ts` capability flags (`canUseNlSearch`, `canExportOnePager`, `canAccessApi`)
+## Entitlement
+Counts against `aiPerDay` (already defined): Free 2 / Trial 5 / Starter 20 / Pro 100 / Lifetime ∞. Free tier hitting the cap gets the existing UpgradeDialog flow.
 
-### 2. Update `FEATURES.md`
+## Files touched
+| Type | Path |
+|---|---|
+| New | `supabase/functions/nl-search/index.ts` |
+| New | `src/pages/dashboard/Ask.tsx` |
+| Edit | `src/lib/api/agents.ts` |
+| Edit | `src/App.tsx` |
+| Edit | `src/layouts/DashboardLayout.tsx` |
+| Edit | `src/components/home/CapabilitiesSection.tsx` |
+| Edit | `src/pages/Pricing.tsx` |
+| Edit | `FEATURES.md` |
+| Edit | `docs/roadmap/STRATEGIC_FEATURES.md` |
 
-- Add a new top-level section **"Strategic Roadmap (see `docs/roadmap/STRATEGIC_FEATURES.md`)"** with a compact 5-row checklist table that mirrors the statuses in the strategic doc — so the existing tracker stays the at-a-glance index.
-- Move the relevant entries currently in **Backlog / Ideas** ("Natural language project search", "Executive one-pager PDF") into the new section so we don't have duplicates.
-- Keep the existing Legend.
+## Out of scope (deferred)
+- Saving search history to a `nl_search_history` table (mentioned as optional in the spec).
+- Adding NL search to the global cmd+K palette (the existing header search stays).
+- Public `/dashboard/ask` access for anonymous users — staying behind the dashboard auth wall for now.
 
-### 3. Cross-references
-
-- Add a one-line pointer at the top of `docs/roadmap/STRATEGIC_FEATURES.md` back to `FEATURES.md` and to `CLAUDE.md` (for the edge-function shared-utility patterns) so a fresh session knows where to read the conventions before coding.
-- In each feature section, link to the **closest existing implementation** to copy from (e.g. Feature 4 → "model on `report-agent`"; Feature 1 → "model on `digest-agent` + `process-email-queue`").
-
-## Out of scope (intentionally)
-
-- No code changes to actual features yet — this turn is documentation only.
-- No new tables created — schemas are *specified* in the doc, applied later when each feature is built.
-- No pricing copy changes on `Pricing.tsx` — those happen when each feature ships.
-
-## How to use the doc afterwards
-
-When the user (or a future session) says "let's build the win-probability score":
-1. Open `docs/roadmap/STRATEGIC_FEATURES.md` → Feature 3.
-2. Follow the file-by-file build list and acceptance criteria.
-3. Flip the status to 🔄, then ✅, in **both** the strategic doc and `FEATURES.md`.
+## Acceptance criteria (will verify after build)
+- [ ] "power projects in Nigeria over 100M" returns relevant projects with correct filter chips shown.
+- [ ] Vague prompts return an interpretation + suggest broadening.
+- [ ] Counts against AI quota (visible in `usage_counters`).
+- [ ] Free tier sees UpgradeDialog after 2 queries.
+- [ ] Mobile layout works (single-column cards, full-width input).
+- [ ] Existing `<ProjectSearch />` in the dashboard header still works unchanged.
 
