@@ -1,0 +1,18 @@
+name: Update Browserslist Database
+
+on:
+  schedule:
+    - cron: '0 2 1,15 * *' # Runs at 2 AM on the 1st and 15th of every month
+  workflow_dispatch: # Allows manual runs from the Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-browserslist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Browserslist
+        uses: browserslist/update-db-action@v1

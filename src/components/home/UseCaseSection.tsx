@@ -40,7 +40,6 @@ export function UseCaseSection() {
   return (
     <section id="work" className="relative py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">06 Use case spotlight</div>
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How teams use InfraRadar</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
           From DFI analysts replacing manual spreadsheets to EPC contractors finding tenders before competitors - one platform, multiple workflows.

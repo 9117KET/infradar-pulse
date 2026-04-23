@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { Globe2, Radar, ShieldCheck, Sparkles, Compass, Users } from 'lucide-react';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
+import { ProblemSection } from '@/components/home/ProblemSection';
+import { PipelineSection } from '@/components/home/PipelineSection';
 
 export default function About() {
   useEffect(() => {
@@ -21,6 +23,7 @@ export default function About() {
   }, []);
 
   return (
+    <>
     <div className="py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* Hero */}
@@ -147,6 +150,14 @@ export default function About() {
           </div>
         </section>
 
+      </div>
+    </div>
+
+    <ProblemSection />
+    <PipelineSection />
+
+    <div className="pb-16 sm:pb-20">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* CTA */}
         <section className="rounded-xl border border-border/50 bg-card/40 p-8 text-center backdrop-blur">
           <h2 className="font-serif text-2xl font-bold mb-2">Work with us</h2>
@@ -164,5 +175,6 @@ export default function About() {
         </section>
       </div>
     </div>
+    </>
   );
 }

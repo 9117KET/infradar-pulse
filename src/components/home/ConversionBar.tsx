@@ -70,7 +70,7 @@ export function ConversionBar() {
           <div className="glass-panel-strong rounded-xl border border-primary/20 px-5 py-3.5 flex items-center gap-4 shadow-2xl">
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">
-                <span className="text-primary font-bold">{locations.length.toLocaleString()} projects</span> tracked globally — explore the full dataset for free.
+                <span className="text-primary font-bold">{locations.length.toLocaleString()} projects</span> tracked globally. Explore the full dataset for free.
               </p>
             </div>
             <Link to="/login" className="shrink-0">

@@ -19,7 +19,6 @@ export function CapabilitiesSection() {
     <section id="services" className="relative py-24">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 40% at 80% 30%, rgba(107,216,203,0.06) 0%, transparent 70%)' }} />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Section 02 · Capability briefing</div>
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">
           <em className="not-italic text-gradient-teal">Modern</em> infrastructure intelligence
         </h2>
