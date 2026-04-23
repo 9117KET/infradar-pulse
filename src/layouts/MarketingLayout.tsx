@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer';
 import { ConversionBar } from '@/components/home/ConversionBar';
 import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 
 export default function MarketingLayout() {
   const { pathname } = useLocation();
@@ -21,6 +22,7 @@ export default function MarketingLayout() {
       </main>
       <Footer />
       {showConversionBar && <ConversionBar />}
+      <FeedbackWidget />
     </div>
   );
 }
