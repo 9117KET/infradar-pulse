@@ -75,6 +75,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
       { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
+      { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },
       { title: 'Settings', url: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
     ],
   },
