@@ -23,7 +23,7 @@ const CASES = [
     title: 'Global engineering contractor',
     context: 'An EPC contractor active in MENA and East Africa used InfraRadar to surface tender opportunities ahead of competitors and track project health across 40+ active sites.',
     flow: [
-      { phase: 'Before', desc: 'Relying on informal networks and MEED subscriptions for regional tender intelligence.' },
+      { phase: 'Before', desc: 'Relying on informal networks and legacy regional intelligence subscriptions for tender coverage.' },
       { phase: 'During', desc: 'Configured InfraRadar for MENA tenders by sector and value threshold, with contractor win-rate tracking.' },
       { phase: 'After', desc: 'Real-time tender alerts, stakeholder maps, and competitor bid activity across 20+ procurement portals.' },
       { phase: 'Impact', desc: 'Identified $2.1B in tenders not covered by previous sources. Reduced tender research time by 80%.' },
