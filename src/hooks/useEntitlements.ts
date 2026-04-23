@@ -22,6 +22,7 @@ export function useEntitlements() {
   const [usage, setUsage] = useState<Partial<Record<UsageMetric, number>>>({});
   const [hasPaddleCustomer, setHasPaddleCustomer] = useState(false);
   const [staffBypass, setStaffBypass] = useState(false);
+  const [hasLifetime, setHasLifetime] = useState(false);
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
 
   useEffect(() => {
@@ -40,6 +41,7 @@ export function useEntitlements() {
       setUsage({});
       setHasPaddleCustomer(false);
       setStaffBypass(false);
+      setHasLifetime(false);
       setSubInfo(null);
       setLoading(false);
       return;
@@ -47,7 +49,7 @@ export function useEntitlements() {
 
     setLoading(true);
     try {
-      const [{ data: sub }, { data: counters }, { data: roleRow }] = await Promise.all([
+      const [{ data: sub }, { data: counters }, { data: roleRow }, { data: lifetime }] = await Promise.all([
         supabase
           .from('subscriptions')
           .select('status, plan_key, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
@@ -59,9 +61,17 @@ export function useEntitlements() {
           .eq('user_id', userId)
           .eq('period_start', todayUtc()),
         supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+        // Lifetime grant overrides everything below staff bypass.
+        // Cast to any: lifetime_grants is a brand-new table not yet in generated types.
+        (supabase as any)
+          .from('lifetime_grants')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle(),
       ]);
 
       setHasPaddleCustomer(!!sub?.paddle_customer_id);
+      setHasLifetime(!!lifetime);
       setSubInfo(
         sub
           ? {
@@ -78,6 +88,9 @@ export function useEntitlements() {
 
       if (bypass) {
         setPlan('enterprise');
+      } else if (lifetime) {
+        // Lifetime grant = permanent Pro-tier (effectively unlimited) access.
+        setPlan('lifetime');
       } else {
         setPlan(effectivePlan(sub));
       }
@@ -132,6 +145,7 @@ export function useEntitlements() {
     usage,
     staffBypass,
     hasPaddleCustomer,
+    hasLifetime,
     isFreeTier,
     /** True when no user is signed in. Used to skip per-user caps on public pages. */
     isAnonymous: !userId,
