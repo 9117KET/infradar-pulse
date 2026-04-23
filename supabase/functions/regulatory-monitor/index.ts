@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { runResearchBatch } from "../_shared/webResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -37,33 +37,18 @@ serve(async (req) => {
     const { data: projects } = await supabase.from("projects").select("id, name, country, sector").eq("approved", true).limit(30);
     const countries = [...new Set(projects?.map(p => p.country) || [])];
 
-    const rawContent: string[] = [];
-
-    if (PERPLEXITY_API_KEY) {
-      const queries = [
-        `environmental impact assessment EIA approvals denials infrastructure ${countries.join(" ")} 2025`,
-        `construction permits regulatory changes sanctions ${countries.join(" ")} 2025`,
-        `government policy changes infrastructure investment regulations ${countries.join(" ")} 2025`,
-      ];
-      for (const q of queries.slice(0, 2)) {
-        try {
-          const res = await fetch("https://api.perplexity.ai/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "sonar",
-              messages: [
-                { role: "system", content: "You are a regulatory compliance analyst for infrastructure projects worldwide." },
-                { role: "user", content: q },
-              ],
-              search_recency_filter: "month",
-            }),
-          });
-          const data = await res.json();
-          if (data?.choices?.[0]?.message?.content) rawContent.push(data.choices[0].message.content);
-        } catch (e) { console.error("Perplexity error:", e); }
-      }
-    }
+    const systemRole =
+      "You are a regulatory compliance analyst for infrastructure projects worldwide.";
+    const rawContent = await runResearchBatch([
+      {
+        systemRole,
+        query: `Summarise notable environmental impact assessment (EIA) approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025. Name specific projects, agencies, and dates where you can.`,
+      },
+      {
+        systemRole,
+        query: `Summarise recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} (2024-2025). Focus on items that could materially change project timelines or financing.`,
+      },
+    ]);
 
     if (!rawContent.length) {
       if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data", completed_at: new Date().toISOString() }).eq("id", task.id);

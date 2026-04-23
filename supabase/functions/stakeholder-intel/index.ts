@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { runResearchBatch } from "../_shared/webResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -47,38 +47,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: true, message: "No projects" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const rawContent: string[] = [];
-
-    // Query Perplexity for stakeholder intelligence
-    if (PERPLEXITY_API_KEY) {
-      const countries = [...new Set(projects.map(p => p.country))].join(", ");
-      const queries = [
-        `major infrastructure contractors track record ${countries} 2024 2025 performance issues delays`,
-        `government infrastructure agencies corruption investigations ${countries} 2025`,
-        `construction companies winning multiple bids ${countries} conflict of interest 2025`,
-      ];
-
-      for (const query of queries.slice(0, 2)) {
-        try {
-          const res = await fetch("https://api.perplexity.ai/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "sonar",
-              messages: [
-                { role: "system", content: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide." },
-                { role: "user", content: query },
-              ],
-              search_recency_filter: "month",
-            }),
-          });
-          const data = await res.json();
-          if (data?.choices?.[0]?.message?.content) {
-            rawContent.push(data.choices[0].message.content);
-          }
-        } catch (e) { console.error("Perplexity error:", e); }
-      }
-    }
+    const countries = [...new Set(projects.map((p) => p.country))].join(", ");
+    const systemRole =
+      "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide.";
+    const rawContent = await runResearchBatch([
+      {
+        systemRole,
+        query: `Summarise notable infrastructure contractors active in ${countries} with material performance issues, delays, or disputes during 2024-2025. Name specific firms and projects where you can.`,
+      },
+      {
+        systemRole,
+        query: `Summarise government infrastructure agencies or officials in ${countries} that have been linked to corruption investigations, conflict-of-interest concerns, or unusual bid-award patterns during 2024-2025.`,
+      },
+    ]);
 
     if (!rawContent.length) {
       if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data sources", completed_at: new Date().toISOString() }).eq("id", task.id);
