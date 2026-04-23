@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -23,8 +23,10 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 
 import type { AppRole } from '@/contexts/AuthContext';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { canAccessFeature, type FeatureKey } from '@/lib/billing/featureAccess';
 
-type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string };
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string; feature?: FeatureKey };
 type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
@@ -35,7 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: 'Ask AI', url: '/dashboard/ask', icon: Sparkles, tourId: 'nav-ask' },
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
       { title: 'My Portfolio', url: '/dashboard/portfolio', icon: Briefcase, tourId: 'nav-portfolio' },
-      { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat' },
+      { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
       { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
       { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research', minRole: 'researcher' as AppRole },
       { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries', minRole: 'researcher' as AppRole },
@@ -45,12 +47,12 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'Intelligence',
     items: [
       { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
-      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders' },
-      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar' },
-      { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline' },
-      { title: 'Compare Projects', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare' },
-      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders' },
-      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries' },
+      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
+      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
+      { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
+      { title: 'Compare Projects', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
+      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
       { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence', minRole: 'researcher' as AppRole },
     ],
   },
@@ -98,6 +100,7 @@ function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { signOut, hasRole } = useAuth();
+  const { plan, staffBypass } = useEntitlements();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -115,16 +118,24 @@ function AppSidebar() {
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {visibleItems.map(item => (
-                    <SidebarMenuItem key={item.url} data-tour={item.tourId}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                          <item.icon className="mr-2 h-4 w-4" />
-                          {!collapsed && <span>{item.title}</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {visibleItems.map(item => {
+                    const locked = !!item.feature && !canAccessFeature(plan, item.feature, staffBypass);
+                    return (
+                      <SidebarMenuItem key={item.url} data-tour={item.tourId}>
+                        <SidebarMenuButton asChild>
+                          <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                            <item.icon className="mr-2 h-4 w-4" />
+                            {!collapsed && (
+                              <span className="flex items-center gap-1.5 flex-1 min-w-0">
+                                <span className={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
+                                {locked && <Lock className="h-3 w-3 text-muted-foreground/70 shrink-0" />}
+                              </span>
+                            )}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
