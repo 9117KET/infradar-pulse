@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { initializePaddle, getPaddlePriceId, isPaddleConfigured } from '@/lib/paddle';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanPriceId = 'starter_monthly' | 'pro_monthly';
+export type PlanPriceId =
+  | 'starter_monthly'
+  | 'starter_yearly'
+  | 'pro_monthly'
+  | 'pro_yearly'
+  | 'lifetime_pro_onetime';
 
 export type CheckoutResult = {
   /** True if the user was eligible for a free trial when checkout opened. */

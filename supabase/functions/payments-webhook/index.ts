@@ -14,8 +14,15 @@ const supabase = createClient(
 // Add new SKUs here when you create them.
 const PRICE_TO_PLAN: Record<string, string> = {
   starter_monthly: 'starter',
+  starter_yearly: 'starter',
   pro_monthly: 'pro',
+  pro_yearly: 'pro',
+  lifetime_pro_onetime: 'lifetime',
 };
+
+// Price IDs that grant lifetime (one-time, non-recurring) access.
+const LIFETIME_PRICE_IDS = new Set<string>(['lifetime_pro_onetime']);
+const LIFETIME_MAX_SEATS = 100;
 
 function priceIdToPlanKey(priceId: string | undefined): string {
   if (priceId && PRICE_TO_PLAN[priceId]) return PRICE_TO_PLAN[priceId];
@@ -104,6 +111,7 @@ Deno.serve(async (req) => {
         break;
       case EventName.TransactionCompleted:
         console.log('Transaction completed:', event.data.id);
+        await maybeGrantLifetime(event.data, env);
         await logBillingEvent(event, env);
         break;
       case EventName.TransactionPaymentFailed:
