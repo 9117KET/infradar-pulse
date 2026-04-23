@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
+import { TrialEndingBanner } from '@/components/billing/TrialEndingBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 import type { AppRole } from '@/contexts/AuthContext';
@@ -389,6 +390,7 @@ export default function DashboardLayout() {
             </div>
           </header>
           <EmailVerificationBanner />
+          <TrialEndingBanner />
           <main className="flex-1 p-6 overflow-auto">
             <ErrorBoundary key={pathname}>
               <Outlet />

@@ -1,9 +1,13 @@
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe } from 'lucide-react';
+import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { supabase } from '@/integrations/supabase/client';
+import { getPaddleEnvironment } from '@/lib/paddle';
+import { cn } from '@/lib/utils';
 
 const COMPETITOR_TABLE = [
   { name: 'MEED', price: '$5k-$15k/yr', update: 'Quarterly PDF' },
@@ -12,10 +16,33 @@ const COMPETITOR_TABLE = [
   { name: 'InfraRadar', price: 'From $0/mo', update: 'Real-time AI', highlight: true },
 ];
 
+const LIFETIME_MAX_SEATS = 100;
+
+type Cycle = 'monthly' | 'yearly';
+
 export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { openCheckout, loading } = usePaddleCheckout();
+  const [cycle, setCycle] = useState<Cycle>('monthly');
+  const [seatsTaken, setSeatsTaken] = useState<number | null>(null);
+
+  // Public seat counter — drives the urgency badge on the Lifetime card.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const env = getPaddleEnvironment(); // 'sandbox' | 'live'
+      const { data, error } = await supabase.rpc('lifetime_seats_taken', {
+        p_environment: env,
+      });
+      if (!cancelled && !error && typeof data === 'number') {
+        setSeatsTaken(data);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const goCheckout = async (priceId: PlanPriceId) => {
     try {
@@ -29,10 +56,37 @@ export default function Pricing() {
     }
   };
 
+  const isYearly = cycle === 'yearly';
+
+  // Pricing data — matches Paddle catalog. Yearly is 20% off the rounded
+  // monthly equivalent; effectiveMonthly is what we surface to users.
+  const starterMonthlyPrice = 29;
+  const starterYearlyPrice = 278; // ~$23.20/mo
+  const proMonthlyPrice = 199;
+  const proYearlyPrice = 1910; // ~$159.20/mo
+
+  const starterPrice = isYearly ? starterYearlyPrice : starterMonthlyPrice;
+  const starterUnit = isYearly ? '/yr' : '/mo';
+  const starterSubtitle = isYearly
+    ? `~$${(starterYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
+    : '3-day trial, then billed monthly';
+  const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly' : 'starter_monthly';
+
+  const proPrice = isYearly ? proYearlyPrice : proMonthlyPrice;
+  const proUnit = isYearly ? '/yr' : '/mo';
+  const proSubtitle = isYearly
+    ? `~$${(proYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
+    : '3-day trial, then billed monthly';
+  const proPriceId: PlanPriceId = isYearly ? 'pro_yearly' : 'pro_monthly';
+
+  const seatsRemaining =
+    seatsTaken === null ? null : Math.max(0, LIFETIME_MAX_SEATS - seatsTaken);
+  const lifetimeSoldOut = seatsRemaining !== null && seatsRemaining <= 0;
+
   return (
     <div className="py-20">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="text-center mb-14">
+        <div className="text-center mb-10">
           <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Pricing</div>
           <h1 className="font-serif text-4xl font-bold mb-4">
             Intelligence that pays for itself
@@ -40,14 +94,56 @@ export default function Pricing() {
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfraRadar delivers{' '}
             <span className="text-foreground font-medium">real-time AI intelligence</span> at a fraction of the cost.
-            3-day free trial on all paid plans. No sales call required.
+            3-day free trial on monthly plans · card required, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            14-day refund guarantee on your first paid charge. Cancel anytime from your billing portal.
-            Daily quotas reset at 00:00 UTC. Trial users get 5 AI queries, 10 insight reads, and 3 exports per day.
+            14-day refund guarantee on your first paid charge. Daily quotas reset at 00:00 UTC.
           </p>
         </div>
 
+        {/* Billing cycle toggle */}
+        <div className="flex justify-center mb-10">
+          <div
+            role="tablist"
+            aria-label="Billing cycle"
+            className="inline-flex items-center rounded-full border border-border bg-card/50 p-1"
+          >
+            <button
+              role="tab"
+              aria-selected={!isYearly}
+              onClick={() => setCycle('monthly')}
+              className={cn(
+                'px-5 py-2 text-xs font-medium rounded-full transition-colors',
+                !isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Monthly
+            </button>
+            <button
+              role="tab"
+              aria-selected={isYearly}
+              onClick={() => setCycle('yearly')}
+              className={cn(
+                'px-5 py-2 text-xs font-medium rounded-full transition-colors flex items-center gap-2',
+                isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              Yearly
+              <span
+                className={cn(
+                  'text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full',
+                  isYearly
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-primary/15 text-primary',
+                )}
+              >
+                Save 20%
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Recurring plans */}
         <div className="grid gap-6 md:grid-cols-4 mb-12">
           {/* Free */}
           <div className="glass-panel rounded-xl p-7 border-border flex flex-col">
@@ -75,8 +171,11 @@ export default function Pricing() {
             <h2 className="font-serif text-lg font-bold mb-1 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> Starter
             </h2>
-            <p className="text-3xl font-serif font-bold mb-1">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-            <p className="text-xs text-muted-foreground mb-5">3-day trial, then billed monthly</p>
+            <p className="text-3xl font-serif font-bold mb-1">
+              ${starterPrice}
+              <span className="text-sm font-normal text-muted-foreground">{starterUnit}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
@@ -86,13 +185,13 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
             </ul>
             {user ? (
-              <Button className="w-full teal-glow" onClick={() => void goCheckout('starter_monthly')} disabled={loading}>
+              <Button className="w-full teal-glow" onClick={() => void goCheckout(starterPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Start trial
+                {isYearly ? 'Subscribe yearly' : 'Start trial'}
               </Button>
             ) : (
               <Button className="w-full teal-glow" asChild>
-                <Link to="/login">Sign in to start trial</Link>
+                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to start trial'}</Link>
               </Button>
             )}
           </div>
@@ -102,8 +201,11 @@ export default function Pricing() {
             <h2 className="font-serif text-lg font-bold mb-1 flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" /> Pro
             </h2>
-            <p className="text-3xl font-serif font-bold mb-1">$199<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-            <p className="text-xs text-muted-foreground mb-5">3-day trial, then billed monthly</p>
+            <p className="text-3xl font-serif font-bold mb-1">
+              ${proPrice}
+              <span className="text-sm font-normal text-muted-foreground">{proUnit}</span>
+            </p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
@@ -114,13 +216,13 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Permit &amp; regulatory tracker</li>
             </ul>
             {user ? (
-              <Button className="w-full" onClick={() => void goCheckout('pro_monthly')} disabled={loading}>
+              <Button className="w-full" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Start trial
+                {isYearly ? 'Subscribe yearly' : 'Start trial'}
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link to="/login">Sign in to start trial</Link>
+                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to start trial'}</Link>
               </Button>
             )}
           </div>
@@ -131,7 +233,7 @@ export default function Pricing() {
               <Globe className="h-4 w-4 text-primary" /> Enterprise
             </h2>
             <p className="text-3xl font-serif font-bold mb-1">Custom</p>
-            <p className="text-xs text-muted-foreground mb-5">Annual contracts, invoicing available</p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">Annual contracts, invoicing available</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited AI, insights &amp; exports</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full API access + webhooks</li>
@@ -143,6 +245,67 @@ export default function Pricing() {
             <Button variant="outline" asChild className="w-full">
               <Link to="/contact">Contact sales</Link>
             </Button>
+          </div>
+        </div>
+
+        {/* Founders Lifetime — limited offer */}
+        <div className="relative mb-12">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 blur-2xl rounded-2xl" />
+          <div className="relative glass-panel rounded-2xl p-8 border-2 border-primary/40 teal-glow overflow-hidden">
+            <div className="grid md:grid-cols-[1fr_auto] gap-8 items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown className="h-5 w-5 text-primary" />
+                  <span className="text-[10px] uppercase tracking-widest text-primary font-semibold">
+                    Founders offer · limited to 100 seats
+                  </span>
+                </div>
+                <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+                  Lifetime access — pay once, own it forever
+                  <InfinityIcon className="h-6 w-6 text-primary" />
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4 max-w-xl">
+                  Get permanent Pro-tier access to InfraRadar. Every future feature, every new agent,
+                  every market we cover — yours, at no extra cost. Help us build the category, get
+                  rewarded forever.
+                </p>
+                <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-muted-foreground mb-2">
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Everything in Pro, forever</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> All future features included</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> No recurring charges, ever</li>
+                  <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Priority support &amp; roadmap input</li>
+                </ul>
+              </div>
+              <div className="text-center md:text-right md:border-l md:border-primary/20 md:pl-8">
+                <p className="text-5xl font-serif font-bold mb-1">$1,499</p>
+                <p className="text-xs text-muted-foreground mb-1">One-time · USD</p>
+                <p className="text-[11px] text-muted-foreground line-through mb-4">vs $2,388/yr on Pro</p>
+                {seatsRemaining !== null && (
+                  <div className="inline-block mb-4 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30">
+                    <span className="text-xs font-semibold text-primary">
+                      {lifetimeSoldOut
+                        ? 'Sold out'
+                        : `${seatsRemaining} of ${LIFETIME_MAX_SEATS} seats left`}
+                    </span>
+                  </div>
+                )}
+                {user ? (
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto teal-glow"
+                    disabled={loading || lifetimeSoldOut}
+                    onClick={() => void goCheckout('lifetime_pro_onetime')}
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
+                    {lifetimeSoldOut ? 'Sold out' : 'Claim lifetime access'}
+                  </Button>
+                ) : (
+                  <Button size="lg" className="w-full md:w-auto teal-glow" asChild>
+                    <Link to="/login">Sign in to claim</Link>
+                  </Button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
