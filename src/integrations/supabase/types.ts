@@ -1103,6 +1103,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _agent_cron_auth_header: { Args: never; Returns: Json }
       check_trial_eligible: {
         Args: {
           p_email: string
