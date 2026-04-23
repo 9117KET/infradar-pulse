@@ -27,7 +27,7 @@ Top-5 high-leverage features identified in product review. **Full build specs (d
 | # | Feature | Status | Effort | Notes |
 |---|---|---|---|---|
 | 1 | Weekly Email Digest Delivery | 🔲 Todo | 2–3 days | Reuses `digest-agent` + `process-email-queue` |
-| 2 | Natural Language Project Search | 🔲 Todo | 3–4 days | New `/dashboard/ask` + `nl-search` edge fn |
+| 2 | Natural Language Project Search | ✅ Done | 3–4 days | `/dashboard/ask` + `nl-search` edge fn (Lovable AI) |
 | 3 | Win-Probability Score per Project | 🔲 Todo | 4–5 days | New `project_scores` table + nightly agent |
 | 4 | Executive One-Pager PDF Export | 🔲 Todo | 2 days | New `project-onepager` edge fn |
 | 5 | Public REST API + Webhooks | 🔲 Todo | 1–2 weeks | Enterprise revenue unlock |

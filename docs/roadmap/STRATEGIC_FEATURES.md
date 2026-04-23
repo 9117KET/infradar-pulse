@@ -19,7 +19,7 @@
 | # | Feature | Status | Effort | Priority |
 |---|---|---|---|---|
 | 1 | Weekly Email Digest Delivery | 🔲 Todo | 2–3 days | ⭐⭐⭐ Quickest win |
-| 2 | Natural Language Project Search | 🔲 Todo | 3–4 days | ⭐⭐⭐ |
+| 2 | Natural Language Project Search | ✅ Done | 3–4 days | ⭐⭐⭐ |
 | 3 | Win-Probability Score per Project | 🔲 Todo | 4–5 days | ⭐⭐ Biggest moat |
 | 4 | Executive One-Pager PDF Export | 🔲 Todo | 2 days | ⭐⭐ |
 | 5 | Public REST API + Webhooks | 🔲 Todo | 1–2 weeks | ⭐ Enterprise revenue |
@@ -89,7 +89,7 @@ Free tier = monthly digest, Starter+ = weekly, Pro+ = daily option. Enforce in `
 
 ## Feature 2 — Natural Language Project Search ("Bloomberg moment")
 
-**Status:** 🔲 Todo
+**Status:** ✅ Done — shipped 2026-04-23. Live at `/dashboard/ask`.
 
 ### Why it matters
 Replaces filter-driven search with `"Show me power projects in West Africa above $50M that moved to tender stage in the last 90 days"`. Headline differentiator vs. legacy intelligence publishers.
@@ -119,10 +119,11 @@ No new tables. Optional: `nl_search_history` for personalization later.
 Free = 2 queries/day, Starter = 20, Pro = 100, Lifetime = unlimited (already covered by `aiPerDay`).
 
 ### Acceptance criteria
-- [ ] "power projects in Nigeria over 100M" returns relevant projects.
-- [ ] Vague prompts return interpretation + suggest filters.
-- [ ] Counts against AI quota.
-- [ ] Works on mobile.
+- [x] "power projects in Nigeria over 100M" returns relevant projects.
+- [x] Vague prompts return interpretation + suggest filters.
+- [x] Counts against AI quota (uses `requireAiEntitlementOrRespond`).
+- [x] Works on mobile (responsive grid + stacked input).
+- [x] Existing header `<ProjectSearch />` (instant fuzzy match) preserved alongside.
 
 ### Files to touch
 | Action | Path |
