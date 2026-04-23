@@ -318,6 +318,48 @@ export type Database = {
           },
         ]
       }
+      feedback: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          page: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          type: Database["public"]["Enums"]["feedback_type"]
+          updated_at: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          page?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          type?: Database["public"]["Enums"]["feedback_type"]
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          page?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          type?: Database["public"]["Enums"]["feedback_type"]
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       insights: {
         Row: {
           ai_generated: boolean
@@ -1225,6 +1267,13 @@ export type Database = {
       alert_severity: "critical" | "high" | "medium" | "low"
       app_role: "user" | "researcher" | "admin"
       evidence_type: "Satellite" | "Filing" | "News" | "Registry" | "Partner"
+      feedback_status:
+        | "new"
+        | "triaged"
+        | "in_progress"
+        | "resolved"
+        | "wont_fix"
+      feedback_type: "bug" | "idea" | "praise" | "other"
       project_region:
         | "MENA"
         | "East Africa"
@@ -1399,6 +1448,14 @@ export const Constants = {
       alert_severity: ["critical", "high", "medium", "low"],
       app_role: ["user", "researcher", "admin"],
       evidence_type: ["Satellite", "Filing", "News", "Registry", "Partner"],
+      feedback_status: [
+        "new",
+        "triaged",
+        "in_progress",
+        "resolved",
+        "wont_fix",
+      ],
+      feedback_type: ["bug", "idea", "praise", "other"],
       project_region: [
         "MENA",
         "East Africa",
