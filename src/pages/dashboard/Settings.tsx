@@ -372,7 +372,7 @@ function BillingTab() {
     }
   };
 
-  const switchPlan = async (priceId: PlanPriceId) => {
+  const switchPlan = async (priceId: 'starter_monthly' | 'starter_yearly' | 'pro_monthly' | 'pro_yearly') => {
     setBusy('change');
     try {
       await changePlan(priceId);
@@ -507,13 +507,19 @@ function BillingTab() {
           <>
             <p className="text-xs text-muted-foreground">Switch plans (charges adjust immediately, prorated) or cancel.</p>
             <div className="flex flex-wrap gap-2">
-              {plan !== 'pro' && (
+              {plan !== 'pro' && plan !== 'lifetime' && (
                 <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
                   Upgrade to Pro
                 </Button>
               )}
-              {plan !== 'starter' && plan !== 'free' && (
+              {(plan === 'starter' || plan === 'pro') && (
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan(plan === 'pro' ? 'pro_yearly' : 'starter_yearly')}>
+                  {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
+                  Switch to yearly · save 20%
+                </Button>
+              )}
+              {plan !== 'starter' && plan !== 'free' && plan !== 'lifetime' && (
                 <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowDownRight className="h-4 w-4 mr-2" />}
                   Downgrade to Starter
