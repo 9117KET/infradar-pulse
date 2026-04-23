@@ -35,6 +35,8 @@ export const agentApi = {
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
   runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),
+  /** Natural Language project search — translates a free-text prompt into filters and returns matching projects. */
+  runNlSearch: (query: string) => invokeAgentWithBody('nl-search', { query }),
   runDigestAgent: (opts?: { rule_id?: string }) => invokeAgentWithBody('digest-agent', { ...(opts ?? {}) }),
   runDatasetRefresh: (opts?: { dataset_key?: string }) => invokeAgentWithBody('dataset-refresh-agent', { ...(opts ?? {}) }),
   runReportAgent: (opts?: { report_type?: string; days?: number }) => invokeAgentWithBody('report-agent', { ...(opts ?? {}) }),
