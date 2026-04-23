@@ -21,6 +21,8 @@ import Refund from "./pages/Refund";
 import DataProtection from "./pages/DataProtection";
 import Careers from "./pages/Careers";
 import Press from "./pages/Press";
+import FeedbackPage from "./pages/Feedback";
+import FeedbackInbox from "./pages/dashboard/FeedbackInbox";
 import Unsubscribe from "./pages/Unsubscribe";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -91,6 +93,7 @@ const App = () => (
               <Route path="/careers" element={<Careers />} />
               <Route path="/press" element={<Press />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
             </Route>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
@@ -132,6 +135,7 @@ const App = () => (
               <Route path="/dashboard/chat" element={<PortfolioChat />} />
               <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
+              <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
