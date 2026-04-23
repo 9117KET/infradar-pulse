@@ -20,6 +20,7 @@ import {
 import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 import { TrialEndingBanner } from '@/components/billing/TrialEndingBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
 
 import type { AppRole } from '@/contexts/AuthContext';
 
@@ -400,6 +401,7 @@ export default function DashboardLayout() {
         </div>
       </div>
       {showTour && <GuidedTour onComplete={handleTourComplete} />}
+      <FeedbackWidget />
     </SidebarProvider>
   );
 }

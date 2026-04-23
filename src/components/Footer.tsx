@@ -11,6 +11,7 @@ const PRODUCT_LINKS = [
   { label: 'Contact', href: '/contact' },
   { label: 'Careers', href: '/careers' },
   { label: 'Press', href: '/press' },
+  { label: 'Feedback', href: '/feedback' },
 ];
 
 const LEGAL_LINKS = [
