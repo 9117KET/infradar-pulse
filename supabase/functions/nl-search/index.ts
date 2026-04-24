@@ -6,7 +6,7 @@
 // Counts as 1 AI quota unit per call (same metric as other AI features).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
+import { requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -109,7 +109,7 @@ function sanitizeStringArray(arr: unknown, allowed: string[] | null): string[] {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireAiEntitlementOrRespond(req);
+  const gate = await requirePlanAndAiOrRespond(req, "starter");
   if (gate instanceof Response) return gate;
 
   try {

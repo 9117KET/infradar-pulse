@@ -42,6 +42,21 @@ export function getExportRowCap(plan: PlanKey): number {
   return EXPORT_ROW_CAPS[plan] ?? 25;
 }
 
+/** Numeric rank for plan comparison (mirrors _shared/billing.ts). */
+export const PLAN_RANK: Record<PlanKey, number> = {
+  free:       0,
+  trialing:   1,
+  starter:    2,
+  pro:        3,
+  enterprise: 4,
+  lifetime:   4,
+};
+
+/** Returns true when current plan meets or exceeds minPlan. */
+export function planMeetsMinimum(current: PlanKey, min: PlanKey): boolean {
+  return PLAN_RANK[current] >= PLAN_RANK[min];
+}
+
 export type SubscriptionRow = {
   status: string;
   plan_key: string | null;

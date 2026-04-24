@@ -29,6 +29,25 @@ export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
 };
 
 /**
+ * Numeric rank used to compare plans. Staff bypass (admin/researcher) is
+ * resolved before this is consulted, so enterprise rank is the effective
+ * ceiling for all non-staff comparisons.
+ */
+export const PLAN_RANK: Record<PlanKey, number> = {
+  free:       0,
+  trialing:   1,
+  starter:    2,
+  pro:        3,
+  enterprise: 4,
+  lifetime:   4,
+};
+
+/** Returns true when the user's current plan meets or exceeds minPlan. */
+export function planMeetsMinimum(current: PlanKey, min: PlanKey): boolean {
+  return PLAN_RANK[current] >= PLAN_RANK[min];
+}
+
+/**
  * Per-export ROW caps (sync with src/lib/billing/limits.ts). Server reads
  * these to validate a row_count value reported by the client and reject
  * obviously over-cap requests as defense-in-depth.
