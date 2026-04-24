@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { effectivePlan, PLAN_LIMITS, PlanKey } from '@/lib/billing/limits';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -49,11 +50,15 @@ export function useEntitlements() {
 
     setLoading(true);
     try {
+      const environment = getPaddleEnvironment();
       const [{ data: sub }, { data: counters }, { data: roleRow }, { data: lifetime }] = await Promise.all([
         supabase
           .from('subscriptions')
           .select('status, plan_key, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
           .eq('user_id', userId)
+          .eq('environment', environment)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle(),
         supabase
           .from('usage_counters')
