@@ -168,4 +168,105 @@ if (staff) {
   );
 }
 
+// ── Plan-level feature gate regression tests ─────────────────────────────────
+// These tests verify that pro-only functions (user-research, generate-insight)
+// and starter-only functions (nl-search) reject free-tier users with 402
+// PLAN_REQUIRED, not just a quota error.
+
+// H5: nl-search rejects unauthenticated request → 401
+const noAuthNl = await invokeFunction("nl-search");
+if (noAuthNl.fetchError) {
+  console.log("FAIL", "| network (nl-search)", noAuthNl.json?.fetchError);
+  exitCode = 1;
+} else {
+  const h5 = noAuthNl.status === 401;
+  console.log(h5 ? "PASS" : "FAIL", "| nl-search + no auth → 401", "(got", noAuthNl.status + ")");
+  if (!h5) exitCode = 1;
+}
+
+// H6: generate-insight rejects unauthenticated request → 401
+const noAuthGi = await invokeFunction("generate-insight");
+if (noAuthGi.fetchError) {
+  console.log("FAIL", "| network (generate-insight)", noAuthGi.json?.fetchError);
+  exitCode = 1;
+} else {
+  const h6 = noAuthGi.status === 401;
+  console.log(h6 ? "PASS" : "FAIL", "| generate-insight + no auth → 401", "(got", noAuthGi.status + ")");
+  if (!h6) exitCode = 1;
+}
+
+// H7: user-research + free-tier JWT → 402 with PLAN_REQUIRED code
+// (Only runnable if SECURITY_TEST_FREE_USER tokens are provided, since the
+//  regular nonStaff token may be on any plan. Set SECURITY_TEST_FREE_ACCESS_TOKEN
+//  or SECURITY_TEST_FREE_EMAIL + SECURITY_TEST_FREE_PASSWORD to a confirmed free user.)
+const freeToken = process.env.SECURITY_TEST_FREE_ACCESS_TOKEN ||
+  await (async () => {
+    const email = process.env.SECURITY_TEST_FREE_EMAIL;
+    const password = process.env.SECURITY_TEST_FREE_PASSWORD;
+    if (!email || !password) return "";
+    const sb = (await import("@supabase/supabase-js")).createClient(base, anon);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { console.error("[verify-edge-security] Free user sign-in failed:", error.message); return ""; }
+    return data.session?.access_token ?? "";
+  })();
+
+if (freeToken) {
+  const r7 = await invokeFunction("user-research", freeToken);
+  const h7 = r7.status === 402 && String(JSON.stringify(r7.json)).includes("PLAN_REQUIRED");
+  console.log(
+    h7 ? "PASS" : "FAIL",
+    "| user-research + free JWT → 402 PLAN_REQUIRED",
+    "(got", r7.status, JSON.stringify(r7.json?.code ?? r7.json) + ")",
+  );
+  if (!h7) exitCode = 1;
+
+  const r7b = await invokeFunction("generate-insight", freeToken);
+  const h7b = r7b.status === 402 && String(JSON.stringify(r7b.json)).includes("PLAN_REQUIRED");
+  console.log(
+    h7b ? "PASS" : "FAIL",
+    "| generate-insight + free JWT → 402 PLAN_REQUIRED",
+    "(got", r7b.status, JSON.stringify(r7b.json?.code ?? r7b.json) + ")",
+  );
+  if (!h7b) exitCode = 1;
+
+  const r7c = await invokeFunction("nl-search", freeToken);
+  const h7c = r7c.status === 402 && String(JSON.stringify(r7c.json)).includes("PLAN_REQUIRED");
+  console.log(
+    h7c ? "PASS" : "FAIL",
+    "| nl-search + free JWT → 402 PLAN_REQUIRED",
+    "(got", r7c.status, JSON.stringify(r7c.json?.code ?? r7c.json) + ")",
+  );
+  if (!h7c) exitCode = 1;
+} else {
+  console.log(
+    "SKIP | plan-gate rejection tests (set SECURITY_TEST_FREE_ACCESS_TOKEN or SECURITY_TEST_FREE_EMAIL + SECURITY_TEST_FREE_PASSWORD to a confirmed free-tier user)",
+  );
+}
+
+// H8: Staff JWT bypasses plan gate on pro-only functions (may still 5xx if LLM key missing)
+if (staff) {
+  const r8 = await invokeFunction("user-research", staff);
+  const h8 = r8.status !== 401 && r8.status !== 402 && r8.status !== 403;
+  console.log(
+    h8 ? "PASS" : "FAIL",
+    "| user-research + staff JWT bypasses plan gate (not 401/402/403)",
+    "(got", r8.status + ")",
+  );
+  if (!h8) exitCode = 1;
+
+  const r8b = await invokeFunction("generate-insight", staff);
+  const h8b = r8b.status !== 401 && r8b.status !== 402 && r8b.status !== 403;
+  console.log(
+    h8b ? "PASS" : "FAIL",
+    "| generate-insight + staff JWT bypasses plan gate (not 401/402/403)",
+    "(got", r8b.status + ")",
+  );
+  if (!h8b) exitCode = 1;
+} else {
+  console.log(
+    "SKIP | staff bypass of plan gate (set SECURITY_TEST_ACCESS_TOKEN_STAFF or SECURITY_TEST_STAFF_EMAIL + SECURITY_TEST_STAFF_PASSWORD)",
+  );
+}
+
+console.log("\n[verify-edge-security] Summary:", exitCode === 0 ? "ALL PASSED" : "FAILURES DETECTED");
 process.exit(exitCode);
