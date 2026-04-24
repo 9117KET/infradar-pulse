@@ -67,7 +67,8 @@ export async function hasStaffBypass(
 
 export async function getEntitlementForUser(
   supabaseAdmin: SupabaseClient,
-  userId: string
+  userId: string,
+  environment: "sandbox" | "live" = "live"
 ): Promise<{ plan: PlanKey; limits: PlanLimit; bypass: boolean }> {
   const bypass = await hasStaffBypass(supabaseAdmin, userId);
   if (bypass) {
@@ -88,6 +89,9 @@ export async function getEntitlementForUser(
     .from("subscriptions")
     .select("status, plan_key, trial_end, current_period_end")
     .eq("user_id", userId)
+    .eq("environment", environment)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   const plan = effectivePlan(sub?.status, sub?.plan_key, sub?.trial_end, sub?.current_period_end);
@@ -167,9 +171,10 @@ async function tryConsume(
  */
 export async function consumeAiQuota(
   supabaseAdmin: SupabaseClient,
-  userId: string
+  userId: string,
+  environment: "sandbox" | "live" = "live"
 ): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
-  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  const ent = await getEntitlementForUser(supabaseAdmin, userId, environment);
   if (ent.bypass) return { ok: true };
   return tryConsume(
     supabaseAdmin,
@@ -185,9 +190,10 @@ export async function consumeAiQuota(
 export async function consumeExportQuota(
   supabaseAdmin: SupabaseClient,
   userId: string,
-  kind: "csv" | "pdf"
+  kind: "csv" | "pdf",
+  environment: "sandbox" | "live" = "live"
 ): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
-  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  const ent = await getEntitlementForUser(supabaseAdmin, userId, environment);
   if (ent.bypass) return { ok: true };
   const metric: Metric = kind === "csv" ? "export_csv" : "export_pdf";
   return tryConsume(
@@ -203,9 +209,10 @@ export async function consumeExportQuota(
 
 export async function consumeInsightReadQuota(
   supabaseAdmin: SupabaseClient,
-  userId: string
+  userId: string,
+  environment: "sandbox" | "live" = "live"
 ): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
-  const ent = await getEntitlementForUser(supabaseAdmin, userId);
+  const ent = await getEntitlementForUser(supabaseAdmin, userId, environment);
   if (ent.bypass) return { ok: true };
   return tryConsume(
     supabaseAdmin,
