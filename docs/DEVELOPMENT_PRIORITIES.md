@@ -9,7 +9,7 @@ This document records the next high priority work for InfraRadar AI if the platf
 - [x] Harden insight management so only admins and researchers can create, edit, or delete articles.
 - [x] Restrict subscriber and waitlist reads to admins only.
 - [x] Fix and redeploy the email queue dispatcher after type checking surfaced stale function typings.
-- [ ] Review public read policies for sensitive project-related data.
+- [x] Review public read policies for sensitive project-related data and gate contact and evidence records to paid users, lifetime users, admins, and researchers.
 - [ ] Add server-side feature enforcement for premium Edge Functions.
 - [ ] Add regression tests for plan access, role bypass, direct function calls, and database write restrictions.
 
@@ -362,7 +362,7 @@ Tests should confirm that:
 - [x] Lock down evidence, contacts, milestones, and stakeholders writes to staff
 - [x] Lock down insights management to staff
 - [x] Lock down subscriber and waitlist reads to admins
-- Review public read policies for sensitive project-related tables
+- [x] Review public read policies for sensitive project-related tables
 
 ### Phase 3: Add Server-Side Feature Enforcement
 
