@@ -10,6 +10,7 @@ This document records the next high priority work for InfraRadar AI if the platf
 - [x] Restrict subscriber and waitlist reads to admins only.
 - [x] Fix and redeploy the email queue dispatcher after type checking surfaced stale function typings.
 - [x] Review public read policies for sensitive project-related data and gate contact and evidence records to paid users, lifetime users, admins, and researchers.
+- [x] Enforce billing environment separation for entitlement checks so test subscriptions cannot unlock live access and live subscriptions are resolved correctly.
 - [ ] Add server-side feature enforcement for premium Edge Functions.
 - [ ] Add regression tests for plan access, role bypass, direct function calls, and database write restrictions.
 
@@ -367,7 +368,8 @@ Tests should confirm that:
 ### Phase 3: Add Server-Side Feature Enforcement
 
 - Add reusable backend entitlement helpers where missing
-- Apply checks to AI, research, export, and premium intelligence functions
+- [x] Apply billing-environment-aware checks to AI, research, export, and insight usage functions
+- [x] Ensure AI and usage-protected functions receive the active billing environment from the client
 - Ensure every protected function validates the bearer token in code
 - Return consistent forbidden or upgrade-required responses
 
