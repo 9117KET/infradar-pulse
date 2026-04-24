@@ -45,6 +45,7 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action as Action;
+    const environment = body?.environment === "sandbox" ? "sandbox" : "live";
     if (!action || !ALLOWED.includes(action)) {
       return new Response(
         JSON.stringify({ error: "Invalid action" }),
@@ -67,10 +68,10 @@ Deno.serve(async (req: Request) => {
     // Returns ok=false if either the daily or hourly cap would be exceeded.
     let gate;
     if (action === "insight_read") {
-      gate = await consumeInsightReadQuota(supabaseAdmin, user.id);
+      gate = await consumeInsightReadQuota(supabaseAdmin, user.id, environment);
     } else {
       const kind = action === "export_csv" ? "csv" : "pdf";
-      gate = await consumeExportQuota(supabaseAdmin, user.id, kind);
+      gate = await consumeExportQuota(supabaseAdmin, user.id, kind, environment);
     }
     if (gate.ok === false) {
       return new Response(
