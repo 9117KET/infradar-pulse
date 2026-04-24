@@ -2,6 +2,17 @@
 
 This document records the next high priority work for InfraRadar AI if the platform is being developed autonomously or continued by a future developer. It focuses on the most important product, security, and billing gaps identified from the current codebase and platform behavior.
 
+## Implementation Checklist
+
+- [x] Harden core project write permissions so only admins and researchers can create, edit, or delete project records.
+- [x] Harden evidence, contact, milestone, and stakeholder write permissions so only admins and researchers can manage intelligence records.
+- [x] Harden insight management so only admins and researchers can create, edit, or delete articles.
+- [x] Restrict subscriber and waitlist reads to admins only.
+- [x] Fix and redeploy the email queue dispatcher after type checking surfaced stale function typings.
+- [ ] Review public read policies for sensitive project-related data.
+- [ ] Add server-side feature enforcement for premium Edge Functions.
+- [ ] Add regression tests for plan access, role bypass, direct function calls, and database write restrictions.
+
 ## Primary Priority
 
 The next major work item should be robust server-side plan and permission enforcement.
@@ -347,10 +358,10 @@ Tests should confirm that:
 
 ### Phase 2: Fix Critical Database Policies
 
-- Lock down project writes to staff
-- Lock down evidence, contacts, milestones, and stakeholders writes to staff
-- Lock down insights management to staff
-- Lock down subscriber and waitlist reads to admins
+- [x] Lock down project writes to staff
+- [x] Lock down evidence, contacts, milestones, and stakeholders writes to staff
+- [x] Lock down insights management to staff
+- [x] Lock down subscriber and waitlist reads to admins
 - Review public read policies for sensitive project-related tables
 
 ### Phase 3: Add Server-Side Feature Enforcement
