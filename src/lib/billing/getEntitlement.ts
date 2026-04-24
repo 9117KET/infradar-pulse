@@ -3,6 +3,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { effectivePlan, PLAN_LIMITS, PlanKey } from '@/lib/billing/limits';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 export type EntitlementSnapshot = {
   plan: PlanKey;
@@ -15,10 +16,18 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
+  const environment = getPaddleEnvironment();
 
   const [{ data: roleRow }, { data: sub }, { data: lifetime }] = await Promise.all([
     supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
-    supabase.from('subscriptions').select('status, plan_key, trial_end, current_period_end').eq('user_id', user.id).maybeSingle(),
+    supabase
+      .from('subscriptions')
+      .select('status, plan_key, trial_end, current_period_end')
+      .eq('user_id', user.id)
+      .eq('environment', environment)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     // lifetime_grants is new — generated types not yet refreshed
     (supabase as any).from('lifetime_grants').select('id').eq('user_id', user.id).maybeSingle(),
   ]);

@@ -6,6 +6,7 @@
  * limits cannot be bypassed by a tampered client.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 export type TrackAction = 'export_csv' | 'export_pdf' | 'insight_read';
 
@@ -27,7 +28,7 @@ type ErrorCtx = {
 
 export async function trackUsage(action: TrackAction): Promise<TrackResult> {
   const { data, error } = await supabase.functions.invoke('usage-track', {
-    body: { action },
+    body: { action, environment: getPaddleEnvironment() },
   });
   if (error) {
     const ctx = (error as { context?: ErrorCtx }).context;

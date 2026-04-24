@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 async function invokeAgent(functionName: string) {
   const { data, error } = await supabase.functions.invoke(functionName, {
-    body: {},
+    body: { environment: getPaddleEnvironment() },
   });
 
   if (error) {
@@ -13,7 +14,9 @@ async function invokeAgent(functionName: string) {
 }
 
 async function invokeAgentWithBody(functionName: string, body: Record<string, unknown>) {
-  const { data, error } = await supabase.functions.invoke(functionName, { body });
+  const { data, error } = await supabase.functions.invoke(functionName, {
+    body: { ...body, environment: getPaddleEnvironment() },
+  });
   if (error) throw new Error(error.message || `Failed to invoke ${functionName}`);
   return data;
 }
