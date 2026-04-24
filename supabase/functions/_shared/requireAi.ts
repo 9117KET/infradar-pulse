@@ -34,6 +34,8 @@ export async function requireAiEntitlementOrRespond(req: Request): Promise<
     });
   }
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+  const body = req.method === "POST" ? await req.clone().json().catch(() => ({})) : {};
+  const environment = body?.environment === "sandbox" ? "sandbox" : "live";
 
   // Email verification gate: stops disposable/unconfirmed accounts from
   // burning AI quota. Staff bypass.
@@ -46,7 +48,7 @@ export async function requireAiEntitlementOrRespond(req: Request): Promise<
   }
 
   // Atomic: gates AND consumes one unit of AI quota in a single transaction.
-  const gate = await consumeAiQuota(supabaseAdmin, user.id);
+  const gate = await consumeAiQuota(supabaseAdmin, user.id, environment);
   if (gate.ok === false) {
     return new Response(
       JSON.stringify({ error: gate.message, code: "ENTITLEMENT", reason: gate.reason }),
