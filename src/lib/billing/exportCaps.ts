@@ -4,6 +4,7 @@
  * exporters.
  */
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 import { getExportRowCap, PlanKey } from './limits';
 
 export type CapResult<T> = {
@@ -43,6 +44,44 @@ export function buildCsvHeaderComment(label: string, truncated: CapResult<unknow
     lines.push(`"# Showing ${truncated.cap} of ${truncated.total} rows. Upgrade for higher export caps."`);
   }
   return lines;
+}
+
+/**
+ * Build and trigger download of a watermarked .xlsx file.
+ * The first row contains the watermark label so it is visible in any viewer.
+ * A hidden "License" sheet also carries the full label for audit purposes.
+ */
+export function downloadXlsx(
+  filename: string,
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+  watermarkLabel: string,
+  cap: CapResult<unknown>,
+): void {
+  const wb = XLSX.utils.book_new();
+
+  // Main data sheet - watermark preamble rows first, then headers + data.
+  const preamble: (string | number)[][] = [[watermarkLabel]];
+  if (cap.truncated) {
+    preamble.push([`Showing ${cap.cap} of ${cap.total} rows. Upgrade for higher export caps.`]);
+  }
+  const ws = XLSX.utils.aoa_to_sheet([...preamble, headers, ...rows]);
+  XLSX.utils.book_append_sheet(wb, ws, 'Projects');
+
+  // License audit sheet.
+  const licenseWs = XLSX.utils.aoa_to_sheet([
+    ['License'],
+    [watermarkLabel],
+    ['This file is licensed to the subscriber above. Redistribution is prohibited.'],
+  ]);
+  XLSX.utils.book_append_sheet(wb, licenseWs, 'License');
+
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 }
 
 /**

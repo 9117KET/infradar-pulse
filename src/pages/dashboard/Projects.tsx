@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { canAccessFeature } from '@/lib/billing/featureAccess';
-import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel } from '@/lib/billing/exportCaps';
+import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel, downloadXlsx } from '@/lib/billing/exportCaps';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   PieChart, Pie, Cell, BarChart, Bar,
@@ -216,6 +216,37 @@ export default function Projects() {
       });
     } else {
       toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
+    }
+  };
+
+  const exportXLSX = async () => {
+    if (!canExportCsv) {
+      setUpgradeOpen(true);
+      return;
+    }
+    const capped = applyExportCap(filtered, plan, staffBypass);
+    const watermark = buildWatermarkLabel(user?.email);
+    const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
+    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
+    downloadXlsx('infradar_projects.xlsx', headers, rows, watermark, capped);
+    const result = await trackUsage('export_csv');
+    if (!result.ok) {
+      if (result.emailUnverified) {
+        toast({ title: 'Confirm your email', description: result.message, variant: 'destructive' });
+        return;
+      }
+      if (result.overLimit) setUpgradeOpen(true);
+      toast({ title: 'Export limit reached', description: result.message, variant: 'destructive' });
+      return;
+    }
+    await refreshEntitlements();
+    if (capped.truncated) {
+      toast({
+        title: 'Export truncated',
+        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
+      });
+    } else {
+      toast({ title: 'Exported', description: `${filtered.length} projects exported to Excel.` });
     }
   };
 
@@ -633,6 +664,7 @@ export default function Projects() {
             {!canAccessFeature(plan, 'saved_searches', staffBypass) && <span className="ml-1.5 text-[10px] text-primary">PRO</span>}
           </Button>
           <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
+          <Button size="sm" variant="outline" onClick={() => void exportXLSX()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export Excel</Button>
         </div>
       </div>
 

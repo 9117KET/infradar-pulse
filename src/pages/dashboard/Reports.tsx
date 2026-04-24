@@ -3,9 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, RefreshCw } from 'lucide-react';
+import { FileText, RefreshCw, Download } from 'lucide-react';
 import { agentApi } from '@/lib/api/agents';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { useState } from 'react';
 
 type ReportRun = {
   id: string;
@@ -18,6 +24,10 @@ type ReportRun = {
 };
 
 export default function Reports() {
+  const { user } = useAuth();
+  const { canExportPdf, plan } = useEntitlements();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
   const { data: runs, isLoading, refetch } = useQuery({
     queryKey: ['report-runs'],
     queryFn: async () => {
@@ -30,6 +40,60 @@ export default function Reports() {
       return (data ?? []) as ReportRun[];
     },
   });
+
+  const downloadReportPdf = (report: ReportRun) => {
+    if (!canExportPdf) {
+      setUpgradeOpen(true);
+      return;
+    }
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentW = pageW - margin * 2;
+
+    // Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(30, 30, 40);
+    doc.text(report.title || report.report_type, margin, 22);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 130);
+    const created = new Date(report.created_at).toLocaleString();
+    const completed = report.completed_at ? ` · Completed ${new Date(report.completed_at).toLocaleString()}` : '';
+    doc.text(`${created}${completed}`, margin, 30);
+
+    // Divider
+    doc.setDrawColor(200, 200, 210);
+    doc.line(margin, 33, pageW - margin, 33);
+
+    // Body - wrap markdown text
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(40, 40, 50);
+    const body = report.markdown || '';
+    const lines = doc.splitTextToSize(body, contentW);
+    let y = 40;
+    const lineH = 5;
+    const pageH = doc.internal.pageSize.getHeight();
+    const bottomMargin = 20;
+    for (const line of lines) {
+      if (y + lineH > pageH - bottomMargin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += lineH;
+    }
+
+    const watermark = buildWatermarkLabel(user?.email);
+    applyPdfWatermark(doc, watermark);
+
+    const slug = (report.title || report.report_type).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    doc.save(`infradar_report_${slug}.pdf`);
+    toast.success('Report downloaded as PDF');
+  };
 
   const runReport = async () => {
     try {
@@ -44,6 +108,7 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
+      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="export" />
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -83,6 +148,19 @@ export default function Reports() {
                       {r.completed_at ? ` · completed ${new Date(r.completed_at).toLocaleString()}` : ''}
                     </p>
                   </div>
+                  {r.markdown && r.status === 'completed' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 text-xs h-7"
+                      onClick={() => downloadReportPdf(r)}
+                      title={!canExportPdf ? `PDF export requires the Pro plan` : undefined}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      PDF
+                      {!canExportPdf && <span className="ml-1 text-[9px] text-primary">PRO</span>}
+                    </Button>
+                  )}
                 </div>
                 {r.markdown && (
                   <pre className="whitespace-pre-wrap text-xs text-muted-foreground bg-muted/20 rounded-md p-3 border border-border/40">
