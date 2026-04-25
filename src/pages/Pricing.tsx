@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon } from 'lucide-react';
+import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, FileSpreadsheet, FileText, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
@@ -103,7 +103,7 @@ export default function Pricing() {
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfraRadar delivers{' '}
             <span className="text-foreground font-medium">real-time AI intelligence</span> at a fraction of the cost.
-            Card required · cancel anytime.
+            No free trial - pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             14-day refund guarantee on your first paid charge. Daily quotas reset at 00:00 UTC.
@@ -162,7 +162,10 @@ export default function Pricing() {
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 2 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 3 full insight reads/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 1 export/day (CSV or PDF)</li>
+              <li className="flex gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                1 export/day (CSV or Excel, up to 25 rows)
+              </li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Core project discovery</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio tracking</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Basic alerts</li>
@@ -188,7 +191,14 @@ export default function Pricing() {
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 exports/day (CSV + PDF combined)</li>
+              <li className="flex gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                20 exports/day - CSV &amp; Excel (.xlsx), up to 1,000 rows
+              </li>
+              <li className="flex gap-2">
+                <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                AI digest email alerts
+              </li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full alert rules</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio chat (AI Q&amp;A)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
@@ -218,7 +228,22 @@ export default function Pricing() {
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day (CSV + PDF combined)</li>
+              <li className="flex gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                100 exports/day - CSV &amp; Excel (.xlsx), up to 10,000 rows
+              </li>
+              <li className="flex gap-2">
+                <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                Watermarked project tearsheet PDFs (per-project one-pager)
+              </li>
+              <li className="flex gap-2">
+                <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                AI-generated intelligence report PDF downloads
+              </li>
+              <li className="flex gap-2">
+                <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                AI digest email alerts
+              </li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Delay risk scores</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Early warning alerts</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Contractor intelligence</li>
@@ -245,9 +270,13 @@ export default function Pricing() {
             <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">Annual contracts, invoicing available</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited AI, insights &amp; exports</li>
+              <li className="flex gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                Unlimited CSV, Excel &amp; PDF exports (no row cap)
+              </li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full API access + webhooks</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> SSO / SAML</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> White-label reports</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> White-label reports &amp; tearsheet PDFs</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Dedicated onboarding</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> SLA guarantee</li>
             </ul>
@@ -281,6 +310,10 @@ export default function Pricing() {
                 <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-muted-foreground mb-2">
                   <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Everything in Pro, forever</li>
                   <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> All future features included</li>
+                  <li className="flex gap-2">
+                    <FileSpreadsheet className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    Unlimited CSV, Excel &amp; PDF exports
+                  </li>
                   <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> No recurring charges, ever</li>
                   <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Priority support &amp; roadmap input</li>
                 </ul>
@@ -369,6 +402,7 @@ export default function Pricing() {
             <span className="text-foreground">real-time AI research</span>,{' '}
             <span className="text-foreground">confidence-scored signals</span>, and{' '}
             <span className="text-foreground">self-serve workflows</span> - no annual contracts, no sales calls, no waiting for a quarterly report.
+            Export your pipeline as watermarked CSV, Excel (.xlsx), or branded PDF tearsheets and intelligence reports - every file licensed to your account for audit traceability.
             Enterprise and API access available for teams embedding InfraRadar into their own workflows.
           </p>
         </div>
