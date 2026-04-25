@@ -13,6 +13,9 @@ This document records the next high priority work for InfraRadar AI if the platf
 - [x] Enforce billing environment separation for entitlement checks so test subscriptions cannot unlock live access and live subscriptions are resolved correctly.
 - [x] Add server-side feature enforcement for premium Edge Functions.
 - [x] Add regression tests for plan access, role bypass, direct function calls, and database write restrictions.
+- [x] Remove active trial checkout paths and switch paid purchases to no-trial price IDs.
+- [x] Preserve subscription history by syncing payment webhooks by provider subscription ID instead of replacing one user/environment row.
+- [x] Make Pro-to-Starter downgrades preserve Pro entitlement until the already-paid period ends.
 
 ## Primary Priority
 
@@ -375,10 +378,19 @@ Tests should confirm that:
 
 ### Phase 4: Align Frontend Gates With Backend Rules
 
-- Ensure every locked route uses the feature gate
-- Add locked states to premium tabs and actions
-- Make upgrade prompts clear and non-annoying
-- Ensure staff and lifetime users bypass correctly
+- [ ] Ensure every locked route uses the feature gate
+- [ ] Add locked states to premium tabs and actions
+- [x] Make upgrade prompts clear and non-annoying
+- [x] Ensure staff and lifetime users bypass correctly
+
+### Phase 4b: Billing Flow Alignment
+
+- [x] Confirm test product catalog matches visible Starter, Pro, and Lifetime pricing.
+- [x] Add no-trial Starter and Pro monthly/yearly prices for the current no-trial policy.
+- [x] Route checkout, billing, and upgrade dialogs to no-trial prices.
+- [x] Keep old subscription rows for audit/history when users cancel and re-subscribe.
+- [x] Apply billing environment filters to checkout completion and lifetime entitlement reads.
+- [x] Schedule downgrade entitlement behavior so access does not drop before the paid period ends.
 
 ### Phase 5: Add Regression Tests
 
