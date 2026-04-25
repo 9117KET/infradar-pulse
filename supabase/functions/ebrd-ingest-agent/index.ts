@@ -258,7 +258,7 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
             value_usd: totalAmt, value_label: valueLabel, confidence,
             risk_score: 42, lat, lng,
             description: `EBRD-financed ${ep.sector} project in ${ep.country}.`,
-            timeline: "", source_url: bestUrl, ai_generated: false, approved: false,
+            timeline: "", source_url: bestUrl, ai_generated: false, approved: true,
           }).select().single();
 
           if (newProject) {

@@ -350,7 +350,7 @@ serve(async (req) => {
                   timeline,
                   source_url: projectUrl,
                   ai_generated: false, // this is real primary source data
-                  approved: false,
+                  approved: true,
                 })
                 .select()
                 .single();
