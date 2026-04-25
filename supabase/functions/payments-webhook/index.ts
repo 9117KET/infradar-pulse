@@ -179,6 +179,10 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     current_period_end: currentBillingPeriod?.endsAt ?? null,
     trial_end: trialEnd,
     cancel_at_period_end: scheduledChange?.action === 'cancel',
+    scheduled_price_id: null,
+    scheduled_plan_key: null,
+    scheduled_change_action: scheduledChange?.action ?? null,
+    scheduled_change_effective_at: scheduledChange?.effectiveAt ?? null,
     environment: env,
     updated_at: new Date().toISOString(),
   };
