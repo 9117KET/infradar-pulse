@@ -22,7 +22,29 @@
       "WebFetch(domain:api.github.com)",
       "Bash(npm install:*)",
       "Bash(curl:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(npm audit:*)",
+      "WebFetch(domain:vendelux.com)",
+      "WebFetch(domain:live.peievents.com)",
+      "WebFetch(domain:projects.worldbank.org)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(grep -l \"public\\\\|anon\\\\|SELECT.*projects\\\\|projects.*SELECT\" \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse/supabase/migrations/\"*.sql)",
+      "Bash(grep -rn \"anon\\\\|public_read\\\\|public_select\" \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse/supabase/migrations/\"*.sql)",
+      "Bash(grep -rn \"projects.*SELECT\\\\|SELECT.*FROM projects\\\\|policy.*projects\" \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse/supabase/migrations/\"*.sql)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(npx update-browserslist-db@latest --update-db -- --npm)",
+      "Bash(npm update *)",
+      "Bash(grep *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":8080\")",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(npm --version)",
+      "Bash(npx vite *)",
+      "Bash(node -e \"const v = require\\('./node_modules/vite/package.json'\\); console.log\\('vite:', v.version\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(npm show *)",
+      "Bash(node -e \"const v = require\\('/c/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse/node_modules/vite/package.json'\\); process.exit\\(v.version.startsWith\\('6'\\) ? 0 : 1\\);\")",
+      "Bash(node *)"
     ]
   }
 }
