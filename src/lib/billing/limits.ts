@@ -60,6 +60,8 @@ export function planMeetsMinimum(current: PlanKey, min: PlanKey): boolean {
 export type SubscriptionRow = {
   status: string;
   plan_key: string | null;
+  entitlement_plan_key?: string | null;
+  entitlement_plan_until?: string | null;
   trial_end: string | null;
   current_period_end: string | null;
 };
@@ -67,6 +69,10 @@ export type SubscriptionRow = {
 export function effectivePlan(sub: SubscriptionRow | null): PlanKey {
   const now = Date.now();
   if (!sub) return 'free';
+  if (sub.entitlement_plan_key && sub.entitlement_plan_until && new Date(sub.entitlement_plan_until).getTime() > now) {
+    const pk = sub.entitlement_plan_key as PlanKey;
+    if (pk in PLAN_LIMITS) return pk;
+  }
   if (sub.status === 'trialing') return 'trialing';
   if (sub.status === 'active' || sub.status === 'past_due') {
     const pk = (sub.plan_key || 'starter') as PlanKey;

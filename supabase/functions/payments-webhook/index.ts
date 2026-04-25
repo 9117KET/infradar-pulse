@@ -17,6 +17,10 @@ const PRICE_TO_PLAN: Record<string, string> = {
   starter_yearly: 'starter',
   pro_monthly: 'pro',
   pro_yearly: 'pro',
+  starter_monthly_no_trial: 'starter',
+  starter_yearly_no_trial: 'starter',
+  pro_monthly_no_trial: 'pro',
+  pro_yearly_no_trial: 'pro',
   lifetime_pro_onetime: 'lifetime',
 };
 
@@ -163,7 +167,7 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     item?.trialDates?.endsAt ??
     (status === 'trialing' && currentBillingPeriod?.endsAt ? currentBillingPeriod.endsAt : null);
 
-  const row = {
+  const row: Record<string, unknown> = {
     user_id: userId,
     paddle_subscription_id: id,
     paddle_customer_id: customerId,
@@ -175,14 +179,32 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     current_period_end: currentBillingPeriod?.endsAt ?? null,
     trial_end: trialEnd,
     cancel_at_period_end: scheduledChange?.action === 'cancel',
+    scheduled_price_id: null,
+    scheduled_plan_key: null,
+    scheduled_change_action: scheduledChange?.action ?? null,
+    scheduled_change_effective_at: scheduledChange?.effectiveAt ?? null,
     environment: env,
     updated_at: new Date().toISOString(),
   };
 
+  if (scheduledChange?.action === 'cancel') {
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('scheduled_price_id, scheduled_plan_key, scheduled_change_action')
+      .eq('paddle_subscription_id', id)
+      .eq('environment', env)
+      .maybeSingle();
+    if (existing?.scheduled_change_action === 'downgrade') {
+      row.scheduled_price_id = existing.scheduled_price_id;
+      row.scheduled_plan_key = existing.scheduled_plan_key;
+      row.scheduled_change_action = 'downgrade';
+    }
+  }
+
   // Upsert in both create + update paths so a rogue 'updated' before 'created'
   // doesn't drop the row.
   const _ = isCreate; // kept for log clarity; same code path either way
-  await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
+  await supabase.from('subscriptions').upsert(row, { onConflict: 'paddle_subscription_id,environment' });
 
   // Anti-abuse: record that this user has now used a trial. Idempotent.
   // We only record on trialing status so paid subs don't burn the trial flag.

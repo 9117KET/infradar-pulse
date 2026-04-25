@@ -22,14 +22,19 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
     supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('subscriptions')
-      .select('status, plan_key, trial_end, current_period_end')
+      .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end')
       .eq('user_id', user.id)
       .eq('environment', environment)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
     // lifetime_grants is new — generated types not yet refreshed
-    (supabase as any).from('lifetime_grants').select('id').eq('user_id', user.id).maybeSingle(),
+    (supabase as any)
+      .from('lifetime_grants')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('environment', environment)
+      .maybeSingle(),
   ]);
 
   const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
