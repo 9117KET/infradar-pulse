@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { getReadRowCap } from '@/lib/billing/readCaps';
@@ -9,12 +10,16 @@ export interface InsightSource {
   url: string;
 }
 
-export interface Insight {
+/**
+ * Metadata-only shape returned by list queries and the detail metadata phase.
+ * `content` is deliberately absent so it is never sent to the browser until
+ * the user's entitlement is confirmed.
+ */
+export interface InsightMeta {
   id: string;
   title: string;
   slug: string;
   excerpt: string;
-  content: string;
   tag: string;
   cover_image_url: string | null;
   author: string;
@@ -25,9 +30,22 @@ export interface Insight {
   created_at: string;
   updated_at: string;
   source_url: string | null;
-  /** JSON array from DB — use `normalizeInsightSources` */
+  /** JSON array from DB - use `normalizeInsightSources` */
   sources?: unknown;
 }
+
+/**
+ * Full insight including body content. Only used when the user's entitlement
+ * has been verified client-side so content is not sent to unentitled browsers.
+ */
+export interface Insight extends InsightMeta {
+  content: string;
+}
+
+// Columns fetched for list views - content excluded to save bandwidth and
+// avoid delivering article bodies to users who only see a card list.
+const LIST_COLUMNS =
+  'id,title,slug,excerpt,tag,cover_image_url,author,published,ai_generated,related_project_ids,reading_time_min,created_at,updated_at,source_url,sources';
 
 export function normalizeInsightSources(raw: unknown): InsightSource[] {
   if (!Array.isArray(raw)) return [];
@@ -41,7 +59,7 @@ export function normalizeInsightSources(raw: unknown): InsightSource[] {
 }
 
 /** Merges JSON `sources` with legacy `source_url`, deduped by URL (JSON order first). */
-export function getDisplaySources(insight: Insight): InsightSource[] {
+export function getDisplaySources(insight: InsightMeta): InsightSource[] {
   const fromJson = normalizeInsightSources(insight.sources);
   const legacy =
     insight.source_url && String(insight.source_url).trim().startsWith('http')
@@ -58,37 +76,116 @@ export function getDisplaySources(insight: Insight): InsightSource[] {
   return out;
 }
 
+/**
+ * Fetches the insight list (metadata only, no content field).
+ * Subscribes to Supabase realtime so the list updates live when researchers
+ * publish or update articles.
+ */
 export function useInsights(publishedOnly = true) {
+  const queryClient = useQueryClient();
   const { plan, staffBypass, isAnonymous, loading: entLoading } = useEntitlements();
-  // Public marketing reads (no signed-in user) bypass per-user caps so anonymous
-  // visitors don't see a truncated article list. Caps still apply to signed-in
-  // free/trial users on the dashboard.
+  // Anonymous visitors bypass per-user caps (marketing page).
+  // Signed-in free/trial users are capped to prevent scraping.
   const rowCap = isAnonymous ? 0 : getReadRowCap(plan, staffBypass);
+  const queryKey = ['insights', publishedOnly, rowCap];
 
-  return useQuery({
-    queryKey: ['insights', publishedOnly, rowCap],
-    staleTime: 60_000,
+  const result = useQuery({
+    queryKey,
+    staleTime: 30_000,
     enabled: !entLoading,
     queryFn: async () => {
       let query = supabase
         .from('insights')
-        .select('*')
+        .select(LIST_COLUMNS)
         .order('created_at', { ascending: false });
       if (publishedOnly) query = query.eq('published', true);
       if (rowCap > 0) query = query.limit(rowCap);
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as Insight[];
+      return (data ?? []) as InsightMeta[];
+    },
+  });
+
+  // Real-time: invalidate whenever insights are inserted, updated, or deleted.
+  // The insights table is already in the supabase_realtime publication.
+  useEffect(() => {
+    const channel = supabase
+      .channel('insights-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'insights' },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ['insights'] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return result;
+}
+
+/**
+ * Fetches insight METADATA only (no content field) by slug.
+ * Safe to call unconditionally - never delivers article body to the browser.
+ */
+export function useInsightMeta(slug: string) {
+  return useQuery({
+    queryKey: ['insight-meta', slug],
+    staleTime: 60_000,
+    enabled: !!slug,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('insights')
+        .select(LIST_COLUMNS)
+        .eq('slug', slug)
+        .single();
+      if (error) throw error;
+      return data as InsightMeta;
     },
   });
 }
 
+/**
+ * Fetches ONLY the content field for a known insight id.
+ * The `enabled` flag must be set to true only after entitlement is confirmed,
+ * so the article body is never sent to browsers of users over their daily limit.
+ */
+export function useInsightContent(id: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['insight-content', id],
+    staleTime: 120_000,
+    enabled: !!id && enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('insights')
+        .select('id,content,source_url,sources')
+        .eq('id', id!)
+        .single();
+      if (error) throw error;
+      return data as Pick<Insight, 'id' | 'content' | 'source_url' | 'sources'>;
+    },
+  });
+}
+
+/**
+ * @deprecated Use `useInsightMeta` + `useInsightContent` instead.
+ * Kept for backward compatibility with InsightsManagement which needs full
+ * content for the editor - staff-only page so entitlement bypass applies.
+ */
 export function useInsight(slug: string) {
   return useQuery({
     queryKey: ['insight', slug],
     staleTime: 120_000,
     queryFn: async () => {
-      const { data, error } = await supabase.from('insights').select('*').eq('slug', slug).single();
+      const { data, error } = await supabase
+        .from('insights')
+        .select('*')
+        .eq('slug', slug)
+        .single();
       if (error) throw error;
       return data as Insight;
     },
