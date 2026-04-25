@@ -72,6 +72,7 @@ export function useEntitlements() {
           .from('lifetime_grants')
           .select('id')
           .eq('user_id', userId)
+          .eq('environment', environment)
           .maybeSingle(),
       ]);
 
