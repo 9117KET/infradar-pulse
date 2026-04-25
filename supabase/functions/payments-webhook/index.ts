@@ -167,7 +167,7 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     item?.trialDates?.endsAt ??
     (status === 'trialing' && currentBillingPeriod?.endsAt ? currentBillingPeriod.endsAt : null);
 
-  const row = {
+  const row: Record<string, unknown> = {
     user_id: userId,
     paddle_subscription_id: id,
     paddle_customer_id: customerId,
