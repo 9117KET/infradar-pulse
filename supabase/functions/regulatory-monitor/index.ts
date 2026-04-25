@@ -37,7 +37,7 @@ serve(async (req) => {
     const { data: projects } = await supabase.from("projects").select("id, name, country, sector").eq("approved", true).limit(30);
     const countries = [...new Set(projects?.map(p => p.country) || [])];
 
-    const raw: string[] = [];
+    let raw = "";
     if (PERPLEXITY_API_KEY && countries.length) {
       try {
         const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -53,11 +53,11 @@ serve(async (req) => {
           }),
         });
         const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+        raw = data?.choices?.[0]?.message?.content ?? "";
       } catch (e) { console.error("Perplexity:", e); }
     }
 
-    if (!raw.length) {
+    if (!raw) {
       if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -65,7 +65,7 @@ serve(async (req) => {
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Extract regulatory and compliance findings for infrastructure projects." },
-          { role: "user", content: `Projects: ${projects?.map(p => `${p.name} (${p.country}, ${p.sector})`).join(", ")}\n\n${raw.join("\n\n")}` },
+          { role: "user", content: `Projects: ${projects?.map(p => `${p.name} (${p.country}, ${p.sector})`).join(", ")}\n\n${raw}` },
         ],
         tools: [{
           type: "function",
@@ -107,26 +107,29 @@ serve(async (req) => {
       } catch (e) { console.error("Parse error:", e); }
     }
 
-    let alertsCreated = 0;
-    for (const f of findings) {
+    const enriched = findings.map(f => {
       const isCritical = ["sanction", "permit_block", "eia_denial"].includes(f.type);
       const match = projects?.find(p => p.country === f.country && (f.related_project_name ? p.name.toLowerCase().includes(f.related_project_name.toLowerCase()) : false));
+      return { f, isCritical, match };
+    });
 
-      await supabase.from("alerts").insert({
-        project_id: match?.id || null,
-        project_name: f.related_project_name || `${f.country} regulatory`,
-        severity: isCritical ? "critical" : (f.severity || "medium"),
-        message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country}: ${f.summary}`,
-        category: "regulatory",
-        source_url: f.source_url || null,
-      });
-      alertsCreated++;
+    const alertRows = enriched.map(({ f, isCritical, match }) => ({
+      project_id: match?.id || null,
+      project_name: f.related_project_name || `${f.country} regulatory`,
+      severity: isCritical ? "critical" : (f.severity || "medium"),
+      message: `Regulatory: ${f.type.replace(/_/g, " ")} in ${f.country}: ${f.summary}`,
+      category: "regulatory",
+      source_url: f.source_url || null,
+    }));
+    if (alertRows.length) await supabase.from("alerts").insert(alertRows);
 
-      // Update project status if sanction or permit block
-      if (match && isCritical) {
-        await supabase.from("projects").update({ status: "At Risk", last_updated: new Date().toISOString() }).eq("id", match.id);
-      }
-    }
+    await Promise.all(
+      enriched
+        .filter(({ match, isCritical }) => match && isCritical)
+        .map(({ match }) => supabase.from("projects").update({ status: "At Risk", last_updated: new Date().toISOString() }).eq("id", match!.id))
+    );
+
+    const alertsCreated = alertRows.length;
 
     if (task) await supabase.from("research_tasks").update({ status: "completed", result: { findings: findings.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
 
