@@ -35,9 +35,15 @@ function effectivePlan(
   status: string | null | undefined,
   planKey: string | null | undefined,
   trialEnd: string | null | undefined,
-  periodEnd: string | null | undefined
+  periodEnd: string | null | undefined,
+  entitlementPlanKey?: string | null,
+  entitlementPlanUntil?: string | null
 ): PlanKey {
   const now = Date.now();
+  if (entitlementPlanKey && entitlementPlanUntil && new Date(entitlementPlanUntil).getTime() > now) {
+    const pk = entitlementPlanKey as PlanKey;
+    if (pk in PLAN_LIMITS) return pk;
+  }
   if (status === "trialing") return "trialing";
   if (status === "active" || status === "past_due") {
     const pk = (planKey || "starter") as PlanKey;
@@ -88,14 +94,14 @@ export async function getEntitlementForUser(
 
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
-    .select("status, plan_key, trial_end, current_period_end")
+    .select("status, plan_key, trial_end, current_period_end, entitlement_plan_key, entitlement_plan_until")
     .eq("user_id", userId)
     .eq("environment", environment)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  const plan = effectivePlan(sub?.status, sub?.plan_key, sub?.trial_end, sub?.current_period_end);
+  const plan = effectivePlan(sub?.status, sub?.plan_key, sub?.trial_end, sub?.current_period_end, sub?.entitlement_plan_key, sub?.entitlement_plan_until);
   return { plan, limits: PLAN_LIMITS[plan], bypass: false };
 }
 
