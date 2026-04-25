@@ -7,6 +7,10 @@ export type PlanPriceId =
   | 'starter_yearly'
   | 'pro_monthly'
   | 'pro_yearly'
+  | 'starter_monthly_no_trial'
+  | 'starter_yearly_no_trial'
+  | 'pro_monthly_no_trial'
+  | 'pro_yearly_no_trial'
   | 'lifetime_pro_onetime';
 
 export type CheckoutResult = {
@@ -31,23 +35,8 @@ export function usePaddleCheckout() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Sign in required');
 
-      // Server-side trial eligibility check. If we lose this round-trip we
-      // fail closed (assume NOT eligible) so we never accidentally grant a
-      // second trial.
-      let trialEligible = false;
-      try {
-        const env = (import.meta.env.VITE_PADDLE_ENV ?? 'sandbox') as
-          | 'sandbox'
-          | 'live';
-        const { data, error } = await supabase.functions.invoke('checkout-precheck', {
-          body: { environment: env },
-        });
-        if (!error && data && typeof data.trialEligible === 'boolean') {
-          trialEligible = data.trialEligible;
-        }
-      } catch (e) {
-        console.warn('checkout-precheck failed; treating as no-trial', e);
-      }
+      // Trials are intentionally disabled for all currently sold plans.
+      const trialEligible = false;
 
       await initializePaddle();
       const paddlePriceId = await getPaddlePriceId(priceId);
