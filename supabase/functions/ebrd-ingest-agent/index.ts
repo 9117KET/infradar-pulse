@@ -13,7 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +36,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -49,17 +49,9 @@ serve(async (req) => {
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "ebrd-ingest")) return pausedResponse("ebrd-ingest");
-
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "ebrd-ingest",
-        query: "EBRD Infrastructure Projects",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "ebrd-ingest", "EBRD Infrastructure Projects", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("ebrd-ingest");
+    taskId = lock.taskId;
 
     const rawContent: string[] = [];
 
@@ -127,7 +119,7 @@ serve(async (req) => {
     }
 
     if (rawContent.length === 0) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No content collected", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No content collected", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false, error: "No content collected from EBRD" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -191,7 +183,7 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
     }
 
     if (extractedProjects.length === 0) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "AI extracted 0 EBRD projects", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "AI extracted 0 EBRD projects", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false, error: "AI extracted 0 projects" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -282,21 +274,21 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     const result = { success: true, extracted: extractedProjects.length, inserted, updated, source: "EBRD" };
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("EBRD ingest error:", e);
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

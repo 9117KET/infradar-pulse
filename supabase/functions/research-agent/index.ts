@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -134,8 +134,8 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  // Hoist task and supabase so the outer catch can update task status on crash
-  let task: { id: string } | null = null;
+  // Hoist taskId and supabase so the outer catch can update task status on crash
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -149,18 +149,9 @@ serve(async (req) => {
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "discovery")) return pausedResponse("discovery");
-
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "discovery",
-        query: "Full pipeline run",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select()
-      .single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "discovery", "Full pipeline run", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("discovery");
+    taskId = lock.taskId;
 
     const rawContent: string[] = [];
 
@@ -243,8 +234,8 @@ serve(async (req) => {
     }
 
     if (rawContent.length === 0) {
-      if (task) {
-        await supabase.from("research_tasks").update({ status: "failed", error: "No data sources available", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) {
+        await supabase.from("research_tasks").update({ status: "failed", error: "No data sources available", completed_at: new Date().toISOString() }).eq("id", taskId);
       }
       return new Response(
         JSON.stringify({ success: false, error: "No data collected from sources" }),
@@ -354,8 +345,8 @@ ${rawContent.join("\n\n---\n\n")}`;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
-      if (task) {
-        await supabase.from("research_tasks").update({ status: "failed", error: `AI error: ${aiResponse.status}`, completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) {
+        await supabase.from("research_tasks").update({ status: "failed", error: `AI error: ${aiResponse.status}`, completed_at: new Date().toISOString() }).eq("id", taskId);
       }
       return new Response(
         JSON.stringify({ success: false, error: `AI extraction failed: ${aiResponse.status}` }),
@@ -378,12 +369,12 @@ ${rawContent.join("\n\n---\n\n")}`;
 
     // Guard: treat zero extractions as a failure, not silent success
     if (extractedProjects.length === 0) {
-      if (task) {
+      if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed",
           error: "AI returned 0 projects — possible tool_call parse failure or genuinely empty result",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       }
       return new Response(
         JSON.stringify({ success: false, error: "AI extracted 0 projects", raw_content_length: rawContent.length }),
@@ -525,12 +516,12 @@ ${rawContent.join("\n\n---\n\n")}`;
       }
     }
 
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
         result: { extracted: extractedProjects.length, inserted, updated, sources: rawContent.length, missing_source: skippedNoSource },
         completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     console.log(`Research complete: ${extractedProjects.length} extracted, ${inserted} new, ${updated} updated, ${skippedNoSource} missing source`);
@@ -551,13 +542,13 @@ ${rawContent.join("\n\n---\n\n")}`;
   } catch (e) {
     console.error("Research agent error:", e);
     // Best-effort: mark the task as failed if it was created before the crash
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed",
           error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(

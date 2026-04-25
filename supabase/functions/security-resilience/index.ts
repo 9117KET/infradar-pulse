@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,12 +28,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase.from("research_tasks").insert({
-      task_type: "security-resilience",
-      query: "Security & resilience scan",
-      status: "running",
-      requested_by: gate.userId,
-    }).select().single();
+    const lock = await beginAgentTask(supabase, "security-resilience", "Security & resilience scan", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("security-resilience");
+    const taskId = lock.taskId;
 
     const { data: pool } = await supabase
       .from("projects")
@@ -66,12 +64,12 @@ serve(async (req) => {
     }
 
     if (!pool?.length) {
-      if (task) {
+      if (taskId) {
         await supabase.from("research_tasks").update({
           status: "completed",
           result: { message: "No projects" },
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       }
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, incidents: 0 }), {
@@ -80,12 +78,12 @@ serve(async (req) => {
     }
 
     if (!raw.length) {
-      if (task) {
+      if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed",
           error: "No research text",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       }
       return new Response(JSON.stringify({ success: false }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -155,12 +153,12 @@ serve(async (req) => {
       alertsCreated++;
     }
 
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
         result: { incidents: incidents.length, alerts: alertsCreated },
         completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
     return new Response(JSON.stringify({ success: true, incidents: incidents.length, alerts: alertsCreated }), {

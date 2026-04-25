@@ -14,7 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -176,7 +176,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -196,17 +196,9 @@ serve(async (req) => {
     const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
     const startOffset: number = Number(body.offset) || 0;
 
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "world-bank-ingest",
-        query: `World Bank Projects API — status:${statusFilter} limit:${totalLimit}`,
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select()
-      .single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
+    taskId = lock.taskId;
 
     // Infrastructure-relevant World Bank sector codes
     // TX=Transport, YA=Energy & Mining, WS=Water, TU=Urban Dev, TC=ICT, YB=Industry & Trade
@@ -409,12 +401,12 @@ serve(async (req) => {
 
     const result = { success: true, fetched, inserted, updated, skipped, status_filter: statusFilter };
 
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
         result,
         completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     console.log(`World Bank ingest complete: fetched=${fetched} inserted=${inserted} updated=${updated} skipped=${skipped}`);
@@ -424,13 +416,13 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("World Bank ingest agent error:", e);
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed",
           error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(

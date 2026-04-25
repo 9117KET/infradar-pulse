@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,8 +16,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  // Hoist task and supabase so the outer catch can update task status on crash
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -30,17 +29,9 @@ serve(async (req) => {
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "sentiment-analyzer")) return pausedResponse("sentiment-analyzer");
-
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "sentiment-analyzer",
-        query: "Sentiment & media analysis",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "sentiment-analyzer", "Sentiment & media analysis", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("sentiment-analyzer");
+    taskId = lock.taskId;
 
     const { data: projects } = await supabase.from("projects").select("id, name, country").eq("approved", true).limit(15);
 
@@ -67,7 +58,7 @@ serve(async (req) => {
     }
 
     if (!rawContent.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No news found" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No news found" }, completed_at: new Date().toISOString() }).eq("id", taskId);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No news to analyze" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -142,21 +133,20 @@ serve(async (req) => {
       }
     }
 
-    if (task) await supabase.from("research_tasks").update({ status: "completed", result: { analyses: analyses.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
+    if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { analyses: analyses.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify({ success: true, analyses: analyses.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Sentiment analyzer error:", e);
-    // Best-effort: mark the task as failed if it was created before the crash
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed",
           error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,19 +30,9 @@ serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const datasetKey = typeof body?.dataset_key === "string" ? body.dataset_key : "projects_v1";
 
-    const { data: task, error: taskErr } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "dataset-refresh",
-        query: datasetKey,
-        status: "running",
-        requested_by: gate.userId,
-        result: { step: "loading" },
-      })
-      .select("id")
-      .single();
-    if (taskErr) throw new Error(`Failed to create task: ${taskErr.message}`);
-    const taskId = task.id as string;
+    const lock = await beginAgentTask(supabase, "dataset-refresh", datasetKey, gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("dataset-refresh");
+    const taskId = lock.taskId;
 
     const updateTask = async (patch: Record<string, unknown>) => {
       await supabase.from("research_tasks").update({ result: patch }).eq("id", taskId);

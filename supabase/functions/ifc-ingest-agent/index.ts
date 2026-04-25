@@ -14,7 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -120,7 +120,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -138,16 +138,9 @@ serve(async (req) => {
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
     const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
 
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "ifc-ingest",
-        query: `IFC Projects API — status:${statusFilter} limit:${totalLimit}`,
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "ifc-ingest", `IFC Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("ifc-ingest");
+    taskId = lock.taskId;
 
     // IFC-financed projects via World Bank API (source=IF)
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
@@ -269,21 +262,21 @@ serve(async (req) => {
     }
 
     const result = { success: true, fetched, inserted, updated, skipped, source: "IFC" };
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("IFC ingest error:", e);
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
