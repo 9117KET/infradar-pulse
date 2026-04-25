@@ -248,7 +248,7 @@ export default function AgentMonitoring() {
     try {
       await fn();
       toast({ title: `${name} triggered` });
-      refetch();
+      await refetch();
     } catch (e: unknown) {
       if (isStaffOnlyError(e)) {
         toast({
