@@ -30,6 +30,12 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .maybeSingle(),
     // lifetime_grants is new — generated types not yet refreshed
     (supabase as any).from('lifetime_grants').select('id').eq('user_id', user.id).maybeSingle(),
+    (supabase as any)
+      .from('lifetime_grants')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('environment', environment)
+      .maybeSingle(),
   ]);
 
   const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
