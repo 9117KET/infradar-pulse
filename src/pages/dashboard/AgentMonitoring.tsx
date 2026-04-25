@@ -2,8 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  timeAgo,
+  computeAgentStats,
+  isAgentStale,
+  computeDataCoverage,
+  computeActivityTimeline,
+  type TaskRow,
+} from '@/lib/agents/agentUtils';
 import { agentApi } from '@/lib/api/agents';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -41,16 +49,6 @@ const AGENTS = [
   { type: 'executive-briefing', name: 'Executive Briefing', icon: ScrollText, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runExecutiveBriefing },
 ];
 
-function timeAgo(date: string) {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
 interface LogEntry {
   id: string;
   task_type: string;
@@ -79,22 +77,39 @@ export default function AgentMonitoring() {
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
     queryFn: async () => {
+      // Fetch up to 2000 tasks so agents with frequent runs still have
+      // accurate statistics (research-agent runs every 30 min = ~1440/month).
       const { data } = await supabase
         .from('research_tasks')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(500);
-      return data || [];
+        .limit(2000);
+      return (data || []) as TaskRow[];
     },
     refetchInterval: 15000,
   });
 
-  // Data coverage query
+  // Data coverage query - paginated so the 1000-row Supabase default cap does
+  // not silently truncate the result when the project count exceeds 1000.
   const { data: projects } = useQuery({
     queryKey: ['projects-coverage'],
     queryFn: async () => {
-      const { data } = await supabase.from('projects').select('id, source_url, description, detailed_analysis, key_risks, funding_sources, environmental_impact, political_context').eq('approved', true);
-      return data || [];
+      const PAGE_SIZE = 1000;
+      const all: unknown[] = [];
+      let from = 0;
+      for (let i = 0; i < 50; i++) {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('id, source_url, description, detailed_analysis, key_risks, funding_sources, environmental_impact, political_context')
+          .eq('approved', true)
+          .order('id', { ascending: true })
+          .range(from, from + PAGE_SIZE - 1);
+        if (error || !data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
     },
     refetchInterval: 60000,
   });
@@ -159,12 +174,17 @@ export default function AgentMonitoring() {
     }
   };
 
-  // Seed live logs
+  // Seed live logs from the initial fetch. Use a ref to track whether we have
+  // seeded so we avoid re-seeding on every refetch while still catching the
+  // case where the user clears logs and then tasks refetches with new data.
+  const seededRef = useRef(false);
   useEffect(() => {
-    if (tasks && liveLogs.length === 0) {
+    if (!tasks) return;
+    if (!seededRef.current || liveLogs.length === 0) {
+      seededRef.current = true;
       setLiveLogs(tasks.slice(0, 50).reverse() as LogEntry[]);
     }
-  }, [tasks]);
+  }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Realtime subscription
   useEffect(() => {
@@ -189,65 +209,27 @@ export default function AgentMonitoring() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [liveLogs]);
 
-  // Activity timeline data (last 7 days)
-  const activityTimeline = useMemo(() => {
-    if (!tasks) return [];
-    const now = Date.now();
-    const days: { date: string; completed: number; failed: number; running: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now - i * 86400000);
-      const label = d.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' });
-      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
-      const dayTasks = tasks.filter(t => {
-        const ct = new Date(t.created_at).getTime();
-        return ct >= dayStart.getTime() && ct <= dayEnd.getTime();
-      });
-      days.push({
-        date: label,
-        completed: dayTasks.filter(t => t.status === 'completed').length,
-        failed: dayTasks.filter(t => t.status === 'failed').length,
-        running: dayTasks.filter(t => t.status === 'running').length,
-      });
-    }
-    return days;
-  }, [tasks]);
+  // Activity timeline and data coverage - delegate to pure utils so the same
+  // logic can be tested in isolation without DOM or Supabase dependencies.
+  const activityTimeline = useMemo(
+    () => computeActivityTimeline(tasks ?? []),
+    [tasks],
+  );
 
-  // Data coverage metrics
-  const dataCoverage = useMemo(() => {
-    if (!projects?.length) return [];
-    const total = projects.length;
-    const metrics = [
-      { label: 'Source URL', count: projects.filter(p => p.source_url && p.source_url !== '').length },
-      { label: 'Description', count: projects.filter(p => p.description && p.description !== '').length },
-      { label: 'Analysis', count: projects.filter(p => p.detailed_analysis && p.detailed_analysis !== '').length },
-      { label: 'Key Risks', count: projects.filter(p => p.key_risks && p.key_risks !== '').length },
-      { label: 'Funding', count: projects.filter(p => p.funding_sources && p.funding_sources !== '').length },
-      { label: 'Environment', count: projects.filter(p => p.environmental_impact && p.environmental_impact !== '').length },
-      { label: 'Political', count: projects.filter(p => p.political_context && p.political_context !== '').length },
-      { label: 'Contacts', count: projects.filter(p => contactCounts && contactCounts[p.id]).length },
-      { label: 'Evidence', count: projects.filter(p => evidenceCounts && evidenceCounts[p.id]).length },
-    ];
-    return metrics.map(m => ({ ...m, pct: Math.round((m.count / total) * 100), total }));
-  }, [projects, contactCounts, evidenceCounts]);
+  const dataCoverage = useMemo(
+    () => computeDataCoverage(
+      (projects ?? []) as Parameters<typeof computeDataCoverage>[0],
+      contactCounts ?? {},
+      evidenceCounts ?? {},
+    ),
+    [projects, contactCounts, evidenceCounts],
+  );
 
-  const getAgentStats = (taskType: string) => {
-    const agentTasks = tasks?.filter(t => t.task_type === taskType) || [];
-    const completed = agentTasks.filter(t => t.status === 'completed');
-    const failed = agentTasks.filter(t => t.status === 'failed');
-    const running = agentTasks.filter(t => t.status === 'running');
-    const lastRun = agentTasks[0];
-    const total = completed.length + failed.length;
-    const successRate = total > 0 ? Math.round((completed.length / total) * 100) : null;
-    return { completed: completed.length, failed: failed.length, running: running.length, lastRun, successRate, total };
-  };
+  const getAgentStats = (taskType: string) =>
+    computeAgentStats(tasks ?? [], taskType);
 
-  const isStale = (agent: typeof AGENTS[0]) => {
-    const stats = getAgentStats(agent.type);
-    if (!stats.lastRun) return true;
-    const minutesSince = (Date.now() - new Date(stats.lastRun.created_at).getTime()) / 60000;
-    return minutesSince > agent.scheduleMinutes * 2;
-  };
+  const isStale = (agent: typeof AGENTS[0]) =>
+    isAgentStale(getAgentStats(agent.type).lastRun?.created_at, agent.scheduleMinutes);
 
   const runAgent = async (name: string, fn: () => Promise<unknown>) => {
     if (!staffBypass) {
@@ -287,15 +269,11 @@ export default function AgentMonitoring() {
     }
   };
 
-  const visibleAgents = staffBypass
-    ? AGENTS
-    : AGENTS.filter(agent => {
-        const stats = getAgentStats(agent.type);
-        const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
-        const isPaused = !isEnabled;
-        const isRunningNow = stats.running > 0;
-        return isPaused || isRunningNow;
-      });
+  // All authenticated users see every agent card so they can inspect schedules
+  // and run histories. The Run / Pause buttons inside each card are gated by
+  // staffBypass separately - the filter below was previously wrong and only
+  // showed agents that were paused or currently running (empty for most users).
+  const visibleAgents = AGENTS;
 
   const totalRuns = tasks?.length || 0;
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
@@ -340,9 +318,9 @@ export default function AgentMonitoring() {
       {!entLoading && isFreeTier && (
         <Alert className="border-primary/30 bg-primary/5">
           <Zap className="h-4 w-4" />
-          <AlertTitle>Explore every agent — run on a trial or paid plan</AlertTitle>
+          <AlertTitle>Browse all agents — trigger them on a paid plan</AlertTitle>
           <AlertDescription>
-            You can browse schedules and logs on any account. Triggering agents uses your daily AI allowance; start a 3-day trial or subscribe from Billing when you are ready.
+            You can inspect schedules, run histories, and live logs on any account. Manually triggering agents uses your daily AI allowance and requires a Starter or Pro subscription.
           </AlertDescription>
         </Alert>
       )}
@@ -528,6 +506,15 @@ export default function AgentMonitoring() {
                   <p className="text-[8px] text-muted-foreground">Rate</p>
                 </div>
               </div>
+
+              {/* Show the last error message inline so failed agents are
+                  actionable without scrolling through the log stream. */}
+              {stats.lastError && stats.successRate === 0 && (
+                <div className="flex items-start gap-1.5 rounded bg-destructive/10 border border-destructive/20 px-2 py-1.5">
+                  <AlertCircle className="h-3 w-3 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-[9px] text-destructive leading-snug line-clamp-2">{stats.lastError}</p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-[9px] text-muted-foreground">
                 <span>
