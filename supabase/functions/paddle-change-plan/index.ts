@@ -40,9 +40,12 @@ serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('paddle_subscription_id, status')
+      .select('paddle_subscription_id, status, plan_key, current_period_end')
       .eq('user_id', user.id)
       .eq('environment', env)
+      .in('status', ['active', 'trialing', 'past_due'])
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!sub?.paddle_subscription_id) {
@@ -60,10 +63,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Price not found' }), { status: 404, headers: corsHeaders });
     }
 
-    // Pick proration mode based on subscription state. Paddle requires
-    // `do_not_bill` for trialing subs (it forbids charging during a trial).
-    const prorationBillingMode =
-      sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
+    const isDowngrade = sub.plan_key === 'pro' && newPriceExternalId.startsWith('starter_');
+    const prorationBillingMode = isDowngrade || sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
 
     const paddle = getPaddleClient(env);
     const updated = await paddle.subscriptions.update(sub.paddle_subscription_id, {
@@ -71,8 +72,24 @@ serve(async (req) => {
       prorationBillingMode,
     });
 
+    if (isDowngrade) {
+      await admin
+        .from('subscriptions')
+        .update({
+          entitlement_plan_key: sub.plan_key,
+          entitlement_plan_until: sub.current_period_end ?? null,
+          scheduled_price_id: newPriceExternalId,
+          scheduled_plan_key: 'starter',
+          scheduled_change_action: 'downgrade',
+          scheduled_change_effective_at: sub.current_period_end ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('paddle_subscription_id', sub.paddle_subscription_id)
+        .eq('environment', env);
+    }
+
     return new Response(
-      JSON.stringify({ ok: true, status: updated.status, prorationMode: prorationBillingMode }),
+      JSON.stringify({ ok: true, status: updated.status, prorationMode: prorationBillingMode, scheduled: isDowngrade, effectiveAt: sub.current_period_end }),
       { headers: corsHeaders },
     );
   } catch (e) {

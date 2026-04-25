@@ -18,12 +18,17 @@ export async function changePlan(
     | 'starter_monthly'
     | 'starter_yearly'
     | 'pro_monthly'
-    | 'pro_yearly',
-): Promise<void> {
-  const { error } = await supabase.functions.invoke('paddle-change-plan', {
+    | 'pro_yearly'
+    | 'starter_monthly_no_trial'
+    | 'starter_yearly_no_trial'
+    | 'pro_monthly_no_trial'
+    | 'pro_yearly_no_trial',
+): Promise<{ scheduled?: boolean; effectiveAt?: string }> {
+  const { data, error } = await supabase.functions.invoke('paddle-change-plan', {
     body: { priceId, environment: getPaddleEnvironment() },
   });
   if (error) throw new Error(error.message);
+  return (data as { scheduled?: boolean; effectiveAt?: string }) ?? {};
 }
 
 export async function cancelSubscription(): Promise<void> {
