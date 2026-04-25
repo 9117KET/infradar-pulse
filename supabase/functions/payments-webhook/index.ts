@@ -17,6 +17,10 @@ const PRICE_TO_PLAN: Record<string, string> = {
   starter_yearly: 'starter',
   pro_monthly: 'pro',
   pro_yearly: 'pro',
+  starter_monthly_no_trial: 'starter',
+  starter_yearly_no_trial: 'starter',
+  pro_monthly_no_trial: 'pro',
+  pro_yearly_no_trial: 'pro',
   lifetime_pro_onetime: 'lifetime',
 };
 
@@ -182,7 +186,7 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
   // Upsert in both create + update paths so a rogue 'updated' before 'created'
   // doesn't drop the row.
   const _ = isCreate; // kept for log clarity; same code path either way
-  await supabase.from('subscriptions').upsert(row, { onConflict: 'user_id,environment' });
+  await supabase.from('subscriptions').upsert(row, { onConflict: 'paddle_subscription_id,environment' });
 
   // Anti-abuse: record that this user has now used a trial. Idempotent.
   // We only record on trialing status so paid subs don't burn the trial flag.
