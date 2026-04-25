@@ -278,7 +278,6 @@ export default function AgentMonitoring() {
   const totalRuns = tasks?.length || 0;
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
-  const totalRunning = tasks?.filter(t => t.status === 'running').length || 0;
   const staleCount = AGENTS.filter(a => isStale(a)).length;
 
   const agentNameMap: Record<string, string> = {};
@@ -302,15 +301,25 @@ export default function AgentMonitoring() {
     }
   };
 
-  // Currently running agents for live process viz
+  // Currently running agents for live process viz.
+  // Include the local runningAgent state so the panel and count update the
+  // instant Run is clicked, without waiting for the 15s refetch or a realtime
+  // notification to deliver the DB-side 'running' row.
   const runningAgents = useMemo(() => {
-    if (!tasks) return [];
-    return tasks.filter(t => t.status === 'running').map(t => ({
-      name: agentNameMap[t.task_type] || t.task_type,
-      startedAt: t.created_at,
-      elapsed: Math.floor((Date.now() - new Date(t.created_at).getTime()) / 1000),
-    }));
-  }, [tasks]);
+    const dbRunning = (tasks ?? [])
+      .filter(t => t.status === 'running')
+      .map(t => ({
+        name: agentNameMap[t.task_type] || t.task_type,
+        startedAt: t.created_at,
+        elapsed: Math.floor((Date.now() - new Date(t.created_at).getTime()) / 1000),
+      }));
+    if (runningAgent && !dbRunning.some(r => r.name === runningAgent)) {
+      dbRunning.unshift({ name: runningAgent, startedAt: new Date().toISOString(), elapsed: 0 });
+    }
+    return dbRunning;
+  }, [tasks, runningAgent]);
+
+  const totalRunning = runningAgents.length;
 
   return (
     <div className="space-y-6">
