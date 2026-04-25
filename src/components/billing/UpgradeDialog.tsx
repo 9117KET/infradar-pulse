@@ -20,14 +20,14 @@ type Reason = 'ai' | 'export' | 'insight' | 'default';
 
 const COPY: Record<Reason, { title: string; description: string }> = {
   default: {
-    title: 'Unlock with Pro or a free trial',
+    title: 'Unlock with a paid plan',
     description:
-      'Explore every screen for free. To run AI research, agents, and advanced exports, start a 3-day trial or subscribe. Limits apply during trial; upgrade anytime.',
+      'Explore every screen for free. To run AI research, agents, and advanced exports, subscribe to a paid plan. Upgrade anytime.',
   },
   ai: {
     title: 'AI & automation require an active plan',
     description:
-      'Start a 3-day free trial to run this workflow with generous daily limits, or subscribe to Pro for full access.',
+      'Subscribe to a paid plan to run this workflow with higher daily limits, or choose Pro for full access.',
   },
   export: {
     title: 'You’ve hit your export limit',
@@ -66,9 +66,9 @@ export function UpgradeDialog({
 
   const canRequestQuota = reason !== 'default';
 
-  const startTrial = async () => {
+  const subscribe = async () => {
     try {
-      await openCheckout('starter_monthly');
+      await openCheckout('starter_monthly_no_trial');
       onOpenChange(false);
     } catch (e) {
       toast({
@@ -175,9 +175,9 @@ export function UpgradeDialog({
                   Request temporary quota
                 </Button>
               )}
-              <Button className="teal-glow" onClick={() => void startTrial()} disabled={loading}>
+              <Button className="teal-glow" onClick={() => void subscribe()} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Start 3-day free trial
+                Subscribe to Starter
               </Button>
             </>
           ) : (
