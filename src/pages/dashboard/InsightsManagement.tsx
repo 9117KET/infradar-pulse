@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   useInsights,
   type Insight,
+  type InsightMeta,
   type InsightSource,
   getDisplaySources,
 } from '@/hooks/use-insights';
@@ -152,17 +153,15 @@ export default function InsightsManagement() {
   const [saving, setSaving] = useState(false);
   const [backfillMode, setBackfillMode] = useState<'missing' | 'all' | null>(null);
 
-  const openView = async (insight: Insight) => {
-    if (insight.content) { setViewing(insight); return; }
+  const openView = async (insight: InsightMeta) => {
     setViewingLoading(true);
-    setViewing(insight); // open dialog immediately with metadata
+    setViewing(insight as Insight); // open dialog immediately with metadata
     const { data } = await supabase.from('insights').select('*').eq('id', insight.id).single();
     if (data) setViewing(data as Insight);
     setViewingLoading(false);
   };
 
-  const openEdit = async (insight: Insight) => {
-    if (insight.content) { setEditing({ id: insight.id, form: insightToEditForm(insight) }); return; }
+  const openEdit = async (insight: InsightMeta) => {
     const { data } = await supabase.from('insights').select('*').eq('id', insight.id).single();
     if (data) setEditing({ id: insight.id, form: insightToEditForm(data as Insight) });
   };
@@ -195,7 +194,7 @@ export default function InsightsManagement() {
     }
   };
 
-  const togglePublish = async (insight: Insight) => {
+  const togglePublish = async (insight: InsightMeta) => {
     const { error } = await supabase
       .from('insights')
       .update({ published: !insight.published })

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useInsight, getDisplaySources } from '@/hooks/use-insights';
+import {
+  useInsightMeta,
+  useInsightContent,
+  getDisplaySources,
+  type Insight,
+} from '@/hooks/use-insights';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useCopyProtection } from '@/hooks/useCopyProtection';
@@ -14,9 +19,43 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function InsightDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const { data: insight, isLoading, error } = useInsight(slug || '');
   const { user } = useAuth();
   const { staffBypass, canReadInsightFull, isFreeTier, plan, loading: entLoading, refresh } = useEntitlements();
+  const countedRef = useRef(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Phase 1: Always fetch metadata - never contains the article body.
+  // This is safe to call unconditionally and for all users.
+  const { data: insight, isLoading, error } = useInsightMeta(slug || '');
+
+  // Entitlement decision:
+  // - Anonymous users (not logged in): always see full content (public marketing page)
+  // - Staff (admin/researcher): always bypass
+  // - Signed-in users with quota remaining: see full content
+  // - Signed-in users over daily limit: see excerpt + upgrade prompt only
+  // We wait until entitlements have loaded before showing content to avoid
+  // a flash where content renders then disappears.
+  const showFullContent = !user || staffBypass || (!entLoading && canReadInsightFull);
+
+  // Phase 2: Fetch the article body ONLY when the user is entitled.
+  // Content is never sent to the browser when showFullContent is false.
+  const { data: contentData, isLoading: contentLoading } = useInsightContent(
+    insight?.id,
+    // Enable the content query only when we know the user can read it.
+    // entLoading guard prevents a brief flash where content fetches then
+    // entitlements arrive and block it.
+    showFullContent && !entLoading,
+  );
+
+  // For staff editing their own articles (InsightsManagement sends full Insight
+  // via slug), merge content from Phase 2 into the metadata shape.
+  const fullInsight: Insight | null = insight && contentData
+    ? { ...insight, content: contentData.content, source_url: contentData.source_url, sources: contentData.sources }
+    : insight
+      ? { ...insight, content: '' }
+      : null;
+
   // Throttle copy/paste for free + trial users so the article body can't be
   // bulk-lifted into a doc. Paid plans get a normal experience.
   const protectContent = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
@@ -24,25 +63,19 @@ export default function InsightDetail() {
     protectContent,
     `Excerpted from InfraRadar — full article: ${typeof window !== 'undefined' ? window.location.href : 'infraradar.app'} · Subscribe for unlimited access.`,
   );
-  const countedRef = useRef(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     countedRef.current = false;
   }, [slug]);
 
-  // Don't reveal content while entitlements are still loading — avoids flash
-  const showFullContent =
-    !user || staffBypass || (!entLoading && canReadInsightFull);
-
-  // Auto-open upgrade prompt when user is signed-in and over the limit
+  // Auto-open upgrade prompt when a signed-in user has hit their daily limit.
   useEffect(() => {
     if (user && !entLoading && !staffBypass && !canReadInsightFull) {
       setUpgradeOpen(true);
     }
   }, [user, entLoading, staffBypass, canReadInsightFull]);
 
+  // Track insight read once per page load, after content is confirmed accessible.
   useEffect(() => {
     if (!user || entLoading || !insight || !canReadInsightFull || staffBypass) return;
     if (countedRef.current) return;
@@ -80,7 +113,10 @@ export default function InsightDetail() {
     );
   }
 
-  const references = getDisplaySources(insight);
+  // References: merge from content phase when available, else metadata-level sources.
+  const references = getDisplaySources(
+    fullInsight && contentData ? { ...insight, source_url: contentData.source_url, sources: contentData.sources } : insight
+  );
 
   return (
     <div className="py-20">
@@ -92,7 +128,9 @@ export default function InsightDetail() {
 
         <div className="flex items-center gap-3 mb-4">
           <Badge variant="outline" className="border-primary/30 text-primary text-xs">{insight.tag}</Badge>
-          {insight.ai_generated && <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-xs">AI Generated</Badge>}
+          {insight.ai_generated && (
+            <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-xs">AI Generated</Badge>
+          )}
         </div>
 
         <h1 className="font-serif text-3xl sm:text-4xl font-bold mb-4 leading-tight">{insight.title}</h1>
@@ -103,6 +141,7 @@ export default function InsightDetail() {
           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {insight.reading_time_min} min read</span>
         </div>
 
+        {/* Gate: user is signed in but over their daily limit */}
         {!showFullContent && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-6 mb-8 space-y-3">
             <p className="text-sm text-muted-foreground">
@@ -120,7 +159,8 @@ export default function InsightDetail() {
           </div>
         )}
 
-        {(showFullContent || (user && entLoading)) && (
+        {/* Content: only renders when showFullContent is true AND content has been fetched */}
+        {showFullContent && (
           <div
             {...copyProps}
             className={`prose prose-invert prose-sm max-w-none
@@ -132,26 +172,27 @@ export default function InsightDetail() {
               ${copyProps.className}
             `}
           >
-            {user && entLoading ? (
+            {/* Show loading state while entitlements are resolving or content is fetching */}
+            {entLoading || contentLoading ? (
               <p className="text-muted-foreground animate-pulse">Loading article…</p>
-            ) : (
-            insight.content.split('\n').map((line, i) => {
-              if (line.startsWith('## ')) return <h2 key={i}>{line.slice(3)}</h2>;
-              if (line.startsWith('### ')) return <h3 key={i}>{line.slice(4)}</h3>;
-              if (line.startsWith('- **')) {
-                const match = line.match(/^- \*\*(.+?)\*\*:?\s*(.*)/);
-                if (match) return <li key={i}><strong>{match[1]}</strong>{match[2] ? `: ${match[2]}` : ''}</li>;
-              }
-              if (line.startsWith('- ')) return <li key={i}>{line.slice(2)}</li>;
-              if (line.match(/^\d+\.\s/)) return <li key={i}>{line.replace(/^\d+\.\s/, '')}</li>;
-              if (line.trim() === '') return <br key={i} />;
-              return <p key={i}>{line}</p>;
-            })
-            )}
+            ) : contentData?.content ? (
+              contentData.content.split('\n').map((line, i) => {
+                if (line.startsWith('## ')) return <h2 key={i}>{line.slice(3)}</h2>;
+                if (line.startsWith('### ')) return <h3 key={i}>{line.slice(4)}</h3>;
+                if (line.startsWith('- **')) {
+                  const match = line.match(/^- \*\*(.+?)\*\*:?\s*(.*)/);
+                  if (match) return <li key={i}><strong>{match[1]}</strong>{match[2] ? `: ${match[2]}` : ''}</li>;
+                }
+                if (line.startsWith('- ')) return <li key={i}>{line.slice(2)}</li>;
+                if (line.match(/^\d+\.\s/)) return <li key={i}>{line.replace(/^\d+\.\s/, '')}</li>;
+                if (line.trim() === '') return <br key={i} />;
+                return <p key={i}>{line}</p>;
+              })
+            ) : null}
           </div>
         )}
 
-        {showFullContent && !entLoading && references.length > 0 && (
+        {showFullContent && !entLoading && !contentLoading && references.length > 0 && (
           <section className="mt-12 pt-8 border-t border-border">
             <h2 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
               <Link2 className="h-5 w-5 text-primary shrink-0" />
