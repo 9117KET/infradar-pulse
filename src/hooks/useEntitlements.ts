@@ -54,7 +54,7 @@ export function useEntitlements() {
       const [{ data: sub }, { data: counters }, { data: roleRow }, { data: lifetime }] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('status, plan_key, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
+          .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
           .eq('user_id', userId)
           .eq('environment', environment)
           .order('created_at', { ascending: false })
