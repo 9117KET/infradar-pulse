@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, setTaskStep } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -152,6 +152,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "discovery", "Full pipeline run", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("discovery");
     taskId = lock.taskId;
+    await setTaskStep(supabase, taskId, "Searching");
 
     const rawContent: string[] = [];
 
@@ -192,6 +193,7 @@ serve(async (req) => {
 
     // Step 2: Deep research with Perplexity — 4 queries per run, cycling through groups
     if (PERPLEXITY_API_KEY) {
+      if (taskId) await setTaskStep(supabase, taskId, "Searching");
       console.log("Researching with Perplexity...");
 
       const groupNames = [...new Set(RESEARCH_QUERIES.map((q) => q.group))];
@@ -244,6 +246,7 @@ serve(async (req) => {
     }
 
     // Step 3: AI extraction (source_url is now REQUIRED)
+    if (taskId) await setTaskStep(supabase, taskId, "Extracting");
     console.log("Extracting structured data with AI...");
     const extractionPrompt = `Analyze the following infrastructure news and research content. Extract any NEW infrastructure projects you can identify.
 
@@ -383,6 +386,7 @@ ${rawContent.join("\n\n---\n\n")}`;
     }
 
     // Step 4: Upsert into database
+    if (taskId) await setTaskStep(supabase, taskId, "Saving");
     let inserted = 0;
     let updated = 0;
     let skippedNoSource = 0;

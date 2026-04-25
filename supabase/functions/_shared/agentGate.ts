@@ -99,6 +99,29 @@ export async function beginAgentTask(
 }
 
 /**
+ * Update the current_step on an in-progress task row.
+ * Errors are swallowed so a failed step update never crashes the agent.
+ *
+ * Steps are free-form strings. Conventional values used across agents:
+ *   "Searching"  - fetching external data (Perplexity / Firecrawl / APIs)
+ *   "Extracting" - AI extraction / parsing raw content
+ *   "Analyzing"  - scoring, deduplication, enrichment logic
+ *   "Saving"     - writing results to the database
+ */
+export async function setTaskStep(
+  supabase: SupabaseClient,
+  taskId: string,
+  step: string,
+): Promise<void> {
+  try {
+    await supabase
+      .from("research_tasks")
+      .update({ current_step: step })
+      .eq("id", taskId);
+  } catch { /* best-effort — never crash on a step update */ }
+}
+
+/**
  * Standard 200 response to return when an agent is already running.
  * Returns { success: true, skipped: true } so callers know it was intentional.
  */
