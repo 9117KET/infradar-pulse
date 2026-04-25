@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useInsights } from '@/hooks/use-insights';
-import { useProjects } from '@/hooks/use-projects';
+import { usePublicProjectStats } from '@/hooks/use-public-project-stats';
 import { format } from 'date-fns';
 import { Clock, ArrowRight, Activity, Globe2, Layers } from 'lucide-react';
 
@@ -17,38 +16,7 @@ function formatPipelineValue(usd: number): string {
 
 export default function Insights() {
   const { data: insights = [], isLoading } = useInsights(true);
-  const { projects, loading: projectsLoading } = useProjects();
-
-  const pipeline = useMemo(() => {
-    const count = projects.length;
-    const totalUsd = projects.reduce((s, p) => s + p.valueUsd, 0);
-    const regionIds = new Set(projects.map((p) => p.region));
-    const sectorIds = new Set(projects.map((p) => p.sector));
-    const byRegion = projects.reduce<Record<string, number>>((acc, p) => {
-      acc[p.region] = (acc[p.region] || 0) + 1;
-      return acc;
-    }, {});
-    const topRegions = Object.entries(byRegion)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    const updatedRecently = projects.filter((p) => {
-      const t = new Date(p.lastUpdated).getTime();
-      return !Number.isNaN(t) && t >= thirtyDaysAgo;
-    }).length;
-    const atRisk = projects.filter((p) => p.status === 'At Risk').length;
-    const verified = projects.filter((p) => p.status === 'Verified').length;
-    return {
-      count,
-      totalUsd,
-      regionCount: regionIds.size,
-      sectorCount: sectorIds.size,
-      topRegions,
-      updatedRecently,
-      atRisk,
-      verified,
-    };
-  }, [projects]);
+  const { pipeline, loading: projectsLoading } = usePublicProjectStats();
 
   const statCards = [
     {
