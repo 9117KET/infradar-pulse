@@ -23,12 +23,17 @@ export interface PublicPipelineStats {
 }
 
 const SAFE_COLUMNS = 'id,region,sector,value_usd,last_updated,status';
+// Supabase default page size - match what usePublicProjectLocations uses.
+const PAGE_SIZE = 1000;
 
 /**
  * Fetches only the safe aggregate columns needed for the public Insights
  * marketing page pipeline snapshot. Explicitly excludes:
  *   - detailed_analysis, key_risks, funding_sources, political_context, environmental_impact
  *   - project_contacts, project_stakeholders, evidence_sources, project_milestones
+ *
+ * Paginates through all approved projects so the count is never silently
+ * capped at Supabase's default 1000-row limit.
  *
  * This hook is safe to call for anonymous (unauthenticated) visitors.
  */
@@ -38,13 +43,22 @@ export function usePublicProjectStats(): { pipeline: PublicPipelineStats; loadin
 
   async function fetchStats() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('projects')
-      .select(SAFE_COLUMNS)
-      .eq('approved', true);
-    if (!error && data) {
-      setRows(data as PublicProjectRow[]);
+    const all: PublicProjectRow[] = [];
+    let from = 0;
+    // Hard upper bound prevents runaway loops (50k ≫ current scale).
+    for (let i = 0; i < 50; i++) {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(SAFE_COLUMNS)
+        .eq('approved', true)
+        .order('id', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error || !data || data.length === 0) break;
+      all.push(...(data as PublicProjectRow[]));
+      if (data.length < PAGE_SIZE) break;
+      from += PAGE_SIZE;
     }
+    setRows(all);
     setLoading(false);
   }
 
