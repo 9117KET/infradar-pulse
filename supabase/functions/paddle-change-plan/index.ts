@@ -64,40 +64,32 @@ serve(async (req) => {
     }
 
     const isDowngrade = sub.plan_key === 'pro' && newPriceExternalId.startsWith('starter_');
-    const prorationBillingMode = sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
+    const prorationBillingMode = isDowngrade || sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
 
     const paddle = getPaddleClient(env);
-    if (isDowngrade) {
-      const cancelled = await paddle.subscriptions.cancel(sub.paddle_subscription_id, {
-        effectiveFrom: 'next_billing_period',
-      });
-
-      await admin
-        .from('subscriptions')
-        .update({
-          cancel_at_period_end: true,
-          scheduled_price_id: newPriceExternalId,
-          scheduled_plan_key: 'starter',
-          scheduled_change_action: 'downgrade',
-          scheduled_change_effective_at: cancelled.scheduledChange?.effectiveAt ?? sub.current_period_end ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('paddle_subscription_id', sub.paddle_subscription_id)
-        .eq('environment', env);
-
-      return new Response(
-        JSON.stringify({ ok: true, scheduled: true, effectiveAt: cancelled.scheduledChange?.effectiveAt ?? sub.current_period_end }),
-        { headers: corsHeaders },
-      );
-    }
-
     const updated = await paddle.subscriptions.update(sub.paddle_subscription_id, {
       items: [{ priceId: paddlePriceId, quantity: 1 }],
       prorationBillingMode,
     });
 
+    if (isDowngrade) {
+      await admin
+        .from('subscriptions')
+        .update({
+          entitlement_plan_key: sub.plan_key,
+          entitlement_plan_until: sub.current_period_end ?? null,
+          scheduled_price_id: newPriceExternalId,
+          scheduled_plan_key: 'starter',
+          scheduled_change_action: 'downgrade',
+          scheduled_change_effective_at: sub.current_period_end ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('paddle_subscription_id', sub.paddle_subscription_id)
+        .eq('environment', env);
+    }
+
     return new Response(
-      JSON.stringify({ ok: true, status: updated.status, prorationMode: prorationBillingMode }),
+      JSON.stringify({ ok: true, status: updated.status, prorationMode: prorationBillingMode, scheduled: isDowngrade, effectiveAt: sub.current_period_end }),
       { headers: corsHeaders },
     );
   } catch (e) {
