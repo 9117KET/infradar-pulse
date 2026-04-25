@@ -11,6 +11,7 @@ import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { trackUsage } from '@/lib/billing/trackUsage';
 import { useState } from 'react';
 
 type ReportRun = {
@@ -25,7 +26,7 @@ type ReportRun = {
 
 export default function Reports() {
   const { user } = useAuth();
-  const { canExportPdf, plan } = useEntitlements();
+  const { canExportPdf, plan, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   const { data: runs, isLoading, refetch } = useQuery({
@@ -41,7 +42,7 @@ export default function Reports() {
     },
   });
 
-  const downloadReportPdf = (report: ReportRun) => {
+  const downloadReportPdf = async (report: ReportRun) => {
     if (!canExportPdf) {
       setUpgradeOpen(true);
       return;
@@ -92,6 +93,18 @@ export default function Reports() {
 
     const slug = (report.title || report.report_type).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
     doc.save(`infradar_report_${slug}.pdf`);
+
+    const trackResult = await trackUsage('export_pdf');
+    if (!trackResult.ok) {
+      if (trackResult.emailUnverified) {
+        toast.error('Confirm your email before exporting');
+        return;
+      }
+      if (trackResult.overLimit) setUpgradeOpen(true);
+      toast.error(trackResult.message ?? 'Export limit reached');
+      return;
+    }
+    await refreshEntitlements();
     toast.success('Report downloaded as PDF');
   };
 
@@ -153,7 +166,7 @@ export default function Reports() {
                       size="sm"
                       variant="outline"
                       className="shrink-0 text-xs h-7"
-                      onClick={() => downloadReportPdf(r)}
+                      onClick={() => void downloadReportPdf(r)}
                       title={!canExportPdf ? `PDF export requires the Pro plan` : undefined}
                     >
                       <Download className="h-3 w-3 mr-1" />
