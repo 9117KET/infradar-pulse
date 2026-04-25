@@ -196,11 +196,11 @@ export default function Pricing() {
             {user ? (
               <Button className="w-full teal-glow" onClick={() => void goCheckout(starterPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isYearly ? 'Subscribe yearly' : 'Start trial'}
+                {isYearly ? 'Subscribe yearly' : 'Subscribe'}
               </Button>
             ) : (
               <Button className="w-full teal-glow" asChild>
-                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to start trial'}</Link>
+                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to subscribe'}</Link>
               </Button>
             )}
           </div>
@@ -227,11 +227,11 @@ export default function Pricing() {
             {user ? (
               <Button className="w-full" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isYearly ? 'Subscribe yearly' : 'Start trial'}
+                {isYearly ? 'Subscribe yearly' : 'Subscribe'}
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to start trial'}</Link>
+                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to subscribe'}</Link>
               </Button>
             )}
           </div>
