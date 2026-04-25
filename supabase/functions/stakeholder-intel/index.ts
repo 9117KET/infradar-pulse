@@ -34,7 +34,6 @@ serve(async (req) => {
       })
       .select().single();
 
-    // Get existing projects with stakeholders
     const { data: projects } = await supabase
       .from("projects")
       .select("id, name, country, region, sector")
@@ -49,7 +48,7 @@ serve(async (req) => {
 
     const countries = [...new Set(projects.map((p) => p.country))].join(", ");
 
-    const raw: string[] = [];
+    let raw = "";
     if (PERPLEXITY_API_KEY) {
       try {
         const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -65,20 +64,19 @@ serve(async (req) => {
           }),
         });
         const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+        raw = data?.choices?.[0]?.message?.content ?? "";
       } catch (e) { console.error("Perplexity:", e); }
     }
 
-    if (!raw.length) {
+    if (!raw) {
       if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
       return new Response(JSON.stringify({ success: false, error: "No research text" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // AI analysis
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Extract stakeholder intelligence. Return JSON." },
-          { role: "user", content: `Analyze stakeholder data for infrastructure projects. Identify: companies with poor track records, conflict-of-interest patterns, entities under investigation.\n\nExisting projects: ${projects.map(p => `${p.name} (${p.country})`).join(", ")}\n\nContent:\n${raw.join("\n\n")}` },
+          { role: "user", content: `Analyze stakeholder data for infrastructure projects. Identify: companies with poor track records, conflict-of-interest patterns, entities under investigation.\n\nExisting projects: ${projects.map(p => `${p.name} (${p.country})`).join(", ")}\n\nContent:\n${raw}` },
         ],
         tools: [{
           type: "function",
@@ -122,22 +120,21 @@ serve(async (req) => {
       } catch (e) { console.error("Parse error:", e); }
     }
 
-    // Create alerts for flagged stakeholders
-    let alertsCreated = 0;
-    for (const f of findings) {
-      if (f.risk_flag && f.risk_flag !== "none") {
+    const alertRows = findings
+      .filter(f => f.risk_flag && f.risk_flag !== "none")
+      .map(f => {
         const matchedProject = projects.find(p => p.name.toLowerCase().includes(f.related_project_name?.toLowerCase() || ""));
-        await supabase.from("alerts").insert({
+        return {
           project_id: matchedProject?.id || null,
           project_name: f.related_project_name || f.stakeholder_name,
           severity: f.severity || "medium",
           message: `Stakeholder alert: ${f.stakeholder_name}: ${f.summary}`,
           category: "stakeholder",
           source_url: f.source_url || null,
-        });
-        alertsCreated++;
-      }
-    }
+        };
+      });
+    if (alertRows.length) await supabase.from("alerts").insert(alertRows);
+    const alertsCreated = alertRows.length;
 
     if (task) await supabase.from("research_tasks").update({ status: "completed", result: { findings: findings.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
 

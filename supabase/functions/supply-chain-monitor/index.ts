@@ -34,7 +34,7 @@ serve(async (req) => {
       })
       .select().single();
 
-    const raw: string[] = [];
+    let raw = "";
     if (PERPLEXITY_API_KEY) {
       try {
         const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -50,11 +50,11 @@ serve(async (req) => {
           }),
         });
         const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+        raw = data?.choices?.[0]?.message?.content ?? "";
       } catch (e) { console.error("Perplexity:", e); }
     }
 
-    if (!raw.length) {
+    if (!raw) {
       if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -64,7 +64,7 @@ serve(async (req) => {
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Analyze supply chain risks for infrastructure projects." },
-          { role: "user", content: `Sectors in portfolio: ${[...new Set(projects?.map(p => p.sector) || [])].join(", ")}\n\n${raw.join("\n\n")}` },
+          { role: "user", content: `Sectors in portfolio: ${[...new Set(projects?.map(p => p.sector) || [])].join(", ")}\n\n${raw}` },
         ],
         tools: [{
           type: "function",
@@ -107,32 +107,35 @@ serve(async (req) => {
       } catch (e) { console.error("Parse error:", e); }
     }
 
-    let updatedProjects = 0;
-    let alertsCreated = 0;
+    const activeRisks = risks.filter(r => r.disruption_type && r.disruption_type !== "none" && r.affected_sectors?.length);
 
-    for (const r of risks) {
-      if (r.disruption_type && r.disruption_type !== "none" && r.affected_sectors?.length) {
-        // Update risk scores for affected sector projects
-        const affected = projects?.filter(p => r.affected_sectors.includes(p.sector)) || [];
-        const riskBump = r.severity === "critical" ? 20 : r.severity === "high" ? 12 : 5;
+    const alertRows = activeRisks.map(r => ({
+      project_id: null,
+      project_name: `${r.commodity} supply chain`,
+      severity: r.severity || "medium",
+      message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")}: ${r.summary}`,
+      category: "supply_chain",
+      source_url: r.source_url || null,
+    }));
+    if (alertRows.length) await supabase.from("alerts").insert(alertRows);
 
-        for (const p of affected.slice(0, 10)) {
-          const newRisk = Math.min(100, (p.risk_score || 50) + riskBump);
-          await supabase.from("projects").update({ risk_score: newRisk, last_updated: new Date().toISOString() }).eq("id", p.id);
-          updatedProjects++;
-        }
-
-        await supabase.from("alerts").insert({
-          project_id: null,
-          project_name: `${r.commodity} supply chain`,
-          severity: r.severity || "medium",
-          message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")}: ${r.summary}`,
-          category: "supply_chain",
-          source_url: r.source_url || null,
-        });
-        alertsCreated++;
+    const projectUpdates: Array<{ id: string; risk_score: number }> = [];
+    for (const r of activeRisks) {
+      const affected = projects?.filter(p => r.affected_sectors.includes(p.sector)) || [];
+      const riskBump = r.severity === "critical" ? 20 : r.severity === "high" ? 12 : 5;
+      for (const p of affected.slice(0, 10)) {
+        projectUpdates.push({ id: p.id, risk_score: Math.min(100, (p.risk_score || 50) + riskBump) });
       }
     }
+    const now = new Date().toISOString();
+    await Promise.all(
+      projectUpdates.map(({ id, risk_score }) =>
+        supabase.from("projects").update({ risk_score, last_updated: now }).eq("id", id)
+      )
+    );
+
+    const alertsCreated = alertRows.length;
+    const updatedProjects = projectUpdates.length;
 
     if (task) await supabase.from("research_tasks").update({ status: "completed", result: { risks: risks.length, updated: updatedProjects, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
 
