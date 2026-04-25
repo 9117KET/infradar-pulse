@@ -78,15 +78,15 @@ export default function Pricing() {
   const starterUnit = isYearly ? '/yr' : '/mo';
   const starterSubtitle = isYearly
     ? `~$${(starterYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
-    : '3-day trial, then billed monthly';
-  const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly' : 'starter_monthly';
+    : 'Billed monthly';
+  const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly_no_trial' : 'starter_monthly_no_trial';
 
   const proPrice = isYearly ? proYearlyPrice : proMonthlyPrice;
   const proUnit = isYearly ? '/yr' : '/mo';
   const proSubtitle = isYearly
     ? `~$${(proYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
-    : '3-day trial, then billed monthly';
-  const proPriceId: PlanPriceId = isYearly ? 'pro_yearly' : 'pro_monthly';
+    : 'Billed monthly';
+  const proPriceId: PlanPriceId = isYearly ? 'pro_yearly_no_trial' : 'pro_monthly_no_trial';
 
   const seatsRemaining =
     seatsTaken === null ? null : Math.max(0, LIFETIME_MAX_SEATS - seatsTaken);
@@ -103,7 +103,7 @@ export default function Pricing() {
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfraRadar delivers{' '}
             <span className="text-foreground font-medium">real-time AI intelligence</span> at a fraction of the cost.
-            3-day free trial on monthly plans · card required, cancel anytime.
+            Card required · cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             14-day refund guarantee on your first paid charge. Daily quotas reset at 00:00 UTC.
