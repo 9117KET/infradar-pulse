@@ -187,6 +187,20 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
     updated_at: new Date().toISOString(),
   };
 
+  if (scheduledChange?.action === 'cancel') {
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('scheduled_price_id, scheduled_plan_key, scheduled_change_action')
+      .eq('paddle_subscription_id', id)
+      .eq('environment', env)
+      .maybeSingle();
+    if (existing?.scheduled_change_action === 'downgrade') {
+      row.scheduled_price_id = existing.scheduled_price_id;
+      row.scheduled_plan_key = existing.scheduled_plan_key;
+      row.scheduled_change_action = 'downgrade';
+    }
+  }
+
   // Upsert in both create + update paths so a rogue 'updated' before 'created'
   // doesn't drop the row.
   const _ = isCreate; // kept for log clarity; same code path either way
