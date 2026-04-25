@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { runResearchBatch } from "../_shared/webResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,7 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -37,28 +37,35 @@ serve(async (req) => {
     const { data: projects } = await supabase.from("projects").select("id, name, country, sector").eq("approved", true).limit(30);
     const countries = [...new Set(projects?.map(p => p.country) || [])];
 
-    const systemRole =
-      "You are a regulatory compliance analyst for infrastructure projects worldwide.";
-    const rawContent = await runResearchBatch([
-      {
-        systemRole,
-        query: `Summarise notable environmental impact assessment (EIA) approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025. Name specific projects, agencies, and dates where you can.`,
-      },
-      {
-        systemRole,
-        query: `Summarise recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} (2024-2025). Focus on items that could materially change project timelines or financing.`,
-      },
-    ]);
+    const raw: string[] = [];
+    if (PERPLEXITY_API_KEY && countries.length) {
+      try {
+        const res = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar",
+            messages: [
+              { role: "system", content: "You are a regulatory compliance analyst for infrastructure projects worldwide." },
+              { role: "user", content: `Summarise (1) notable EIA approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025, naming specific projects, agencies, and dates; and (2) recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} during 2024-2025, focusing on items that could materially change project timelines or financing.` },
+            ],
+            search_recency_filter: "month",
+          }),
+        });
+        const data = await res.json();
+        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+      } catch (e) { console.error("Perplexity:", e); }
+    }
 
-    if (!rawContent.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data", completed_at: new Date().toISOString() }).eq("id", task.id);
+    if (!raw.length) {
+      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Extract regulatory and compliance findings for infrastructure projects." },
-          { role: "user", content: `Projects: ${projects?.map(p => `${p.name} (${p.country}, ${p.sector})`).join(", ")}\n\n${rawContent.join("\n\n")}` },
+          { role: "user", content: `Projects: ${projects?.map(p => `${p.name} (${p.country}, ${p.sector})`).join(", ")}\n\n${raw.join("\n\n")}` },
         ],
         tools: [{
           type: "function",

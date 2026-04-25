@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { runResearchBatch } from "../_shared/webResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,7 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -48,29 +48,37 @@ serve(async (req) => {
     }
 
     const countries = [...new Set(projects.map((p) => p.country))].join(", ");
-    const systemRole =
-      "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide.";
-    const rawContent = await runResearchBatch([
-      {
-        systemRole,
-        query: `Summarise notable infrastructure contractors active in ${countries} with material performance issues, delays, or disputes during 2024-2025. Name specific firms and projects where you can.`,
-      },
-      {
-        systemRole,
-        query: `Summarise government infrastructure agencies or officials in ${countries} that have been linked to corruption investigations, conflict-of-interest concerns, or unusual bid-award patterns during 2024-2025.`,
-      },
-    ]);
 
-    if (!rawContent.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data sources", completed_at: new Date().toISOString() }).eq("id", task.id);
-      return new Response(JSON.stringify({ success: false, error: "No data" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const raw: string[] = [];
+    if (PERPLEXITY_API_KEY) {
+      try {
+        const res = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar",
+            messages: [
+              { role: "system", content: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide." },
+              { role: "user", content: `Summarise (1) notable infrastructure contractors in ${countries} with material performance issues, delays, or disputes during 2024-2025; and (2) government infrastructure agencies or officials in ${countries} linked to corruption investigations, conflict-of-interest concerns, or unusual bid-award patterns during 2024-2025. Name specific firms, agencies, and projects.` },
+            ],
+            search_recency_filter: "month",
+          }),
+        });
+        const data = await res.json();
+        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+      } catch (e) { console.error("Perplexity:", e); }
+    }
+
+    if (!raw.length) {
+      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
+      return new Response(JSON.stringify({ success: false, error: "No research text" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // AI analysis
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Extract stakeholder intelligence. Return JSON." },
-          { role: "user", content: `Analyze stakeholder data for infrastructure projects. Identify: companies with poor track records, conflict-of-interest patterns, entities under investigation.\n\nExisting projects: ${projects.map(p => `${p.name} (${p.country})`).join(", ")}\n\nContent:\n${rawContent.join("\n\n")}` },
+          { role: "user", content: `Analyze stakeholder data for infrastructure projects. Identify: companies with poor track records, conflict-of-interest patterns, entities under investigation.\n\nExisting projects: ${projects.map(p => `${p.name} (${p.country})`).join(", ")}\n\nContent:\n${raw.join("\n\n")}` },
         ],
         tools: [{
           type: "function",
