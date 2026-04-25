@@ -80,6 +80,7 @@ export async function getEntitlementForUser(
     .from("lifetime_grants")
     .select("id")
     .eq("user_id", userId)
+    .eq("environment", environment)
     .maybeSingle();
   if (lifetime) {
     return { plan: "lifetime", limits: PLAN_LIMITS.lifetime, bypass: false };
