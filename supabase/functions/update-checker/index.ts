@@ -37,7 +37,9 @@ serve(async (req) => {
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
 
-    const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
+    const { data: projects } = await supabase.from("projects").select("*")
+      .eq("approved", true)
+      .order("last_updated", { ascending: true });
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects to check" } }).eq("id", taskId);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
@@ -47,7 +49,7 @@ serve(async (req) => {
     let updatedCount = 0;
     let alertsCreated = 0;
 
-    for (const project of projects.slice(0, 20)) {
+    for (const project of projects.slice(0, 50)) {
       // Confidence decay
       const daysSinceUpdate = Math.floor((Date.now() - new Date(project.last_updated).getTime()) / (1000 * 60 * 60 * 24));
       const weeksSinceUpdate = Math.floor(daysSinceUpdate / 7);
@@ -166,7 +168,7 @@ Analyze if there are meaningful changes. Return JSON with:
       }
     }
 
-    const result = { success: true, projects_checked: Math.min(projects.length, 20), updated: updatedCount, alerts_created: alertsCreated };
+    const result = { success: true, projects_checked: Math.min(projects.length, 50), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);

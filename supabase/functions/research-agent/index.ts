@@ -181,13 +181,13 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               query: fcQuery,
-              limit: 5,
+              limit: 10,
               scrapeOptions: { formats: ["markdown"] },
             }),
           });
           const searchData = await searchResponse.json();
           if (searchData?.data) {
-            for (const result of searchData.data.slice(0, 3)) {
+            for (const result of searchData.data.slice(0, 5)) {
               if (result.markdown) {
                 rawContent.push(`Source: ${result.url}\n${result.markdown.slice(0, 3000)}`);
               }
@@ -206,7 +206,7 @@ serve(async (req) => {
       const groupNames = [...new Set(RESEARCH_QUERIES.map((q) => q.group))];
       // Cycle offset based on current time so successive runs hit different groups
       const cycleOffset = Math.floor(Date.now() / 1000) % groupNames.length;
-      const selectedGroups = Array.from({ length: 4 }, (_, i) =>
+      const selectedGroups = Array.from({ length: 6 }, (_, i) =>
         groupNames[(cycleOffset + i) % groupNames.length]
       );
 

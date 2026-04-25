@@ -37,7 +37,9 @@ serve(async (req) => {
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
 
-    const { data: projects } = await supabase.from("projects").select("*").eq("approved", true);
+    const { data: projects } = await supabase.from("projects").select("*")
+      .eq("approved", true)
+      .order("last_updated", { ascending: true });
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects to score" } }).eq("id", taskId);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
@@ -75,7 +77,7 @@ serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const projectSummaries = projects.slice(0, 25).map((p: any) =>
+    const projectSummaries = projects.slice(0, 50).map((p: any) =>
       `- ${p.name} (${p.country}, ${p.sector}, ${p.stage}, current risk: ${p.risk_score})`
     ).join("\n");
 
@@ -155,7 +157,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, projects_analyzed: Math.min(projects.length, 25), scored };
+    const result = { success: true, projects_analyzed: Math.min(projects.length, 50), scored };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);

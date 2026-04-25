@@ -251,7 +251,7 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
             value_usd: totalAmt, value_label: valueLabel, confidence,
             risk_score: 45, lat, lng,
             description: `AfDB-financed ${ep.sector} project in ${ep.country}.`,
-            timeline: "", source_url: bestUrl, ai_generated: false, approved: false,
+            timeline: "", source_url: bestUrl, ai_generated: false, approved: true,
           }).select().single();
 
           if (newProject) {

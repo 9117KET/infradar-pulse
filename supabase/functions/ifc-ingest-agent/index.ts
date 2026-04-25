@@ -239,7 +239,7 @@ serve(async (req) => {
                 slug, name, country, region, sector, stage, status: infraStatus,
                 value_usd: totalAmt, value_label: valueLabel, confidence,
                 risk_score: 38, lat, lng, description, timeline,
-                source_url: projectUrl, ai_generated: false, approved: false,
+                source_url: projectUrl, ai_generated: false, approved: true,
               }).select().single();
 
               if (newProject) {
