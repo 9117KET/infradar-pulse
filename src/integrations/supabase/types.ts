@@ -922,6 +922,8 @@ export type Database = {
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
+          entitlement_plan_key: string | null
+          entitlement_plan_until: string | null
           environment: string
           id: string
           notified_trial_ending_at: string | null
@@ -944,6 +946,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          entitlement_plan_key?: string | null
+          entitlement_plan_until?: string | null
           environment?: string
           id?: string
           notified_trial_ending_at?: string | null
@@ -966,6 +970,8 @@ export type Database = {
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
+          entitlement_plan_key?: string | null
+          entitlement_plan_until?: string | null
           environment?: string
           id?: string
           notified_trial_ending_at?: string | null
