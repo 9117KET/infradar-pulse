@@ -376,7 +376,7 @@ function BillingTab() {
     setBusy('change');
     try {
       await changePlan(priceId);
-      toast({ title: 'Plan updated', description: 'Charges and access adjust immediately. New plan will sync in a few seconds.' });
+      toast({ title: 'Plan update requested', description: 'Upgrades apply immediately. Downgrades are scheduled for the end of the current period.' });
     } catch (e) {
       toast({ title: 'Plan change failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
@@ -489,15 +489,15 @@ function BillingTab() {
       <div className="glass-panel rounded-xl p-6 space-y-3">
         {!hasActiveSub && !staffBypass && (
           <>
-            <p className="text-xs text-muted-foreground">Both paid plans include a 3-day free trial. Card collected at checkout, charged on day 3 unless you cancel.</p>
+            <p className="text-xs text-muted-foreground">Choose a paid plan. You can cancel anytime and keep access through the current billing period.</p>
             <div className="flex flex-wrap gap-2">
               <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly', 'starter')}>
                 {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Start Starter trial — $29/mo
+                Subscribe Starter — $29/mo
               </Button>
               <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly', 'pro')}>
                 {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Start Pro trial — $199/mo
+                Subscribe Pro — $199/mo
               </Button>
             </div>
           </>
