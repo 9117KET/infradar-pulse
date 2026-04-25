@@ -372,7 +372,7 @@ function BillingTab() {
     }
   };
 
-  const switchPlan = async (priceId: 'starter_monthly' | 'starter_yearly' | 'pro_monthly' | 'pro_yearly') => {
+  const switchPlan = async (priceId: 'starter_monthly_no_trial' | 'starter_yearly_no_trial' | 'pro_monthly_no_trial' | 'pro_yearly_no_trial') => {
     setBusy('change');
     try {
       await changePlan(priceId);
@@ -491,11 +491,11 @@ function BillingTab() {
           <>
             <p className="text-xs text-muted-foreground">Choose a paid plan. You can cancel anytime and keep access through the current billing period.</p>
             <div className="flex flex-wrap gap-2">
-              <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly', 'starter')}>
+              <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly_no_trial', 'starter')}>
                 {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Subscribe Starter — $29/mo
               </Button>
-              <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly', 'pro')}>
+              <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly_no_trial', 'pro')}>
                 {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Subscribe Pro — $199/mo
               </Button>
@@ -508,19 +508,19 @@ function BillingTab() {
             <p className="text-xs text-muted-foreground">Switch plans (charges adjust immediately, prorated) or cancel.</p>
             <div className="flex flex-wrap gap-2">
               {plan !== 'pro' && plan !== 'lifetime' && (
-                <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly')}>
+                <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly_no_trial')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
                   Upgrade to Pro
                 </Button>
               )}
               {(plan === 'starter' || plan === 'pro') && (
-                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan(plan === 'pro' ? 'pro_yearly' : 'starter_yearly')}>
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan(plan === 'pro' ? 'pro_yearly_no_trial' : 'starter_yearly_no_trial')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
                   Switch to yearly · save 20%
                 </Button>
               )}
               {plan !== 'starter' && plan !== 'free' && plan !== 'lifetime' && (
-                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly')}>
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly_no_trial')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowDownRight className="h-4 w-4 mr-2" />}
                   Downgrade to Starter
                 </Button>
