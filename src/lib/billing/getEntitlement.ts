@@ -29,7 +29,6 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .limit(1)
       .maybeSingle(),
     // lifetime_grants is new — generated types not yet refreshed
-    (supabase as any).from('lifetime_grants').select('id').eq('user_id', user.id).maybeSingle(),
     (supabase as any)
       .from('lifetime_grants')
       .select('id')
