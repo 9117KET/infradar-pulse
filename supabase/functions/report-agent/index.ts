@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,19 +32,9 @@ serve(async (req) => {
     const reportType = typeof body?.report_type === "string" ? body.report_type : "weekly_market_snapshot";
     const days = Number.isFinite(body?.days) ? Number(body.days) : 7;
 
-    const { data: task, error: taskErr } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "report-agent",
-        query: `${reportType}:${days}d`,
-        status: "running",
-        requested_by: gate.userId,
-        result: { step: "loading" },
-      })
-      .select("id")
-      .single();
-    if (taskErr) throw new Error(`Failed to create task: ${taskErr.message}`);
-    const taskId = task.id as string;
+    const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${days}d`, gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
+    const taskId = lock.taskId;
 
     const updateTask = async (patch: Record<string, unknown>) => {
       await supabase.from("research_tasks").update({ result: patch }).eq("id", taskId);

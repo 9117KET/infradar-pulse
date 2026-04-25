@@ -14,7 +14,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,7 +42,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -54,22 +54,14 @@ serve(async (req) => {
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "afdb-ingest")) return pausedResponse("afdb-ingest");
-
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "afdb-ingest",
-        query: "African Development Bank Projects Portal",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "afdb-ingest", "African Development Bank Projects Portal", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("afdb-ingest");
+    taskId = lock.taskId;
 
     const rawContent: string[] = [];
 
     if (!FIRECRAWL_API_KEY) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "FIRECRAWL_API_KEY not set", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "FIRECRAWL_API_KEY not set", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false, error: "FIRECRAWL_API_KEY required" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -105,7 +97,7 @@ serve(async (req) => {
     } catch (e) { console.error("Firecrawl search error:", e); }
 
     if (rawContent.length === 0) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No content scraped from AfDB portal", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No content scraped from AfDB portal", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false, error: "No content collected" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -181,7 +173,7 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
     }
 
     if (extractedProjects.length === 0) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "AI extracted 0 AfDB projects", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "AI extracted 0 AfDB projects", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false, error: "AI extracted 0 projects" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -275,21 +267,21 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     const result = { success: true, extracted: extractedProjects.length, inserted, updated, source: "AfDB" };
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("AfDB ingest error:", e);
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

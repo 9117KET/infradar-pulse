@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,15 +26,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "funding-tracker",
-        query: "Development bank funding scan",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
+    const lock = await beginAgentTask(supabase, "funding-tracker", "Development bank funding scan", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("funding-tracker");
+    const taskId = lock.taskId;
 
     const rawContent: string[] = [];
 
@@ -83,7 +78,7 @@ serve(async (req) => {
     }
 
     if (!rawContent.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data sources", completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No data sources", completed_at: new Date().toISOString() }).eq("id", taskId);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -159,7 +154,7 @@ serve(async (req) => {
       }
     }
 
-    if (task) await supabase.from("research_tasks").update({ status: "completed", result: { updates: updates.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", task.id);
+    if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { updates: updates.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 

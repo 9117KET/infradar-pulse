@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,15 +24,9 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   if (!await isAgentEnabled(supabase, "update-check")) return pausedResponse("update-check");
-
-  // Log task start
-  const { data: task } = await supabase.from("research_tasks").insert({
-    task_type: "update-check",
-    query: "Checking approved projects for recent updates",
-    status: "running",
-    requested_by: gate.userId,
-  }).select().single();
-  const taskId = task?.id;
+  const lock = await beginAgentTask(supabase, "update-check", "Checking approved projects for recent updates", gate.userId);
+  if (lock.alreadyRunning) return alreadyRunningResponse("update-check");
+  const taskId = lock.taskId;
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");

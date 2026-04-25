@@ -14,7 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,7 +131,7 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  let task: { id: string } | null = null;
+  let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
@@ -147,16 +147,9 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body */ }
     const totalLimit: number = Math.min(Number(body.limit) || 300, 1000);
 
-    const { data: taskData } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "adb-ingest",
-        query: `ADB Projects Portal — limit:${totalLimit}`,
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
-    task = taskData;
+    const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
+    taskId = lock.taskId;
 
     // Step 1: Discover available project datasets via CKAN package list
     console.log("Fetching ADB dataset catalog...");
@@ -205,10 +198,10 @@ serve(async (req) => {
 
     if (!csvUrl) {
       const result = { success: false, error: "Could not locate ADB CSV dataset via CKAN API" };
-      if (task) {
+      if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed", error: result.error, completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       }
       return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -312,10 +305,10 @@ serve(async (req) => {
     }
 
     const result = { success: true, fetched: processLimit, inserted, updated, skipped, source: "ADB" };
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     console.log(`ADB ingest complete: fetched=${processLimit} inserted=${inserted} updated=${updated} skipped=${skipped}`);
@@ -323,12 +316,12 @@ serve(async (req) => {
 
   } catch (e) {
     console.error("ADB ingest error:", e);
-    if (task && supabase) {
+    if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
-        }).eq("id", task.id);
+        }).eq("id", taskId);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

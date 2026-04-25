@@ -546,15 +546,15 @@ export default function AgentMonitoring() {
                         : <Pause className="h-2.5 w-2.5" />
                     }
                   </Button>
-                  {/* Run now */}
+                  {/* Run now - disabled if this specific agent is running (local state or DB) */}
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-5 text-[9px] px-1.5"
-                    disabled={!!runningAgent || isPaused}
+                    disabled={isRunningNow || isPaused}
                     onClick={() => runAgent(agent.name, agent.fn)}
                   >
-                    {runningAgent === agent.name ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5 mr-0.5" />}
+                    {isRunningNow ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <RefreshCw className="h-2.5 w-2.5 mr-0.5" />}
                     Run
                   </Button>
                 </div>}

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,16 +50,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "contact-finder",
-        query: bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select()
-      .single();
+    const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
+    const taskId = lock.taskId;
 
     const { data: existingContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
@@ -98,7 +92,7 @@ serve(async (req) => {
     }
 
     if (!needsContacts.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", taskId);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No work" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -289,12 +283,12 @@ serve(async (req) => {
       }
     }
 
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
         result: { projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning },
         completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);

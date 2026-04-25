@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,15 +24,9 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: task } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "alert-intelligence",
-        query: "Alert pattern analysis & intelligence brief",
-        status: "running",
-        requested_by: gate.userId,
-      })
-      .select().single();
+    const lock = await beginAgentTask(supabase, "alert-intelligence", "Alert pattern analysis & intelligence brief", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("alert-intelligence");
+    const taskId = lock.taskId;
 
     // Fetch alerts from the last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -42,7 +37,7 @@ serve(async (req) => {
       .order("created_at", { ascending: false });
 
     if (!alerts?.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No recent alerts to analyze" }, completed_at: new Date().toISOString() }).eq("id", task.id);
+      if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No recent alerts to analyze" }, completed_at: new Date().toISOString() }).eq("id", taskId);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, brief: null, message: "No recent alerts" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -139,12 +134,12 @@ serve(async (req) => {
       console.error("AI gateway error:", aiRes.status, errText);
     }
 
-    if (task) {
+    if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
         result: brief ? { brief, alert_count: alerts.length, categories: Object.keys(byCategory).length } : { error: "Failed to generate brief" },
         completed_at: new Date().toISOString(),
-      }).eq("id", task.id);
+      }).eq("id", taskId);
     }
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
