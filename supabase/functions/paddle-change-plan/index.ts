@@ -64,25 +64,6 @@ serve(async (req) => {
     }
 
     const isDowngrade = sub.plan_key === 'pro' && newPriceExternalId.startsWith('starter_');
-    if (isDowngrade) {
-      await admin
-        .from('subscriptions')
-        .update({
-          scheduled_price_id: newPriceExternalId,
-          scheduled_plan_key: 'starter',
-          scheduled_change_action: 'downgrade',
-          scheduled_change_effective_at: sub.current_period_end ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('paddle_subscription_id', sub.paddle_subscription_id)
-        .eq('environment', env);
-
-      return new Response(
-        JSON.stringify({ ok: true, scheduled: true, effectiveAt: sub.current_period_end }),
-        { headers: corsHeaders },
-      );
-    }
-
     const prorationBillingMode = sub.status === 'trialing' ? 'do_not_bill' : 'prorated_immediately';
 
     const paddle = getPaddleClient(env);
