@@ -2,7 +2,7 @@
  * digest-agent
  *
  * Generates AI-powered intelligence digests for a user based on alert_rules + tracked_projects.
- * Stores results in public.digests (in-app inbox). Optional email delivery can be added later.
+ * Stores results in public.digests (in-app inbox) and emails the user if email_alerts is enabled.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -185,6 +185,44 @@ serve(async (req) => {
       .eq("id", taskId);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
+
+    // Email delivery: send digest to user if they have email_alerts enabled.
+    try {
+      const [{ data: profile }, { data: { user: authUser } }] = await Promise.all([
+        supabase.from("profiles").select("email_alerts").eq("id", gate.userId).single(),
+        supabase.auth.admin.getUserById(gate.userId),
+      ]);
+
+      const userEmail = authUser?.email;
+      const emailAlertsEnabled = profile?.email_alerts ?? false;
+
+      if (emailAlertsEnabled && userEmail) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceKey}`,
+            "apikey": serviceKey,
+          },
+          body: JSON.stringify({
+            templateName: "digest-email",
+            recipientEmail: userEmail,
+            templateData: {
+              title: digest.title,
+              summary: digest.summary,
+              sections: digest.sections,
+              citations: digest.citations ?? [],
+              ruleName: activeRule?.name ?? null,
+            },
+          }),
+        });
+      }
+    } catch (emailErr) {
+      // Email delivery failure is non-fatal - digest is already stored in-app.
+      console.error("digest-agent: email delivery failed", emailErr);
+    }
 
     return new Response(JSON.stringify({ success: true, digestId: inserted.id, taskId }), { headers: corsHeaders });
   } catch (e) {

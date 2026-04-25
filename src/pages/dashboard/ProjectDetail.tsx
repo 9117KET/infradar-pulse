@@ -32,6 +32,7 @@ import { isReachableContact } from '@/lib/contact-validation';
 import { canDeleteProject, canEditProject } from '@/lib/project-permissions';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useCopyProtection } from '@/hooks/useCopyProtection';
+import { trackUsage } from '@/lib/billing/trackUsage';
 
 const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
 
@@ -49,7 +50,7 @@ export default function ProjectDetail() {
   const canModerate = hasRole('admin') || hasRole('researcher');
 
   // Copy/paste deterrent on the proprietary Analysis section for free + trial users.
-  const { staffBypass, isFreeTier, plan, canExportPdf } = useEntitlements();
+  const { staffBypass, isFreeTier, plan, canExportPdf, refresh: refreshEntitlements } = useEntitlements();
   const [tearsheetUpgradeOpen, setTearsheetUpgradeOpen] = useState(false);
   const protectAnalysis = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
   const analysisCopyProps = useCopyProtection(
@@ -292,7 +293,7 @@ export default function ProjectDetail() {
     );
   };
 
-  const downloadTearsheet = () => {
+  const downloadTearsheet = async () => {
     if (!canExportPdf) { setTearsheetUpgradeOpen(true); return; }
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -429,6 +430,18 @@ export default function ProjectDetail() {
     applyPdfWatermark(doc, watermark);
     const slug = project.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
     doc.save(`infradar_tearsheet_${slug}.pdf`);
+
+    const trackResult = await trackUsage('export_pdf');
+    if (!trackResult.ok) {
+      if (trackResult.emailUnverified) {
+        toast({ title: 'Confirm your email', description: 'Please verify your email before exporting.', variant: 'destructive' });
+        return;
+      }
+      if (trackResult.overLimit) setTearsheetUpgradeOpen(true);
+      toast({ title: 'Export limit reached', description: trackResult.message, variant: 'destructive' });
+      return;
+    }
+    await refreshEntitlements();
     toast({ title: 'Tearsheet downloaded', description: `${project.name} exported as PDF.` });
   };
 
@@ -460,7 +473,7 @@ export default function ProjectDetail() {
           <Button
             size="sm"
             variant="outline"
-            onClick={downloadTearsheet}
+            onClick={() => void downloadTearsheet()}
             title={!canExportPdf ? 'Tearsheet PDF requires the Pro plan' : 'Download project tearsheet as PDF'}
           >
             <Download className="h-3 w-3 mr-1" />
