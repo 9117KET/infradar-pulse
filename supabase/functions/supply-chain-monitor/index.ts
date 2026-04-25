@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { runResearchBatch } from "../_shared/webResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +16,7 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -34,23 +34,28 @@ serve(async (req) => {
       })
       .select().single();
 
-    const systemRole =
-      "You are a supply chain analyst for infrastructure construction materials worldwide.";
-    const rawContent = await runResearchBatch([
-      {
-        systemRole,
-        query:
-          "Summarise the current state of global commodity prices and shortages affecting infrastructure construction in 2025: steel, cement, copper, aluminium, lithium, and fuel. Include approximate price changes vs prior year and any acute disruptions.",
-      },
-      {
-        systemRole,
-        query:
-          "Summarise current global shipping and logistics disruptions impacting construction material delivery in 2025 (port congestion, canal issues, tariffs, sanctions, supplier insolvencies). Note which regions are most affected.",
-      },
-    ]);
+    const raw: string[] = [];
+    if (PERPLEXITY_API_KEY) {
+      try {
+        const res = await fetch("https://api.perplexity.ai/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "sonar",
+            messages: [
+              { role: "system", content: "You are a supply chain analyst for infrastructure construction materials worldwide." },
+              { role: "user", content: "Summarise (1) current global commodity prices and shortages affecting infrastructure construction in 2025 (steel, cement, copper, aluminium, lithium, fuel - include approximate price changes vs prior year and any acute disruptions); and (2) current global shipping and logistics disruptions impacting construction material delivery in 2025 (port congestion, canal issues, tariffs, sanctions, supplier insolvencies - note which regions are most affected)." },
+            ],
+            search_recency_filter: "month",
+          }),
+        });
+        const data = await res.json();
+        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
+      } catch (e) { console.error("Perplexity:", e); }
+    }
 
-    if (!rawContent.length) {
-      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No data", completed_at: new Date().toISOString() }).eq("id", task.id);
+    if (!raw.length) {
+      if (task) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", task.id);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -59,7 +64,7 @@ serve(async (req) => {
     const aiRes = await chatCompletions({
         messages: [
           { role: "system", content: "Analyze supply chain risks for infrastructure projects." },
-          { role: "user", content: `Sectors in portfolio: ${[...new Set(projects?.map(p => p.sector) || [])].join(", ")}\n\n${rawContent.join("\n\n")}` },
+          { role: "user", content: `Sectors in portfolio: ${[...new Set(projects?.map(p => p.sector) || [])].join(", ")}\n\n${raw.join("\n\n")}` },
         ],
         tools: [{
           type: "function",
