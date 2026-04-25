@@ -282,6 +282,13 @@ export default function Projects() {
 
   const [riskPage, setRiskPage] = useState(0);
   const RISK_PAGE_SIZE = 10;
+  const [projectPage, setProjectPage] = useState(0);
+  const PROJECT_PAGE_SIZE = 25;
+
+  // Reset project page whenever filters change
+  useEffect(() => {
+    setProjectPage(0);
+  }, [search, stage, sector, confFilter, viewScope]);
 
   return (
     <div className="space-y-4">
@@ -734,7 +741,7 @@ export default function Projects() {
                 ))
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
-              ) : filtered.map(p => (
+              ) : filtered.slice(projectPage * PROJECT_PAGE_SIZE, (projectPage + 1) * PROJECT_PAGE_SIZE).map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
                   <td className="p-3">
                     <div className="flex items-center gap-1.5">
@@ -766,6 +773,17 @@ export default function Projects() {
               ))}
             </tbody>
           </table>
+          {!loading && filtered.length > PROJECT_PAGE_SIZE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <span className="text-xs text-muted-foreground">
+                {projectPage * PROJECT_PAGE_SIZE + 1}–{Math.min((projectPage + 1) * PROJECT_PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} projects
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" disabled={projectPage === 0} onClick={() => setProjectPage(p => p - 1)}>Previous</Button>
+                <Button size="sm" variant="outline" disabled={(projectPage + 1) * PROJECT_PAGE_SIZE >= filtered.length} onClick={() => setProjectPage(p => p + 1)}>Next</Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

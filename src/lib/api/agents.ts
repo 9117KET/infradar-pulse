@@ -17,7 +17,9 @@ async function invokeAgentWithBody(functionName: string, body: Record<string, un
   const { data, error } = await supabase.functions.invoke(functionName, {
     body: { ...body, environment: getPaddleEnvironment() },
   });
-  if (error) throw new Error(error.message || `Failed to invoke ${functionName}`);
+  // Re-throw the original error to preserve context (HTTP status, etc.) so
+  // callers like isEntitlementOrQuotaError can inspect it correctly.
+  if (error) throw error;
   return data;
 }
 
