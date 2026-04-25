@@ -5,6 +5,7 @@
 // It exposes a state machine the BillingTab can render as a progress UI.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getPaddleEnvironment } from '@/lib/paddle';
 
 const POLL_INTERVAL_MS = 2000;
 const TIMEOUT_MS = 30_000;
@@ -62,14 +63,15 @@ export function useCheckoutCompletion(
       const elapsed = Date.now() - startedAtRef.current;
       setElapsedSec(Math.floor(elapsed / 1000));
 
-      // Look for the row the webhook will write. We don't filter by environment
-      // here — any active sub means the webhook has landed and entitlements
-      // will refresh.
+      // Look for the row the webhook will write in the active payment environment.
       const { data } = await supabase
         .from('subscriptions')
         .select('status')
         .eq('user_id', userId)
+        .eq('environment', getPaddleEnvironment())
         .in('status', ['trialing', 'active', 'past_due'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (data) {
