@@ -141,8 +141,8 @@ export default function PortfolioChat() {
     try {
       const contextualQuery = buildContext(trimmed);
       const result = await agentApi.runUserResearch(contextualQuery);
-      if (result?.task_id) {
-        setActiveTaskId(result.task_id);
+      if (result?.taskId) {
+        setActiveTaskId(result.taskId);
       } else if (result?.summary || result?.answer) {
         setMessages(prev => [...prev, { role: 'assistant', content: result.summary ?? result.answer }]);
       }

@@ -96,29 +96,6 @@ export default function ProjectDetail() {
       });
   }, [project?.dbId, verifyLoading]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6 max-w-4xl">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <div className="grid gap-4 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
-        </div>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="text-center py-20">
-        <p className="text-muted-foreground">Project not found.</p>
-        <Link to="/dashboard/projects"><Button variant="outline" className="mt-4">Back to projects</Button></Link>
-      </div>
-    );
-  }
-
-  const contacts = project.contacts || [];
-
   const { data: changelog = [] } = useQuery({
     queryKey: ['project-changelog', project?.dbId],
     queryFn: async () => {
@@ -151,6 +128,29 @@ export default function ProjectDetail() {
     },
     enabled: !!project?.dbId,
   });
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <div className="grid gap-4 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24" />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Link to="/dashboard/projects"><Button variant="outline" className="mt-4">Back to projects</Button></Link>
+      </div>
+    );
+  }
+
+  const contacts = project.contacts || [];
 
   const handleVerificationToggle = async () => {
     if (!project.dbId || !verifyReason.trim()) return;

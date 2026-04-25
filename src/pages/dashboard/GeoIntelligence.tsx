@@ -25,7 +25,7 @@ function getRiskLevel(score: number) {
 
 export default function GeoIntelligence() {
   const { profile, hasRole } = useAuth();
-  const { allProjects, loading } = useProjects();
+  const { allProjects, loading, totalAvailable, truncated } = useProjects();
   const [searchParams] = useSearchParams();
   const hasPrefs =
     !!profile?.onboarded &&
@@ -206,11 +206,12 @@ export default function GeoIntelligence() {
         const moreRegions = (profile?.regions?.length ?? 0) > 3 ? ` +${(profile.regions?.length ?? 0) - 3} more` : '';
 
         if (isStaff) {
-          // Staff see the full count — admin-level info
           return (
             <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
               <Info className="h-3.5 w-3.5 shrink-0" />
-              Viewing all {allProjects.length} globally tracked projects.
+              {truncated
+                ? `Viewing ${allProjects.length.toLocaleString()} of ${totalAvailable.toLocaleString()} indexed projects (plan cap).`
+                : `Viewing all ${allProjects.length.toLocaleString()} indexed projects.`}
             </div>
           );
         }
@@ -219,7 +220,7 @@ export default function GeoIntelligence() {
             <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-xs text-amber-500">
               <Info className="h-3.5 w-3.5 shrink-0" />
               <span>
-                Showing projects in your coverage regions: {regionList}{moreRegions}.{' '}
+                Showing {scopedProjects.length.toLocaleString()} projects in your coverage regions: {regionList}{moreRegions}.{' '}
                 <Link to="/dashboard/settings" className="underline hover:text-amber-400">Expand in Settings</Link> to see more.
               </span>
             </div>
@@ -228,7 +229,9 @@ export default function GeoIntelligence() {
         return (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-500">
             <Info className="h-3.5 w-3.5 shrink-0" />
-            Viewing your full global coverage.
+            {truncated
+              ? <><span>Showing {allProjects.length.toLocaleString()} of {totalAvailable.toLocaleString()} indexed projects on your plan.</span><Link to="/dashboard/settings" className="ml-1 underline hover:text-emerald-400">Upgrade for more</Link></>
+              : `Viewing all ${allProjects.length.toLocaleString()} indexed projects.`}
           </div>
         );
       })()}

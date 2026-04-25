@@ -120,22 +120,44 @@ export function useProjects(filters?: ProjectFilters) {
         .eq('approved', true);
       setTotalAvailable(count ?? 0);
 
-      let projectsQuery = supabase
-        .from('projects')
-        .select('*')
-        .eq('approved', true)
-        .order('value_usd', { ascending: false });
-      if (rowCap > 0) projectsQuery = projectsQuery.limit(rowCap);
+      // Fetch projects: capped plans use a single limited query; unlimited plans
+      // page through Supabase's default 1000-row ceiling with .range() so staff
+      // and enterprise users see the full dataset.
+      const SUPABASE_PAGE = 1000;
+      let pData: any[] = [];
+      if (rowCap > 0) {
+        const { data } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('approved', true)
+          .order('value_usd', { ascending: false })
+          .limit(rowCap);
+        pData = data ?? [];
+      } else {
+        let from = 0;
+        for (let i = 0; i < 50; i++) {
+          const { data } = await supabase
+            .from('projects')
+            .select('*')
+            .eq('approved', true)
+            .order('value_usd', { ascending: false })
+            .range(from, from + SUPABASE_PAGE - 1);
+          if (!data?.length) break;
+          pData.push(...data);
+          if (data.length < SUPABASE_PAGE) break;
+          from += SUPABASE_PAGE;
+        }
+      }
 
-      const [{ data: pData }, { data: sData }, { data: mData }, { data: eData }, { data: cData }] = await Promise.all([
-        projectsQuery,
+      const [{ data: sData }, { data: mData }, { data: eData }, { data: cData }] = await Promise.all([
         supabase.from('project_stakeholders').select('*'),
         supabase.from('project_milestones').select('*'),
         supabase.from('evidence_sources').select('*'),
         supabase.from('project_contacts').select('*'),
       ]);
 
-      if (!pData) {
+      if (!pData.length && rowCap > 0) {
+        // No data returned for a capped user - nothing to show
         setLoading(false);
         return;
       }
