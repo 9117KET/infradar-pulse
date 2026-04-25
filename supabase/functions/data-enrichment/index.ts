@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, setTaskStep } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +43,7 @@ serve(async (req) => {
   const lock = await beginAgentTask(supabase, "data-enrichment", "Scanning projects for missing data and enriching gaps", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("data-enrichment");
   const taskId = lock.taskId;
+  await setTaskStep(supabase, taskId, "Searching");
 
   try {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
@@ -109,6 +110,7 @@ serve(async (req) => {
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    await setTaskStep(supabase, taskId, "Extracting");
     let enriched = 0;
     let contactsAdded = 0;
     let sourcesBackfilled = 0;
@@ -297,6 +299,7 @@ serve(async (req) => {
       }
     }
 
+    await setTaskStep(supabase, taskId, "Saving");
     const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 

@@ -15,6 +15,7 @@ export interface TaskRow {
   result: Record<string, unknown> | null;
   created_at: string;
   completed_at: string | null;
+  current_step: string | null;
 }
 
 export interface AgentStats {

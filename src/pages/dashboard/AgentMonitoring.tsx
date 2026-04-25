@@ -312,9 +312,10 @@ export default function AgentMonitoring() {
         name: agentNameMap[t.task_type] || t.task_type,
         startedAt: t.created_at,
         elapsed: Math.floor((Date.now() - new Date(t.created_at).getTime()) / 1000),
+        currentStep: t.current_step ?? null,
       }));
     if (runningAgent && !dbRunning.some(r => r.name === runningAgent)) {
-      dbRunning.unshift({ name: runningAgent, startedAt: new Date().toISOString(), elapsed: 0 });
+      dbRunning.unshift({ name: runningAgent, startedAt: new Date().toISOString(), elapsed: 0, currentStep: null });
     }
     return dbRunning;
   }, [tasks, runningAgent]);
@@ -406,7 +407,13 @@ export default function AgentMonitoring() {
               <p className="text-xs text-muted-foreground text-center py-4">No agents currently running</p>
             )}
             {runningAgents.map((ra, i) => {
-              const stepIndex = Math.min(Math.floor(ra.elapsed / 8), WORKFLOW_STEPS.length - 1);
+              // Use real step from DB if available, fall back to time-estimate
+              const realStepIdx = ra.currentStep
+                ? WORKFLOW_STEPS.findIndex(s => s.toLowerCase() === ra.currentStep!.toLowerCase())
+                : -1;
+              const stepIndex = realStepIdx >= 0
+                ? realStepIdx
+                : Math.min(Math.floor(ra.elapsed / 8), WORKFLOW_STEPS.length - 1);
               return (
                 <div key={i} className="rounded-lg bg-background/50 border border-border p-3 space-y-2">
                   <div className="flex items-center justify-between">
