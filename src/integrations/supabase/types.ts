@@ -930,6 +930,10 @@ export type Database = {
           plan_key: string
           price_id: string
           product_id: string
+          scheduled_change_action: string | null
+          scheduled_change_effective_at: string | null
+          scheduled_plan_key: string | null
+          scheduled_price_id: string | null
           status: string
           trial_end: string | null
           updated_at: string | null
@@ -948,6 +952,10 @@ export type Database = {
           plan_key?: string
           price_id: string
           product_id: string
+          scheduled_change_action?: string | null
+          scheduled_change_effective_at?: string | null
+          scheduled_plan_key?: string | null
+          scheduled_price_id?: string | null
           status?: string
           trial_end?: string | null
           updated_at?: string | null
@@ -966,6 +974,10 @@ export type Database = {
           plan_key?: string
           price_id?: string
           product_id?: string
+          scheduled_change_action?: string | null
+          scheduled_change_effective_at?: string | null
+          scheduled_plan_key?: string | null
+          scheduled_price_id?: string | null
           status?: string
           trial_end?: string | null
           updated_at?: string | null
@@ -1191,7 +1203,9 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
-      has_paid_or_staff_access: { Args: { _user_id: string }; Returns: boolean }
+      has_paid_or_staff_access:
+        | { Args: { _user_id: string }; Returns: boolean }
+        | { Args: { _user_id: string; check_env?: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
