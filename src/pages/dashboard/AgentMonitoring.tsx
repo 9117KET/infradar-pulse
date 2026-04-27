@@ -106,9 +106,8 @@ export default function AgentMonitoring() {
   });
 
   const { data: schedulerActivity } = useQuery({
-    queryKey: ['agent-scheduler-activity'],
+    queryKey: ['agent-scheduler-activity', staffBypass],
     queryFn: async () => {
-      if (!staffBypass) return {} as Record<string, SchedulerActivity>;
       const { data, error } = await (supabase as any).rpc('get_agent_scheduler_activity');
       if (error) throw error;
       return ((data ?? []) as SchedulerActivity[]).reduce<Record<string, SchedulerActivity>>((acc, row) => {
@@ -116,7 +115,7 @@ export default function AgentMonitoring() {
         return acc;
       }, {});
     },
-    enabled: !entLoading,
+    enabled: !entLoading && staffBypass,
     refetchInterval: 30000,
   });
 
