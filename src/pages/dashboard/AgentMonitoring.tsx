@@ -333,7 +333,7 @@ export default function AgentMonitoring() {
   // showed agents that were paused or currently running (empty for most users).
   const visibleAgents = AGENTS;
 
-  const totalRuns = AGENTS.reduce((sum, agent) => sum + getAgentRunTotal(agent), 0);
+  const totalRuns = tasks?.length || 0;
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
   const staleCount = AGENTS.filter(a => isStale(a)).length;
