@@ -196,8 +196,24 @@ serve(async (req) => {
       }
     }
 
+    // Step 3: Try known direct ADB CSV download paths when CKAN discovery fails
     if (!csvUrl) {
-      const result = { success: false, error: "Could not locate ADB CSV dataset via CKAN API" };
+      const directUrls = [
+        "https://www.adb.org/sites/default/files/institutional-document/838751/adb-sovereign-operations-projects.csv",
+        "https://data.adb.org/dataset/adb-sovereign-operations/resource/adb-sovereign-operations.csv",
+        "https://www.adb.org/sites/default/files/institutional-document/adb-operations-projects.csv",
+        "https://data.adb.org/dataset/adb-sovereign-loan-disbursements/resource/adb-sovereign-operations.csv",
+      ];
+      for (const url of directUrls) {
+        try {
+          const probe = await fetch(url, { method: "HEAD" });
+          if (probe.ok) { csvUrl = url; console.log(`ADB direct URL found: ${url}`); break; }
+        } catch { /* try next */ }
+      }
+    }
+
+    if (!csvUrl) {
+      const result = { success: false, error: "Could not locate ADB CSV dataset. Check https://data.adb.org/dataset/adb-sovereign-operations for the current CSV URL and update directUrls in adb-ingest-agent." };
       if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed", error: result.error, completed_at: new Date().toISOString(),

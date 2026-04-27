@@ -62,6 +62,9 @@ export const agentApi = {
     invokeAgentWithBody('adb-ingest-agent', { ...(opts ?? {}) }),
   runAfdbIngest: () => invokeAgent('afdb-ingest-agent'),
   runEbrdIngest: () => invokeAgent('ebrd-ingest-agent'),
+  runIadbIngest: (opts?: { status?: string; limit?: number }) =>
+    invokeAgentWithBody('iadb-ingest-agent', { ...(opts ?? {}) }),
+  runAiibIngest: () => invokeAgent('aiib-ingest-agent'),
   runEntityDedup: () => invokeAgent('entity-dedup'),
   runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
   runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),
