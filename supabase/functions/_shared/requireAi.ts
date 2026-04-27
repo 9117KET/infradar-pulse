@@ -3,6 +3,8 @@ import { getUserFromBearer } from "./auth.ts";
 import { consumeAiQuota, getEntitlementForUser, requireVerifiedEmail } from "./entitlementCheck.ts";
 import { PlanKey, planMeetsMinimum } from "./billing.ts";
 
+type AdminClient = ReturnType<typeof createClient<any, "public", any>>;
+
 export const corsJson = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -15,7 +17,7 @@ export const corsJson = {
  * with a userId, so callers should NOT call recordAiUsage afterwards.
  */
 export async function requireAiEntitlementOrRespond(req: Request): Promise<
-  | { userId: string; supabaseAdmin: ReturnType<typeof createClient> }
+  | { userId: string; supabaseAdmin: AdminClient }
   | Response
 > {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -73,7 +75,7 @@ export async function requirePlanAndAiOrRespond(
   req: Request,
   minPlan: PlanKey,
 ): Promise<
-  | { userId: string; supabaseAdmin: ReturnType<typeof createClient> }
+  | { userId: string; supabaseAdmin: AdminClient }
   | Response
 > {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -137,7 +139,7 @@ export async function requirePlanAndAiOrRespond(
  * should not call this.
  */
 export async function recordAiUsage(
-  _supabaseAdmin: ReturnType<typeof createClient>,
+  _supabaseAdmin: AdminClient,
   _userId: string | null
 ): Promise<void> {
   // Intentionally a no-op. Quota was already consumed atomically by the gate.
