@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { InfradarLogo } from '@/components/InfradarLogo';
@@ -18,8 +18,11 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  // Read referral code from URL if present (e.g. ?ref=ABC123)
+  const refCode = new URLSearchParams(location.search).get('ref');
 
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true });
@@ -83,7 +86,10 @@ export default function Login() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: refCode ? { referred_by_code: refCode } : undefined,
+        },
       });
       if (error) {
         toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });

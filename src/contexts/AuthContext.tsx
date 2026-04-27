@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
+import { getStoredUtmParams, clearUtmParams } from '@/lib/utm';
 
 export type AppRole = 'user' | 'researcher' | 'admin';
 
@@ -56,7 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('user_roles').select('role').eq('user_id', uid),
     ]);
-    setProfile(profileRes.data as UserProfile | null);
+    const profileData = profileRes.data as (UserProfile & { acq_source?: string | null }) | null;
+    // One-time attribution write: if profile has no source yet but we captured UTMs, persist them
+    if (profileData && !profileData.acq_source) {
+      const utms = getStoredUtmParams();
+      if (utms && Object.keys(utms).length > 0) {
+        await supabase.from('profiles').update(utms).eq('id', uid);
+        clearUtmParams();
+      }
+    }
+    setProfile(profileData as UserProfile | null);
     setRoles((rolesRes.data?.map((r: any) => r.role) ?? []) as AppRole[]);
     setProfileLoading(false);
   }, []);

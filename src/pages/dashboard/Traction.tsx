@@ -1,0 +1,246 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+
+interface TractionStats {
+  total_signups: number;
+  signups_this_week: number;
+  signups_last_week: number;
+  paid_subscribers: number;
+  active_trials: number;
+  plan_breakdown: Array<{ plan: string; count: number }> | null;
+  channel_breakdown: Array<{ source: string; count: number }> | null;
+  demo_requests_week: number;
+  demo_requests_total: number;
+  newsletter_total: number;
+  referral_signups: number;
+  referral_conversions: number;
+  weekly_signups: Array<{ week: string; count: number }> | null;
+}
+
+const PLAN_COLORS: Record<string, string> = {
+  pro: 'hsl(var(--primary))',
+  starter: 'hsl(210, 60%, 55%)',
+  enterprise: 'hsl(280, 50%, 55%)',
+  lifetime: 'hsl(40, 80%, 55%)',
+  trialing: 'hsl(160, 50%, 45%)',
+  free: 'hsl(0, 0%, 50%)',
+};
+
+const PLAN_MRR: Record<string, number> = {
+  starter: 29,
+  pro: 199,
+  enterprise: 500, // conservative estimate
+  lifetime: 0,
+  trialing: 0,
+  free: 0,
+};
+
+function delta(current: number, previous: number) {
+  if (previous === 0) return null;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function DeltaBadge({ pct }: { pct: number | null }) {
+  if (pct === null) return null;
+  if (pct > 0) return (
+    <span className="flex items-center gap-0.5 text-xs text-emerald-400">
+      <ArrowUpRight className="h-3 w-3" />+{pct}% wow
+    </span>
+  );
+  if (pct < 0) return (
+    <span className="flex items-center gap-0.5 text-xs text-red-400">
+      <ArrowDownRight className="h-3 w-3" />{pct}% wow
+    </span>
+  );
+  return <span className="flex items-center gap-0.5 text-xs text-muted-foreground"><Minus className="h-3 w-3" />0% wow</span>;
+}
+
+function KpiCard({ title, value, sub, icon: Icon, delta: d }: {
+  title: string; value: string | number; sub?: string; icon: React.ElementType; delta?: number | null;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <div className="flex items-center gap-2 mt-1">
+          {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+          {d !== undefined && <DeltaBadge pct={d} />}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function Traction() {
+  const [stats, setStats] = useState<TractionStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('get_traction_stats').then(({ data, error: err }) => {
+      if (err) { setError(err.message); }
+      else { setStats(data as TractionStats); }
+      setLoading(false);
+    });
+  }, []);
+
+  const mrr = stats?.plan_breakdown
+    ? stats.plan_breakdown.reduce((sum, p) => sum + (PLAN_MRR[p.plan] ?? 0) * p.count, 0)
+    : 0;
+
+  const conversionRate = stats && stats.total_signups > 0
+    ? ((stats.paid_subscribers / stats.total_signups) * 100).toFixed(1)
+    : '0.0';
+
+  const signupDelta = stats ? delta(stats.signups_this_week, stats.signups_last_week) : null;
+
+  const weeklyData = stats?.weekly_signups?.map(w => ({
+    week: new Date(w.week).toLocaleDateString('en-GB', { month: 'short', day: 'numeric' }),
+    count: w.count,
+  })) ?? [];
+
+  if (error) {
+    return (
+      <div className="p-8 text-sm text-red-400">
+        Failed to load traction stats: {error}
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div>
+        <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
+          <TrendingUp className="h-6 w-6 text-primary" />
+          Traction
+        </h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Growth metrics, channel attribution, and conversion funnel.
+        </p>
+      </div>
+
+      {/* KPI row */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {loading ? Array.from({ length: 8 }).map((_, i) => (
+          <Card key={i}><CardContent className="pt-6"><Skeleton className="h-8 w-20 mb-2" /><Skeleton className="h-3 w-16" /></CardContent></Card>
+        )) : <>
+          <KpiCard title="Est. MRR" value={`$${mrr.toLocaleString()}`} sub="active subscriptions" icon={CreditCard} />
+          <KpiCard title="Paid Subscribers" value={stats?.paid_subscribers ?? 0} sub={`${stats?.active_trials ?? 0} trials`} icon={CreditCard} />
+          <KpiCard title="Total Signups" value={stats?.total_signups ?? 0} sub={`${stats?.signups_this_week ?? 0} this week`} icon={Users} delta={signupDelta} />
+          <KpiCard title="Free → Paid" value={`${conversionRate}%`} sub="conversion rate" icon={TrendingUp} />
+          <KpiCard title="Demo Requests" value={stats?.demo_requests_total ?? 0} sub={`${stats?.demo_requests_week ?? 0} this week`} icon={MessageSquare} />
+          <KpiCard title="Newsletter" value={stats?.newsletter_total ?? 0} sub="subscribers" icon={Mail} />
+          <KpiCard title="Referral Signups" value={stats?.referral_signups ?? 0} sub={`${stats?.referral_conversions ?? 0} converted`} icon={Share2} />
+          <KpiCard title="Signups This Week" value={stats?.signups_this_week ?? 0} sub="vs last week" icon={Users} delta={signupDelta} />
+        </>}
+      </div>
+
+      {/* Charts row */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Weekly signups trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Weekly Signups (12 weeks)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? <Skeleton className="h-48 w-full" /> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={weeklyData} barSize={16}>
+                  <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} width={28} />
+                  <Tooltip contentStyle={{ fontSize: 12 }} />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Plan breakdown */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Active Plan Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? <Skeleton className="h-48 w-full" /> : (
+              <div className="space-y-2">
+                {(stats?.plan_breakdown ?? []).map(p => {
+                  const total = stats?.plan_breakdown?.reduce((s, x) => s + x.count, 0) ?? 1;
+                  const pct = Math.round((p.count / total) * 100);
+                  return (
+                    <div key={p.plan} className="flex items-center gap-3">
+                      <Badge variant="outline" className="w-20 justify-center capitalize text-xs" style={{ borderColor: PLAN_COLORS[p.plan] ?? undefined }}>
+                        {p.plan}
+                      </Badge>
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: PLAN_COLORS[p.plan] ?? 'hsl(var(--primary))' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground w-16 text-right">{p.count} ({pct}%)</span>
+                    </div>
+                  );
+                })}
+                {!stats?.plan_breakdown?.length && (
+                  <p className="text-sm text-muted-foreground">No subscription data yet.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Channel attribution */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Acquisition Channel Breakdown</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? <Skeleton className="h-32 w-full" /> : (
+            <div className="space-y-2">
+              {(stats?.channel_breakdown ?? []).map(c => {
+                const total = stats?.total_signups ?? 1;
+                const pct = Math.round((c.count / total) * 100);
+                return (
+                  <div key={c.source} className="flex items-center gap-3">
+                    <span className="text-xs font-mono w-28 truncate text-muted-foreground">{c.source}</span>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-20 text-right">{c.count} signups ({pct}%)</span>
+                  </div>
+                );
+              })}
+              {!stats?.channel_breakdown?.length && (
+                <p className="text-sm text-muted-foreground">No attribution data yet. UTM params will appear here as users sign up from tracked channels.</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bullseye experiment reminder */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium">Bullseye Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-2">
+          <p>Run 4-week experiments. A channel passes when:</p>
+          <ul className="list-disc list-inside space-y-1 text-xs">
+            <li>CAC &lt; $200 (Starter) or &lt; $800 (Pro)</li>
+            <li>Payback period &lt; 6 months</li>
+            <li>At least 5 paying conversions from the experiment</li>
+          </ul>
+          <p className="text-xs pt-1">See <code className="text-primary">docs/TRACTION_MARKETING.md</code> for full channel playbook, BD targets, and cold email templates.</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
