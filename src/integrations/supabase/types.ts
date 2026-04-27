@@ -836,6 +836,7 @@ export type Database = {
           error: string | null
           id: string
           query: string
+          requested_by: string | null
           result: Json | null
           status: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -846,6 +847,7 @@ export type Database = {
           error?: string | null
           id?: string
           query: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -856,6 +858,7 @@ export type Database = {
           error?: string | null
           id?: string
           query?: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type?: string
