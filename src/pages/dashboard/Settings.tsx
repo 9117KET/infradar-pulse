@@ -10,7 +10,7 @@ import { REGIONS, SECTORS } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail, Download, AlertTriangle, ArrowUpRight, ArrowDownRight, XCircle, PlayCircle, Settings as SettingsIcon } from 'lucide-react';
+import { Bot, Search, RefreshCw, ShieldAlert, Loader2, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, User, Bell, RotateCcw, CreditCard, ExternalLink, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Bookmark, Trash2, Mail, Download, AlertTriangle, ArrowUpRight, ArrowDownRight, XCircle, PlayCircle, Settings as SettingsIcon, Share2 } from 'lucide-react';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { Switch as UISwitch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -585,6 +585,68 @@ function BillingTab() {
   );
 }
 
+function ReferralSection() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [code, setCode] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  // Load or generate referral code
+  useEffect(() => {
+    if (!user) return;
+    supabase.from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
+      .then(({ data }) => { if (data?.code) setCode(data.code); });
+  }, [user]);
+
+  const getOrCreateCode = async () => {
+    if (code || !user) return;
+    setCreating(true);
+    // Generate a short random code
+    const raw = Array.from(crypto.getRandomValues(new Uint8Array(5)))
+      .map(b => b.toString(36)).join('').toUpperCase();
+    const { data, error } = await supabase
+      .from('referral_codes')
+      .insert({ user_id: user.id, code: raw })
+      .select('code')
+      .single();
+    if (!error && data) setCode(data.code);
+    setCreating(false);
+  };
+
+  const referralUrl = code ? `https://infradarai.com?ref=${code}` : null;
+
+  const copyLink = () => {
+    if (!referralUrl) return;
+    navigator.clipboard.writeText(referralUrl).then(() => {
+      toast({ title: 'Copied', description: 'Referral link copied to clipboard.' });
+    });
+  };
+
+  return (
+    <div className="glass-panel rounded-xl p-6 space-y-4">
+      <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+        <Share2 className="h-5 w-5 text-primary" />
+        Refer a colleague
+      </h3>
+      <p className="text-sm text-muted-foreground">
+        Share your referral link. When someone signs up and becomes a paying subscriber,
+        you get 1 free month of Pro.
+      </p>
+      {code ? (
+        <div className="flex gap-2">
+          <Input readOnly value={referralUrl ?? ''} className="font-mono text-xs bg-muted/30" />
+          <Button variant="outline" size="sm" onClick={copyLink}>Copy</Button>
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" disabled={creating} onClick={() => void getOrCreateCode()}>
+          {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="h-4 w-4 mr-2" />}
+          Generate referral link
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function AccountTab() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -616,6 +678,8 @@ function AccountTab() {
 
   return (
     <div className="space-y-4 max-w-lg">
+      <ReferralSection />
+
       <div className="glass-panel rounded-xl p-6 space-y-4">
         <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
           <Download className="h-5 w-5 text-primary" />
