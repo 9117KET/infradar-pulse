@@ -147,9 +147,16 @@ export default function AgentMonitoring() {
   const { data: contactCounts } = useQuery({
     queryKey: ['contact-coverage'],
     queryFn: async () => {
-      const { data } = await supabase.from('project_contacts').select('project_id');
+      const data: { project_id: string }[] = [];
+      for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+        const { data: page, error } = await supabase.from('project_contacts').select('project_id').range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!page?.length) break;
+        data.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
       const counts: Record<string, number> = {};
-      (data || []).forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
+      data.forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
       return counts;
     },
     refetchInterval: 60000,
@@ -158,9 +165,16 @@ export default function AgentMonitoring() {
   const { data: evidenceCounts } = useQuery({
     queryKey: ['evidence-coverage'],
     queryFn: async () => {
-      const { data } = await supabase.from('evidence_sources').select('project_id');
+      const data: { project_id: string }[] = [];
+      for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+        const { data: page, error } = await supabase.from('evidence_sources').select('project_id').range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!page?.length) break;
+        data.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
       const counts: Record<string, number> = {};
-      (data || []).forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
+      data.forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
       return counts;
     },
     refetchInterval: 60000,
