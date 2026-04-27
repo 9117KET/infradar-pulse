@@ -15,7 +15,7 @@ const corsJson: Record<string, string> = {
 export { corsJson as staffCorsJson };
 
 export async function requireStaffOrRespond(req: Request): Promise<
-  | { userId: string; supabaseAdmin: ReturnType<typeof createClient> }
+  | { userId: string | null; supabaseAdmin: ReturnType<typeof createClient> }
   | Response
 > {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -36,7 +36,7 @@ export async function requireStaffOrRespond(req: Request): Promise<
       const payload = JSON.parse(atob(rawAuth.slice(7).split(".")[1]));
       if (payload?.role === "service_role") {
         const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-        return { userId: "service_role", supabaseAdmin };
+        return { userId: null, supabaseAdmin };
       }
     } catch { /* not decodeable - fall through to normal auth */ }
   }
