@@ -1,0 +1,367 @@
+/**
+ * aiib-ingest-agent
+ *
+ * Ingests Asian Infrastructure Investment Bank (AIIB) infrastructure projects.
+ * AIIB does not publish a public REST API, so this agent uses Firecrawl to
+ * scrape the AIIB projects portal and Perplexity for deeper research, then
+ * uses an LLM to extract structured project data.
+ *
+ * Portal: https://www.aiib.org/en/projects/list/index.html
+ * Coverage: 77 member states across Asia, Middle East, Africa, Europe
+ *
+ * Requires: FIRECRAWL_API_KEY
+ * Optional: PERPLEXITY_API_KEY (enriches coverage), OPENAI_API_KEY / LLM_API_KEY
+ */
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { chatCompletions } from "../_shared/llm.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const AIIB_PORTAL_PAGES = [
+  "https://www.aiib.org/en/projects/list/index.html",
+  "https://www.aiib.org/en/projects/list/index.html?status=Active",
+  "https://www.aiib.org/en/projects/list/index.html?status=Approved",
+];
+
+const AIIB_SECTORS = [
+  "transport", "energy", "water", "urban", "digital", "rural",
+  "environment", "social", "health", "finance",
+];
+
+const PERPLEXITY_QUERIES = [
+  "AIIB Asian Infrastructure Investment Bank approved infrastructure projects 2023 2024 2025 transport energy",
+  "AIIB new projects Central Asia South Asia Southeast Asia construction pipeline funding",
+  "AIIB Bangladesh India Indonesia Pakistan Vietnam infrastructure loan approval amount",
+];
+
+interface AiibProject {
+  name: string;
+  country: string;
+  sector: string;
+  status: string;
+  amount_usd?: number;
+  project_id?: string;
+  description?: string;
+  approval_year?: string;
+}
+
+async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<string> {
+  const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
+  });
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data?.data?.markdown || "";
+}
+
+async function searchWithFirecrawl(query: string, apiKey: string): Promise<string> {
+  const res = await fetch("https://api.firecrawl.dev/v1/search", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
+  });
+  if (!res.ok) return "";
+  const data = await res.json();
+  const results = data?.data || [];
+  return results.map((r: Record<string, unknown>) => r?.markdown || r?.content || "").join("\n\n");
+}
+
+async function researchWithPerplexity(query: string, apiKey: string): Promise<string> {
+  const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "sonar",
+      messages: [{ role: "user", content: query }],
+    }),
+  });
+  if (!res.ok) return "";
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content || "";
+}
+
+const AIIB_COUNTRY_CENTROIDS: Record<string, [number, number]> = {
+  "china": [35.86, 104.20], "india": [20.59, 78.96], "indonesia": [-0.79, 113.92],
+  "bangladesh": [23.68, 90.36], "pakistan": [30.38, 69.35], "vietnam": [14.06, 108.28],
+  "philippines": [12.88, 121.77], "thailand": [15.87, 100.99], "myanmar": [21.91, 95.96],
+  "cambodia": [12.57, 104.99], "laos": [19.86, 102.50], "nepal": [28.39, 84.12],
+  "sri lanka": [7.87, 80.77], "mongolia": [46.86, 103.85], "papua new guinea": [-6.31, 143.96],
+  "fiji": [-17.71, 178.07], "timor-leste": [-8.87, 125.73], "kazakhstan": [48.02, 66.92],
+  "uzbekistan": [41.38, 64.59], "kyrgyzstan": [41.20, 74.77], "tajikistan": [38.86, 71.28],
+  "turkmenistan": [38.97, 59.56], "afghanistan": [33.94, 67.71], "azerbaijan": [40.14, 47.58],
+  "georgia": [42.32, 43.36], "armenia": [40.07, 45.04], "oman": [21.51, 55.92],
+  "turkey": [38.96, 35.24], "egypt": [26.82, 30.80], "iran": [32.43, 53.69],
+  "iraq": [33.22, 43.68], "jordan": [30.59, 36.24], "ethiopia": [9.15, 40.49],
+  "kenya": [-0.02, 37.91], "ghana": [7.95, -1.02], "russia": [61.52, 105.32],
+  "ukraine": [48.38, 31.17], "poland": [51.92, 19.15], "romania": [45.94, 24.97],
+  "malaysia": [4.21, 101.98], "singapore": [1.35, 103.82],
+};
+
+function getAiibCentroid(country: string): [number, number] {
+  const key = (country || "").toLowerCase().trim();
+  if (AIIB_COUNTRY_CENTROIDS[key]) return AIIB_COUNTRY_CENTROIDS[key];
+  for (const [k, v] of Object.entries(AIIB_COUNTRY_CENTROIDS)) {
+    if (key.includes(k) || k.includes(key)) return v;
+  }
+  return [25.0, 90.0]; // default: South Asia
+}
+
+function mapAiibRegion(country: string): string {
+  const c = (country || "").toLowerCase();
+  const east = ["china", "mongolia", "korea"];
+  const southeast = ["vietnam", "indonesia", "philippines", "thailand", "malaysia", "cambodia", "laos", "myanmar", "timor", "singapore", "papua", "fiji"];
+  const south = ["india", "bangladesh", "pakistan", "sri lanka", "nepal", "bhutan", "maldives"];
+  const central = ["kazakhstan", "uzbekistan", "kyrgyz", "tajikistan", "turkmenistan", "afghanistan", "mongolia"];
+  const mena = ["oman", "turkey", "egypt", "iran", "iraq", "jordan", "saudi", "uae", "qatar", "bahrain", "kuwait", "azerbaijan", "georgia", "armenia"];
+  const europe = ["russia", "ukraine", "poland", "romania", "hungary", "czech", "slovak", "albania", "serbia", "north macedon"];
+  const africa = ["ethiopia", "kenya", "ghana", "nigeria", "cameroon", "egypt"];
+
+  if (east.some((x) => c.includes(x))) return "East Asia";
+  if (southeast.some((x) => c.includes(x))) return "Southeast Asia";
+  if (south.some((x) => c.includes(x))) return "South Asia";
+  if (central.some((x) => c.includes(x))) return "Central Asia";
+  if (mena.some((x) => c.includes(x))) return "MENA";
+  if (europe.some((x) => c.includes(x))) return "Europe";
+  if (africa.some((x) => c.includes(x))) return "East Africa";
+  return "South Asia";
+}
+
+function mapAiibSector(sector: string): string {
+  const s = (sector || "").toLowerCase();
+  if (s.includes("transport") || s.includes("road") || s.includes("rail") || s.includes("port") || s.includes("airport") || s.includes("highway")) return "Transport";
+  if (s.includes("energy") || s.includes("power") || s.includes("electricity") || s.includes("hydro")) return "Energy";
+  if (s.includes("renewable") || s.includes("solar") || s.includes("wind")) return "Renewable Energy";
+  if (s.includes("water") || s.includes("sanitation") || s.includes("irrigation") || s.includes("flood")) return "Water";
+  if (s.includes("urban") || s.includes("city") || s.includes("housing") || s.includes("municipal")) return "Urban Development";
+  if (s.includes("digital") || s.includes("telecom") || s.includes("ict") || s.includes("broadband")) return "Digital Infrastructure";
+  if (s.includes("environment") || s.includes("climate") || s.includes("green")) return "Renewable Energy";
+  if (s.includes("rural") || s.includes("agriculture")) return "Infrastructure";
+  return "Infrastructure";
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const gate = await requireStaffOrRespond(req);
+  if (gate instanceof Response) return gate;
+
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+
+  try {
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
+
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
+
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    if (!await isAgentEnabled(supabase, "aiib-ingest")) return pausedResponse("aiib-ingest");
+
+    const lock = await beginAgentTask(supabase, "aiib-ingest", "AIIB Projects Portal", gate.userId);
+    if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
+    taskId = lock.taskId;
+
+    if (!FIRECRAWL_API_KEY) {
+      const errMsg = "No research text (set FIRECRAWL_API_KEY)";
+      if (taskId) {
+        await supabase.from("research_tasks").update({
+          status: "failed", error: errMsg, completed_at: new Date().toISOString(),
+        }).eq("id", taskId);
+      }
+      return new Response(JSON.stringify({ error: errMsg }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    console.log("Scraping AIIB project portal...");
+    const rawChunks: string[] = [];
+
+    // Scrape AIIB portal pages
+    for (const url of AIIB_PORTAL_PAGES) {
+      try {
+        const text = await scrapeWithFirecrawl(url, FIRECRAWL_API_KEY);
+        if (text) rawChunks.push(text);
+      } catch (e) { console.warn(`Firecrawl scrape failed for ${url}:`, e); }
+    }
+
+    // Firecrawl search for AIIB projects
+    try {
+      const searchText = await searchWithFirecrawl(
+        "site:aiib.org infrastructure project approved active loan grant",
+        FIRECRAWL_API_KEY
+      );
+      if (searchText) rawChunks.push(searchText);
+    } catch (e) { console.warn("Firecrawl search failed:", e); }
+
+    // Perplexity deep research if available
+    if (PERPLEXITY_API_KEY) {
+      for (const q of PERPLEXITY_QUERIES) {
+        try {
+          const text = await researchWithPerplexity(q, PERPLEXITY_API_KEY);
+          if (text) rawChunks.push(text);
+        } catch (e) { console.warn("Perplexity query failed:", e); }
+      }
+    }
+
+    const raw = rawChunks.join("\n\n---\n\n");
+    if (!raw.trim()) {
+      const errMsg = "No research text collected from AIIB portal";
+      if (taskId) {
+        await supabase.from("research_tasks").update({
+          status: "failed", error: errMsg, completed_at: new Date().toISOString(),
+        }).eq("id", taskId);
+      }
+      return new Response(JSON.stringify({ error: errMsg }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    console.log(`Collected ${raw.length} chars from AIIB portal. Extracting projects...`);
+
+    // Use LLM to extract structured project data
+    const extraction = await chatCompletions({
+      model: Deno.env.get("LLM_MODEL") || Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert at extracting structured infrastructure project data from text.
+Extract all AIIB (Asian Infrastructure Investment Bank) infrastructure projects from the provided text.
+For each project return a JSON object. Only include real projects with at minimum a name and country.
+Focus on: transport, energy, renewable energy, water, urban development, digital infrastructure projects.
+Return a JSON array of objects with these fields (omit fields if unknown):
+- name: string (project title)
+- country: string
+- sector: string (e.g. "Transport", "Energy", "Water", "Urban Development", "Digital Infrastructure", "Renewable Energy")
+- status: string ("Active" | "Approved" | "Proposed" | "Completed")
+- amount_usd: number (in USD, convert from millions if needed — e.g. "$200 million" = 200000000)
+- project_id: string (AIIB project ID if present, e.g. "P-IN-E00-001")
+- description: string (brief description, max 200 chars)
+- approval_year: string (4-digit year)
+Return ONLY valid JSON array, no markdown, no explanation.`,
+        },
+        {
+          role: "user",
+          content: raw.substring(0, 28000),
+        },
+      ],
+    });
+
+    let projects: AiibProject[] = [];
+    try {
+      const content = extraction.choices?.[0]?.message?.content || "[]";
+      const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      projects = JSON.parse(cleaned);
+      if (!Array.isArray(projects)) projects = [];
+    } catch (e) {
+      console.error("Failed to parse LLM extraction:", e);
+    }
+
+    console.log(`Extracted ${projects.length} AIIB projects from text`);
+
+    let inserted = 0;
+    let updated = 0;
+    let skipped = 0;
+
+    for (const p of projects) {
+      if (!p.name || !p.country) { skipped++; continue; }
+      try {
+        const totalAmt = p.amount_usd ? Math.round(p.amount_usd) : 0;
+        const projectUrl = p.project_id
+          ? `https://www.aiib.org/en/projects/details/${p.project_id}.html`
+          : "https://www.aiib.org/en/projects/list/index.html";
+
+        let valueLabel = "";
+        if (totalAmt >= 1_000_000_000) valueLabel = `$${(totalAmt / 1_000_000_000).toFixed(1)}B`;
+        else if (totalAmt >= 1_000_000) valueLabel = `$${(totalAmt / 1_000_000).toFixed(0)}M`;
+        else valueLabel = "Value TBD";
+
+        const statusLower = (p.status || "").toLowerCase();
+        const stage = statusLower.includes("complet") ? "Completed"
+          : statusLower.includes("active") || statusLower.includes("approved") ? "Construction"
+          : "Planned";
+        const infraStatus = statusLower.includes("active") || statusLower.includes("approved") ? "Verified" : "Pending";
+        const confidence = infraStatus === "Verified" ? 80 : 62;
+
+        const sector = mapAiibSector(p.sector || "");
+        const region = mapAiibRegion(p.country);
+        const [lat, lng] = getAiibCentroid(p.country);
+        const timeline = p.approval_year ? `${p.approval_year}–` : "";
+        const description = p.description
+          || `AIIB-financed ${sector.toLowerCase()} project in ${p.country}${p.approval_year ? ` (approved ${p.approval_year})` : ""}.`;
+
+        const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 120);
+
+        const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
+
+        if (existing) {
+          if (confidence > (existing.confidence || 0) || !existing.source_url) {
+            await supabase!.from("projects").update({
+              confidence: Math.max(confidence, existing.confidence || 0),
+              stage, status: infraStatus,
+              source_url: existing.source_url || projectUrl,
+              last_updated: new Date().toISOString(),
+            }).eq("id", existing.id);
+            updated++;
+          } else { skipped++; }
+        } else {
+          const { data: newProject } = await supabase!.from("projects").insert({
+            slug, name: p.name, country: p.country, region, sector, stage, status: infraStatus,
+            value_usd: totalAmt, value_label: valueLabel, confidence,
+            risk_score: 38, lat, lng, description: description.substring(0, 200), timeline,
+            source_url: projectUrl, ai_generated: true, approved: true,
+          }).select().single();
+
+          if (newProject) {
+            await supabase!.from("evidence_sources").insert({
+              project_id: newProject.id, source: "Asian Infrastructure Investment Bank",
+              url: projectUrl, type: "Filing", verified: false,
+              date: new Date().toISOString().split("T")[0], title: p.name,
+              description: description.substring(0, 200),
+            });
+            await supabase!.from("alerts").insert({
+              project_id: newProject.id, project_name: p.name, severity: "low",
+              message: `AIIB project ingested: ${p.name} (${p.country}) — ${valueLabel}`,
+              category: "market", source_url: projectUrl,
+            });
+            inserted++;
+          }
+        }
+      } catch (rowErr) {
+        console.error("Error processing AIIB project:", rowErr);
+        skipped++;
+      }
+    }
+
+    const result = { success: true, extracted: projects.length, inserted, updated, skipped, source: "AIIB" };
+    if (taskId) {
+      await supabase.from("research_tasks").update({
+        status: "completed", result, completed_at: new Date().toISOString(),
+      }).eq("id", taskId);
+    }
+
+    console.log(`AIIB ingest complete: extracted=${projects.length} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+  } catch (e) {
+    console.error("AIIB ingest error:", e);
+    if (taskId && supabase) {
+      try {
+        await supabase.from("research_tasks").update({
+          status: "failed", error: e instanceof Error ? e.message : "Unknown error",
+          completed_at: new Date().toISOString(),
+        }).eq("id", taskId);
+      } catch { /* best-effort */ }
+    }
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

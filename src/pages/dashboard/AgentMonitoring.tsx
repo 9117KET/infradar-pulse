@@ -27,6 +27,8 @@ const AGENTS = [
   { type: 'adb-ingest', name: 'ADB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runAdbIngest({ limit: 300 }) },
   { type: 'afdb-ingest', name: 'AfDB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runAfdbIngest },
   { type: 'ebrd-ingest', name: 'EBRD Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runEbrdIngest },
+  { type: 'iadb-ingest', name: 'IADB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runIadbIngest({ status: 'Active,Implementation', limit: 300 }) },
+  { type: 'aiib-ingest', name: 'AIIB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runAiibIngest },
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
   { type: 'stakeholder-intel', name: 'Stakeholder Intel', icon: Users, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runStakeholderIntel },
