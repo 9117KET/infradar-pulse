@@ -63,8 +63,10 @@ import TenderCalendar from "./pages/dashboard/TenderCalendar";
 import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
 import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
+import Traction from "./pages/dashboard/Traction";
 import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
+import { UtmCapture } from "./components/UtmCapture";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +77,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <UtmCapture />
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
@@ -136,6 +139,7 @@ const App = () => (
               <Route path="/dashboard/chat" element={<FeatureGate feature="portfolio_chat"><PortfolioChat /></FeatureGate>} />
               <Route path="/dashboard/stakeholders" element={<FeatureGate feature="stakeholder_intel"><StakeholderIntel /></FeatureGate>} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
+              <Route path="/dashboard/traction" element={<RoleGuard requiredRole="admin"><Traction /></RoleGuard>} />
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
