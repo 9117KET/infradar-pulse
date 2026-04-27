@@ -138,7 +138,7 @@ export async function requirePlanAndAiOrRespond(
  */
 export async function recordAiUsage(
   _supabaseAdmin: ReturnType<typeof createClient>,
-  _userId: string
+  _userId: string | null
 ): Promise<void> {
   // Intentionally a no-op. Quota was already consumed atomically by the gate.
 }
