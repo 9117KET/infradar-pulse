@@ -258,8 +258,16 @@ export default function AgentMonitoring() {
   const getAgentStats = (taskType: string) =>
     computeAgentStats(tasks ?? [], taskType);
 
+  const getLastActivityAt = (agent: typeof AGENTS[0]) => {
+    const taskLastRun = getAgentStats(agent.type).lastRun?.created_at;
+    const schedulerLastRun = schedulerActivity?.[agent.type]?.last_scheduler_run ?? undefined;
+    if (!taskLastRun) return schedulerLastRun;
+    if (!schedulerLastRun) return taskLastRun;
+    return new Date(schedulerLastRun).getTime() > new Date(taskLastRun).getTime() ? schedulerLastRun : taskLastRun;
+  };
+
   const isStale = (agent: typeof AGENTS[0]) =>
-    isAgentStale(getAgentStats(agent.type).lastRun?.created_at, agent.scheduleMinutes);
+    isAgentStale(getLastActivityAt(agent), agent.scheduleMinutes);
 
   const runAgent = async (name: string, fn: () => Promise<unknown>) => {
     if (!staffBypass) {
@@ -497,6 +505,8 @@ export default function AgentMonitoring() {
           const Icon = agent.icon;
           const isRunningNow = runningAgent === agent.name || stats.running > 0;
           const stale = isStale(agent);
+          const lastActivityAt = getLastActivityAt(agent);
+          const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
           const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
@@ -541,8 +551,8 @@ export default function AgentMonitoring() {
                   <p className="text-[8px] text-muted-foreground">Fail</p>
                 </div>
                 <div className="rounded bg-background/50 py-1">
-                  <p className="text-[10px] font-bold">{stats.successRate !== null ? `${stats.successRate}%` : '-'}</p>
-                  <p className="text-[8px] text-muted-foreground">Rate</p>
+                  <p className="text-[10px] font-bold">{stats.total + schedulerRuns}</p>
+                  <p className="text-[8px] text-muted-foreground">Runs</p>
                 </div>
               </div>
 
@@ -557,7 +567,7 @@ export default function AgentMonitoring() {
 
               <div className="flex items-center justify-between text-[9px] text-muted-foreground">
                 <span>
-                  {stats.lastRun ? `Last: ${timeAgo(stats.lastRun.created_at)}` : 'Never run'}
+                  {lastActivityAt ? `Last: ${timeAgo(lastActivityAt)}` : 'Never run'}
                 </span>
                 {staffBypass && <div className="flex items-center gap-1">
                   {/* Pause / Resume toggle */}
