@@ -39,7 +39,9 @@ export default function OverviewMap({ projects }: { projects: MapProject[] }) {
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
       mapRef.current = map;
       setReady(true);
-      setTimeout(() => map.invalidateSize(), 100);
+      setTimeout(() => {
+        if (mapRef.current === map && containerRef.current) map.invalidateSize();
+      }, 100);
     }, 50);
     return () => {
       clearTimeout(timer);
