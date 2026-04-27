@@ -60,6 +60,31 @@ interface LogEntry {
   completed_at: string | null;
 }
 
+interface SchedulerActivity {
+  task_type: string;
+  last_scheduler_run: string | null;
+  scheduler_runs: number;
+  scheduler_failures: number;
+}
+
+const PAGE_SIZE = 1000;
+
+async function fetchAllResearchTasks(): Promise<TaskRow[]> {
+  const all: TaskRow[] = [];
+  for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('research_tasks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    all.push(...(data as TaskRow[]));
+    if (data.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
 
 export default function AgentMonitoring() {
@@ -76,17 +101,22 @@ export default function AgentMonitoring() {
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
-    queryFn: async () => {
-      // Fetch up to 2000 tasks so agents with frequent runs still have
-      // accurate statistics (research-agent runs every 30 min = ~1440/month).
-      const { data } = await supabase
-        .from('research_tasks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(2000);
-      return (data || []) as TaskRow[];
-    },
+    queryFn: fetchAllResearchTasks,
     refetchInterval: 15000,
+  });
+
+  const { data: schedulerActivity } = useQuery({
+    queryKey: ['agent-scheduler-activity', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_agent_scheduler_activity');
+      if (error) throw error;
+      return ((data ?? []) as SchedulerActivity[]).reduce<Record<string, SchedulerActivity>>((acc, row) => {
+        acc[row.task_type] = row;
+        return acc;
+      }, {});
+    },
+    enabled: !entLoading && staffBypass,
+    refetchInterval: 30000,
   });
 
   // Data coverage query - paginated so the 1000-row Supabase default cap does
@@ -94,7 +124,6 @@ export default function AgentMonitoring() {
   const { data: projects } = useQuery({
     queryKey: ['projects-coverage'],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
       const all: unknown[] = [];
       let from = 0;
       for (let i = 0; i < 50; i++) {
@@ -117,9 +146,16 @@ export default function AgentMonitoring() {
   const { data: contactCounts } = useQuery({
     queryKey: ['contact-coverage'],
     queryFn: async () => {
-      const { data } = await supabase.from('project_contacts').select('project_id');
+      const data: { project_id: string }[] = [];
+      for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+        const { data: page, error } = await supabase.from('project_contacts').select('project_id').range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!page?.length) break;
+        data.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
       const counts: Record<string, number> = {};
-      (data || []).forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
+      data.forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
       return counts;
     },
     refetchInterval: 60000,
@@ -128,9 +164,16 @@ export default function AgentMonitoring() {
   const { data: evidenceCounts } = useQuery({
     queryKey: ['evidence-coverage'],
     queryFn: async () => {
-      const { data } = await supabase.from('evidence_sources').select('project_id');
+      const data: { project_id: string }[] = [];
+      for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+        const { data: page, error } = await supabase.from('evidence_sources').select('project_id').range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        if (!page?.length) break;
+        data.push(...page);
+        if (page.length < PAGE_SIZE) break;
+      }
       const counts: Record<string, number> = {};
-      (data || []).forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
+      data.forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
       return counts;
     },
     refetchInterval: 60000,
@@ -228,8 +271,22 @@ export default function AgentMonitoring() {
   const getAgentStats = (taskType: string) =>
     computeAgentStats(tasks ?? [], taskType);
 
+  const getAgentRunTotal = (agent: typeof AGENTS[0]) => {
+    const taskRuns = getAgentStats(agent.type).total;
+    const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
+    return Math.max(taskRuns, schedulerRuns);
+  };
+
+  const getLastActivityAt = (agent: typeof AGENTS[0]) => {
+    const taskLastRun = getAgentStats(agent.type).lastRun?.created_at;
+    const schedulerLastRun = schedulerActivity?.[agent.type]?.last_scheduler_run ?? undefined;
+    if (!taskLastRun) return schedulerLastRun;
+    if (!schedulerLastRun) return taskLastRun;
+    return new Date(schedulerLastRun).getTime() > new Date(taskLastRun).getTime() ? schedulerLastRun : taskLastRun;
+  };
+
   const isStale = (agent: typeof AGENTS[0]) =>
-    isAgentStale(getAgentStats(agent.type).lastRun?.created_at, agent.scheduleMinutes);
+    isAgentStale(getLastActivityAt(agent), agent.scheduleMinutes);
 
   const runAgent = async (name: string, fn: () => Promise<unknown>) => {
     if (!staffBypass) {
@@ -474,6 +531,8 @@ export default function AgentMonitoring() {
           const Icon = agent.icon;
           const isRunningNow = runningAgent === agent.name || stats.running > 0;
           const stale = isStale(agent);
+          const lastActivityAt = getLastActivityAt(agent);
+          const agentRuns = getAgentRunTotal(agent);
           const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
@@ -518,8 +577,8 @@ export default function AgentMonitoring() {
                   <p className="text-[8px] text-muted-foreground">Fail</p>
                 </div>
                 <div className="rounded bg-background/50 py-1">
-                  <p className="text-[10px] font-bold">{stats.successRate !== null ? `${stats.successRate}%` : '-'}</p>
-                  <p className="text-[8px] text-muted-foreground">Rate</p>
+                  <p className="text-[10px] font-bold">{agentRuns}</p>
+                  <p className="text-[8px] text-muted-foreground">Runs</p>
                 </div>
               </div>
 
@@ -534,7 +593,7 @@ export default function AgentMonitoring() {
 
               <div className="flex items-center justify-between text-[9px] text-muted-foreground">
                 <span>
-                  {stats.lastRun ? `Last: ${timeAgo(stats.lastRun.created_at)}` : 'Never run'}
+                  {lastActivityAt ? `Last: ${timeAgo(lastActivityAt)}` : 'Never run'}
                 </span>
                 {staffBypass && <div className="flex items-center gap-1">
                   {/* Pause / Resume toggle */}
