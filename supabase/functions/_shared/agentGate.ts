@@ -122,6 +122,32 @@ export async function setTaskStep(
 }
 
 /**
+ * Record the outcome of an agent run into agent_config summary stats.
+ * Call this after the final research_tasks update (completed/failed).
+ * Errors are swallowed — never let a stats update crash the agent.
+ *
+ * @param supabase      Service-role Supabase client
+ * @param agentType     The agent_type key (matches agent_config.agent_type)
+ * @param status        'completed' | 'failed'
+ * @param startedAt     Date the run began (from beginAgentTask) — used to compute duration
+ */
+export async function finishAgentRun(
+  supabase: SupabaseClient,
+  agentType: string,
+  status: "completed" | "failed",
+  startedAt: Date,
+): Promise<void> {
+  try {
+    const durationMs = Date.now() - startedAt.getTime();
+    await supabase.rpc("finish_agent_run", {
+      p_agent_type: agentType,
+      p_status: status,
+      p_duration_ms: durationMs,
+    });
+  } catch { /* best-effort */ }
+}
+
+/**
  * Standard 200 response to return when an agent is already running.
  * Returns { success: true, skipped: true } so callers know it was intentional.
  */

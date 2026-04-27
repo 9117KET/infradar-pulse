@@ -55,7 +55,7 @@ export default function ProjectDetail() {
   const protectAnalysis = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
   const analysisCopyProps = useCopyProtection(
     protectAnalysis,
-    `Excerpted from InfraRadar — full analysis: ${typeof window !== 'undefined' ? window.location.href : 'infraradar.app'} · Subscribe for unlimited access.`,
+    `Excerpted from InfradarAI — full analysis: ${typeof window !== 'undefined' ? window.location.href : 'infradarai.com'} · Subscribe for unlimited access.`,
   );
 
   // Evidence form state
@@ -312,7 +312,7 @@ export default function ProjectDetail() {
     doc.setFontSize(9);
     doc.setTextColor(180, 180, 200);
     doc.text(`${project.country} · ${project.region} · ${project.sector}`, margin, 22);
-    doc.text('InfraRadar Intelligence', pageW - margin, 22, { align: 'right' });
+    doc.text('InfradarAI Intelligence', pageW - margin, 22, { align: 'right' });
     y = 36;
 
     // Key metrics row

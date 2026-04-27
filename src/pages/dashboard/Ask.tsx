@@ -99,7 +99,7 @@ export default function Ask() {
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-2">
           <Sparkles className="h-3.5 w-3.5" /> AI-powered search
         </div>
-        <h1 className="font-serif text-3xl font-semibold mb-2">Ask InfraRadar</h1>
+        <h1 className="font-serif text-3xl font-semibold mb-2">Ask InfradarAI</h1>
         <p className="text-sm text-muted-foreground max-w-2xl">
           Describe what you're looking for in plain English. Filter by country, sector, value, stage, or
           risk — no manual filters needed. Each query counts as one AI request against your{' '}

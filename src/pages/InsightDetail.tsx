@@ -61,7 +61,7 @@ export default function InsightDetail() {
   const protectContent = !!user && !staffBypass && (isFreeTier || plan === 'trialing');
   const copyProps = useCopyProtection(
     protectContent,
-    `Excerpted from InfraRadar — full article: ${typeof window !== 'undefined' ? window.location.href : 'infraradar.app'} · Subscribe for unlimited access.`,
+    `Excerpted from InfradarAI — full article: ${typeof window !== 'undefined' ? window.location.href : 'infradarai.com'} · Subscribe for unlimited access.`,
   );
 
   useEffect(() => {

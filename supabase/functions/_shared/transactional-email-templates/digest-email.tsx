@@ -14,7 +14,7 @@ import {
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 
-const SITE_NAME = 'InfraRadar'
+const SITE_NAME = 'InfradarAI'
 const SITE_URL = 'https://infradarai.com'
 const DASHBOARD_URL = `${SITE_URL}/dashboard`
 const PRIMARY = 'hsl(170, 55%, 63%)'
@@ -36,7 +36,7 @@ interface DigestEmailProps {
 }
 
 const DigestEmail = ({
-  title = 'Your InfraRadar Intelligence Digest',
+  title = 'Your InfradarAI Intelligence Digest',
   summary = 'Your latest infrastructure intelligence summary is ready.',
   sections = [],
   citations = [],
@@ -104,7 +104,7 @@ const DigestEmail = ({
 export const template = {
   component: DigestEmail,
   subject: (data: Record<string, any>) =>
-    typeof data.title === 'string' && data.title ? data.title : 'Your InfraRadar Intelligence Digest',
+    typeof data.title === 'string' && data.title ? data.title : 'Your InfradarAI Intelligence Digest',
   displayName: 'Intelligence digest email',
   previewData: {
     title: 'Weekly Market Digest - MENA Infrastructure',

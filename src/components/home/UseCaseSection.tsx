@@ -8,7 +8,7 @@ const CASES = [
     context: 'A sovereign wealth fund managing $8B in African infrastructure replaced fragmented spreadsheets with unified, verified signals.',
     flow: [
       { phase: 'Before', desc: 'Spreadsheets, manual calls, 2-3 week signal lag across 12 markets.' },
-      { phase: 'During', desc: 'Onboarded InfraRadar with satellite verification and multi-source ingestion.' },
+      { phase: 'During', desc: 'Onboarded InfradarAI with satellite verification and multi-source ingestion.' },
       { phase: 'After', desc: 'Unified signal dashboard, automated alerts, weekly confidence-scored pipeline reviews.' },
       { phase: 'Impact', desc: 'Reduced diligence cycle from 6 weeks to 5 days. Caught 3 delay risks before competitors.' },
     ],
@@ -21,10 +21,10 @@ const CASES = [
   {
     label: 'Case B - EPC contractor',
     title: 'Global engineering contractor',
-    context: 'An EPC contractor active in MENA and East Africa used InfraRadar to surface tender opportunities ahead of competitors and track project health across 40+ active sites.',
+    context: 'An EPC contractor active in MENA and East Africa used InfradarAI to surface tender opportunities ahead of competitors and track project health across 40+ active sites.',
     flow: [
       { phase: 'Before', desc: 'Relying on informal networks and legacy regional intelligence subscriptions for tender coverage.' },
-      { phase: 'During', desc: 'Configured InfraRadar for MENA tenders by sector and value threshold, with contractor win-rate tracking.' },
+      { phase: 'During', desc: 'Configured InfradarAI for MENA tenders by sector and value threshold, with contractor win-rate tracking.' },
       { phase: 'After', desc: 'Real-time tender alerts, stakeholder maps, and competitor bid activity across 20+ procurement portals.' },
       { phase: 'Impact', desc: 'Identified $2.1B in tenders not covered by previous sources. Reduced tender research time by 80%.' },
     ],
@@ -40,7 +40,7 @@ export function UseCaseSection() {
   return (
     <section id="work" className="relative py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How teams use InfraRadar</h2>
+        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How teams use InfradarAI</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
           From DFI analysts replacing manual spreadsheets to EPC contractors finding tenders before competitors - one platform, multiple workflows.
         </p>
