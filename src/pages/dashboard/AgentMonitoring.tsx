@@ -101,17 +101,23 @@ export default function AgentMonitoring() {
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
-    queryFn: async () => {
-      // Fetch up to 2000 tasks so agents with frequent runs still have
-      // accurate statistics (research-agent runs every 30 min = ~1440/month).
-      const { data } = await supabase
-        .from('research_tasks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(2000);
-      return (data || []) as TaskRow[];
-    },
+    queryFn: fetchAllResearchTasks,
     refetchInterval: 15000,
+  });
+
+  const { data: schedulerActivity } = useQuery({
+    queryKey: ['agent-scheduler-activity'],
+    queryFn: async () => {
+      if (!staffBypass) return {} as Record<string, SchedulerActivity>;
+      const { data, error } = await supabase.rpc('get_agent_scheduler_activity');
+      if (error) throw error;
+      return ((data ?? []) as SchedulerActivity[]).reduce<Record<string, SchedulerActivity>>((acc, row) => {
+        acc[row.task_type] = row;
+        return acc;
+      }, {});
+    },
+    enabled: !entLoading,
+    refetchInterval: 30000,
   });
 
   // Data coverage query - paginated so the 1000-row Supabase default cap does
@@ -119,7 +125,6 @@ export default function AgentMonitoring() {
   const { data: projects } = useQuery({
     queryKey: ['projects-coverage'],
     queryFn: async () => {
-      const PAGE_SIZE = 1000;
       const all: unknown[] = [];
       let from = 0;
       for (let i = 0; i < 50; i++) {
