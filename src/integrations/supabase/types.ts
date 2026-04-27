@@ -1211,6 +1211,15 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_agent_scheduler_activity: {
+        Args: never
+        Returns: {
+          last_scheduler_run: string
+          scheduler_failures: number
+          scheduler_runs: number
+          task_type: string
+        }[]
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
