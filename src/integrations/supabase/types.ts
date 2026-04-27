@@ -374,6 +374,7 @@ export type Database = {
           related_project_ids: string[] | null
           slug: string
           source_url: string | null
+          sources: Json
           tag: string
           title: string
           updated_at: string
@@ -391,6 +392,7 @@ export type Database = {
           related_project_ids?: string[] | null
           slug: string
           source_url?: string | null
+          sources?: Json
           tag?: string
           title: string
           updated_at?: string
@@ -408,6 +410,7 @@ export type Database = {
           related_project_ids?: string[] | null
           slug?: string
           source_url?: string | null
+          sources?: Json
           tag?: string
           title?: string
           updated_at?: string
@@ -833,6 +836,7 @@ export type Database = {
           error: string | null
           id: string
           query: string
+          requested_by: string | null
           result: Json | null
           status: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -843,6 +847,7 @@ export type Database = {
           error?: string | null
           id?: string
           query: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type: string
@@ -853,6 +858,7 @@ export type Database = {
           error?: string | null
           id?: string
           query?: string
+          requested_by?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["research_task_status"]
           task_type?: string
@@ -1204,6 +1210,15 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_agent_scheduler_activity: {
+        Args: never
+        Returns: {
+          last_scheduler_run: string
+          scheduler_failures: number
+          scheduler_runs: number
+          task_type: string
+        }[]
       }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
