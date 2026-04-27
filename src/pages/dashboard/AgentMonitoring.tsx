@@ -109,7 +109,7 @@ export default function AgentMonitoring() {
     queryKey: ['agent-scheduler-activity'],
     queryFn: async () => {
       if (!staffBypass) return {} as Record<string, SchedulerActivity>;
-      const { data, error } = await supabase.rpc('get_agent_scheduler_activity');
+      const { data, error } = await (supabase as any).rpc('get_agent_scheduler_activity');
       if (error) throw error;
       return ((data ?? []) as SchedulerActivity[]).reduce<Record<string, SchedulerActivity>>((acc, row) => {
         acc[row.task_type] = row;
@@ -258,6 +258,12 @@ export default function AgentMonitoring() {
   const getAgentStats = (taskType: string) =>
     computeAgentStats(tasks ?? [], taskType);
 
+  const getAgentRunTotal = (agent: typeof AGENTS[0]) => {
+    const taskRuns = getAgentStats(agent.type).total;
+    const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
+    return Math.max(taskRuns, schedulerRuns);
+  };
+
   const getLastActivityAt = (agent: typeof AGENTS[0]) => {
     const taskLastRun = getAgentStats(agent.type).lastRun?.created_at;
     const schedulerLastRun = schedulerActivity?.[agent.type]?.last_scheduler_run ?? undefined;
@@ -313,7 +319,7 @@ export default function AgentMonitoring() {
   // showed agents that were paused or currently running (empty for most users).
   const visibleAgents = AGENTS;
 
-  const totalRuns = tasks?.length || 0;
+  const totalRuns = AGENTS.reduce((sum, agent) => sum + getAgentRunTotal(agent), 0);
   const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
   const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
   const staleCount = AGENTS.filter(a => isStale(a)).length;
@@ -506,7 +512,7 @@ export default function AgentMonitoring() {
           const isRunningNow = runningAgent === agent.name || stats.running > 0;
           const stale = isStale(agent);
           const lastActivityAt = getLastActivityAt(agent);
-          const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
+          const agentRuns = getAgentRunTotal(agent);
           const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
@@ -551,7 +557,7 @@ export default function AgentMonitoring() {
                   <p className="text-[8px] text-muted-foreground">Fail</p>
                 </div>
                 <div className="rounded bg-background/50 py-1">
-                  <p className="text-[10px] font-bold">{stats.total + schedulerRuns}</p>
+                  <p className="text-[10px] font-bold">{agentRuns}</p>
                   <p className="text-[8px] text-muted-foreground">Runs</p>
                 </div>
               </div>
