@@ -22,7 +22,7 @@ const COMPETITOR_TABLE = [
   { name: 'Project finance data terminal', price: '$20k–$100k / yr', update: 'Financial feeds', blur: true },
   { name: 'Regional MENA/Africa intel platform', price: '$3k–$12k / yr', update: 'Weekly updates', blur: true },
   { name: 'Construction & tender aggregator', price: '$4k–$20k / yr', update: 'Daily, unverified', blur: true },
-  { name: 'InfraRadar', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
+  { name: 'InfradarAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
 ];
 
 const LIFETIME_MAX_SEATS = 100;
@@ -101,7 +101,7 @@ export default function Pricing() {
             Intelligence that pays for itself
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-            While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfraRadar delivers{' '}
+            While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfradarAI delivers{' '}
             <span className="text-foreground font-medium">real-time AI intelligence</span> at a fraction of the cost.
             No free trial - pay for what you use, cancel anytime.
           </p>
@@ -279,7 +279,7 @@ export default function Pricing() {
                   <InfinityIcon className="h-6 w-6 text-primary" />
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4 max-w-xl">
-                  Get permanent Pro-tier access to InfraRadar. Every future feature, every new agent,
+                  Get permanent Pro-tier access to InfradarAI. Every future feature, every new agent,
                   every market we cover — yours, at no extra cost. Help us build the category, get
                   rewarded forever.
                 </p>
@@ -327,10 +327,10 @@ export default function Pricing() {
         {/* Competitor comparison */}
         <div className="glass-panel rounded-xl p-8 max-w-4xl mx-auto mb-8">
           <h3 className="font-serif text-lg font-semibold mb-1 flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" /> Why InfraRadar vs. legacy intelligence vendors
+            <Shield className="h-5 w-5 text-primary" /> Why InfradarAI vs. legacy intelligence vendors
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Incumbents sell annual PDF reports gated behind long sales cycles. InfraRadar is self-serve, AI-native, and 100x cheaper.
+            Incumbents sell annual PDF reports gated behind long sales cycles. InfradarAI is self-serve, AI-native, and 100x cheaper.
             Vendor names are anonymized by category — we compete on signal quality, not on calling out individual brands.
           </p>
           <div className="overflow-x-auto">
@@ -371,12 +371,12 @@ export default function Pricing() {
             <Building2 className="h-5 w-5 text-primary" /> Built for DFI analysts, project finance teams, and EPC contractors
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            InfraRadar replaces expensive consultant engagements and stale research subscriptions with{' '}
+            InfradarAI replaces expensive consultant engagements and stale research subscriptions with{' '}
             <span className="text-foreground">real-time AI research</span>,{' '}
             <span className="text-foreground">confidence-scored signals</span>, and{' '}
             <span className="text-foreground">self-serve workflows</span> - no annual contracts, no sales calls, no waiting for a quarterly report.
             Export your pipeline as watermarked CSV, Excel (.xlsx), or branded PDF tearsheets and intelligence reports - every file licensed to your account for audit traceability.
-            Enterprise and API access available for teams embedding InfraRadar into their own workflows.
+            Enterprise and API access available for teams embedding InfradarAI into their own workflows.
           </p>
         </div>
       </div>

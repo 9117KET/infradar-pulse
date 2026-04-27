@@ -30,7 +30,7 @@ export function applyExportCap<T>(rows: T[], plan: PlanKey, staffBypass: boolean
 export function buildWatermarkLabel(email: string | null | undefined): string {
   const who = email && email.trim() ? email.trim() : 'unidentified-user';
   const when = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-  return `Licensed to ${who} · ${when} · InfraRadar`;
+  return `Licensed to ${who} · ${when} · InfradarAI`;
 }
 
 /**

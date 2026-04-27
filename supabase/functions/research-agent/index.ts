@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, setTaskStep } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -152,6 +152,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "discovery", "Full pipeline run", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("discovery");
     taskId = lock.taskId;
+    const runStartedAt = new Date();
     await setTaskStep(supabase, taskId, "Searching");
 
     const rawContent: string[] = [];
@@ -531,6 +532,7 @@ ${rawContent.join("\n\n---\n\n")}`;
     console.log(`Research complete: ${extractedProjects.length} extracted, ${inserted} new, ${updated} updated, ${skippedNoSource} missing source`);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
+    await finishAgentRun(supabase, "discovery", "completed", runStartedAt);
 
     return new Response(
       JSON.stringify({
@@ -545,7 +547,6 @@ ${rawContent.join("\n\n---\n\n")}`;
     );
   } catch (e) {
     console.error("Research agent error:", e);
-    // Best-effort: mark the task as failed if it was created before the crash
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
@@ -553,6 +554,7 @@ ${rawContent.join("\n\n---\n\n")}`;
           error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await finishAgentRun(supabase, "discovery", "failed", runStartedAt ?? new Date());
       } catch { /* best-effort */ }
     }
     return new Response(

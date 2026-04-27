@@ -144,7 +144,7 @@ serve(async (req) => {
       report = {};
     }
 
-    const title = report.title ?? "InfraRadar Report";
+    const title = report.title ?? "InfradarAI Report";
     const markdown = report.markdown ?? "";
     const citations = report.citations ?? [];
 

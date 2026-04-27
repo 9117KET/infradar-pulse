@@ -13,7 +13,7 @@ interface TourStep {
 }
 
 const ALL_STEPS: TourStep[] = [
-  { target: 'sidebar-logo', title: 'Welcome to InfraRadar', description: 'This is your command center for infrastructure intelligence across all supported global regions.', position: 'right' },
+  { target: 'sidebar-logo', title: 'Welcome to InfradarAI', description: 'This is your command center for infrastructure intelligence across all supported global regions.', position: 'right' },
   { target: 'nav-overview', title: 'Overview Dashboard', description: 'Real-time KPIs, risk heatmaps, and portfolio metrics at a glance.', position: 'right' },
   { target: 'nav-research', title: 'AI Research Hub', description: 'Type any query and watch AI agents research projects in real time with visual progress tracking.', position: 'right' },
   { target: 'nav-projects', title: 'Project Intelligence', description: 'Browse detailed project profiles with verified data, contacts, and evidence sources.', position: 'right' },

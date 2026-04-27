@@ -107,7 +107,7 @@ function AppSidebar() {
       <SidebarContent>
         <div data-tour="sidebar-logo" className="flex items-center gap-2 px-4 py-4">
           <InfradarLogo size={24} />
-          {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfraRadar AI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
+          {!collapsed && <div><div className="text-xs font-semibold tracking-wide">InfradarAI</div><div className="text-[10px] text-muted-foreground">Intelligence Platform</div></div>}
         </div>
         {NAV_GROUPS.map(group => {
           if (!meetsMinRole(hasRole, group.minRole)) return null;

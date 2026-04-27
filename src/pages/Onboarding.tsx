@@ -156,7 +156,7 @@ export default function Onboarding() {
     navigate('/dashboard', { replace: true });
   };
 
-  const roleTips = ROLE_TIPS[role] || { tip: 'Welcome to InfraRadar AI.', startWith: 'Start with the Overview Dashboard to explore your data.' };
+  const roleTips = ROLE_TIPS[role] || { tip: 'Welcome to InfradarAI.', startWith: 'Start with the Overview Dashboard to explore your data.' };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -164,7 +164,7 @@ export default function Onboarding() {
         {/* Header */}
         <div className="text-center space-y-2">
           <InfradarLogo size={40} className="mx-auto" />
-          <h1 className="font-serif text-2xl font-bold">Welcome to InfraRadar AI</h1>
+          <h1 className="font-serif text-2xl font-bold">Welcome to InfradarAI</h1>
           <p className="text-sm text-muted-foreground">Let's personalize your experience</p>
         </div>
 

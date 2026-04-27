@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, setTaskStep } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,6 +43,7 @@ serve(async (req) => {
   const lock = await beginAgentTask(supabase, "data-enrichment", "Scanning projects for missing data and enriching gaps", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("data-enrichment");
   const taskId = lock.taskId;
+  const runStartedAt = new Date();
   await setTaskStep(supabase, taskId, "Searching");
 
   try {
@@ -302,6 +303,7 @@ serve(async (req) => {
     await setTaskStep(supabase, taskId, "Saving");
     const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+    await finishAgentRun(supabase, "data-enrichment", "completed", runStartedAt);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
@@ -310,6 +312,7 @@ serve(async (req) => {
     console.error("Data enrichment error:", e);
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId) await supabase.from("research_tasks").update({ status: "failed", completed_at: new Date().toISOString(), error: errMsg }).eq("id", taskId);
+    await finishAgentRun(supabase, "data-enrichment", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

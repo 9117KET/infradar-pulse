@@ -4,7 +4,7 @@ const STATS = [
   { value: '85%', label: 'Projects delayed', sub: 'Major infrastructure programs' },
   { value: '$1.5T+', label: 'Capital at risk', sub: 'Global cost overruns annually' },
   { value: '6–12 mo', label: 'Signal lag', sub: 'Typical intelligence delay, emerging markets' },
-  { value: '$200k/yr', label: 'Incumbent cost', sub: 'Top-tier vendor pricing vs. InfraRadar from $0' },
+  { value: '$200k/yr', label: 'Incumbent cost', sub: 'Top-tier vendor pricing vs. InfradarAI from $0' },
 ];
 
 const FLAWS = [

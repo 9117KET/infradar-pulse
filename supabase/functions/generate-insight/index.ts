@@ -34,7 +34,7 @@ serve(async (req) => {
       research: researchRes.data || [],
     };
 
-    const systemPrompt = `You are InfraRadar AI's senior infrastructure analyst. You write insightful, data-driven articles about global infrastructure development.
+    const systemPrompt = `You are InfradarAI's senior infrastructure analyst. You write insightful, data-driven articles about global infrastructure development.
 
 Your tone is authoritative but accessible, like a top-tier consulting firm's research arm. Use specific data points from the provided context. Format in Markdown with ## headings, bullet points, and bold key terms.
 
@@ -145,7 +145,7 @@ ${JSON.stringify(context, null, 2)}`;
       reading_time_min: insight.reading_time_min,
       ai_generated: true,
       published: false, // Draft — review in dashboard before publish
-      author: "InfraRadar AI",
+      author: "InfradarAI",
       sources: sourcesJson.length ? sourcesJson : [],
     }).select().single();
 
