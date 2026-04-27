@@ -6,6 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserFromBearer } from "./auth.ts";
 import { hasStaffBypass } from "./entitlementCheck.ts";
 
+type AdminClient = ReturnType<typeof createClient<any, "public", any>>;
+
 const corsJson: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -15,7 +17,7 @@ const corsJson: Record<string, string> = {
 export { corsJson as staffCorsJson };
 
 export async function requireStaffOrRespond(req: Request): Promise<
-  | { userId: string | null; supabaseAdmin: ReturnType<typeof createClient> }
+  | { userId: string | null; supabaseAdmin: AdminClient }
   | Response
 > {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
