@@ -60,6 +60,31 @@ interface LogEntry {
   completed_at: string | null;
 }
 
+interface SchedulerActivity {
+  task_type: string;
+  last_scheduler_run: string | null;
+  scheduler_runs: number;
+  scheduler_failures: number;
+}
+
+const PAGE_SIZE = 1000;
+
+async function fetchAllResearchTasks(): Promise<TaskRow[]> {
+  const all: TaskRow[] = [];
+  for (let from = 0; from < 50_000; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('research_tasks')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    all.push(...(data as TaskRow[]));
+    if (data.length < PAGE_SIZE) break;
+  }
+  return all;
+}
+
 const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
 
 export default function AgentMonitoring() {
