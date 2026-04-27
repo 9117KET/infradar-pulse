@@ -374,6 +374,7 @@ export type Database = {
           related_project_ids: string[] | null
           slug: string
           source_url: string | null
+          sources: Json
           tag: string
           title: string
           updated_at: string
@@ -391,6 +392,7 @@ export type Database = {
           related_project_ids?: string[] | null
           slug: string
           source_url?: string | null
+          sources?: Json
           tag?: string
           title: string
           updated_at?: string
@@ -408,6 +410,7 @@ export type Database = {
           related_project_ids?: string[] | null
           slug?: string
           source_url?: string | null
+          sources?: Json
           tag?: string
           title?: string
           updated_at?: string
