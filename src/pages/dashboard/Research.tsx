@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User, Download } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Search, Globe, FileText, Bot, CheckCircle, Loader2, ExternalLink, Save, Clock, AlertTriangle, Mail, Phone, Building2, User, Download, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -27,7 +28,11 @@ const STEPS = [
 ];
 
 export default function Research() {
+  const [mode, setMode] = useState<'search' | 'briefing'>('search');
   const [query, setQuery] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companySector, setCompanySector] = useState('');
+  const [companyRegion, setCompanyRegion] = useState('');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedProjects, setSavedProjects] = useState<Set<string>>(new Set());
@@ -97,6 +102,38 @@ export default function Research() {
         return;
       }
       toast({ title: 'Error', description: 'Failed to start research', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleBriefingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyName.trim() || isSubmitting) return;
+    if (!canUseAi) {
+      setUpgradeOpen(true);
+      return;
+    }
+    const builtQuery = [
+      `Company intelligence briefing for ${companyName.trim()}:`,
+      'active infrastructure projects, key decision-makers and contacts, risk signals, stakeholder relationships.',
+      companySector ? `Sector focus: ${companySector}.` : '',
+      companyRegion ? `Region focus: ${companyRegion}.` : '',
+      'Include project values, stages, funding sources, and all available contact details.',
+    ].filter(Boolean).join(' ');
+    setIsSubmitting(true);
+    try {
+      const result = await agentApi.runUserResearch(builtQuery);
+      if (result.taskId) {
+        setActiveTaskId(result.taskId);
+        toast({ title: 'Briefing started', description: `Researching ${companyName.trim()}...` });
+      }
+    } catch (err: unknown) {
+      if (isEntitlementOrQuotaError(err)) {
+        setUpgradeOpen(true);
+        return;
+      }
+      toast({ title: 'Error', description: 'Failed to start briefing', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -221,8 +258,16 @@ export default function Research() {
     };
 
     // Header
-    addText('INFRADAR RESEARCH REPORT', 18, true, [20, 80, 160]);
-    addText(`Query: "${activeTask.query}"`, 11, false, [100, 100, 100]);
+    if (mode === 'briefing' && companyName) {
+      addText('COMPANY INTELLIGENCE BRIEFING', 18, true, [20, 80, 160]);
+      addText(companyName.toUpperCase(), 14, true, [30, 30, 30]);
+      if (companySector || companyRegion) {
+        addText([companySector, companyRegion].filter(Boolean).join(' · '), 10, false, [100, 100, 100]);
+      }
+    } else {
+      addText('INFRADAR RESEARCH REPORT', 18, true, [20, 80, 160]);
+      addText(`Query: "${activeTask.query}"`, 11, false, [100, 100, 100]);
+    }
     addText(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, 9, false, [150, 150, 150]);
     y += 4;
     addLine();
@@ -299,7 +344,10 @@ export default function Research() {
     const watermark = buildWatermarkLabel(user?.email);
     applyPdfWatermark(doc, watermark);
 
-    const filename = `infradar-research-${activeTask.query.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}.pdf`;
+    const filenameBase = mode === 'briefing' && companyName
+      ? `infradar-briefing-${companyName.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}`
+      : `infradar-research-${activeTask.query.substring(0, 30).replace(/[^a-z0-9]/gi, '-')}`;
+    const filename = `${filenameBase}.pdf`;
     doc.save(filename);
     const trackResult = await trackUsage('export_pdf');
     if (!trackResult.ok) {
@@ -322,7 +370,7 @@ export default function Research() {
     } else {
       toast({ title: 'Report exported', description: `Saved as ${filename}` });
     }
-  }, [result, activeTask, toast, canExportPdf, refreshEntitlements, plan, staffBypass, user?.email]);
+  }, [result, activeTask, toast, canExportPdf, refreshEntitlements, plan, staffBypass, user?.email, mode, companyName, companySector, companyRegion]);
 
   return (
     <div className="space-y-6">
@@ -330,26 +378,78 @@ export default function Research() {
       <div>
         <h1 className="text-2xl font-bold">Research Hub</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Search for infrastructure projects and watch our AI agents research in real time. Runs use your daily AI allowance — start a trial or upgrade if you need more.
+          Search for infrastructure projects or generate a company intelligence briefing for pre-call prep.
         </p>
       </div>
 
-      {/* Search Bar */}
-      <form onSubmit={handleSubmit} className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. 'Port expansion projects in Ghana' or 'renewable energy Kenya'"
-            className="pl-10 h-12 text-base"
-          />
-        </div>
-        <Button type="submit" disabled={isSubmitting || !query.trim()} className="h-12 px-6">
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-          Research
-        </Button>
-      </form>
+      <Tabs value={mode} onValueChange={(v) => { setMode(v as 'search' | 'briefing'); setActiveTaskId(null); }}>
+        <TabsList className="mb-2">
+          <TabsTrigger value="search" className="flex items-center gap-2">
+            <Search className="h-4 w-4" /> Infrastructure Search
+          </TabsTrigger>
+          <TabsTrigger value="briefing" className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4" /> Company Intelligence
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Infrastructure Search form */}
+        <TabsContent value="search" className="mt-0">
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="e.g. 'Port expansion projects in Ghana' or 'renewable energy Kenya'"
+                className="pl-10 h-12 text-base"
+              />
+            </div>
+            <Button type="submit" disabled={isSubmitting || !query.trim()} className="h-12 px-6">
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
+              Research
+            </Button>
+          </form>
+        </TabsContent>
+
+        {/* Company Intelligence form */}
+        <TabsContent value="briefing" className="mt-0">
+          <form onSubmit={handleBriefingSubmit} className="space-y-3">
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="Company name (e.g. 'Macquarie Infrastructure', 'Bouygues Construction')"
+                  className="pl-10 h-12 text-base"
+                  required
+                />
+              </div>
+              <Button type="submit" disabled={isSubmitting || !companyName.trim()} className="h-12 px-6">
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Briefcase className="h-4 w-4 mr-2" />}
+                Brief Me
+              </Button>
+            </div>
+            <div className="flex gap-3">
+              <Input
+                value={companySector}
+                onChange={(e) => setCompanySector(e.target.value)}
+                placeholder="Sector (optional - e.g. 'transport', 'energy')"
+                className="h-10"
+              />
+              <Input
+                value={companyRegion}
+                onChange={(e) => setCompanyRegion(e.target.value)}
+                placeholder="Region (optional - e.g. 'Sub-Saharan Africa', 'Southeast Asia')"
+                className="h-10"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Generates a structured briefing on the company's infrastructure exposure, key contacts, and risk signals. Export as PDF before a sales call.
+            </p>
+          </form>
+        </TabsContent>
+      </Tabs>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Panel */}
@@ -452,9 +552,11 @@ export default function Research() {
           {isComplete && result?.projects && (result.projects as any[]).length > 0 && (
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Discovered Projects</CardTitle>
+                <CardTitle className="text-lg">
+                {mode === 'briefing' && companyName ? `${companyName} - Intelligence Briefing` : 'Discovered Projects'}
+              </CardTitle>
                 <Button size="sm" variant="outline" onClick={() => void handleExportPDF()} disabled={!canExportPdf} title={!canExportPdf ? 'Daily PDF export limit reached' : undefined}>
-                  <Download className="h-3 w-3 mr-1" /> Export PDF
+                  <Download className="h-3 w-3 mr-1" /> {mode === 'briefing' ? 'Export Briefing' : 'Export PDF'}
                 </Button>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -558,11 +660,23 @@ export default function Research() {
           {!activeTask && (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                <h3 className="text-lg font-semibold text-muted-foreground">Start a Research Query</h3>
-                <p className="text-sm text-muted-foreground/70 max-w-md mt-2">
-                  Enter a project name, region, or topic above. Our AI agents will search the web, scrape sources, and extract structured project data in real time.
-                </p>
+                {mode === 'briefing' ? (
+                  <>
+                    <Briefcase className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <h3 className="text-lg font-semibold text-muted-foreground">Company Intelligence Briefing</h3>
+                    <p className="text-sm text-muted-foreground/70 max-w-md mt-2">
+                      Enter a company name above. Our agents will map their infrastructure portfolio, key contacts, risk exposure, and stakeholder relationships - ready to export as a PDF before your call.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <h3 className="text-lg font-semibold text-muted-foreground">Start a Research Query</h3>
+                    <p className="text-sm text-muted-foreground/70 max-w-md mt-2">
+                      Enter a project name, region, or topic above. Our AI agents will search the web, scrape sources, and extract structured project data in real time.
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}

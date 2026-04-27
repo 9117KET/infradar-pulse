@@ -64,6 +64,8 @@ import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
 import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
 import Traction from "./pages/dashboard/Traction";
+import BDPipeline from "./pages/dashboard/BDPipeline";
+import Snapshot from "./pages/Snapshot";
 import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
 import { UtmCapture } from "./components/UtmCapture";
@@ -81,6 +83,7 @@ const App = () => (
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/snapshot" element={<Snapshot />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/insights" element={<Insights />} />
               <Route path="/insights/:slug" element={<InsightDetail />} />
@@ -140,6 +143,7 @@ const App = () => (
               <Route path="/dashboard/stakeholders" element={<FeatureGate feature="stakeholder_intel"><StakeholderIntel /></FeatureGate>} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               <Route path="/dashboard/traction" element={<RoleGuard requiredRole="admin"><Traction /></RoleGuard>} />
+              <Route path="/dashboard/bd-pipeline" element={<RoleGuard requiredRole="admin"><BDPipeline /></RoleGuard>} />
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
