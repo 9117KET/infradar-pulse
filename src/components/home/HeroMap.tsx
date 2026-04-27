@@ -18,10 +18,10 @@ function getRiskLevel(score: number) {
 }
 
 function getMarkerRadius(zoom: number, level: string) {
-  const base = zoom >= 8 ? 9 : zoom >= 5 ? 6 : 4;
+  const base = zoom >= 8 ? 4 : zoom >= 5 ? 2.5 : 1.5;
   // Critical/high get a slight bump for emphasis
-  if (level === 'critical') return base + 2;
-  if (level === 'high') return base + 1;
+  if (level === 'critical') return base + 1;
+  if (level === 'high') return base + 0.5;
   return base;
 }
 
@@ -117,8 +117,8 @@ export function HeroMap({
         const pulse = L.divIcon({
           className: 'infradar-pulse-icon',
           html: `<span class="infradar-pulse" style="--pulse-color:${color}"></span>`,
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
+          iconSize: [14, 14],
+          iconAnchor: [7, 7],
         });
         L.marker([p.lat, p.lng], { icon: pulse, interactive: false, keyboard: false })
           .addTo(pulseLayer);
@@ -194,8 +194,8 @@ export function HeroMap({
         .infradar-pulse-icon { background: transparent; border: none; }
         .infradar-pulse {
           display: block;
-          width: 24px;
-          height: 24px;
+          width: 14px;
+          height: 14px;
           border-radius: 50%;
           background: var(--pulse-color);
           opacity: 0.5;
@@ -203,7 +203,7 @@ export function HeroMap({
         }
         @keyframes infradar-pulse {
           0%   { transform: scale(0.4); opacity: 0.6; }
-          100% { transform: scale(2.2); opacity: 0; }
+          100% { transform: scale(2.5); opacity: 0; }
         }
       `}</style>
     </div>
