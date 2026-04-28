@@ -18,7 +18,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -47,7 +46,6 @@ serve(async (req) => {
 
     await setTaskStep(supabase, taskId, "Searching");
     const research = await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
       agentName: "stakeholder-intel",
       systemPrompt: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide.",
       userPrompt: `Summarise (1) notable infrastructure contractors in ${countries} with material performance issues, delays, or disputes during 2024-2025; and (2) government infrastructure agencies or officials in ${countries} linked to corruption investigations, conflict-of-interest concerns, or unusual bid-award patterns during 2024-2025. Name specific firms, agencies, and projects.`,

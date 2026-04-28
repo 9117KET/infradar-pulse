@@ -18,7 +18,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -36,7 +35,6 @@ serve(async (req) => {
 
     await setTaskStep(supabase, taskId, "Searching");
     const research = countries.length ? await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
       agentName: "regulatory-monitor",
       systemPrompt: "You are a regulatory compliance analyst for infrastructure projects worldwide.",
       userPrompt: `Summarise (1) notable EIA approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025, naming specific projects, agencies, and dates; and (2) recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} during 2024-2025, focusing on items that could materially change project timelines or financing.`,
