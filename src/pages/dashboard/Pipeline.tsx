@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { useProjects } from '@/hooks/use-projects';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { STAGES } from '@/data/projects';
@@ -32,7 +33,7 @@ const STAGE_HEADER: Record<string, string> = {
   Stopped: 'text-red-500',
 };
 
-const SECTOR_ICONS: Record<string, any> = {
+const SECTOR_ICONS: Record<string, LucideIcon> = {
   'AI Infrastructure': Cpu, 'Building Construction': Home, 'Chemical': Hexagon,
   'Data Centers': Server, 'Digital Infrastructure': Wifi, 'Energy': Zap,
   'Industrial': Factory, 'Infrastructure': Landmark, 'Mining': Mountain,
@@ -51,14 +52,12 @@ export default function Pipeline() {
   const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const [scope, setScope] = useState<'portfolio' | 'all'>('all');
 
-  const trackedIds = new Set(trackedProjects.map(t => t.project_id));
-
-  const source = useMemo(() =>
-    scope === 'portfolio'
+  const source = useMemo(() => {
+    const trackedIds = new Set(trackedProjects.map(t => t.project_id));
+    return scope === 'portfolio'
       ? allProjects.filter(p => p.dbId && trackedIds.has(p.dbId))
-      : allProjects,
-    [allProjects, trackedIds, scope]
-  );
+      : allProjects;
+  }, [allProjects, trackedProjects, scope]);
 
   const columns = useMemo(() =>
     STAGES.map(stage => {
