@@ -195,7 +195,7 @@ export default function Traction() {
               return (
                 <div key={step.step} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="capitalize text-muted-foreground">{step.step.replaceAll('_', ' ')}</span>
+                    <span className="capitalize text-muted-foreground">{step.step.replace(/_/g, ' ')}</span>
                     <span>{step.count} · {index === 0 ? 100 : pct}%</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${index === 0 ? 100 : pct}%` }} /></div>
