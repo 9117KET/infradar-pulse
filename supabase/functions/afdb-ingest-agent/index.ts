@@ -2,8 +2,8 @@
  * afdb-ingest-agent
  *
  * Ingests African Development Bank (AfDB) infrastructure projects.
- * AfDB has no formal REST API — this agent uses Firecrawl to scrape their
- * public projects portal and AI to extract structured project data.
+ * AfDB has no formal REST API. For the MVP this agent uses Lovable AI to
+ * create source-aware research notes and extract structured project data.
  *
  * Portal: https://projectsportal.afdb.org/dataportal/VProject/ongoingProjects
  *
@@ -28,7 +28,7 @@ const AFDB_PAGES = [
   { url: "https://projectsportal.afdb.org/dataportal/VProject/approvedProjects", label: "Approved Projects" },
 ];
 
-// AfDB also publishes searchable results — these targeted Firecrawl queries focus on sectors
+// AfDB also publishes searchable results — these targeted Lovable AI research prompts focus on sectors
 const AFDB_SEARCH_QUERIES = [
   "AfDB African Development Bank infrastructure project ongoing construction transport energy water 2022 2023 2024",
   "African Development Bank approved project transport road rail port airport Africa 2023 2024",
@@ -46,7 +46,6 @@ serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
@@ -60,41 +59,22 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    if (!FIRECRAWL_API_KEY) {
-      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "FIRECRAWL_API_KEY not set", completed_at: new Date().toISOString() }).eq("id", taskId);
-      return new Response(JSON.stringify({ success: false, error: "FIRECRAWL_API_KEY required" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // Scrape AfDB portal pages directly
-    for (const page of AFDB_PAGES) {
+    for (const q of AFDB_SEARCH_QUERIES) {
       try {
-        const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ url: page.url, formats: ["markdown"], waitFor: 2000 }),
+        const research = await chatCompletions({
+          messages: [
+            { role: "system", content: "You are an infrastructure intelligence analyst covering African Development Bank projects. Produce source-aware notes with project names, countries, sectors, values and official AfDB URLs where known." },
+            { role: "user", content: `${q}. Also consider AfDB portal pages: ${AFDB_PAGES.map((p) => p.url).join(", ")}` },
+          ],
         });
-        const scrapeData = await scrapeRes.json();
-        if (scrapeData?.data?.markdown) {
-          rawContent.push(`AfDB ${page.label}:\nSource: ${page.url}\n${scrapeData.data.markdown.slice(0, 4000)}`);
+        if (research.ok) {
+          const data = await research.json();
+          const content = data?.choices?.[0]?.message?.content;
+          if (content) rawContent.push(`Lovable AI AfDB research:
+${content}`);
         }
-      } catch (e) { console.error(`Firecrawl scrape error for ${page.url}:`, e); }
+      } catch (e) { console.error("Lovable AI AfDB research error:", e); }
     }
-
-    // Also run targeted search queries about AfDB projects
-    const query = AFDB_SEARCH_QUERIES[Math.floor(Math.random() * AFDB_SEARCH_QUERIES.length)];
-    try {
-      const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ query, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
-      });
-      const searchData = await searchRes.json();
-      if (searchData?.data) {
-        for (const result of searchData.data.slice(0, 3)) {
-          if (result.markdown) rawContent.push(`AfDB Search Result:\nSource: ${result.url}\n${result.markdown.slice(0, 3000)}`);
-        }
-      }
-    } catch (e) { console.error("Firecrawl search error:", e); }
 
     if (rawContent.length === 0) {
       if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No content scraped from AfDB portal", completed_at: new Date().toISOString() }).eq("id", taskId);

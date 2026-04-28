@@ -2,6 +2,15 @@
 
 Live document tracking all planned, in-progress, and completed features. Update this file as features are implemented, refined, or deprioritized.
 
+## Product Documentation
+
+Use these documents as the durable reference for future feature work and future public documentation:
+
+- [`docs/product/PLATFORM_VISION.md`](docs/product/PLATFORM_VISION.md) — target users, platform promise, MVP principle and future direction.
+- [`docs/product/FEATURE_CATALOG.md`](docs/product/FEATURE_CATALOG.md) — implemented feature catalog with user value, current state and future ideas.
+- [`docs/product/USER_GUIDE.md`](docs/product/USER_GUIDE.md) — practical workflows for users, project managers and researchers.
+- [`docs/product/AGENT_ARCHITECTURE.md`](docs/product/AGENT_ARCHITECTURE.md) — agent suite, Lovable AI-first MVP rule and future external enrichment path.
+
 ---
 
 ## Navigation Consolidation

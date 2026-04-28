@@ -2,8 +2,8 @@
  * ebrd-ingest-agent
  *
  * Ingests European Bank for Reconstruction and Development (EBRD) projects.
- * EBRD has no public REST API — uses Firecrawl to scrape their projects portal
- * and Perplexity to research specific sectors/regions covered by EBRD.
+ * EBRD has no public REST API. For the MVP this agent uses Lovable AI to
+ * create source-aware research notes for EBRD mandate regions.
  *
  * Coverage: Eastern Europe, Central Asia, MENA (EBRD mandate regions)
  * Portal: https://www.ebrd.com/work-with-us/projects/psd.html
@@ -21,7 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// EBRD Perplexity queries — sectors and regions under EBRD mandate
+// EBRD Lovable AI research prompts — sectors and regions under EBRD mandate
 const EBRD_QUERIES = [
   "EBRD European Bank for Reconstruction Development infrastructure project approved 2023 2024 Eastern Europe Central Asia transport energy",
   "EBRD infrastructure project approved ongoing 2023 2024 Ukraine Moldova Georgia Armenia Azerbaijan Kazakhstan Uzbekistan",
@@ -40,8 +40,6 @@ serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
@@ -55,67 +53,21 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    // Scrape EBRD project summaries portal
-    if (FIRECRAWL_API_KEY) {
-      const ebrdPages = [
-        "https://www.ebrd.com/work-with-us/projects/psd.html",
-        "https://www.ebrd.com/what-we-do/sectors/energy.html",
-        "https://www.ebrd.com/what-we-do/sectors/transport.html",
-      ];
-
-      for (const pageUrl of ebrdPages.slice(0, 2)) {
-        try {
-          const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ url: pageUrl, formats: ["markdown"], waitFor: 2000 }),
-          });
-          const scrapeData = await scrapeRes.json();
-          if (scrapeData?.data?.markdown) {
-            rawContent.push(`EBRD Portal:\nSource: ${pageUrl}\n${scrapeData.data.markdown.slice(0, 3000)}`);
-          }
-        } catch (e) { console.error(`Firecrawl scrape error for ${pageUrl}:`, e); }
-      }
-
-      // Also search for EBRD projects via Firecrawl
-      const fcQuery = EBRD_QUERIES[Math.floor(Math.random() * EBRD_QUERIES.length)];
+    for (const query of EBRD_QUERIES) {
       try {
-        const searchRes = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: fcQuery, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
+        const research = await chatCompletions({
+          messages: [
+            { role: "system", content: "You are an infrastructure analyst specializing in EBRD-financed projects. Provide source-aware project notes with names, countries, values, sectors, mandate regions and official EBRD URLs where known." },
+            { role: "user", content: `${query}. Also consider EBRD project portal: https://www.ebrd.com/work-with-us/projects/psd.html` },
+          ],
         });
-        const searchData = await searchRes.json();
-        if (searchData?.data) {
-          for (const result of searchData.data.slice(0, 3)) {
-            if (result.markdown) rawContent.push(`EBRD Search:\nSource: ${result.url}\n${result.markdown.slice(0, 2500)}`);
-          }
+        if (research.ok) {
+          const data = await research.json();
+          const content = data?.choices?.[0]?.message?.content;
+          if (content) rawContent.push(`Lovable AI EBRD research:
+${content}`);
         }
-      } catch (e) { console.error("Firecrawl EBRD search error:", e); }
-    }
-
-    // Deep research with Perplexity for EBRD projects
-    if (PERPLEXITY_API_KEY) {
-      const query = EBRD_QUERIES[Math.floor(Math.random() * EBRD_QUERIES.length)];
-      try {
-        const pxRes = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are an infrastructure analyst specializing in EBRD-financed projects. Provide detailed information about specific projects including project names, countries, values, and source URLs. Always include direct URLs to EBRD project pages." },
-              { role: "user", content: query },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const pxData = await pxRes.json();
-        if (pxData?.choices?.[0]?.message?.content) {
-          rawContent.push(`Perplexity EBRD Research:\n${pxData.choices[0].message.content}`);
-          if (pxData.citations) rawContent.push(`Citations: ${pxData.citations.join(", ")}`);
-        }
-      } catch (e) { console.error("Perplexity EBRD error:", e); }
+      } catch (e) { console.error("Lovable AI EBRD research error:", e); }
     }
 
     if (rawContent.length === 0) {

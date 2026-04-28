@@ -20,7 +20,6 @@ serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -37,23 +36,19 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    // Scrape news about existing projects — increased from 5 to 15
-    if (FIRECRAWL_API_KEY && projects?.length) {
-      const sampleProjects = projects.slice(0, 15);
-      for (const p of sampleProjects) {
-        try {
-          const res = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ query: `"${p.name}" ${p.country} infrastructure news opposition protest delay`, limit: 3, scrapeOptions: { formats: ["markdown"] } }),
-          });
-          const data = await res.json();
-          if (data?.data) {
-            for (const r of data.data.slice(0, 2)) {
-              if (r.markdown) rawContent.push(`Project: ${p.name}\nSource: ${r.url}\n${r.markdown.slice(0, 1500)}`);
-            }
-          }
-        } catch (e) { console.error("Firecrawl error:", e); }
+    if (projects?.length) {
+      const prompt = `Analyze recent media sentiment, controversy, opposition, labor disputes, environmental concerns, and delays for these infrastructure projects. Include project-specific source URLs where possible:
+${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
+      const aiResearch = await chatCompletions({
+        messages: [
+          { role: "system", content: "You are a media sentiment analyst for infrastructure projects. Produce concise, source-aware research notes for each project where signals exist." },
+          { role: "user", content: prompt },
+        ],
+      });
+      if (aiResearch.ok) {
+        const data = await aiResearch.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (content) rawContent.push(content);
       }
     }
 

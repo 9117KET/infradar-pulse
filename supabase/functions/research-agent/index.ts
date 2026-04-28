@@ -139,7 +139,6 @@ serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -156,40 +155,7 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    // Step 1: Scrape 2 news sources with Firecrawl
-    if (FIRECRAWL_API_KEY) {
-      console.log("Searching with Firecrawl...");
-      const firecrawlQueries = [
-        NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)],
-        NEWS_SOURCES[Math.floor(Math.random() * NEWS_SOURCES.length)],
-      ];
-      for (const fcQuery of firecrawlQueries) {
-        try {
-          const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query: fcQuery,
-              limit: 10,
-              scrapeOptions: { formats: ["markdown"] },
-            }),
-          });
-          const searchData = await searchResponse.json();
-          if (searchData?.data) {
-            for (const result of searchData.data.slice(0, 5)) {
-              if (result.markdown) {
-                rawContent.push(`Source: ${result.url}\n${result.markdown.slice(0, 3000)}`);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Firecrawl error:", e);
-        }
-      }
-    }
+    // Step 1: External crawlers are intentionally not required for the MVP.
 
     // Step 2: Deep research with Lovable AI, cycling through groups
     {

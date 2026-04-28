@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
-import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
+import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,7 +18,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -32,8 +31,7 @@ serve(async (req) => {
     const runStartedAt = new Date();
 
     await setTaskStep(supabase, taskId, "Searching");
-    const research = await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
+    const research = await fetchAgentResearch({
       agentName: "supply-chain-monitor",
       systemPrompt: "You are a supply chain analyst for infrastructure construction materials worldwide.",
       userPrompt: "Summarise (1) current global commodity prices and shortages affecting infrastructure construction in 2025 (steel, cement, copper, aluminium, lithium, fuel - include approximate price changes vs prior year and any acute disruptions); and (2) current global shipping and logistics disruptions impacting construction material delivery in 2025 (port congestion, canal issues, tariffs, sanctions, supplier insolvencies - note which regions are most affected).",
