@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { checkDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from '@/lib/disposable-email';
 import { lovable } from '@/integrations/lovable';
 import { Loader2 } from 'lucide-react';
+import { getStoredReferralCode } from '@/lib/utm';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ export default function Login() {
   const { toast } = useToast();
   const { user } = useAuth();
   // Read referral code from URL if present (e.g. ?ref=ABC123)
-  const refCode = new URLSearchParams(location.search).get('ref');
+  const refCode = new URLSearchParams(location.search).get('ref')?.toUpperCase() ?? getStoredReferralCode();
 
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true });

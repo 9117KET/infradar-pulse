@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { initializePaddle, getPaddlePriceId, isPaddleConfigured } from '@/lib/paddle';
 import { supabase } from '@/integrations/supabase/client';
+import { getStoredReferralCode } from '@/lib/utm';
 
 export type PlanPriceId =
   | 'starter_monthly'
@@ -40,11 +41,12 @@ export function usePaddleCheckout() {
 
       await initializePaddle();
       const paddlePriceId = await getPaddlePriceId(priceId);
+      const referralCode = getStoredReferralCode();
 
       window.Paddle.Checkout.open({
         items: [{ priceId: paddlePriceId, quantity: 1 }],
         customer: user.email ? { email: user.email } : undefined,
-        customData: { userId: user.id, trialEligible },
+        customData: { userId: user.id, trialEligible, ...(referralCode ? { referralCode } : {}) },
         settings: {
           displayMode: 'overlay',
           successUrl: `${window.location.origin}/dashboard/settings?tab=billing&checkout=success`,
