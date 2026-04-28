@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { getStoredUtmParams, clearUtmParams } from '@/lib/utm';
@@ -49,8 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const fetchedProfileFor = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (uid: string) => {
+    if (fetchedProfileFor.current === uid) return;
+    fetchedProfileFor.current = uid;
     setProfileLoading(true);
     // Fetch profile and roles in parallel
     const [profileRes, rolesRes] = await Promise.all([
@@ -85,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         fetchProfile(session.user.id);
       } else {
+        fetchedProfileFor.current = null;
         setProfile(null);
         setRoles([]);
         setProfileLoading(false);
@@ -99,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           fetchProfile(session.user.id);
         } else {
+          fetchedProfileFor.current = null;
           setProfileLoading(false);
         }
       })
@@ -118,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    fetchedProfileFor.current = null;
     setProfile(null);
     setRoles([]);
     window.location.href = '/login';
