@@ -14,9 +14,29 @@ export async function getUserFromBearer(
 ): Promise<AuthUser | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.replace("Bearer ", "");
   const supabase: SupabaseClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
+
+  // Prefer local/JWKS-backed claims validation. Calling getUser() requires the
+  // auth service to make a live database-backed lookup; during brief auth API
+  // restarts it can fail even when the browser still has a valid session, which
+  // caused staff agent runs to incorrectly return "Sign in required.".
+  try {
+    const { data, error } = await supabase.auth.getClaims(token);
+    const claims = data?.claims as Record<string, unknown> | undefined;
+    if (!error && claims?.sub) {
+      return {
+        id: String(claims.sub),
+        email: typeof claims.email === "string" ? claims.email : undefined,
+        email_confirmed_at: typeof claims.email_confirmed_at === "string" ? claims.email_confirmed_at : null,
+      };
+    }
+  } catch {
+    // Fall through to getUser() for older runtimes or non-JWKS tokens.
+  }
+
   const {
     data: { user },
     error,
