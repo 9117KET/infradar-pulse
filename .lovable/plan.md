@@ -1,98 +1,142 @@
-## Plan: AI-powered market reports as MVP competitive advantage
+## Plan: Recategorize features to reduce dashboard clutter
 
-Build a first version of “premium intelligence reports” that uses InfraRadar’s own live projects, alerts, updates, tenders, portfolio, and citations to generate structured market reports users can act on inside the platform, rather than buying static single reports.
+Yes — the dashboard has grown into too many separate navigation items. The best MVP move is to group features by user workflow, not by internal feature name. This keeps the product powerful while making it feel simpler.
 
-### 1) Update product positioning and marketing copy
+### Proposed navigation structure
 
-- Refresh pricing and homepage/services messaging to clearly position InfraRadarAI as:
-  - subscription access to living infrastructure intelligence,
-  - AI Q&A over projects/alerts/portfolio,
-  - decision-ready reports at a fraction of single-report pricing.
-- Keep competitor references category-based, not directly naming MEED in public copy.
-- Add messaging around “from static $4k+ PDFs to living AI intelligence” where appropriate.
+```text
+1. Command Center
+   - Overview
+   - Ask AI
+   - Alerts
 
-### 2) Upgrade the report generation workflow
+2. Projects & Portfolio
+   - Projects
+   - My Portfolio
+   - Portfolio Chat
+   - Compare Projects
+   - Pipeline View
 
-- Extend `report-agent` from a generic weekly snapshot into a report builder with report templates such as:
-  - Country Projects Market Report
-  - Sector Pipeline Report
-  - Tender & Awards Outlook
-  - Portfolio Risk Brief
-- Allow parameters like country, region, sector, stage, and time window.
-- Generate structured reports with sections inspired by high-quality market reports, without copying competitor content:
-  - Executive summary
-  - Market/pipeline overview
-  - Sector breakdown
-  - Key projects and stakeholders
-  - Tender / award outlook
-  - Risk and alert signals
-  - Opportunities and recommended actions
-  - Data quality / confidence notes
-  - Source citations
+3. Market Intelligence
+   - Geo Intelligence
+   - Country Intelligence
+   - Tenders & Awards
+   - Tender Calendar
+   - Stakeholder Intel
 
-### 3) Use platform data, not generic AI text
+4. Reports & Insights
+   - Intelligence Summaries
+   - Insights
+   - Datasets
 
-- Feed the report agent with current InfraRadar data:
-  - approved projects matching selected scope,
-  - alerts and risk categories,
-  - project updates/changelog entries,
-  - recent insights,
-  - tender/construction alerts where available,
-  - source URLs and evidence links.
-- Add aggregate statistics before calling AI so reports contain actual metrics: project count, total value, stage distribution, sector distribution, high-risk counts, critical alerts, and top projects.
-- Keep source URLs and confidence scoring visible so reports are credible and auditable.
+5. Research Operations
+   - Research
+   - Evidence & Verification
+   - Review Queue
+   - Agents
 
-### 4) Improve the Intelligence Summaries / Reports UI
+6. Admin
+   - Traction
+   - BD Pipeline
+   - Subscribers
+   - Users
+   - Feedback Inbox
+   - Settings
+```
 
-- Replace the basic “Generate Report” button with a small report generator panel:
-  - report type selector,
-  - country/region selector,
-  - sector selector,
-  - time window selector,
-  - generate button.
-- Show generated reports as polished cards with metadata: scope, status, generated date, project count/value where available, and source count.
-- Render report content in readable markdown instead of raw preformatted text.
-- Add a “view report” expanded layout with section headings, citations, and clear CTAs to inspect projects/alerts.
+### MVP simplification recommendation
 
-### 5) Improve PDF export quality for reports
+For regular users, show only the most valuable workflow items:
 
-- Replace plain text PDF output with a more premium branded layout:
-  - InfraRadarAI title page/header,
-  - report title, scope, generated date,
-  - KPI summary block,
-  - sectioned content,
-  - citations appendix,
-  - watermark / plan-based export rules already used elsewhere.
-- Keep the current entitlement gating: PDF report downloads remain a paid/Pro value driver.
-- Use a browser-side PDF generator for MVP so no new database schema is required immediately
+```text
+Command Center
+- Overview
+- Ask AI
+- Alerts
 
-### 6) Add roadmap notes for future report features
+Projects & Portfolio
+- Projects
+- My Portfolio
+- Portfolio Chat
 
-- Add/update roadmap documentation for post-MVP report capabilities:
-  - scheduled monthly/country reports,
-  - report library by country/sector,
-  - white-label enterprise reports,
-  - report sharing links,
-  - deeper chart-heavy PDF generation,
-  - analyst review/approval workflow before publishing public reports.
+Market Intelligence
+- Tenders & Awards
+- Country Intelligence
+- Tender Calendar
 
-## Technical details
+Reports
+- Intelligence Summaries
+```
 
-- Frontend files likely to update:
-  - `src/pages/dashboard/IntelligenceSummaries.tsx`
-  - `src/pages/dashboard/Reports.tsx` if still needed, or keep it aligned with the consolidated summaries route
-  - `src/pages/Pricing.tsx`
-  - homepage/service copy components such as `HeroSection`, `ProblemSection`, `CapabilitiesSection`, and `Services`
-  - possibly `src/lib/api/agents.ts` to pass new report parameters
-- Backend function to update:
-  - `supabase/functions/report-agent/index.ts`
-- No database migration is required for the MVP because `report_runs.parameters`, `markdown`, and `citations` already support this. If metadata needs to be stored separately later, that can be a future migration.
-- Existing auth/security stays intact: report generation remains staff/researcher-controlled unless we intentionally open a user-facing report builder later behind entitlements.
+Researcher/admin-only operational tools should stay hidden from normal users:
+- Research
+- Evidence & Verification
+- Review Queue
+- Agents
+- Insights management
+- Datasets
+- Subscribers
+- Users
+- BD/traction tools
 
-## MVP acceptance criteria
+### Consolidations to avoid overload
 
-- A researcher/admin can generate a scoped market report, e.g. “UAE projects market, 30 days” or “Energy pipeline in MENA”.
-- The report uses real InfraRadar project/alert/update data and includes citations when available.
-- The UI makes reports feel like a premium intelligence product, not a raw AI note.
-- Marketing/pricing copy communicates the advantage: users get living AI intelligence and report-quality outputs through subscription instead of paying thousands for one static PDF.
-- Existing routes and consolidated navigation continue to work.
+1. Merge project tools under `Projects`
+   - Keep `Projects` as the primary dataset page.
+   - Keep `Risk Signals` and `Analytics` as tabs inside Projects, as already done.
+   - Consider moving `Compare Projects` and `Pipeline View` into Projects as tabs or quick actions later.
+
+2. Merge tender features
+   - Keep `Tenders & Awards` as the main page.
+   - Make `Tender Calendar` a tab inside Tenders, or keep it as a secondary item only for paid users.
+   - This reduces duplicated tender navigation.
+
+3. Merge reports, digests, and AI summaries
+   - Keep `Intelligence Summaries` as the main reporting hub.
+   - Reports, digests, and generated market briefs should live there.
+   - Avoid separate “Reports”, “Digests”, and “Analytics Reports” routes in the sidebar.
+
+4. Move operational features away from the main user workflow
+   - `Agents`, `Review Queue`, `Evidence & Verification`, and `Research` are internal production tools.
+   - Keep them in a `Research Operations` group visible only to researcher/admin roles.
+
+5. Rename groups around user outcomes
+   - “Core” is too generic.
+   - Better labels:
+     - `Command Center`
+     - `Projects & Portfolio`
+     - `Market Intelligence`
+     - `Reports & Insights`
+     - `Research Operations`
+     - `Admin`
+
+### UI behavior improvements
+
+- Keep sidebar mini-collapse enabled so users can reduce visual load.
+- Keep active route highlighting.
+- Auto-open the group containing the current page.
+- Consider making groups collapsible so advanced sections do not dominate the screen.
+- Keep locked premium items visible only where they create upgrade value; otherwise hide them to reduce clutter.
+
+### Files to update
+
+- `src/layouts/DashboardLayout.tsx`
+  - Rebuild `NAV_GROUPS` around the new workflow groups.
+  - Add active-group open behavior if supported by the current sidebar primitives.
+  - Ensure collapsed sidebar still shows icons.
+
+- `src/components/GuidedTour.tsx`
+  - Update tour targets to match the recategorized nav.
+  - Remove obsolete targets like old analytics/risk/monitoring nav items.
+
+- `FEATURES.md`
+  - Update the navigation consolidation notes to reflect the new group structure.
+
+### Acceptance criteria
+
+- Regular users see a simpler dashboard with fewer top-level choices.
+- Research/admin tools no longer distract normal users.
+- Related features are grouped by workflow instead of feature type.
+- Current routes continue to work.
+- Existing paid feature locks remain intact.
+- Guided tour no longer points to removed or renamed navigation items.

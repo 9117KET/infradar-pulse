@@ -31,44 +31,49 @@ type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Core',
+    label: 'Command Center',
     items: [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
       { title: 'Ask AI', url: '/dashboard/ask', icon: Sparkles, tourId: 'nav-ask' },
+      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
+    ],
+  },
+  {
+    label: 'Projects & Portfolio',
+    items: [
       { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
       { title: 'My Portfolio', url: '/dashboard/portfolio', icon: Briefcase, tourId: 'nav-portfolio' },
       { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
-      { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
-      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research', minRole: 'researcher' as AppRole },
-      { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries', minRole: 'researcher' as AppRole },
-    ],
-  },
-  {
-    label: 'Intelligence',
-    items: [
-      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
-      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
-      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
       { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
       { title: 'Compare Projects', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
-      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
-      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
-      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence', minRole: 'researcher' as AppRole },
     ],
   },
   {
-    label: 'Operations',
+    label: 'Market Intelligence',
     items: [
-      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents', minRole: 'researcher' as AppRole },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review', minRole: 'researcher' as AppRole },
+      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
+      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
+      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
+      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
+      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
     ],
   },
   {
-    label: 'Content',
+    label: 'Reports & Insights',
+    items: [
+      { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries' },
+      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
+      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+    ],
+  },
+  {
+    label: 'Research Operations',
     minRole: 'researcher' as AppRole,
     items: [
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights' },
-      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+      { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
+      { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
+      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
+      { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
     ],
   },
   {
