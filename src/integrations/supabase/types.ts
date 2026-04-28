@@ -1455,6 +1455,7 @@ export type Database = {
         Returns: Json
       }
       get_signup_funnel: { Args: { p_days?: number }; Returns: Json }
+      get_traction_stats: { Args: never; Returns: Json }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
