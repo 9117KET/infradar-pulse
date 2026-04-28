@@ -209,7 +209,9 @@ export default function Pricing() {
               </Button>
             ) : (
               <Button className="w-full teal-glow" asChild>
-                <Link to="/login">{checkoutEnabled ? 'Sign in to subscribe' : 'Sign in to request pilot'}</Link>
+                <Link to={checkoutEnabled ? '/login' : '/contact?intent=pilot'}>
+                  {checkoutEnabled ? 'Sign in to subscribe' : 'Request pilot access'}
+                </Link>
               </Button>
             )}
           </div>
@@ -243,7 +245,9 @@ export default function Pricing() {
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link to="/login">{checkoutEnabled ? 'Sign in to subscribe' : 'Sign in to request pilot'}</Link>
+                <Link to={checkoutEnabled ? '/login' : '/contact?intent=pilot'}>
+                  {checkoutEnabled ? 'Sign in to subscribe' : 'Request pilot access'}
+                </Link>
               </Button>
             )}
           </div>
@@ -324,7 +328,9 @@ export default function Pricing() {
                   </Button>
                 ) : (
                   <Button size="lg" className="w-full md:w-auto teal-glow" asChild>
-                    <Link to="/login">Sign in to claim</Link>
+                    <Link to={checkoutEnabled ? '/login' : '/contact?intent=pilot'}>
+                      {checkoutEnabled ? 'Sign in to claim' : 'Request founder access'}
+                    </Link>
                   </Button>
                 )}
               </div>
