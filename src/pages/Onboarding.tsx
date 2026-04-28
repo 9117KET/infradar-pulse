@@ -17,6 +17,7 @@ import {
   FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star,
   Bell, MessageSquare, Award, CalendarDays, Columns, GitCompare, Users2, Flag
 } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 const TOTAL_STEPS = 7;
 
@@ -101,6 +102,10 @@ export default function Onboarding() {
 
   // Reload suggested projects when the portfolio step is opened or preferences change.
   useEffect(() => {
+    void trackEvent(step === 0 ? 'onboarding_started' : 'onboarding_step_completed', { step }, 'activation');
+  }, [step]);
+
+  useEffect(() => {
     if (step !== 3) return;
     let cancelled = false;
     setLoadingProjects(true);
@@ -161,7 +166,9 @@ export default function Onboarding() {
         notes: '',
       }));
       await supabase.from('tracked_projects').upsert(rows, { onConflict: 'user_id,project_id' });
+      void trackEvent('first_project_tracked', { count: selectedProjectIds.size }, 'activation');
     }
+    void trackEvent('onboarding_completed', { role, regions_count: regions.length, sectors_count: sectors.length, stages_count: stages.length }, 'activation');
     await refreshProfile();
     navigate('/dashboard', { replace: true });
   };
