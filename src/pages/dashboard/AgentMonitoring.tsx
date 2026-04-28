@@ -93,6 +93,7 @@ export default function AgentMonitoring() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canUseAi, isFreeTier, staffBypass, loading: entLoading } = useEntitlements();
+  const staffReady = !entLoading && staffBypass;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [togglingAgent, setTogglingAgent] = useState<string | null>(null);
@@ -117,8 +118,8 @@ export default function AgentMonitoring() {
         return acc;
       }, {});
     },
-    enabled: !entLoading && staffBypass,
-    refetchInterval: 30000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
   });
 
   // Data coverage query - paginated so the 1000-row Supabase default cap does
@@ -142,7 +143,8 @@ export default function AgentMonitoring() {
       }
       return all;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   const { data: contactCounts } = useQuery({
@@ -160,7 +162,8 @@ export default function AgentMonitoring() {
       data.forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
       return counts;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   const { data: evidenceCounts } = useQuery({
@@ -178,7 +181,8 @@ export default function AgentMonitoring() {
       data.forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
       return counts;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   // Agent enabled/paused state
@@ -190,7 +194,7 @@ export default function AgentMonitoring() {
       (data || []).forEach((row: { agent_type: string; enabled: boolean }) => { map[row.agent_type] = row.enabled !== false; });
       return map;
     },
-    refetchInterval: 30000,
+    refetchInterval: staffReady ? 30000 : false,
   });
 
   const toggleMutation = useMutation({
@@ -495,7 +499,7 @@ export default function AgentMonitoring() {
       </div>
 
       {/* Data Coverage Dashboard — staff only */}
-      {staffBypass && (
+      {staffReady && (
         <div className="glass-panel rounded-xl p-5">
           <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Database className="h-4 w-4 text-primary" /> Data Coverage ({projects?.length || 0} projects)
@@ -597,7 +601,7 @@ export default function AgentMonitoring() {
                 <span>
                   {lastActivityAt ? `Last: ${timeAgo(lastActivityAt)}` : 'Never run'}
                 </span>
-                {staffBypass && <div className="flex items-center gap-1">
+                {staffReady && <div className="flex items-center gap-1">
                   {/* Pause / Resume toggle */}
                   <Button
                     variant="ghost"
