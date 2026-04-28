@@ -92,6 +92,18 @@ export async function getEntitlementForUser(
     return { plan: "lifetime", limits: PLAN_LIMITS.lifetime, bypass: false };
   }
 
+  const { data: pilotAccess } = await supabaseAdmin
+    .from("pilot_access_grants")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("environment", "live")
+    .eq("status", "active")
+    .gt("ends_at", new Date().toISOString())
+    .maybeSingle();
+  if (pilotAccess) {
+    return { plan: "enterprise", limits: PLAN_LIMITS.enterprise, bypass: false };
+  }
+
   const { data: noCardTrial } = await supabaseAdmin
     .from("no_card_trial_grants")
     .select("id")

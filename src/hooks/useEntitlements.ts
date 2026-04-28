@@ -23,6 +23,10 @@ export type NoCardTrialInfo = {
   status: string;
 };
 
+export type PilotAccessInfo = NoCardTrialInfo & {
+  seat_number: number | null;
+};
+
 export function useEntitlements() {
   const { user, roles, loading: authLoading, profileLoading } = useAuth();
   const userId = user?.id ?? null;
@@ -34,6 +38,7 @@ export function useEntitlements() {
   const [hasLifetime, setHasLifetime] = useState(false);
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
   const [noCardTrial, setNoCardTrial] = useState<NoCardTrialInfo | null>(null);
+  const [pilotAccess, setPilotAccess] = useState<PilotAccessInfo | null>(null);
 
   const refresh = useCallback(async () => {
     if (authLoading || profileLoading) return;
@@ -45,6 +50,7 @@ export function useEntitlements() {
       setHasLifetime(false);
       setSubInfo(null);
       setNoCardTrial(null);
+      setPilotAccess(null);
       setLoading(false);
       return;
     }
@@ -59,12 +65,13 @@ export function useEntitlements() {
         setHasLifetime(false);
         setSubInfo(null);
         setNoCardTrial(null);
+        setPilotAccess(null);
         setLoading(false);
         return;
       }
 
       const environment = getPaddleEnvironment();
-      const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }] = await Promise.all([
+      const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }, { data: pilot }] = await Promise.all([
         supabase
           .from('subscriptions')
           .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
@@ -96,11 +103,22 @@ export function useEntitlements() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        (supabase as any)
+          .from('pilot_access_grants')
+          .select('starts_at, ends_at, status, seat_number')
+          .eq('user_id', userId)
+          .eq('environment', 'live')
+          .eq('status', 'active')
+          .gt('ends_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       setHasPaddleCustomer(!!sub?.paddle_customer_id);
       setHasLifetime(!!lifetime);
       setNoCardTrial(trial ?? null);
+      setPilotAccess(pilot ?? null);
       setSubInfo(
         sub
           ? {
@@ -120,6 +138,8 @@ export function useEntitlements() {
       } else if (lifetime) {
         // Lifetime grant = permanent Pro-tier (effectively unlimited) access.
         setPlan('lifetime');
+      } else if (pilot) {
+        setPlan('enterprise');
       } else if (trial) {
         setPlan('trialing');
       } else {
@@ -178,6 +198,7 @@ export function useEntitlements() {
     hasPaddleCustomer,
     hasLifetime,
     noCardTrial,
+    pilotAccess,
     isFreeTier,
     /** True when no user is signed in. Used to skip per-user caps on public pages. */
     isAnonymous: !userId,
