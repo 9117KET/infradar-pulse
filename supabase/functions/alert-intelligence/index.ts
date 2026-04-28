@@ -10,6 +10,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+async function fetchRecentAlerts(supabase: any, sinceIso: string) {
+  const pageSize = 1000;
+  const rows: any[] = [];
+  for (let from = 0; from < 50000; from += pageSize) {
+    const { data, error } = await supabase
+      .from("alerts")
+      .select("*")
+      .gte("created_at", sinceIso)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    rows.push(...data);
+    if (data.length < pageSize) break;
+  }
+  return rows;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -30,11 +48,7 @@ serve(async (req) => {
 
     // Fetch alerts from the last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: alerts } = await supabase
-      .from("alerts")
-      .select("*")
-      .gte("created_at", thirtyDaysAgo)
-      .order("created_at", { ascending: false });
+    const alerts = await fetchRecentAlerts(supabase, thirtyDaysAgo);
 
     if (!alerts?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No recent alerts to analyze" }, completed_at: new Date().toISOString() }).eq("id", taskId);
