@@ -6,7 +6,6 @@ const PERSONAS = [
   { icon: HardHat, role: 'EPC contractors', use: 'Tender intelligence', bullets: ['Find tenders before competitors do', 'Track competitor bid activity and win rates', 'Monitor contractor financial health across consortia'] },
   { icon: Compass, role: 'Infrastructure consultants', use: 'Market advisory', bullets: ['Build country and sector briefs from live data', 'Compare project pipelines across 14 regions', 'Turn monitoring into report-quality deliverables'] },
   { icon: Landmark, role: 'Development finance analysts', use: 'Portfolio monitoring', bullets: ['Track projects you fund in real time', 'Early warning before loans go non-performing', 'Replace manual spreadsheets with verified signals'] },
-  { icon: HardHat, role: 'EPC Contractors', use: 'Tender intelligence', bullets: ['Find tenders before competitors do', 'Track competitor bid activity and win rates', 'Monitor contractor financial health across consortia'] },
   { icon: BarChart3, role: 'Project finance professionals', use: 'Risk monitoring', bullets: ['Real-time delay alerts across loan portfolios', 'Contractor distress signals before default', 'Political risk proximity to election calendars'] },
   { icon: BriefcaseBusiness, role: 'Infrastructure organizations', use: 'Strategic planning', bullets: ['Track emerging markets and pipeline value', 'Monitor competitor and partner activity', 'Coordinate decisions around one verified source'] },
 ];
