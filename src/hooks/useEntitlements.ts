@@ -47,6 +47,11 @@ export function useEntitlements() {
       if (staffFromRoles) {
         setStaffBypass(true);
         setPlan('enterprise');
+        setUsage({});
+        setHasLifetime(false);
+        setSubInfo(null);
+        setLoading(false);
+        return;
       }
 
       const environment = getPaddleEnvironment();
