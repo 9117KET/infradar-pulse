@@ -11,6 +11,7 @@ import { checkDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from '@/lib/disposable
 import { lovable } from '@/integrations/lovable';
 import { Loader2 } from 'lucide-react';
 import { getStoredReferralCode } from '@/lib/utm';
+import { trackEvent } from '@/lib/analytics';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,6 +33,7 @@ export default function Login() {
   const handleGoogle = async () => {
     setOauthLoading(true);
     try {
+      void trackEvent('google_login_started', { mode: isSignUp ? 'signup' : 'login' }, 'auth');
       const result = await lovable.auth.signInWithOAuth('google', {
         redirect_uri: `${window.location.origin}/auth/callback`,
       });
@@ -54,6 +56,7 @@ export default function Login() {
     setLoading(true);
 
     if (isSignUp) {
+      void trackEvent('signup_started', { method: 'email' }, 'auth');
       // 1) Fast client-side disposable-email check
       const localCheck = checkDisposableEmail(email);
       if (localCheck.ok === false) {
@@ -95,6 +98,8 @@ export default function Login() {
       if (error) {
         toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
       } else {
+        void trackEvent('signup_completed', { method: 'email' }, 'auth');
+        void trackEvent('email_verification_required', { method: 'email' }, 'auth');
         toast({ title: 'Check your email', description: 'We sent you a confirmation link.' });
       }
     } else {
@@ -102,6 +107,7 @@ export default function Login() {
       if (error) {
         toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
       } else {
+        void trackEvent('login_completed', { method: 'email' }, 'auth');
         navigate('/dashboard');
       }
     }
