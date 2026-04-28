@@ -86,7 +86,7 @@ export default function Traction() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.rpc('get_traction_stats').then(({ data, error: err }) => {
+    (supabase as any).rpc('get_traction_stats').then(({ data, error: err }: { data: unknown; error: { message: string } | null }) => {
       if (err) { setError(err.message); }
       else { setStats(data as TractionStats); }
       setLoading(false);
