@@ -1,0 +1,17 @@
+REVOKE EXECUTE ON FUNCTION public._agent_cron_auth_header() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.begin_agent_task(text, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.check_trial_eligible(uuid, text, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.claim_lifetime_seat(uuid, text, text, text, integer) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.consume_quota(uuid, text, integer, integer) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.finish_agent_run(text, text, integer) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.increment_usage_for_user(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.increment_usage_metric(text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.prune_old_usage_counters() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.rebuild_agent_config_from_tasks() FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.record_trial_started(uuid, text, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.try_consume_quota(uuid, text, integer, integer) FROM authenticated;
