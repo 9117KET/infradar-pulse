@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
-import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
+import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,7 +45,7 @@ serve(async (req) => {
     const countries = [...new Set(projects.map((p) => p.country))].join(", ");
 
     await setTaskStep(supabase, taskId, "Searching");
-    const research = await fetchPerplexityResearch({
+    const research = await fetchAgentResearch({
       agentName: "stakeholder-intel",
       systemPrompt: "You are a stakeholder intelligence analyst tracking companies and government entities involved in infrastructure projects worldwide.",
       userPrompt: `Summarise (1) notable infrastructure contractors in ${countries} with material performance issues, delays, or disputes during 2024-2025; and (2) government infrastructure agencies or officials in ${countries} linked to corruption investigations, conflict-of-interest concerns, or unusual bid-award patterns during 2024-2025. Name specific firms, agencies, and projects.`,

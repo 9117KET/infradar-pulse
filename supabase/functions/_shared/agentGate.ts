@@ -103,7 +103,7 @@ export async function beginAgentTask(
  * Errors are swallowed so a failed step update never crashes the agent.
  *
  * Steps are free-form strings. Conventional values used across agents:
- *   "Searching"  - fetching external data (Perplexity / Firecrawl / APIs)
+ *   "Searching"  - building research context with Lovable AI or approved optional connectors
  *   "Extracting" - AI extraction / parsing raw content
  *   "Analyzing"  - scoring, deduplication, enrichment logic
  *   "Saving"     - writing results to the database

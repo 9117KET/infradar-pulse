@@ -7,7 +7,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
-import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
+import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,7 +41,7 @@ serve(async (req) => {
 
     await setTaskStep(supabase, taskId, "Searching");
     const q = `infrastructure EPC tender award contract dispute arbitration cancellation ${projects?.slice(0, 6).map((p) => p.name).join(" ") || "global infrastructure"} 2025`;
-    const research = projects?.length ? await fetchPerplexityResearch({
+    const research = projects?.length ? await fetchAgentResearch({
       agentName: "tender-award-monitor",
       systemPrompt: "Infrastructure procurement and contracts analyst.",
       userPrompt: q,
