@@ -59,6 +59,21 @@ type SummaryItem = {
   completed_at?: string | null;
 };
 
+type QueryResult<T> = { data: T | null; error: { message: string } | null };
+type SelectChain<T> = {
+  order: (column: string, options: { ascending: boolean }) => SelectChain<T>;
+  limit: (count: number) => PromiseLike<QueryResult<T[]>>;
+};
+type UpdateChain = { eq: (column: string, value: string) => PromiseLike<QueryResult<unknown[]>> };
+type UntypedDb = {
+  from: (table: string) => {
+    select: <T extends Record<string, unknown>>(columns: string) => SelectChain<T>;
+    update: (values: Record<string, unknown>) => UpdateChain;
+  };
+};
+
+const db = supabase as unknown as UntypedDb;
+
 const REPORT_TYPES = [
   { value: 'country_projects_market', label: 'Country Projects Market' },
   { value: 'sector_pipeline', label: 'Sector Pipeline' },
