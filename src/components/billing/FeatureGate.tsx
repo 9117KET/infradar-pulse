@@ -8,7 +8,7 @@
  *
  * Staff (admin/researcher) and lifetime users bypass automatically.
  */
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -21,6 +21,7 @@ import {
   FEATURE_MIN_PLAN,
   type FeatureKey,
 } from '@/lib/billing/featureAccess';
+import { trackEvent } from '@/lib/analytics';
 
 type Variant = 'page' | 'overlay' | 'inline';
 
@@ -58,6 +59,15 @@ export function FeatureGate({ feature, variant = 'page', children }: FeatureGate
   const label = FEATURE_LABELS[feature];
   const badge = PLAN_BADGE[minPlan] ?? `${minPlan} plan`;
 
+  useEffect(() => {
+    void trackEvent('paywall_viewed', { feature, min_plan: minPlan, variant }, 'monetization');
+  }, [feature, minPlan, variant]);
+
+  const openUpgrade = (source: string) => {
+    void trackEvent('paywall_cta_clicked', { feature, min_plan: minPlan, action: 'start_trial', source }, 'monetization');
+    setOpen(true);
+  };
+
   const cta = (
     <div className="glass-panel rounded-xl border-primary/30 p-8 max-w-xl mx-auto text-center">
       <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -71,12 +81,12 @@ export function FeatureGate({ feature, variant = 'page', children }: FeatureGate
         {label.description} Unlock with the {badge.replace(' plan', '')} plan or start a 3-day free trial.
       </p>
       <div className="flex flex-wrap gap-2 justify-center">
-        <Button onClick={() => setOpen(true)} className="teal-glow">
+        <Button onClick={() => openUpgrade('feature_gate_primary')} className="teal-glow">
           Start free trial
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
         <Button variant="outline" asChild>
-          <Link to="/pricing">Compare plans</Link>
+          <Link to="/pricing" onClick={() => void trackEvent('paywall_cta_clicked', { feature, min_plan: minPlan, action: 'compare_plans', source: 'feature_gate' }, 'monetization')}>Compare plans</Link>
         </Button>
       </div>
       <UpgradeDialog open={open} onOpenChange={setOpen} />
@@ -91,7 +101,7 @@ export function FeatureGate({ feature, variant = 'page', children }: FeatureGate
           <p className="text-sm font-medium">{label.name} — {badge}</p>
           <p className="text-xs text-muted-foreground">{label.description}</p>
         </div>
-        <Button size="sm" variant="outline" onClick={() => setOpen(true)}>Upgrade</Button>
+        <Button size="sm" variant="outline" onClick={() => openUpgrade('feature_gate_inline')}>Upgrade</Button>
         <UpgradeDialog open={open} onOpenChange={setOpen} />
       </div>
     );
