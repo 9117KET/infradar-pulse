@@ -217,6 +217,30 @@ export default function Traction() {
         </>}
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2"><Gift className="h-4 w-4 text-primary" /> Pilot Access Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Enabled</span>
+            <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3">
+              <Switch checked={pilotEnabled} onCheckedChange={setPilotEnabled} />
+              <span className="text-foreground">{pilotEnabled ? 'On' : 'Off'}</span>
+            </div>
+          </label>
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Seats</span>
+            <Input type="number" min={1} value={pilotMaxSeats} onChange={(e) => setPilotMaxSeats(Number(e.target.value))} />
+          </label>
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Days</span>
+            <Input type="number" min={1} value={pilotDurationDays} onChange={(e) => setPilotDurationDays(Number(e.target.value))} />
+          </label>
+          <Button onClick={updatePilotConfig} disabled={loading}>Save</Button>
+        </CardContent>
+      </Card>
+
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {loading ? Array.from({ length: 8 }).map((_, i) => (
