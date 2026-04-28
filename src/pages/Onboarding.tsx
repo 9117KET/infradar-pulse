@@ -98,24 +98,27 @@ export default function Onboarding() {
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [loadingProjects, setLoadingProjects] = useState(false);
 
-  // Load suggested projects when the user reaches step 3 (project selection)
+  // Reload suggested projects when the portfolio step is opened or preferences change.
   useEffect(() => {
     if (step !== 3) return;
-    if (suggestedProjects.length > 0) return; // already loaded
+    let cancelled = false;
     setLoadingProjects(true);
     let query = supabase
       .from('projects')
       .select('id, name, country, sector, stage, value_usd')
       .eq('approved', true)
-      .order('confidence_score', { ascending: false })
+      .order('confidence', { ascending: false })
       .limit(24);
     if (regions.length > 0) query = query.in('region', regions as any);
-    else if (sectors.length > 0) query = query.in('sector', sectors as any);
+    if (sectors.length > 0) query = query.in('sector', sectors as any);
+    if (stages.length > 0) query = query.in('stage', stages as any);
     query.then(({ data }) => {
+      if (cancelled) return;
       setSuggestedProjects(data ?? []);
       setLoadingProjects(false);
     });
-  }, [step]);
+    return () => { cancelled = true; };
+  }, [step, regions, sectors, stages]);
 
   const toggleProject = (id: string) => {
     setSelectedProjectIds(prev => {
