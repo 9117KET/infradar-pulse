@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut } from 'lucide-react';
 
 interface TractionStats {
   total_signups: number;
@@ -21,6 +21,20 @@ interface TractionStats {
   referral_conversions: number;
   weekly_signups: Array<{ week: string; count: number }> | null;
 }
+
+interface ProductAnalyticsSummary {
+  total_events: number;
+  active_users: number;
+  anonymous_visitors: number;
+  sessions: number;
+  paywall_views: number;
+  signouts_after_paywall: number;
+  top_events: Array<{ event_name: string; count: number }>;
+  top_paywall_features: Array<{ feature: string; count: number }>;
+}
+
+type FunnelStep = { step: string; count: number };
+type PaywallDropoff = { feature: string; paywall_views: number; signouts_30m: number; conversion_intent_30m: number };
 
 const PLAN_COLORS: Record<string, string> = {
   pro: 'hsl(var(--primary))',
@@ -82,13 +96,27 @@ function KpiCard({ title, value, sub, icon: Icon, delta: d }: {
 
 export default function Traction() {
   const [stats, setStats] = useState<TractionStats | null>(null);
+  const [productStats, setProductStats] = useState<ProductAnalyticsSummary | null>(null);
+  const [signupFunnel, setSignupFunnel] = useState<FunnelStep[]>([]);
+  const [paywallDropoff, setPaywallDropoff] = useState<PaywallDropoff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (supabase as any).rpc('get_traction_stats').then(({ data, error: err }: { data: unknown; error: { message: string } | null }) => {
+    Promise.all([
+      (supabase as any).rpc('get_traction_stats'),
+      (supabase as any).rpc('get_product_analytics_summary', { p_days: 30 }),
+      (supabase as any).rpc('get_signup_funnel', { p_days: 30 }),
+      (supabase as any).rpc('get_paywall_dropoff', { p_days: 30 }),
+    ]).then(([traction, product, funnel, dropoff]) => {
+      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error;
       if (err) { setError(err.message); }
-      else { setStats(data as TractionStats); }
+      else {
+        setStats(traction.data as TractionStats);
+        setProductStats(product.data as ProductAnalyticsSummary);
+        setSignupFunnel((funnel.data ?? []) as FunnelStep[]);
+        setPaywallDropoff((dropoff.data ?? []) as PaywallDropoff[]);
+      }
       setLoading(false);
     });
   }, []);
