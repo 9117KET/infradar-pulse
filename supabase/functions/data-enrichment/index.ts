@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
+import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun } from "../_shared/agentGate.ts";
@@ -47,9 +48,6 @@ serve(async (req) => {
   await setTaskStep(supabase, taskId, "Searching");
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY not configured");
-
     // Get ALL projects (approved AND pending); pending projects especially need source URLs
     const { data: projects } = await supabase.from("projects").select("*");
     if (!projects?.length) {
@@ -128,20 +126,11 @@ serve(async (req) => {
         if (!project.political_context || project.political_context === '') missingFields.push("political context and government involvement");
         if (!project.hasContacts) missingFields.push("main contractor names, emails, and contact information");
 
-        const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are an infrastructure project research analyst. Find detailed, factual information about the given project. CRITICAL: You MUST include direct, clickable source URLs for all information. Provide the most authoritative URL you can find (government website, major news outlet, official project page)." },
-              { role: "user", content: `Research the "${project.name}" infrastructure project in ${project.country} (${project.sector} sector). I need the following information:\n${missingFields.map(f => `- ${f}`).join("\n")}\n\nProvide specific, verified details with source URLs. The source URL is the most critical piece of information needed.` },
-            ],
-          }),
+        const researchContent = await runResearchPrompt({
+          systemRole: "You are an infrastructure project research analyst. Find detailed, factual information about the given project. CRITICAL: You MUST include direct, clickable source URLs for all information. Provide the most authoritative URL you can find (government website, major news outlet, official project page).",
+          query: `Research the "${project.name}" infrastructure project in ${project.country} (${project.sector} sector). I need the following information:\n${missingFields.map(f => `- ${f}`).join("\n")}\n\nProvide specific, verified details with source URLs. The source URL is the most critical piece of information needed.`,
         });
-        const pxData = await pxResponse.json();
-        const researchContent = pxData?.choices?.[0]?.message?.content;
-        const citations = pxData?.citations || [];
+        const citations: string[] = [];
 
         if (!researchContent) continue;
 
