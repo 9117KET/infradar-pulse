@@ -1271,6 +1271,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_events: {
+        Row: {
+          anonymous_id: string | null
+          created_at: string
+          event_category: string
+          event_name: string
+          id: string
+          page_path: string | null
+          plan_key: string | null
+          properties: Json
+          referrer: string | null
+          roles: string[]
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anonymous_id?: string | null
+          created_at?: string
+          event_category?: string
+          event_name: string
+          id?: string
+          page_path?: string | null
+          plan_key?: string | null
+          properties?: Json
+          referrer?: string | null
+          roles?: string[]
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anonymous_id?: string | null
+          created_at?: string
+          event_category?: string
+          event_name?: string
+          id?: string
+          page_path?: string | null
+          plan_key?: string | null
+          properties?: Json
+          referrer?: string | null
+          roles?: string[]
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -1394,6 +1442,12 @@ export type Database = {
           task_type: string
         }[]
       }
+      get_paywall_dropoff: { Args: { p_days?: number }; Returns: Json }
+      get_product_analytics_summary: {
+        Args: { p_days?: number }
+        Returns: Json
+      }
+      get_signup_funnel: { Args: { p_days?: number }; Returns: Json }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean

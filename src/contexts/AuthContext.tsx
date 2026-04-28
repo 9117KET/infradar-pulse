@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, ty
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 import { getStoredUtmParams, clearUtmParams } from '@/lib/utm';
+import { trackEvent } from '@/lib/analytics';
 
 export type AppRole = 'user' | 'researcher' | 'admin';
 
@@ -127,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const signOut = async () => {
+    await trackEvent('logout_clicked', { source: 'auth_context' }, 'auth');
     await supabase.auth.signOut();
     fetchedProfileFor.current = null;
     setProfile(null);

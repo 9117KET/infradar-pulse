@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { isLiveCheckoutEnabled } from '@/lib/paddle';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
+import { trackEvent } from '@/lib/analytics';
 
 type Reason = 'ai' | 'export' | 'insight' | 'default';
 
@@ -72,6 +73,7 @@ export function UpgradeDialog({
 
   const subscribe = async () => {
     try {
+      void trackEvent('paywall_cta_clicked', { action: 'subscribe', plan: 'starter', source: 'upgrade_dialog', reason }, 'monetization');
       await openCheckout('starter_monthly_no_trial');
       onOpenChange(false);
     } catch (e) {
@@ -85,6 +87,7 @@ export function UpgradeDialog({
 
   const beginTrial = async () => {
     try {
+      void trackEvent('paywall_cta_clicked', { action: 'start_trial', source: 'upgrade_dialog', reason }, 'monetization');
       await startTrial();
       toast({ title: 'Trial started', description: 'Your 3-day trial is active. No card was required.' });
       onOpenChange(false);
@@ -106,8 +109,7 @@ export function UpgradeDialog({
         toast({ title: 'Sign in required', variant: 'destructive' });
         return;
       }
-      // Type-cast: quota_requests is a new table not yet in generated types
-      const { error } = await (supabase as any).from('quota_requests').insert({
+      const { error } = await supabase.from('quota_requests').insert({
         user_id: user.id,
         metric: REASON_TO_METRIC[reason],
         current_plan: plan,
@@ -123,6 +125,7 @@ export function UpgradeDialog({
           throw error;
         }
       } else {
+        void trackEvent('quota_request_submitted', { reason, metric: REASON_TO_METRIC[reason], plan }, 'monetization');
         toast({
           title: 'Quota request submitted',
           description: 'Our team will review your request within one business day.',
@@ -183,12 +186,12 @@ export function UpgradeDialog({
           {!showRequestForm ? (
             <>
               <Button variant="outline" asChild>
-                <Link to="/pricing" onClick={() => handleOpenChange(false)}>
+                <Link to="/pricing" onClick={() => { void trackEvent('pricing_page_viewed', { source: 'upgrade_dialog', reason }, 'monetization'); handleOpenChange(false); }}>
                   Compare plans
                 </Link>
               </Button>
               {canRequestQuota && (
-                <Button variant="outline" onClick={() => setShowRequestForm(true)}>
+                <Button variant="outline" onClick={() => { void trackEvent('quota_request_started', { reason, metric: REASON_TO_METRIC[reason] }, 'monetization'); setShowRequestForm(true); }}>
                   <Clock className="h-4 w-4 mr-2" />
                   Request temporary quota
                 </Button>
@@ -204,7 +207,7 @@ export function UpgradeDialog({
                 </Button>
               ) : (
                 <Button className="teal-glow" asChild>
-                  <Link to="/contact?intent=pilot" onClick={() => handleOpenChange(false)}>
+                   <Link to="/contact?intent=pilot" onClick={() => { void trackEvent('paywall_cta_clicked', { action: 'request_pilot', source: 'upgrade_dialog', reason }, 'monetization'); handleOpenChange(false); }}>
                     Request pilot access
                   </Link>
                 </Button>
