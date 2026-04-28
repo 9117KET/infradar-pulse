@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, UserPlus } from 'lucide-react';
+import { Gift, Shield, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { AppRole } from '@/contexts/AuthContext';
@@ -15,6 +15,8 @@ interface UserRow {
   company: string | null;
   email: string;
   role: AppRole;
+  pilotEndsAt: string | null;
+  pilotSeat: number | null;
   updated_at: string | null;
 }
 
@@ -36,6 +38,7 @@ export default function UsersPage() {
     const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
     const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
     const { data: emailRows, error: emailError } = await (supabase.rpc as any)('admin_list_user_emails');
+    const { data: pilotRows } = await (supabase as any).from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live');
 
     if (profilesError) {
       toast({
@@ -65,6 +68,12 @@ export default function UsersPage() {
 
     const profilesList = profiles ?? [];
     const roles = rolesRows ?? [];
+    const pilotMap = new Map<string, { ends_at: string; seat_number: number | null }>();
+    for (const grant of pilotRows ?? []) {
+      if (grant.status === 'active' && new Date(grant.ends_at).getTime() > Date.now()) {
+        pilotMap.set(grant.user_id, { ends_at: grant.ends_at, seat_number: grant.seat_number });
+      }
+    }
     const emailMap = new Map<string, string>(((emailRows ?? []) as Array<{ user_id: string; email: string }>).map((r) => [r.user_id, r.email]));
 
     const roleMap = new Map<string, AppRole>();
@@ -81,6 +90,8 @@ export default function UsersPage() {
       company: p.company,
       email: emailMap.get(p.id) ?? '',
       role: roleMap.get(p.id) || 'user',
+      pilotEndsAt: pilotMap.get(p.id)?.ends_at ?? null,
+      pilotSeat: pilotMap.get(p.id)?.seat_number ?? null,
       updated_at: p.updated_at,
     }));
     setUsers(mapped);
@@ -108,6 +119,24 @@ export default function UsersPage() {
     toast({ title: 'Researcher invite noted', description: `When ${inviteEmail} signs up, assign them the researcher role from this page.` });
     setInviteEmail('');
     setInviteOpen(false);
+  };
+
+  const grantPilotAccess = async (user: UserRow) => {
+    const { data, error } = await (supabase.rpc as any)('admin_grant_pilot_access', {
+      p_user_id: user.id,
+      p_email: user.email || null,
+      p_environment: 'live',
+    });
+    if (error) {
+      toast({ title: 'Could not grant pilot access', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.granted) {
+      toast({ title: 'Pilot access granted', description: `Seat ${data.seat_number ?? 'assigned'} active until ${new Date(data.ends_at).toLocaleDateString()}.` });
+      fetchUsers();
+    } else {
+      toast({ title: 'Pilot seats unavailable', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    }
   };
 
   return (
@@ -144,6 +173,7 @@ export default function UsersPage() {
                 <th className="p-3 text-left font-medium text-muted-foreground">Company</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Current Role</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Change Role</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Pilot Access</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Last Updated</th>
               </tr>
             </thead>
@@ -173,13 +203,24 @@ export default function UsersPage() {
                       </SelectContent>
                     </Select>
                   </td>
+                  <td className="p-3">
+                    {u.pilotEndsAt ? (
+                      <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                        <Gift className="mr-1 h-3 w-3" /> Seat {u.pilotSeat ?? '—'} · {new Date(u.pilotEndsAt).toLocaleDateString()}
+                      </Badge>
+                    ) : (
+                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantPilotAccess(u)}>
+                        <Gift className="mr-1 h-3 w-3" /> Grant
+                      </Button>
+                    )}
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">
                     {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '-'}
                   </td>
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No users found</td></tr>
               )}
             </tbody>
           </table>
