@@ -1237,6 +1237,10 @@ export type Database = {
         Args: { p_agent_type: string; p_duration_ms?: number; p_status: string }
         Returns: undefined
       }
+      get_agent_monitoring_summary: {
+        Args: { p_recent_limit?: number }
+        Returns: Json
+      }
       get_agent_scheduler_activity: {
         Args: never
         Returns: {
@@ -1291,6 +1295,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      rebuild_agent_config_from_tasks: { Args: never; Returns: undefined }
       record_trial_started: {
         Args: {
           p_email: string
