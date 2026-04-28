@@ -6,10 +6,13 @@ Live document tracking all planned, in-progress, and completed features. Update 
 
 ## Navigation Consolidation
 
-Reducing cognitive load: user role sees ≤8 nav items, researcher sees ≤13.
+Reducing cognitive load by grouping features around user workflows instead of internal feature names.
 
 | Task | Status | Notes |
 |---|---|---|
+| Reclassify sidebar groups by workflow | ✅ Done | Command Center, Projects & Portfolio, Market Intelligence, Reports & Insights, Research Operations, Admin |
+| Keep operational tools researcher/admin-only | ✅ Done | Research, Evidence, Review Queue, Agents hidden from regular users |
+| Move user-facing reports into Reports & Insights | ✅ Done | Intelligence Summaries visible as the main AI report hub |
 | Merge Risk Signals → "Risk" tab in Projects | ✅ Done | URL redirect: `/dashboard/risk` → `/dashboard/projects?tab=risk` |
 | Merge Real-Time Monitoring → "System Health" tab in Agents | ✅ Done | URL redirect: `/dashboard/monitoring` → `/dashboard/agents` |
 | Make Evidence & Verification researcher-only | ✅ Done | Changed `minRole` in DashboardLayout |
