@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut } from 'lucide-react';
 
 interface TractionStats {
   total_signups: number;
@@ -21,6 +21,20 @@ interface TractionStats {
   referral_conversions: number;
   weekly_signups: Array<{ week: string; count: number }> | null;
 }
+
+interface ProductAnalyticsSummary {
+  total_events: number;
+  active_users: number;
+  anonymous_visitors: number;
+  sessions: number;
+  paywall_views: number;
+  signouts_after_paywall: number;
+  top_events: Array<{ event_name: string; count: number }>;
+  top_paywall_features: Array<{ feature: string; count: number }>;
+}
+
+type FunnelStep = { step: string; count: number };
+type PaywallDropoff = { feature: string; paywall_views: number; signouts_30m: number; conversion_intent_30m: number };
 
 const PLAN_COLORS: Record<string, string> = {
   pro: 'hsl(var(--primary))',
@@ -82,13 +96,32 @@ function KpiCard({ title, value, sub, icon: Icon, delta: d }: {
 
 export default function Traction() {
   const [stats, setStats] = useState<TractionStats | null>(null);
+  const [productStats, setProductStats] = useState<ProductAnalyticsSummary | null>(null);
+  const [signupFunnel, setSignupFunnel] = useState<FunnelStep[]>([]);
+  const [paywallDropoff, setPaywallDropoff] = useState<PaywallDropoff[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    (supabase as any).rpc('get_traction_stats').then(({ data, error: err }: { data: unknown; error: { message: string } | null }) => {
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args?: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+    Promise.all([
+      rpc('get_traction_stats'),
+      rpc('get_product_analytics_summary', { p_days: 30 }),
+      rpc('get_signup_funnel', { p_days: 30 }),
+      rpc('get_paywall_dropoff', { p_days: 30 }),
+    ]).then(([traction, product, funnel, dropoff]) => {
+      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error;
       if (err) { setError(err.message); }
-      else { setStats(data as TractionStats); }
+      else {
+        setStats(traction.data as TractionStats);
+        setProductStats(product.data as ProductAnalyticsSummary);
+        setSignupFunnel((funnel.data ?? []) as FunnelStep[]);
+        setPaywallDropoff((dropoff.data ?? []) as PaywallDropoff[]);
+      }
       setLoading(false);
     });
   }, []);
@@ -128,6 +161,17 @@ export default function Traction() {
         </p>
       </div>
 
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => (
+          <Card key={`product-${i}`}><CardContent className="pt-6"><Skeleton className="h-8 w-20 mb-2" /><Skeleton className="h-3 w-16" /></CardContent></Card>
+        )) : <>
+          <KpiCard title="Product Events" value={productStats?.total_events ?? 0} sub="last 30 days" icon={MousePointerClick} />
+          <KpiCard title="Active Users" value={productStats?.active_users ?? 0} sub={`${productStats?.sessions ?? 0} sessions`} icon={Users} />
+          <KpiCard title="Paywall Views" value={productStats?.paywall_views ?? 0} sub="upgrade friction" icon={CreditCard} />
+          <KpiCard title="Signouts After Paywall" value={productStats?.signouts_after_paywall ?? 0} sub="within 30 minutes" icon={LogOut} />
+        </>}
+      </div>
+
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {loading ? Array.from({ length: 8 }).map((_, i) => (
@@ -143,6 +187,58 @@ export default function Traction() {
           <KpiCard title="Signups This Week" value={stats?.signups_this_week ?? 0} sub="vs last week" icon={Users} delta={signupDelta} />
         </>}
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Signup & Activation Funnel</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {loading ? <Skeleton className="h-40 w-full" /> : signupFunnel.map((step, index) => {
+              const first = signupFunnel[0]?.count || 1;
+              const pct = Math.round((step.count / first) * 100);
+              return (
+                <div key={step.step} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="capitalize text-muted-foreground">{step.step.replace(/_/g, ' ')}</span>
+                    <span>{step.count} · {index === 0 ? 100 : pct}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden"><div className="h-full bg-primary" style={{ width: `${index === 0 ? 100 : pct}%` }} /></div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Paywall Drop-off by Feature</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {loading ? <Skeleton className="h-40 w-full" /> : paywallDropoff.length ? paywallDropoff.map(row => (
+              <div key={row.feature} className="rounded-lg border border-border/60 p-3 text-xs">
+                <div className="flex justify-between gap-3"><span className="font-medium truncate">{row.feature}</span><span>{row.paywall_views} views</span></div>
+                <div className="mt-1 text-muted-foreground">{row.signouts_30m} signouts · {row.conversion_intent_30m} intent actions</div>
+              </div>
+            )) : <p className="text-sm text-muted-foreground">No paywall behavior recorded yet.</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Top Product Events</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {loading ? <Skeleton className="h-40 w-full" /> : (productStats?.top_events ?? []).slice(0, 8).map(event => (
+              <div key={event.event_name} className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-mono text-muted-foreground truncate">{event.event_name}</span>
+                <Badge variant="outline">{event.count}</Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
 
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-2">

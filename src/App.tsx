@@ -69,6 +69,7 @@ import Snapshot from "./pages/Snapshot";
 import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
 import { UtmCapture } from "./components/UtmCapture";
+import { AnalyticsCapture } from "./components/AnalyticsCapture";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +81,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <UtmCapture />
+          <AnalyticsCapture />
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
