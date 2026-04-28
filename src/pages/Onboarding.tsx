@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,10 +11,11 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { SECTORS as PROFILE_SECTORS } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES, type ProjectStage, type Region } from '@/data/projects';
 import {
   ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
-  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star
+  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star,
+  Bell, MessageSquare, Award, CalendarDays, Columns, GitCompare, Users2, Flag
 } from 'lucide-react';
 
 const TOTAL_STEPS = 7;
@@ -31,18 +33,22 @@ const ROLES = [
   { value: 'supply_chain', label: 'Supply Chain / Logistics', desc: 'Material demand, transport timing' },
 ];
 
-const REGIONS = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
-const SECTORS = PROFILE_SECTORS;
-const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
-
 const CORE_FEATURES = [
   { icon: LayoutDashboard, name: 'Overview Dashboard', desc: 'Real-time portfolio metrics, regional risk heatmaps, and KPI tracking across all your monitored projects.' },
-  { icon: Search, name: 'AI Research Hub', desc: 'Type any query in plain language and watch AI agents research projects, contacts, and market intelligence in real time.' },
-  { icon: FolderSearch, name: 'Project Intelligence', desc: 'Detailed project profiles with verified data, stakeholder contacts, funding sources, and timeline tracking.' },
+  { icon: Sparkles, name: 'Ask AI', desc: 'Ask plain-language questions across the project database and get filtered intelligence with source-aware results.' },
+  { icon: FolderSearch, name: 'Project Intelligence', desc: 'Detailed project profiles with verified data, stakeholders, funding sources, evidence, timelines, and watchlist tracking.' },
+  { icon: MessageSquare, name: 'Portfolio Chat', desc: 'Chat directly with your tracked portfolio to identify risks, updates, actions, and priority opportunities.' },
+  { icon: Bell, name: 'Alerts & Rules', desc: 'Monitor political, financial, regulatory, supply chain, security, and construction alerts with configurable notification rules.' },
 ];
 
 const INTEL_FEATURES = [
   { icon: Globe, name: 'Geo Intelligence', desc: 'Interactive maps showing project clusters, infrastructure corridors, and regional investment patterns.' },
+  { icon: Award, name: 'Tenders & Awards', desc: 'Track contract awards, open tenders, re-tenders, cancellations, disputes, and arbitration signals.' },
+  { icon: CalendarDays, name: 'Tender Calendar', desc: 'View upcoming tender and award activity in a time-based workflow.' },
+  { icon: Columns, name: 'Pipeline View', desc: 'See projects grouped by selected stages from planning through completion, including cancelled and stopped projects.' },
+  { icon: GitCompare, name: 'Compare Projects', desc: 'Compare opportunities side by side across value, geography, sector, stage, confidence, and risk.' },
+  { icon: Users2, name: 'Stakeholder Intel', desc: 'Map owners, contractors, financiers, consultants, and other key counterparties across projects.' },
+  { icon: Flag, name: 'Country Intelligence', desc: 'Review country-level pipeline, sectors, values, risks, and alert exposure.' },
   { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers: satellite imagery, filings, news, and registry data for each project.' },
   { icon: AlertTriangle, name: 'Risk & Anomaly Signals', desc: 'AI-powered risk scoring with political, financial, regulatory, and environmental signal detection.' },
   { icon: BarChart3, name: 'Analytics & Reports', desc: 'Custom dashboards with sector breakdowns, investment flows, and exportable PDF reports.' },
@@ -62,7 +68,7 @@ const ROLE_TIPS: Record<string, { tip: string; startWith: string }> = {
   supply_chain: { tip: 'As Supply Chain/Logistics, timing and demand signals are crucial.', startWith: 'Start with Monitoring for real-time project updates.' },
 };
 
-function FeatureCard({ icon: Icon, name, desc }: { icon: any; name: string; desc: string }) {
+function FeatureCard({ icon: Icon, name, desc }: { icon: LucideIcon; name: string; desc: string }) {
   return (
     <div className="flex gap-3 p-4 rounded-xl border border-border bg-card/50 hover:bg-card/80 transition-colors">
       <div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -93,29 +99,33 @@ export default function Onboarding() {
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [loadingProjects, setLoadingProjects] = useState(false);
 
-  // Load suggested projects when the user reaches step 3 (project selection)
+  // Reload suggested projects when the portfolio step is opened or preferences change.
   useEffect(() => {
     if (step !== 3) return;
-    if (suggestedProjects.length > 0) return; // already loaded
+    let cancelled = false;
     setLoadingProjects(true);
     let query = supabase
       .from('projects')
       .select('id, name, country, sector, stage, value_usd')
       .eq('approved', true)
-      .order('confidence_score', { ascending: false })
+      .order('confidence', { ascending: false })
       .limit(24);
-    if (regions.length > 0) query = query.in('region', regions as any);
-    else if (sectors.length > 0) query = query.in('sector', sectors as any);
+    if (regions.length > 0) query = query.in('region', regions as Region[]);
+    if (sectors.length > 0) query = query.in('sector', sectors as never[]);
+    if (stages.length > 0) query = query.in('stage', stages as ProjectStage[]);
     query.then(({ data }) => {
+      if (cancelled) return;
       setSuggestedProjects(data ?? []);
       setLoadingProjects(false);
     });
-  }, [step]);
+    return () => { cancelled = true; };
+  }, [step, regions, sectors, stages]);
 
   const toggleProject = (id: string) => {
     setSelectedProjectIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -292,7 +302,7 @@ export default function Onboarding() {
               </div>
             ) : suggestedProjects.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
-                No projects found for your selected regions yet — you can track projects from the dashboard.
+                No projects found for your selected focus areas yet — you can track projects from the dashboard.
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
@@ -420,6 +430,10 @@ export default function Onboarding() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Sectors</span>
                 <span className="font-medium">{sectors.length > 0 ? sectors.join(', ') : 'All'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Stages</span>
+                <span className="font-medium">{stages.length > 0 ? stages.join(', ') : 'All'}</span>
               </div>
             </div>
 

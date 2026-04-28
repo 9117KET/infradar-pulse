@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { REGIONS, SECTORS } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,8 +43,6 @@ const ROLE_OPTIONS = [
   { value: 'legal_advisory', label: 'Legal / Advisory' },
   { value: 'supply_chain', label: 'Supply Chain / Logistics' },
 ];
-
-const ALL_STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 
 const agents = [
   { name: 'Research Agent', fn: agentApi.runResearchAgent, icon: Search, desc: 'Discover new projects' },
@@ -809,7 +807,7 @@ function PreferencesTab() {
         <div>
           <Label className="mb-2 block">Stages</Label>
           <div className="flex flex-wrap gap-3">
-            {ALL_STAGES.map(s => (
+            {STAGES.map(s => (
               <label key={s} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={stages.includes(s)} onCheckedChange={() => toggle(stages, s, setStages)} />
                 <span className="text-sm">{s}</span>
