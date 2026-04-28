@@ -17,7 +17,8 @@ All Edge Functions import from `supabase/functions/_shared/`. The key modules:
 | `entitlementCheck.ts` | `assertAiAllowed`, `assertExportAllowed`, `assertInsightReadAllowed`, `incrementUsage` - enforce daily usage caps per plan |
 | `billing.ts` | `PLAN_LIMITS`, `PlanKey`, `resolvePlanKeyFromPriceId` - source of truth for server-side limits |
 | `requireStaff.ts` / `requireAi.ts` | Auth guards that return early with 401/403 for non-staff or unconfigured AI |
-| `llm.ts` | `chatCompletions(body)` - wraps OpenAI-compatible `/chat/completions`; reads `OPENAI_API_KEY`/`LLM_API_KEY`, `OPENAI_BASE_URL`, `LLM_MODEL` |
+| `llm.ts` | `chatCompletions(body)` - wraps Lovable AI Gateway `/chat/completions`; reads auto-provisioned `LOVABLE_API_KEY` and optional `LLM_MODEL`/`LOVABLE_AI_MODEL` |
+| `webResearch.ts` / `agentResearch.ts` | Lovable AI-first research helpers for agents. MVP agents must not require Perplexity, OpenAI, Firecrawl or other external credits to complete. |
 
 **Critical:** `supabase/functions/_shared/billing.ts` and `src/lib/billing/limits.ts` define the same `PLAN_LIMITS` constants. They must stay in sync manually - there is no shared source.
 
