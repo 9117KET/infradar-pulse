@@ -16,12 +16,12 @@ import { cn } from '@/lib/utils';
 // research houses, project finance data terminals, and emerging regional
 // MENA/Africa intelligence platforms).
 const COMPETITOR_TABLE = [
-  { name: 'Regional intelligence publisher', price: '$5k–$15k / yr', update: 'Quarterly PDF', blur: true },
-  { name: 'Global market research vendor', price: '$10k–$50k / yr', update: 'Static reports', blur: true },
-  { name: 'Energy & commodity research house', price: '$50k–$200k / yr', update: 'Annual research', blur: true },
-  { name: 'Project finance data terminal', price: '$20k–$100k / yr', update: 'Financial feeds', blur: true },
-  { name: 'Regional MENA/Africa intel platform', price: '$3k–$12k / yr', update: 'Weekly updates', blur: true },
-  { name: 'Construction & tender aggregator', price: '$4k–$20k / yr', update: 'Daily, unverified', blur: true },
+  { name: 'Regional intelligence publisher', price: '$5k-$15k / yr', update: 'Quarterly PDF', blur: true },
+  { name: 'Global market research vendor', price: '$10k-$50k / yr', update: 'Static reports', blur: true },
+  { name: 'Energy & commodity research house', price: '$50k-$200k / yr', update: 'Annual research', blur: true },
+  { name: 'Project finance data terminal', price: '$20k-$100k / yr', update: 'Financial feeds', blur: true },
+  { name: 'Regional MENA/Africa intel platform', price: '$3k-$12k / yr', update: 'Weekly updates', blur: true },
+  { name: 'Construction & tender aggregator', price: '$4k-$20k / yr', update: 'Daily, unverified', blur: true },
   { name: 'InfradarAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
 ];
 
@@ -110,7 +110,7 @@ export default function Pricing() {
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
             Instead of paying thousands for a single static market report, subscribe to living project intelligence: verified data,
             alerts, portfolio Q&amp;A, and <span className="text-foreground font-medium">AI-generated market reports</span> that update with your scope.
-            No free trial - pay for what you use, cancel anytime.
+            Pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
             14-day refund guarantee on your first paid charge. Daily quotas reset at 00:00 UTC.
@@ -230,7 +230,7 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day - CSV &amp; Excel (.xlsx), up to 10,000 rows</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Watermarked project tearsheet PDFs (per-project one-pager)</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Project tearsheet PDFs (per-project one-pager)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI-generated country, sector, tender and portfolio report PDFs</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI digest email alerts</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Delay risk scores</li>
@@ -287,12 +287,12 @@ export default function Pricing() {
                   </span>
                 </div>
                 <h2 className="font-serif text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
-                  Lifetime access — pay once, own it forever
+                  Lifetime access. Pay once, own it forever
                   <InfinityIcon className="h-6 w-6 text-primary" />
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4 max-w-xl">
                   Get permanent Pro-tier access to InfradarAI. Every future feature, every new agent,
-                  every market we cover — yours, at no extra cost. Help us build the category, get
+                  every market we cover, yours at no extra cost. Help us build the category, get
                   rewarded forever.
                 </p>
                 <ul className="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm text-muted-foreground mb-2">
@@ -388,8 +388,8 @@ export default function Pricing() {
             For business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams, InfradarAI replaces expensive consultant engagements and stale research subscriptions with{' '}
             <span className="text-foreground">real-time AI research</span>,{' '}
             <span className="text-foreground">confidence-scored signals</span>, and{' '}
-            <span className="text-foreground">self-serve workflows</span> - no annual contracts, no sales calls, no waiting for a quarterly report.
-            Export your pipeline as watermarked CSV, Excel (.xlsx), or branded PDF tearsheets and intelligence reports - every file licensed to your account for audit traceability.
+            <span className="text-foreground">self-serve workflows</span> for faster market research and pipeline decisions.
+            Export your pipeline as CSV, Excel (.xlsx), project tearsheets, and intelligence reports with account-level audit traceability.
             Enterprise and API access available for teams embedding InfradarAI into their own workflows.
           </p>
         </div>

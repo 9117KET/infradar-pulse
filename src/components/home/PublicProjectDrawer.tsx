@@ -115,7 +115,7 @@ export function PublicProjectDrawer({ project, onClose }: PublicProjectDrawerPro
                   Unlock the full project profile
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  Free account — financial data, evidence sources, contacts, milestones, and AI-generated intelligence briefs.
+                  Free account includes financial data, evidence sources, contacts, milestones, and AI-generated intelligence briefs.
                 </p>
                 <Link
                   to={`/login?from=map&project=${project.id}`}

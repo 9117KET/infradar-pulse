@@ -250,12 +250,12 @@ export default function Explore() {
               <div className="border-t border-border/30 bg-muted/10 px-6 py-5 text-center">
                 <p className="text-sm text-muted-foreground mb-3">
                   <Lock className="h-4 w-4 inline mr-1.5 mb-0.5" />
-                  <strong className="text-foreground">{gatedCount.toLocaleString()} more projects</strong> available with a free account —
+                  <strong className="text-foreground">{gatedCount.toLocaleString()} more projects</strong> available with a free account,
                   including pipeline value, evidence sources, stakeholder contacts, and AI briefs.
                 </p>
                 <Link to="/login">
                   <Button className="teal-glow gap-2">
-                    Get free access — 60 seconds <ArrowRight className="h-4 w-4" />
+                    Get free access in 60 seconds <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
               </div>
