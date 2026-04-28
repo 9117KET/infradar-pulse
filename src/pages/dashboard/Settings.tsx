@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { REGIONS, SECTORS } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES } from '@/data/projects';
 import { agentApi } from '@/lib/api/agents';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,8 +43,6 @@ const ROLE_OPTIONS = [
   { value: 'legal_advisory', label: 'Legal / Advisory' },
   { value: 'supply_chain', label: 'Supply Chain / Logistics' },
 ];
-
-const ALL_STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'];
 
 const agents = [
   { name: 'Research Agent', fn: agentApi.runResearchAgent, icon: Search, desc: 'Discover new projects' },
