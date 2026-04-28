@@ -15,6 +15,7 @@ import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { isLiveCheckoutEnabled } from '@/lib/paddle';
 
 type Reason = 'ai' | 'export' | 'insight' | 'default';
 
@@ -65,6 +66,7 @@ export function UpgradeDialog({
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
   const canRequestQuota = reason !== 'default';
+  const checkoutEnabled = isLiveCheckoutEnabled();
 
   const subscribe = async () => {
     try {
@@ -175,10 +177,18 @@ export function UpgradeDialog({
                   Request temporary quota
                 </Button>
               )}
-              <Button className="teal-glow" onClick={() => void subscribe()} disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Subscribe to Starter
-              </Button>
+              {checkoutEnabled ? (
+                <Button className="teal-glow" onClick={() => void subscribe()} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Subscribe to Starter
+                </Button>
+              ) : (
+                <Button className="teal-glow" asChild>
+                  <Link to="/contact?intent=pilot" onClick={() => handleOpenChange(false)}>
+                    Request pilot access
+                  </Link>
+                </Button>
+              )}
             </>
           ) : (
             <>

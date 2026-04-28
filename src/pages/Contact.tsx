@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Mail, MessageSquare, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,8 @@ type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function Contact() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const isPilotIntent = searchParams.get('intent') === 'pilot';
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormValues, string>>>({});
@@ -40,8 +42,10 @@ export default function Contact() {
     name: '',
     email: '',
     company: '',
-    subject: '',
-    message: '',
+    subject: isPilotIntent ? 'Pilot access request' : '',
+    message: isPilotIntent
+      ? 'I would like pilot access to InfradarAI while online checkout is being enabled. Please share the next steps.'
+      : '',
   });
 
   const update = (key: keyof ContactFormValues) => (
@@ -146,8 +150,9 @@ export default function Contact() {
         <div className="text-center mb-12">
           <h1 className="font-serif text-4xl font-bold mb-4">Get in touch</h1>
           <p className="text-muted-foreground max-w-lg mx-auto">
-            Have questions about Infradar? We'd love to hear from you. Choose the option that best fits
-            your needs.
+            {isPilotIntent
+              ? 'Request pilot access and we will help you start through a guided onboarding path.'
+              : "Have questions about Infradar? We'd love to hear from you. Choose the option that best fits your needs."}
           </p>
         </div>
 
