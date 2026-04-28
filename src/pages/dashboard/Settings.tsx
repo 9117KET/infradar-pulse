@@ -807,7 +807,7 @@ function PreferencesTab() {
         <div>
           <Label className="mb-2 block">Stages</Label>
           <div className="flex flex-wrap gap-3">
-            {ALL_STAGES.map(s => (
+            {STAGES.map(s => (
               <label key={s} className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={stages.includes(s)} onCheckedChange={() => toggle(stages, s, setStages)} />
                 <span className="text-sm">{s}</span>
