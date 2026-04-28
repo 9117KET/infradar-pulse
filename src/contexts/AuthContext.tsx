@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     setProfile(profileData as UserProfile | null);
-    setRoles((rolesRes.data?.map((r: any) => r.role) ?? []) as AppRole[]);
+    setRoles((rolesRes.data?.map((r: { role: AppRole }) => r.role) ?? []) as AppRole[]);
     setProfileLoading(false);
   }, []);
 
