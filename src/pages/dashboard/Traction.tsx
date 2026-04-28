@@ -103,11 +103,16 @@ export default function Traction() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const rpc = supabase.rpc as unknown as (
+      fn: string,
+      args?: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+
     Promise.all([
-      (supabase as any).rpc('get_traction_stats'),
-      (supabase as any).rpc('get_product_analytics_summary', { p_days: 30 }),
-      (supabase as any).rpc('get_signup_funnel', { p_days: 30 }),
-      (supabase as any).rpc('get_paywall_dropoff', { p_days: 30 }),
+      rpc('get_traction_stats'),
+      rpc('get_product_analytics_summary', { p_days: 30 }),
+      rpc('get_signup_funnel', { p_days: 30 }),
+      rpc('get_paywall_dropoff', { p_days: 30 }),
     ]).then(([traction, product, funnel, dropoff]) => {
       const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error;
       if (err) { setError(err.message); }
