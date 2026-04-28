@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
+import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
@@ -18,7 +19,6 @@ serve(async (req) => {
 
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -48,24 +48,11 @@ serve(async (req) => {
       } catch (e) { console.error("Firecrawl error:", e); }
     }
 
-    if (PERPLEXITY_API_KEY) {
-      try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a competitive intelligence analyst for the global infrastructure construction sector." },
-              { role: "user", content: "Latest contract awards, bidding activity, market share shifts in infrastructure construction worldwide 2025. Which companies are winning the most bids? Any new market entrants?" },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) rawContent.push(data.choices[0].message.content);
-      } catch (e) { console.error("Perplexity error:", e); }
-    }
+    const aiResearch = await runResearchPrompt({
+      systemRole: "You are a competitive intelligence analyst for the global infrastructure construction sector.",
+      query: "Latest contract awards, bidding activity, market share shifts in infrastructure construction worldwide 2025. Which companies are winning the most bids? Any new market entrants?",
+    });
+    if (aiResearch) rawContent.push(aiResearch);
 
     if (!rawContent.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No data", completed_at: new Date().toISOString() }).eq("id", taskId);
