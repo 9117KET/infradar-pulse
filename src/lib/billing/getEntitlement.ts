@@ -18,7 +18,7 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
   if (!user) return null;
   const environment = getPaddleEnvironment();
 
-  const [{ data: roleRow }, { data: sub }, { data: lifetime }] = await Promise.all([
+  const [{ data: roleRow }, { data: sub }, { data: lifetime }, { data: trial }] = await Promise.all([
     supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('subscriptions')
@@ -35,6 +35,14 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .eq('user_id', user.id)
       .eq('environment', environment)
       .maybeSingle(),
+    (supabase as any)
+      .from('no_card_trial_grants')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('environment', environment)
+      .eq('status', 'active')
+      .gt('ends_at', new Date().toISOString())
+      .maybeSingle(),
   ]);
 
   const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
@@ -43,6 +51,9 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
   }
   if (lifetime) {
     return { plan: 'lifetime', limits: PLAN_LIMITS.lifetime, staffBypass: false };
+  }
+  if (trial) {
+    return { plan: 'trialing', limits: PLAN_LIMITS.trialing, staffBypass: false };
   }
 
   const plan = effectivePlan(sub);

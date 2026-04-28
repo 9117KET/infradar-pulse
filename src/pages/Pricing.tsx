@@ -5,6 +5,7 @@ import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinit
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
 import { getPaddleEnvironment, isLiveCheckoutEnabled } from '@/lib/paddle';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { openCheckout, loading } = usePaddleCheckout();
+  const { startTrial, loading: trialLoading } = useNoCardTrial();
   const navigate = useNavigate();
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [seatsTaken, setSeatsTaken] = useState<number | null>(null);
@@ -65,6 +67,24 @@ export default function Pricing() {
     } catch (e) {
       toast({
         title: 'Checkout unavailable',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const beginTrial = async () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    try {
+      await startTrial();
+      toast({ title: 'Trial started', description: 'Your 3-day trial is active. No card was required.' });
+      navigate('/dashboard/settings?tab=billing');
+    } catch (e) {
+      toast({
+        title: 'Trial unavailable',
         description: e instanceof Error ? e.message : 'Please try again.',
         variant: 'destructive',
       });
@@ -113,7 +133,8 @@ export default function Pricing() {
             Pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            14-day refund guarantee on your first paid charge. Daily quotas reset at 00:00 UTC.
+            Start with a 3-day trial, no card required. Card details are only requested for paid upgrades,
+            and your first paid charge has a 14-day refund guarantee.
           </p>
         </div>
 
@@ -177,6 +198,15 @@ export default function Pricing() {
             <Button variant="outline" asChild className="w-full">
               <Link to="/login">Get started</Link>
             </Button>
+            <Button
+              variant="ghost"
+              className="w-full mt-2"
+              onClick={() => void beginTrial()}
+              disabled={trialLoading}
+            >
+              {trialLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Start 3-day trial
+            </Button>
           </div>
 
           {/* Starter */}
@@ -191,7 +221,7 @@ export default function Pricing() {
               ${starterPrice}
               <span className="text-sm font-normal text-muted-foreground">{starterUnit}</span>
             </p>
-            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}</p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}. 14-day refund guarantee.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
@@ -225,7 +255,7 @@ export default function Pricing() {
               ${proPrice}
               <span className="text-sm font-normal text-muted-foreground">{proUnit}</span>
             </p>
-            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}</p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}. 14-day refund guarantee.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
