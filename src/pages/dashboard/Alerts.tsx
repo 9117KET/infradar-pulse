@@ -84,6 +84,20 @@ export default function Alerts() {
     return result;
   }, [filterByCategory, selectedCategory, coverageProjectNames, staffBypass]);
 
+  const hasCoverageFilter = coverageProjectNames.size > 0;
+  const visibleAllCount = useMemo(() => {
+    if (hasCoverageFilter) return filtered.length;
+    if (staffBypass) return stats.total;
+    return Object.entries(stats.byCategory)
+      .filter(([category]) => category !== 'stakeholder')
+      .reduce((sum, [, count]) => sum + count, 0);
+  }, [filtered.length, hasCoverageFilter, staffBypass, stats]);
+
+  const getCategoryCount = (category: AlertCategory) => {
+    if (hasCoverageFilter) return alerts.filter(a => a.category === category && coverageProjectNames.has((a.projectName || '').trim().toLowerCase())).length;
+    return stats.byCategory[category] || 0;
+  };
+
   // Volume over time (last 30 days, grouped by day)
   const volumeByDay = useMemo(() => {
     const days: Record<string, Record<string, number>> = {};
@@ -401,12 +415,12 @@ export default function Alerts() {
           onClick={() => { setSelectedCategory('all'); setPage(0); }}
           className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
         >
-          All ({filtered.length})
+          All ({visibleAllCount})
         </button>
         {ALERT_CATEGORIES
           .filter(c => staffBypass || c.value !== 'stakeholder')
           .map(c => {
-            const count = stats.byCategory[c.value] || 0;
+            const count = getCategoryCount(c.value);
             if (count === 0) return null;
             return (
               <button
