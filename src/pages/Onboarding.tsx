@@ -111,7 +111,7 @@ export default function Onboarding() {
       .order('confidence', { ascending: false })
       .limit(24);
     if (regions.length > 0) query = query.in('region', regions as Region[]);
-    if (sectors.length > 0) query = query.in('sector', sectors as Sector[]);
+    if (sectors.length > 0) query = query.in('sector', sectors as never[]);
     if (stages.length > 0) query = query.in('stage', stages as ProjectStage[]);
     query.then(({ data }) => {
       if (cancelled) return;
