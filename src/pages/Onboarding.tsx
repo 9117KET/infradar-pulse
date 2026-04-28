@@ -300,7 +300,7 @@ export default function Onboarding() {
               </div>
             ) : suggestedProjects.length === 0 ? (
               <div className="text-center py-8 text-sm text-muted-foreground">
-                No projects found for your selected regions yet — you can track projects from the dashboard.
+                No projects found for your selected focus areas yet — you can track projects from the dashboard.
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
@@ -428,6 +428,10 @@ export default function Onboarding() {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Sectors</span>
                 <span className="font-medium">{sectors.length > 0 ? sectors.join(', ') : 'All'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Stages</span>
+                <span className="font-medium">{stages.length > 0 ? stages.join(', ') : 'All'}</span>
               </div>
             </div>
 
