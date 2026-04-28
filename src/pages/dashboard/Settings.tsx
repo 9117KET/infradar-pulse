@@ -19,6 +19,7 @@ import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
 import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
 import { Progress } from '@/components/ui/progress';
@@ -323,8 +324,9 @@ function daysUntil(iso: string | null): number | null {
 function BillingTab() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, refresh } = useEntitlements();
+  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, noCardTrial, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { startTrial, loading: trialLoading } = useNoCardTrial();
   const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | 'resume' | null>(null);
 
   // After Paddle checkout completes, poll the subscriptions table until the
@@ -354,6 +356,19 @@ function BillingTab() {
       completion.start();
     } catch (e) {
       toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const beginTrial = async () => {
+    setBusy('starter');
+    try {
+      await startTrial();
+      toast({ title: 'Trial started', description: 'Your 3-day trial is active. No card was required.' });
+      await refresh();
+    } catch (e) {
+      toast({ title: 'Trial unavailable', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -411,6 +426,8 @@ function BillingTab() {
   const trialDays = daysUntil(subInfo?.trial_end ?? null);
   const periodDays = daysUntil(subInfo?.current_period_end ?? null);
   const isTrialing = subInfo?.status === 'trialing' && trialDays !== null && trialDays > 0;
+  const noCardTrialDays = daysUntil(noCardTrial?.ends_at ?? null);
+  const isNoCardTrialing = !!noCardTrial && noCardTrialDays !== null && noCardTrialDays > 0;
   const isPastDue = subInfo?.status === 'past_due';
   const willCancel = !!subInfo?.cancel_at_period_end && subInfo?.status !== 'canceled';
   const hasActiveSub = subInfo && ['active', 'trialing', 'past_due'].includes(subInfo.status ?? '');
@@ -444,6 +461,11 @@ function BillingTab() {
         {isTrialing && (
           <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
             <strong>Trial ends in {trialDays} day{trialDays === 1 ? '' : 's'}</strong> ({formatDate(subInfo!.trial_end)}). Your card will be charged on that date unless you cancel.
+          </div>
+        )}
+        {isNoCardTrialing && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+            <strong>Card-free trial ends in {noCardTrialDays} day{noCardTrialDays === 1 ? '' : 's'}</strong> ({formatDate(noCardTrial.ends_at)}). No card is on file for this trial, so it will not auto-charge.
           </div>
         )}
         {isPastDue && (
@@ -487,8 +509,14 @@ function BillingTab() {
       <div className="glass-panel rounded-xl p-6 space-y-3">
         {!hasActiveSub && !staffBypass && (
           <>
-            <p className="text-xs text-muted-foreground">Choose a paid plan. You can cancel anytime and keep access through the current billing period.</p>
+            <p className="text-xs text-muted-foreground">Start a 3-day trial with no card, or choose a paid plan. Paid upgrades require checkout and include a 14-day refund guarantee on the first charge.</p>
             <div className="flex flex-wrap gap-2">
+              {!isNoCardTrialing && (
+                <Button variant="outline" disabled={!!busy || trialLoading} onClick={() => void beginTrial()}>
+                  {trialLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Start 3-day trial
+                </Button>
+              )}
               <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly_no_trial', 'starter')}>
                 {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Subscribe Starter — $29/mo
