@@ -102,7 +102,7 @@ function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
   const { signOut, hasRole } = useAuth();
-  const { plan, staffBypass } = useEntitlements();
+  const { plan, staffBypass, loading: entitlementLoading } = useEntitlements();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -121,7 +121,7 @@ function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map(item => {
-                    const locked = !!item.feature && !canAccessFeature(plan, item.feature, staffBypass);
+                    const locked = !!item.feature && !entitlementLoading && !canAccessFeature(plan, item.feature, staffBypass);
                     return (
                       <SidebarMenuItem key={item.url} data-tour={item.tourId}>
                         <SidebarMenuButton asChild>
