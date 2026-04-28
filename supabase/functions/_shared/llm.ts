@@ -1,25 +1,24 @@
 /**
- * OpenAI-compatible Chat Completions (OpenAI, Azure OpenAI, LiteLLM, local gateways).
+ * Lovable AI Gateway Chat Completions.
  *
  * Env:
- *   OPENAI_API_KEY or LLM_API_KEY — required
- *   OPENAI_BASE_URL — optional, default https://api.openai.com/v1
- *   LLM_MODEL or OPENAI_MODEL — optional, default gpt-4o-mini
+ *   LOVABLE_API_KEY — auto-provisioned by Lovable Cloud
+ *   LLM_MODEL or LOVABLE_AI_MODEL — optional, default google/gemini-3-flash-preview
  */
 
 /** True when an OpenAI-compatible API key is set (for optional AI branches). */
 export function isLlmConfigured(): boolean {
-  const k = Deno.env.get("OPENAI_API_KEY") ?? Deno.env.get("LLM_API_KEY") ?? "";
+  const k = Deno.env.get("LOVABLE_API_KEY") ?? "";
   return Boolean(k.trim());
 }
 
 export function getLlmEnv(): { apiKey: string; baseUrl: string; model: string } {
-  const apiKey = Deno.env.get("OPENAI_API_KEY") ?? Deno.env.get("LLM_API_KEY") ?? "";
+  const apiKey = Deno.env.get("LOVABLE_API_KEY") ?? "";
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY or LLM_API_KEY not configured");
+    throw new Error("LOVABLE_API_KEY not configured");
   }
-  const baseUrl = (Deno.env.get("OPENAI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
-  const model = Deno.env.get("LLM_MODEL") ?? Deno.env.get("OPENAI_MODEL") ?? "gpt-4o-mini";
+  const baseUrl = "https://ai.gateway.lovable.dev/v1";
+  const model = Deno.env.get("LLM_MODEL") ?? Deno.env.get("LOVABLE_AI_MODEL") ?? "google/gemini-3-flash-preview";
   return { apiKey, baseUrl, model };
 }
 
