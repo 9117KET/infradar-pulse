@@ -40,6 +40,8 @@ export const agentApi = {
   runAlertIntelligence: () => invokeAgent('alert-intelligence'),
   runDataEnrichment: () => invokeAgent('data-enrichment'),
   runUserResearch: (query: string) => invokeAgentWithBody('user-research', { query }),
+  runPortfolioChat: (messages: Array<{ role: 'user' | 'assistant'; content: string }>) =>
+    invokeAgentWithBody('portfolio-chat', { messages }),
   /** Natural Language project search — translates a free-text prompt into filters and returns matching projects. */
   runNlSearch: (query: string) => invokeAgentWithBody('nl-search', { query }),
   runDigestAgent: (opts?: { rule_id?: string }) => invokeAgentWithBody('digest-agent', { ...(opts ?? {}) }),

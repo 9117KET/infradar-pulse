@@ -1,89 +1,100 @@
+## Goal
+Make the MVP feel usable and valuable for real users: Portfolio Chat should answer questions about tracked projects reliably, and the surrounding intelligence features should load consistently, show accurate states, and fail gracefully instead of feeling broken.
+
 ## What I found
+- Portfolio Chat is currently wired to `user-research`, which is designed for web/project extraction tasks, not conversational portfolio Q&A. That explains weak answers like “no exact matches found” or no meaningful response.
+- Portfolio Chat only sends the latest question plus a one-line portfolio summary; it does not send conversation history or structured project context.
+- Portfolio Chat depends on polling `research_tasks`, adding delay and making failures less clear.
+- The chat UI renders plain text only, so AI-formatted responses are not displayed as rich intelligence briefs.
+- Several user-facing pages share the same root issue: they depend on entitlement/auth state and heavy project loading, so features can appear locked or empty during startup before state settles.
+- Some backend functions already use Lovable AI Gateway (`nl-search`) while Portfolio Chat still uses an older research/extraction route. For MVP, Portfolio Chat should use the reliable gateway path with direct answers.
 
-The failures shown on `/dashboard/agents` are not primarily the earlier 401 auth issue. The current failures are mostly agent implementation/runtime problems:
+## Implementation plan
 
-- Several monitor agents only call Perplexity directly and fail with `No research text` when that call returns empty, errors, or the secret is not visible in that deployed function.
-- Some agents do not record `finish_agent_run`, so `agent_config` summary counts and last-run timestamps can remain inaccurate even when `research_tasks` shows new runs.
-- ADB ingest relies on brittle CKAN/direct CSV discovery and currently cannot locate the dataset.
-- The dashboard still starts multiple heavy paginated queries from the browser, so accurate state can lag after login and page load.
+### 1. Replace Portfolio Chat backend with a purpose-built chat function
+Create a dedicated backend function for portfolio Q&A, for example `portfolio-chat`.
 
-## Plan
+It will:
+- Require a signed-in user.
+- Enforce AI quota/plan checks using the existing server-side entitlement utilities.
+- Load only the user’s tracked projects from the database.
+- Include project fields that matter for intelligence: name, country, region, sector, stage, status, value, risk, confidence, description, timeline, recent updates, contacts, and evidence summaries where available.
+- Call Lovable AI Gateway directly for a fast conversational answer.
+- Return the answer immediately instead of creating a long-running `research_tasks` job.
+- Return helpful empty-state answers when the user has no tracked projects.
 
-### 1. Standardize agent lifecycle tracking across all agents
-Update all agent functions that create `research_tasks` rows to use the shared lifecycle helpers consistently:
+### 2. Upgrade Portfolio Chat UX
+Refactor `src/pages/dashboard/PortfolioChat.tsx` so it behaves like an MVP-grade chat:
+- Send conversation history, not just the latest message.
+- Remove the polling dependency for normal chat responses.
+- Show clearer states: “thinking”, “no portfolio yet”, entitlement errors, and backend errors.
+- Render assistant responses with markdown so answers can include bullets, tables, risk summaries, and recommendations.
+- Refresh entitlement usage after successful AI calls.
+- Keep the current portfolio suggestions, but make them more intelligence-oriented, e.g. risk exposure, concentration, next actions, recent updates, stakeholder gaps.
 
-- Import and call `finishAgentRun(...)` after every completed/failed task update.
-- Add `setTaskStep(...)` where useful so the live process panel shows real progress.
-- Ensure every early return updates both `research_tasks` and `agent_config`.
-- Keep the secure staff/service-role gate in place for scheduled and manual runs.
+### 3. Keep Research separate from Portfolio Chat
+Leave `/dashboard/research` as the deeper researcher workflow for web discovery and project extraction.
 
-This will make total runs, last run, stale status, and success/failure counts reflect all runs instead of only agents that already call the stats RPC.
+Portfolio Chat should answer from the user’s tracked portfolio first. If later we want live web research inside chat, it can be added as an explicit “run deeper research” action rather than making every chat response slow.
 
-### 2. Fix Perplexity-backed monitor failures
-Create a shared research helper for agents that need live web intelligence:
+### 4. Improve shared API/error handling
+Update `src/lib/api/agents.ts` to add a typed `runPortfolioChat(...)` method.
 
-- Detect whether `PERPLEXITY_API_KEY` is present.
-- Call Perplexity with consistent request/response validation.
-- Log safe metadata only, never secret values.
-- Return a clear failure reason when the API returns an error or empty response.
-- Where possible, add a Firecrawl/search fallback for agents already designed around web research.
+Also improve frontend error parsing where needed so users see useful messages like:
+- “Sign in required”
+- “Confirm your email”
+- “AI limit reached”
+- “Track projects first”
 
-Apply this to:
+instead of generic “something went wrong”.
 
-- `stakeholder-intel`
-- `regulatory-monitor`
-- `supply-chain-monitor`
-- `corporate-ma-monitor`
-- `esg-social-monitor`
-- `tender-award-monitor`
-- `security-resilience`
-- any other agent found with the same `No research text` pattern
+### 5. Reduce first-load confusion across MVP features
+Adjust the feature-gated/user-facing pages so they do not flash as locked or empty while auth, roles, profile, and entitlements are still loading.
 
-### 3. Repair ADB ingest discovery
-Replace the brittle ADB discovery block with a more robust sequence:
+Focus areas:
+- `FeatureGate`
+- `useEntitlements`
+- dashboard navigation lock badges
+- Portfolio / Portfolio Chat loading states
 
-- Try current CKAN package IDs and CKAN package search terms.
-- Accept CSV resources by URL, MIME type, or name instead of only exact `format === CSV`.
-- Validate candidate CSVs by downloading a small sample instead of relying on `HEAD` only.
-- Add updated known fallback URLs if available.
-- Return a diagnostic result showing which discovery methods were tried if no dataset is found.
+The goal is: staff and paying users should not briefly see locked/pro-only UI while their real access is still resolving.
 
-### 4. Move dashboard aggregate loading server-side
-Add or update a backend RPC for agent monitoring that returns one compact payload:
+### 6. Audit and patch the MVP value pages
+Do a targeted pass over these user-facing MVP surfaces:
+- Ask AI
+- Projects search / filters / saved searches
+- My Portfolio
+- Portfolio Chat
+- Alerts
+- Compare Projects
+- Pipeline View
+- Tender Calendar
+- Stakeholder Intel
+- Country Intelligence
 
-- agent summary rows from `agent_config`
-- latest task per agent
-- recent live log entries
-- scheduler activity
-- global totals
-- optional data coverage counts
+For each page, check:
+- Does it load without blank states?
+- Does it show a useful empty state?
+- Are premium locks intentional and clear?
+- Are backend errors user-readable?
+- Does the feature produce value with existing project data?
 
-Then update `AgentMonitoring.tsx` to call this compact summary first, before running any heavy coverage queries. Heavy coverage can remain secondary/lazy.
+### 7. Verification after implementation
+After approval, I will:
+- Deploy the new/changed backend function.
+- Test the Portfolio Chat backend directly.
+- Check recent function logs for errors.
+- Run the relevant frontend tests / type checks through the normal harness.
+- Verify the chat flow with representative questions:
+  - “What is my highest-risk project?”
+  - “Which regions am I exposed to?”
+  - “Summarize my portfolio and recommended next actions.”
+  - “Which projects need stakeholder follow-up?”
 
-This will make the page render accurate cards quickly instead of waiting for multiple browser-side paginated scans.
-
-### 5. Backfill and reconcile agent stats
-Run a migration/query to rebuild `agent_config` from all historical `research_tasks`, not just the first 1000 rows:
-
-- `success_count = count(completed)`
-- `failure_count = count(failed)`
-- `last_run_at = max(created_at/completed_at)`
-- `last_run_status = status of latest run`
-
-This fixes stale totals after deploying the function changes.
-
-### 6. Deploy and verify all affected functions
-After code changes:
-
-- Run TypeScript/build checks.
-- Deploy every affected agent function plus any shared helper changes.
-- Smoke test representative functions with both service-role scheduled auth and admin-user auth.
-- Check function logs for Perplexity/ADB failures.
-- Confirm `/dashboard/agents` shows recent run times, accurate counts, and fewer stale agents.
-
-## Technical notes
-
-- I will not edit the generated backend client/type files manually.
-- Secrets already show as configured in project runtime secrets, so I will not ask you to re-enter them unless verification shows a connector/linking problem.
-- Scheduled agent auth will continue using the service-role token pattern required for cron jobs.
-- The dashboard should stop depending on client-side 1000-row windows for all-time totals.
+## Technical details
+- Use the existing `requireAiEntitlementOrRespond` entitlement guard for server-side quota and email verification.
+- Use the existing generated Supabase client on the frontend; do not edit generated integration files.
+- Use the backend service client only inside the backend function, with strict filtering by authenticated user ID.
+- Do not store roles on profiles/users; keep current role-table model.
+- Use Lovable AI Gateway rather than adding another third-party AI dependency.
+- No new database tables are required for the first MVP fix. Conversation persistence can be added later if you want saved chat history.

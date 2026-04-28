@@ -41,7 +41,15 @@ export function FeatureGate({ feature, variant = 'page', children }: FeatureGate
   const [open, setOpen] = useState(false);
 
   if (loading) {
-    return <div className="min-h-[200px] flex items-center justify-center"><div className="animate-pulse text-muted-foreground text-sm">Loading…</div></div>;
+    return (
+      <div className="min-h-[240px] glass-panel rounded-xl border-border/60 p-6">
+        <div className="h-full min-h-[192px] flex flex-col items-center justify-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/10 animate-pulse" />
+          <div className="h-3 w-40 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-64 max-w-full rounded bg-muted/60 animate-pulse" />
+        </div>
+      </div>
+    );
   }
 
   if (canAccessFeature(plan, feature, staffBypass)) return <>{children}</>;
