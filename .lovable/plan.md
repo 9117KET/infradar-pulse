@@ -1,65 +1,49 @@
+Plan to make all agent functions work properly and make the monitoring dashboard accurate:
 
+1. Fix the current build blockers
+   - Repair the TypeScript errors currently preventing a clean build, including:
+     - Agent monitoring task typing for `current_step`.
+     - Test fixture typing in `agentMonitoring.test.ts`.
+     - Profile UTM update typing in `AuthContext`.
+     - Referral code table typing in Settings.
+     - Traction stats RPC typing.
+   - Do not manually edit generated backend client/type files.
 
-## Goal
-Ship **Feature 2 — Natural Language Project Search** end-to-end: a new `/dashboard/ask` page where users type questions like *"Power projects in West Africa above $100M in tender stage"* and get matched projects from the live database. Existing search/filter UI stays untouched.
+2. Repair missing database pieces for monitoring
+   - Add/repair the missing `research_tasks.current_step` column.
+   - Add/repair the missing `agent_config` stats columns:
+     - `last_run_at`
+     - `last_run_status`
+     - `success_count`
+     - `failure_count`
+     - `last_duration_ms`
+   - Add/repair `begin_agent_task` and `finish_agent_run` RPCs so agents can consistently create task rows and update summary stats.
+   - Fix `get_agent_scheduler_activity` execution permissions so the dashboard can read scheduler activity for admin/researcher accounts.
 
-## What gets built
+3. Standardize all deployed/scheduled agents
+   - Ensure every function shown in `/dashboard/agents` is registered in `agent_config`.
+   - Ensure all scheduled agents use the service-role cron auth helper and `timeout_milliseconds := 120000`.
+   - Add or repair schedules for agents that appear in the dashboard but are not currently scheduled, including ingest/expanded intelligence agents where appropriate.
+   - Keep existing working schedules intact and remove duplicate/broken schedules only if found.
 
-### 1. New edge function — `supabase/functions/nl-search/index.ts`
-- Auth + AI-quota gate via existing `requireAiEntitlementOrRespond` (same metric as other AI features → 1 unit/call).
-- Calls **Lovable AI Gateway** (`google/gemini-2.5-flash`) with a strict tool-call schema → returns structured filters (regions, sectors, stages, statuses, countries, value range, keyword, ordering) + a one-sentence interpretation.
-- Server sanitizes against whitelists from `src/data/projects.ts` (no SQL injection — no raw SQL ever sent).
-- Builds a typed Supabase query against `projects` (`approved=true` only), applies filters, returns up to 50 rows.
-- Surfaces `429` (rate limit) and `402` (credits) errors back to the client.
+4. Deploy all agent edge functions
+   - Deploy every agent backend function used by the app, including the core intelligence agents, ingest agents, and dashboard-triggered agents:
+     - `research-agent`, `update-checker`, `risk-scorer`, `stakeholder-intel`, `funding-tracker`, `regulatory-monitor`, `sentiment-analyzer`, `supply-chain-monitor`, `market-intel`, `contact-finder`, `alert-intelligence`, `data-enrichment`
+     - `world-bank-ingest-agent`, `ifc-ingest-agent`, `adb-ingest-agent`, `afdb-ingest-agent`, `ebrd-ingest-agent`, `iadb-ingest-agent`, `aiib-ingest-agent`
+     - `dataset-refresh-agent`, `digest-agent`, `report-agent`, `entity-dedup`, `corporate-ma-monitor`, `esg-social-monitor`, `security-resilience`, `tender-award-monitor`, `executive-briefing`
+     - related on-demand agents: `user-research`, `nl-search`, `insight-sources-agent`, `source-ingest-agent`, `generate-insight`
 
-### 2. New page — `src/pages/dashboard/Ask.tsx`
-- Header with `Sparkles` icon + plain-English explanation.
-- Single search input (max 500 chars) + **5 example prompts** as one-click pills.
-- Loading state, "How I understood your question" interpretation strip with badges showing every applied filter, and a results grid (2-col on md+) of project cards linking to `/dashboard/projects/:slug`.
-- Empty-state CTA pointing to `/dashboard/projects` (the classic filter view) so users always have a fallback.
-- Quota-exhausted / rate-limit errors trigger the existing `<UpgradeDialog />`.
+5. Verify data correctness after deployment
+   - Query `research_tasks` without the 1,000-row cap and confirm total runs by task type.
+   - Query scheduler activity and confirm last run timestamps are recent for scheduled agents.
+   - Check recent backend function logs for failures.
+   - Manually invoke representative agent functions where safe to confirm they return successfully and write tracking rows.
 
-### 3. Wiring
-- `src/lib/api/agents.ts` → add `agentApi.runNlSearch(query)`.
-- `src/App.tsx` → register route `/dashboard/ask` (under `<DashboardLayout />`, no extra role guard — gated by AI quota only).
-- `src/layouts/DashboardLayout.tsx` → add **"Ask AI"** nav item under Core (with `Sparkles` icon, `tourId: 'nav-ask'`). The existing header `<ProjectSearch />` (instant fuzzy match) is kept exactly as is.
+6. Validate the frontend
+   - Run TypeScript/build checks and the existing agent monitoring tests.
+   - Confirm the dashboard uses paginated reads and scheduler fallback data so it no longer shows false `5d ago`, stale statuses, or capped total runs.
 
-### 4. Marketing pages — light touches
-- `src/components/home/CapabilitiesSection.tsx`: replace the "Procurement monitoring" tile copy or add a 10th module **"Ask in plain English"** highlighting the new capability (linking to `/dashboard/ask` for signed-in users, `/login` otherwise).
-- `src/pages/Pricing.tsx`: add a one-line bullet **"Natural-language project search"** to Starter / Pro / Lifetime feature lists (free tier sees it as upgrade copy via the existing AI-quota gate).
-
-### 5. Docs
-- Flip Feature #2 status in `FEATURES.md` and `docs/roadmap/STRATEGIC_FEATURES.md` from 🔲 Todo → ✅ Done with the acceptance-criteria checkboxes ticked.
-
-## Data model & migrations
-**None.** Reuses `public.projects` and the existing AI-quota infrastructure (`usage_counters`, `consume_quota` RPC, plan limits in `_shared/billing.ts`).
-
-## Entitlement
-Counts against `aiPerDay` (already defined): Free 2 / Trial 5 / Starter 20 / Pro 100 / Lifetime ∞. Free tier hitting the cap gets the existing UpgradeDialog flow.
-
-## Files touched
-| Type | Path |
-|---|---|
-| New | `supabase/functions/nl-search/index.ts` |
-| New | `src/pages/dashboard/Ask.tsx` |
-| Edit | `src/lib/api/agents.ts` |
-| Edit | `src/App.tsx` |
-| Edit | `src/layouts/DashboardLayout.tsx` |
-| Edit | `src/components/home/CapabilitiesSection.tsx` |
-| Edit | `src/pages/Pricing.tsx` |
-| Edit | `FEATURES.md` |
-| Edit | `docs/roadmap/STRATEGIC_FEATURES.md` |
-
-## Out of scope (deferred)
-- Saving search history to a `nl_search_history` table (mentioned as optional in the spec).
-- Adding NL search to the global cmd+K palette (the existing header search stays).
-- Public `/dashboard/ask` access for anonymous users — staying behind the dashboard auth wall for now.
-
-## Acceptance criteria (will verify after build)
-- [ ] "power projects in Nigeria over 100M" returns relevant projects with correct filter chips shown.
-- [ ] Vague prompts return an interpretation + suggest broadening.
-- [ ] Counts against AI quota (visible in `usage_counters`).
-- [ ] Free tier sees UpgradeDialog after 2 queries.
-- [ ] Mobile layout works (single-column cards, full-width input).
-- [ ] Existing `<ProjectSearch />` in the dashboard header still works unchanged.
-
+Technical notes:
+- The database already shows many agent rows are running recently, but several migrations appear not to have fully applied: `agent_config` stats columns and `research_tasks.current_step` are missing in the live schema.
+- The current backend scheduler query is blocked by permission errors in direct inspection, so the permission/grant path needs to be corrected.
+- I will keep the existing Lovable Cloud architecture and won’t ask you for API keys because the required secrets/connectors are already configured.
