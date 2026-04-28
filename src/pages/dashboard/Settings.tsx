@@ -460,7 +460,7 @@ function BillingTab() {
         {/* Status banners */}
         {isTrialing && (
           <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
-            <strong>Trial ends in {trialDays} day{trialDays === 1 ? '' : 's'}</strong> ({formatDate(subInfo!.trial_end)}). Your card will be charged on that date unless you cancel.
+            <strong>Trial ends in {trialDays} day{trialDays === 1 ? '' : 's'}</strong> ({formatDate(subInfo!.trial_end)}). Manage billing before then if you do not want to continue.
           </div>
         )}
         {isNoCardTrialing && (
