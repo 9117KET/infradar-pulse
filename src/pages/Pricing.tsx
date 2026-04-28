@@ -331,8 +331,8 @@ export default function Pricing() {
             <Shield className="h-5 w-5 text-primary" /> Why InfradarAI vs. legacy intelligence vendors
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Incumbents sell annual PDF reports gated behind long sales cycles. InfradarAI is self-serve, AI-native, and 100x cheaper.
-            Vendor names are anonymized by category — we compete on signal quality, not on calling out individual brands.
+            Legacy vendors sell static PDF reports for thousands per topic. InfradarAI turns the same job into a living workflow:
+            search the data, monitor alerts, ask AI questions, and generate fresh report-quality briefs from your selected scope.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
