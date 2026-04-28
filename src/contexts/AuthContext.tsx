@@ -51,8 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const fetchedProfileFor = useRef<string | null>(null);
 
-  const fetchProfile = useCallback(async (uid: string) => {
-    if (fetchedProfileFor.current === uid) return;
+  const fetchProfile = useCallback(async (uid: string, force = false) => {
+    if (!force && fetchedProfileFor.current === uid) return;
     fetchedProfileFor.current = uid;
     setProfileLoading(true);
     // Fetch profile and roles in parallel
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
+    if (user) await fetchProfile(user.id, true);
   }, [user, fetchProfile]);
 
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
