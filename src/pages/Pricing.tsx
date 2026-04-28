@@ -16,12 +16,12 @@ import { cn } from '@/lib/utils';
 // research houses, project finance data terminals, and emerging regional
 // MENA/Africa intelligence platforms).
 const COMPETITOR_TABLE = [
-  { name: 'Regional intelligence publisher', price: '$5k–$15k / yr', update: 'Quarterly PDF', blur: true },
-  { name: 'Global market research vendor', price: '$10k–$50k / yr', update: 'Static reports', blur: true },
-  { name: 'Energy & commodity research house', price: '$50k–$200k / yr', update: 'Annual research', blur: true },
-  { name: 'Project finance data terminal', price: '$20k–$100k / yr', update: 'Financial feeds', blur: true },
-  { name: 'Regional MENA/Africa intel platform', price: '$3k–$12k / yr', update: 'Weekly updates', blur: true },
-  { name: 'Construction & tender aggregator', price: '$4k–$20k / yr', update: 'Daily, unverified', blur: true },
+  { name: 'Regional intelligence publisher', price: '$5k-$15k / yr', update: 'Quarterly PDF', blur: true },
+  { name: 'Global market research vendor', price: '$10k-$50k / yr', update: 'Static reports', blur: true },
+  { name: 'Energy & commodity research house', price: '$50k-$200k / yr', update: 'Annual research', blur: true },
+  { name: 'Project finance data terminal', price: '$20k-$100k / yr', update: 'Financial feeds', blur: true },
+  { name: 'Regional MENA/Africa intel platform', price: '$3k-$12k / yr', update: 'Weekly updates', blur: true },
+  { name: 'Construction & tender aggregator', price: '$4k-$20k / yr', update: 'Daily, unverified', blur: true },
   { name: 'InfradarAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
 ];
 
