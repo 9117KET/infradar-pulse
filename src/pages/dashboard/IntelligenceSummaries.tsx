@@ -67,7 +67,7 @@ type SelectChain<T> = {
 type UpdateChain = { eq: (column: string, value: string) => PromiseLike<QueryResult<unknown[]>> };
 type UntypedDb = {
   from: (table: string) => {
-    select: <T extends Record<string, unknown>>(columns: string) => SelectChain<T>;
+    select: <T>(columns: string) => SelectChain<T>;
     update: (values: Record<string, unknown>) => UpdateChain;
   };
 };
