@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
   computeAgentStats,
@@ -137,9 +137,9 @@ export default function AgentMonitoring() {
   });
 
   const tasks = monitoringSummary?.recent_tasks ?? taskPage;
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     await Promise.all([refetchSummary(), refetchTaskPage()]);
-  };
+  }, [refetchSummary, refetchTaskPage]);
 
   const { data: schedulerActivity } = useQuery({
     queryKey: ['agent-scheduler-activity', staffBypass],
