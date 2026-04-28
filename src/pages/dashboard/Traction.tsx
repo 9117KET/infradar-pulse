@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut } from 'lucide-react';
+import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut, Gift } from 'lucide-react';
 
 interface TractionStats {
   total_signups: number;
@@ -35,6 +35,7 @@ interface ProductAnalyticsSummary {
 
 type FunnelStep = { step: string; count: number };
 type PaywallDropoff = { feature: string; paywall_views: number; signouts_30m: number; conversion_intent_30m: number };
+type PilotSummary = { enabled: boolean; max_seats: number; used_seats: number; remaining_seats: number; active_grants: number; expiring_soon: number; duration_days: number };
 
 const PLAN_COLORS: Record<string, string> = {
   pro: 'hsl(var(--primary))',
@@ -99,6 +100,7 @@ export default function Traction() {
   const [productStats, setProductStats] = useState<ProductAnalyticsSummary | null>(null);
   const [signupFunnel, setSignupFunnel] = useState<FunnelStep[]>([]);
   const [paywallDropoff, setPaywallDropoff] = useState<PaywallDropoff[]>([]);
+  const [pilotSummary, setPilotSummary] = useState<PilotSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,14 +115,16 @@ export default function Traction() {
       rpc('get_product_analytics_summary', { p_days: 30 }),
       rpc('get_signup_funnel', { p_days: 30 }),
       rpc('get_paywall_dropoff', { p_days: 30 }),
-    ]).then(([traction, product, funnel, dropoff]) => {
-      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error;
+      rpc('get_pilot_access_summary', { p_environment: 'live' }),
+    ]).then(([traction, product, funnel, dropoff, pilot]) => {
+      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error ?? pilot.error;
       if (err) { setError(err.message); }
       else {
         setStats(traction.data as TractionStats);
         setProductStats(product.data as ProductAnalyticsSummary);
         setSignupFunnel((funnel.data ?? []) as FunnelStep[]);
         setPaywallDropoff((dropoff.data ?? []) as PaywallDropoff[]);
+        setPilotSummary(pilot.data as PilotSummary);
       }
       setLoading(false);
     });
@@ -169,6 +173,17 @@ export default function Traction() {
           <KpiCard title="Active Users" value={productStats?.active_users ?? 0} sub={`${productStats?.sessions ?? 0} sessions`} icon={Users} />
           <KpiCard title="Paywall Views" value={productStats?.paywall_views ?? 0} sub="upgrade friction" icon={CreditCard} />
           <KpiCard title="Signouts After Paywall" value={productStats?.signouts_after_paywall ?? 0} sub="within 30 minutes" icon={LogOut} />
+        </>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => (
+          <Card key={`pilot-${i}`}><CardContent className="pt-6"><Skeleton className="h-8 w-20 mb-2" /><Skeleton className="h-3 w-16" /></CardContent></Card>
+        )) : <>
+          <KpiCard title="Pilot Seats Used" value={`${pilotSummary?.used_seats ?? 0}/${pilotSummary?.max_seats ?? 100}`} sub={pilotSummary?.enabled ? 'pilot enabled' : 'pilot disabled'} icon={Gift} />
+          <KpiCard title="Pilot Remaining" value={pilotSummary?.remaining_seats ?? 0} sub={`${pilotSummary?.duration_days ?? 30}-day access`} icon={Users} />
+          <KpiCard title="Active Pilot Grants" value={pilotSummary?.active_grants ?? 0} sub="full access users" icon={CreditCard} />
+          <KpiCard title="Expiring Soon" value={pilotSummary?.expiring_soon ?? 0} sub="next 7 days" icon={LogOut} />
         </>}
       </div>
 
