@@ -46,7 +46,14 @@ export const agentApi = {
   runNlSearch: (query: string) => invokeAgentWithBody('nl-search', { query }),
   runDigestAgent: (opts?: { rule_id?: string }) => invokeAgentWithBody('digest-agent', { ...(opts ?? {}) }),
   runDatasetRefresh: (opts?: { dataset_key?: string }) => invokeAgentWithBody('dataset-refresh-agent', { ...(opts ?? {}) }),
-  runReportAgent: (opts?: { report_type?: string; days?: number }) => invokeAgentWithBody('report-agent', { ...(opts ?? {}) }),
+  runReportAgent: (opts?: {
+    report_type?: string;
+    days?: number;
+    country?: string;
+    region?: string;
+    sector?: string;
+    stage?: string;
+  }) => invokeAgentWithBody('report-agent', { ...(opts ?? {}) }),
   runSourceIngest: (opts: { url: string; source_key?: string }) => invokeAgentWithBody('source-ingest-agent', opts),
   /** Backfill `sources` on insights: extract URLs from text, merge legacy `source_url`, AI only if still empty. */
   runInsightSourcesAgent: (opts?: {
