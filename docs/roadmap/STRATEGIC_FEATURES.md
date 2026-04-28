@@ -21,7 +21,7 @@
 | 1 | Weekly Email Digest Delivery | 🔲 Todo | 2–3 days | ⭐⭐⭐ Quickest win |
 | 2 | Natural Language Project Search | ✅ Done | 3–4 days | ⭐⭐⭐ |
 | 3 | Win-Probability Score per Project | 🔲 Todo | 4–5 days | ⭐⭐ Biggest moat |
-| 4 | Executive One-Pager PDF Export | 🔲 Todo | 2 days | ⭐⭐ |
+| 4 | AI Market Report Builder | ✅ Done | MVP shipped | ⭐⭐ |
 | 5 | Public REST API + Webhooks | 🔲 Todo | 1–2 weeks | ⭐ Enterprise revenue |
 
 ---
@@ -200,24 +200,28 @@ Add capability `canSeeWinProbability` to `useEntitlements` (Starter, Pro, Enterp
 
 ---
 
-## Feature 4 — Executive One-Pager PDF Export
+## Feature 4 — AI Market Report Builder
 
-**Status:** 🔲 Todo
+**Status:** ✅ Done — MVP shipped 2026-04-28. Live under `/dashboard/intelligence-summaries` for staff/researchers.
 
 ### Why it matters
-Consultants and BD teams need a polished PDF to share with clients. Today they screenshot the dashboard. A proper one-pager turns InfraRadar into their delivery tool.
+Legacy vendors sell expensive static market PDFs. InfraRadar turns that job into a live workflow: scope the market, generate a report from current projects/alerts/updates/citations, then ask follow-up questions in the platform.
 
 ### User-facing surface
-- **ProjectDetail**: "Export one-pager" button (next to existing actions).
-- Generates a single-page PDF: header (logo, project title, country flag), key facts grid (value, sector, stage, funding source), 3-line AI summary, top contacts, last 5 alerts, win-probability if available.
+- **Intelligence Summaries**: report builder for Country Projects Market, Sector Pipeline, Tender & Awards Outlook, Portfolio Risk Brief and Market Snapshot.
+- Report cards show scope, project count, pipeline value, risk metrics, source count, markdown report body and citations.
+- PDF export produces a branded report with KPI summary, sectioned content, citations appendix and watermarking.
 
 ### Data model
-None. Reuse `projects` + `project_contacts` + `alerts` + `project_scores`.
+No new tables. Reuses `report_runs.parameters`, `markdown`, and `citations`.
 
-### Backend — new edge function: `supabase/functions/project-onepager/index.ts`
-- Model on `supabase/functions/report-agent/index.ts`.
-- `assertExportAllowed` → counts toward `exportsPerDay`.
-- Build HTML from a template, render to PDF using `npm:@react-pdf/renderer` OR call a hosted HTML→PDF service (Browserless / Pdfshift) — pick at build time.
+### Future upgrades
+- Scheduled monthly/country reports.
+- User-facing report builder behind paid entitlements.
+- White-label enterprise report exports.
+- Public/private report sharing links.
+- Chart-heavy PDF generation with richer layouts.
+- Analyst review/approval workflow before public publication.
 - Return signed URL (upload to a new `exports` storage bucket) or stream as `application/pdf`.
 
 ### Frontend
