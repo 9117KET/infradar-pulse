@@ -91,15 +91,11 @@ async function fetchFirecrawlFallback(agentName: string, query: string): Promise
         const url = String(r.url || r.link || "").trim();
         const title = String(r.title || "Untitled source").trim();
         const body = String(r.markdown || r.description || r.snippet || "").trim();
-        return body ? `Source: ${url}
-Title: ${title}
-${body.slice(0, 2400)}` : "";
+        return body ? `Source: ${url}\nTitle: ${title}\n${body.slice(0, 2400)}` : "";
       })
       .filter(Boolean);
     if (!snippets.length) return { ok: false, error: "Firecrawl returned no research text" };
-    return { ok: true, text: snippets.join("
-
-"), citations: rows.map((r: any) => r.url).filter(Boolean) };
+    return { ok: true, text: snippets.join("\n\n"), citations: rows.map((r: any) => r.url).filter(Boolean) };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Unknown Firecrawl error";
     console.error(`${agentName} Firecrawl fallback exception`, { message });
