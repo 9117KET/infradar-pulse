@@ -131,7 +131,6 @@ export default function Login() {
           {isSignUp ? 'Create your account' : 'Sign in to the intelligence platform'}
         </p>
 
-        {/* Google OAuth — managed by Lovable Cloud, no extra config needed */}
         <Button
           type="button"
           variant="outline"
