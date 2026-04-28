@@ -120,8 +120,8 @@ export default function About() {
             <li className="flex gap-3 rounded-lg border border-border/40 p-4">
               <Users className="h-5 w-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <div className="font-medium text-foreground">Built for operators</div>
-                <div className="text-sm text-muted-foreground">Developers, lenders, regulators and advisors in one workspace.</div>
+                <div className="font-medium text-foreground">Built for infrastructure teams</div>
+                <div className="text-sm text-muted-foreground">BD teams, EPCs, project managers, consultants, developers, lenders, and advisors in one workspace.</div>
               </div>
             </li>
           </ul>
@@ -145,7 +145,7 @@ export default function About() {
             </div>
             <div className="rounded-lg border border-border/40 p-5">
               <div className="font-semibold text-foreground mb-1">Built with users</div>
-              <p className="text-sm text-muted-foreground">Researchers, analysts and operators shape the roadmap directly.</p>
+              <p className="text-sm text-muted-foreground">Business development users, EPCs, project managers, analysts, consultants, and operators shape the roadmap directly.</p>
             </div>
           </div>
         </section>
