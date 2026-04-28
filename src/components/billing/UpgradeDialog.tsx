@@ -109,8 +109,7 @@ export function UpgradeDialog({
         toast({ title: 'Sign in required', variant: 'destructive' });
         return;
       }
-      // Type-cast: quota_requests is a new table not yet in generated types
-      const { error } = await (supabase as any).from('quota_requests').insert({
+      const { error } = await supabase.from('quota_requests').insert({
         user_id: user.id,
         metric: REASON_TO_METRIC[reason],
         current_plan: plan,
