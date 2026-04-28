@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle } from 'lucide-react';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
   computeAgentStats,
@@ -79,6 +79,18 @@ interface AgentConfigRow {
   last_duration_ms: number | null;
 }
 
+interface AgentMonitoringSummary {
+  agent_configs: AgentConfigRow[];
+  recent_tasks: TaskRow[];
+  latest_tasks: TaskRow[];
+  totals: {
+    total_runs: number;
+    completed: number;
+    failed: number;
+    running: number;
+  };
+}
+
 const PAGE_SIZE = 1000;
 
 async function fetchRecentResearchTasks(): Promise<TaskRow[]> {
@@ -106,11 +118,28 @@ export default function AgentMonitoring() {
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: tasks, refetch } = useQuery({
+  const { data: monitoringSummary, refetch: refetchSummary } = useQuery({
+    queryKey: ['agent-monitoring-summary', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_agent_monitoring_summary', { p_recent_limit: 150 });
+      if (error) throw error;
+      return data as AgentMonitoringSummary;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 15000 : false,
+  });
+
+  const { data: taskPage, refetch: refetchTaskPage } = useQuery({
     queryKey: ['research-tasks-monitoring'],
     queryFn: fetchRecentResearchTasks,
-    refetchInterval: 15000,
+    enabled: !staffReady,
+    refetchInterval: !staffReady ? 15000 : false,
   });
+
+  const tasks = monitoringSummary?.recent_tasks ?? taskPage;
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchSummary(), refetchTaskPage()]);
+  }, [refetchSummary, refetchTaskPage]);
 
   const { data: schedulerActivity } = useQuery({
     queryKey: ['agent-scheduler-activity', staffBypass],
@@ -190,7 +219,7 @@ export default function AgentMonitoring() {
   });
 
   // Agent enabled/paused state
-  const { data: agentConfigs } = useQuery({
+  const { data: agentConfigsFallback } = useQuery({
     queryKey: ['agent-configs'],
     queryFn: async () => {
       const { data } = await supabase
@@ -200,8 +229,19 @@ export default function AgentMonitoring() {
       ((data ?? []) as AgentConfigRow[]).forEach(row => { map[row.agent_type] = row; });
       return map;
     },
-    refetchInterval: staffReady ? 30000 : false,
+    enabled: !staffReady,
+    refetchInterval: !staffReady ? 30000 : false,
   });
+
+  const agentConfigs = useMemo(() => {
+    if (monitoringSummary?.agent_configs) {
+      return monitoringSummary.agent_configs.reduce<Record<string, AgentConfigRow>>((acc, row) => {
+        acc[row.agent_type] = row;
+        return acc;
+      }, {});
+    }
+    return agentConfigsFallback;
+  }, [monitoringSummary, agentConfigsFallback]);
 
   const toggleMutation = useMutation({
     mutationFn: async ({ agentType, enabled }: { agentType: string; enabled: boolean }) => {
@@ -210,7 +250,7 @@ export default function AgentMonitoring() {
         .upsert({ agent_type: agentType, enabled, updated_at: new Date().toISOString() }, { onConflict: 'agent_type' });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-configs'] }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-configs'] }); queryClient.invalidateQueries({ queryKey: ['agent-monitoring-summary'] }); },
   });
 
   const toggleAgent = async (agentType: string, currentlyEnabled: boolean) => {
@@ -372,15 +412,15 @@ export default function AgentMonitoring() {
   const visibleAgents = AGENTS;
 
   const summaryRows = Object.values(agentConfigs ?? {});
-  const totalRuns = summaryRows.length
+  const totalRuns = monitoringSummary?.totals?.total_runs ?? (summaryRows.length
     ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0) + (row.failure_count ?? 0), 0)
-    : tasks?.length || 0;
-  const totalCompleted = summaryRows.length
+    : tasks?.length || 0);
+  const totalCompleted = monitoringSummary?.totals?.completed ?? (summaryRows.length
     ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0), 0)
-    : tasks?.filter(t => t.status === 'completed').length || 0;
-  const totalFailed = summaryRows.length
+    : tasks?.filter(t => t.status === 'completed').length || 0);
+  const totalFailed = monitoringSummary?.totals?.failed ?? (summaryRows.length
     ? summaryRows.reduce((sum, row) => sum + (row.failure_count ?? 0), 0)
-    : tasks?.filter(t => t.status === 'failed').length || 0;
+    : tasks?.filter(t => t.status === 'failed').length || 0);
   const staleCount = AGENTS.filter(a => isStale(a)).length;
 
   const agentNameMap: Record<string, string> = {};
@@ -423,7 +463,7 @@ export default function AgentMonitoring() {
     return dbRunning;
   }, [tasks, runningAgent]);
 
-  const totalRunning = runningAgents.length;
+  const totalRunning = monitoringSummary?.totals?.running ?? runningAgents.length;
 
   return (
     <div className="space-y-6">

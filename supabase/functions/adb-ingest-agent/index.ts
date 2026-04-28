@@ -14,7 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,6 +133,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -150,15 +151,18 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
 
     // Step 1: Discover available project datasets via CKAN package list
+    await setTaskStep(supabase, taskId, "Searching");
     console.log("Fetching ADB dataset catalog...");
     let csvUrl: string | null = null;
+    const discoveryAttempts: string[] = [];
 
     try {
       // Try the well-known sovereign operations dataset first
       const packageRes = await fetch(
-        "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-operations",
+        "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-projects",
         { headers: { "Accept": "application/json" } }
       );
       if (packageRes.ok) {
@@ -166,7 +170,7 @@ serve(async (req) => {
         const resources = pkg?.result?.resources || [];
         // Find a CSV resource
         const csvResource = resources.find(
-          (r: any) => (r.format || "").toUpperCase() === "CSV" || (r.url || "").endsWith(".csv")
+          (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
         );
         if (csvResource?.url) csvUrl = csvResource.url;
       }
@@ -178,7 +182,7 @@ serve(async (req) => {
     if (!csvUrl) {
       try {
         const searchRes = await fetch(
-          "https://data.adb.org/api/3/action/package_search?q=infrastructure+projects&rows=10",
+          "https://data.adb.org/api/3/action/package_search?q=adb+sovereign+projects&rows=10",
           { headers: { "Accept": "application/json" } }
         );
         if (searchRes.ok) {
@@ -186,7 +190,7 @@ serve(async (req) => {
           const packages = searchData?.result?.results || [];
           for (const pkg of packages) {
             const csvResource = (pkg.resources || []).find(
-              (r: any) => (r.format || "").toUpperCase() === "CSV" || (r.url || "").endsWith(".csv")
+              (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
             );
             if (csvResource?.url) { csvUrl = csvResource.url; break; }
           }
@@ -199,32 +203,61 @@ serve(async (req) => {
     // Step 3: Try known direct ADB CSV download paths when CKAN discovery fails
     if (!csvUrl) {
       const directUrls = [
+        "https://data.adb.org/media/81/download",
+        "https://data.adb.org/media/81/download?download=1",
+        "https://data.adb.org/dataset/adb-sovereign-projects",
+        "https://www.adb.org/projects",
         "https://www.adb.org/sites/default/files/institutional-document/838751/adb-sovereign-operations-projects.csv",
-        "https://data.adb.org/dataset/adb-sovereign-operations/resource/adb-sovereign-operations.csv",
         "https://www.adb.org/sites/default/files/institutional-document/adb-operations-projects.csv",
-        "https://data.adb.org/dataset/adb-sovereign-loan-disbursements/resource/adb-sovereign-operations.csv",
       ];
       for (const url of directUrls) {
+        discoveryAttempts.push(url);
         try {
-          const probe = await fetch(url, { method: "HEAD" });
-          if (probe.ok) { csvUrl = url; console.log(`ADB direct URL found: ${url}`); break; }
-        } catch { /* try next */ }
+          const probe = await fetch(url, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
+              "Accept": "text/csv,application/vnd.ms-excel,text/html,*/*",
+              "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
+            },
+          });
+          if (!probe.ok) continue;
+          const sample = await probe.clone().text();
+          const mediaMatch = sample.match(/https:\/\/data\.adb\.org\/media\/\d+\/download[^"\)\s]*/i);
+          if (mediaMatch) {
+            csvUrl = mediaMatch[0];
+            console.log(`ADB CSV URL discovered from dataset page: ${csvUrl}`);
+            break;
+          }
+          if (/project|country|sector|status/i.test(sample.slice(0, 2000))) {
+            csvUrl = url;
+            console.log(`ADB direct URL found: ${url}`);
+            break;
+          }
+        } catch (e) { console.error("ADB direct URL probe failed:", { url, error: e instanceof Error ? e.message : String(e) }); }
       }
     }
 
     if (!csvUrl) {
-      const result = { success: false, error: "Could not locate ADB CSV dataset. Check https://data.adb.org/dataset/adb-sovereign-operations for the current CSV URL and update directUrls in adb-ingest-agent." };
+      const result = { success: false, error: "Could not locate ADB CSV dataset from current ADB endpoints.", attempts: discoveryAttempts };
       if (taskId) {
         await supabase.from("research_tasks").update({
-          status: "failed", error: result.error, completed_at: new Date().toISOString(),
+          status: "failed", error: result.error, result, completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await finishAgentRun(supabase, "adb-ingest", "failed", runStartedAt ?? new Date());
       }
       return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Step 3: Download and parse the CSV
+    await setTaskStep(supabase, taskId, "Extracting");
     console.log(`Downloading ADB CSV: ${csvUrl}`);
-    const csvRes = await fetch(csvUrl);
+    const csvRes = await fetch(csvUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
+        "Accept": "text/csv,application/vnd.ms-excel,*/*",
+        "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
+      },
+    });
     if (!csvRes.ok) throw new Error(`CSV download failed: ${csvRes.status}`);
 
     const csvText = await csvRes.text();
@@ -320,13 +353,15 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, fetched: processLimit, inserted, updated, skipped, source: "ADB" };
+    await setTaskStep(supabase, taskId, "Saving");
+    const result = { success: true, fetched: processLimit, inserted, updated, skipped, source: "ADB", sourceUrl: csvUrl };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
+    await finishAgentRun(supabase, "adb-ingest", "completed", runStartedAt ?? new Date());
     console.log(`ADB ingest complete: fetched=${processLimit} inserted=${inserted} updated=${updated} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -338,6 +373,7 @@ serve(async (req) => {
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await finishAgentRun(supabase, "adb-ingest", "failed", runStartedAt ?? new Date());
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

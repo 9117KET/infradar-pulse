@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,31 +29,24 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "supply-chain-monitor", "Supply chain & commodity scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("supply-chain-monitor");
     const taskId = lock.taskId;
+    const runStartedAt = new Date();
 
-    let raw = "";
-    if (PERPLEXITY_API_KEY) {
-      try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a supply chain analyst for infrastructure construction materials worldwide." },
-              { role: "user", content: "Summarise (1) current global commodity prices and shortages affecting infrastructure construction in 2025 (steel, cement, copper, aluminium, lithium, fuel - include approximate price changes vs prior year and any acute disruptions); and (2) current global shipping and logistics disruptions impacting construction material delivery in 2025 (port congestion, canal issues, tariffs, sanctions, supplier insolvencies - note which regions are most affected)." },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const data = await res.json();
-        raw = data?.choices?.[0]?.message?.content ?? "";
-      } catch (e) { console.error("Perplexity:", e); }
-    }
+    await setTaskStep(supabase, taskId, "Searching");
+    const research = await fetchPerplexityResearch({
+      apiKey: PERPLEXITY_API_KEY,
+      agentName: "supply-chain-monitor",
+      systemPrompt: "You are a supply chain analyst for infrastructure construction materials worldwide.",
+      userPrompt: "Summarise (1) current global commodity prices and shortages affecting infrastructure construction in 2025 (steel, cement, copper, aluminium, lithium, fuel - include approximate price changes vs prior year and any acute disruptions); and (2) current global shipping and logistics disruptions impacting construction material delivery in 2025 (port congestion, canal issues, tariffs, sanctions, supplier insolvencies - note which regions are most affected).",
+    });
 
-    if (!raw) {
-      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", taskId);
-      return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!research.ok) {
+      const error = research.error;
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "supply-chain-monitor", "failed", runStartedAt);
+      return new Response(JSON.stringify({ success: false, error }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const raw = research.text;
+    await setTaskStep(supabase, taskId, "Extracting");
 
     const { data: projects } = await supabase.from("projects").select("id, name, sector, risk_score").eq("approved", true).limit(50);
 
@@ -133,6 +127,8 @@ serve(async (req) => {
     const updatedProjects = projectUpdates.length;
 
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { risks: risks.length, updated: updatedProjects, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
+
+    await finishAgentRun(supabase, "supply-chain-monitor", "completed", runStartedAt);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
