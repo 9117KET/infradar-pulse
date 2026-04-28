@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
+import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
@@ -29,8 +30,6 @@ serve(async (req) => {
   const taskId = lock.taskId;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-
     const { data: projects } = await supabase.from("projects").select("*")
       .eq("approved", true)
       .order("last_updated", { ascending: true });
@@ -61,22 +60,12 @@ serve(async (req) => {
         }
       }
 
-      if (PERPLEXITY_API_KEY) {
+      {
         try {
-          const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "sonar",
-              messages: [
-                { role: "system", content: "You are an infrastructure analyst. Report any recent updates, delays, cancellations, or progress on the given project. Be specific and factual." },
-                { role: "user", content: `What is the latest status update on "${project.name}" infrastructure project in ${project.country}? Any delays, stage changes, or new developments in ${new Date().getFullYear()}?` },
-              ],
-              search_recency_filter: "week",
-            }),
+          const content = await runResearchPrompt({
+            systemRole: "You are an infrastructure analyst. Report any recent updates, delays, cancellations, or progress on the given project. Be specific and factual.",
+            query: `What is the latest status update on "${project.name}" infrastructure project in ${project.country}? Any delays, stage changes, or new developments in ${new Date().getFullYear()}?`,
           });
-          const pxData = await pxResponse.json();
-          const content = pxData?.choices?.[0]?.message?.content;
 
           if (content) {
             const aiResponse = await chatCompletions({
