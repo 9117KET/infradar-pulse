@@ -42,6 +42,16 @@ type TenderEvent = {
   created_at: string;
 };
 
+type TenderAlertRow = {
+  id: string;
+  project_id: string | null;
+  project_name: string | null;
+  message: string;
+  severity: string;
+  source_url: string | null;
+  created_at: string;
+};
+
 function parseEventType(message: string): string {
   const m = message.match(EVENT_TYPE_REGEX);
   return m ? m[1].toLowerCase() : 'award';
@@ -72,16 +82,16 @@ export default function Tenders() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('alerts')
-        .select('id, project_id, message, severity, source_url, created_at, type')
+        .select('id, project_id, project_name, message, severity, source_url, created_at')
         .eq('category', 'construction')
         .ilike('message', 'Contract: %')
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []).map((row: any): TenderEvent => ({
+      return ((data ?? []) as TenderAlertRow[]).map((row): TenderEvent => ({
         id: row.id,
         eventType: parseEventType(row.message),
-        projectName: row.type || 'Unknown project',
+        projectName: row.project_name || 'Unknown project',
         projectId: row.project_id ?? null,
         severity: row.severity,
         summary: parseSummary(row.message),
@@ -91,20 +101,44 @@ export default function Tenders() {
     },
   });
 
+  const { data: monthCounts = { total: 0, award: 0, dispute: 0, arbitration: 0, cancellation: 0 } } = useQuery({
+    queryKey: ['tender-events-month-counts'],
+    queryFn: async () => {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const base = () => supabase
+        .from('alerts')
+        .select('id', { count: 'exact', head: true })
+        .eq('category', 'construction')
+        .gte('created_at', monthStart.toISOString());
+
+      const [total, award, dispute, arbitration, cancellation] = await Promise.all([
+        base().ilike('message', 'Contract: %'),
+        base().ilike('message', 'Contract: award —%'),
+        base().ilike('message', 'Contract: dispute —%'),
+        base().ilike('message', 'Contract: arbitration —%'),
+        base().ilike('message', 'Contract: cancellation —%'),
+      ]);
+
+      return {
+        total: total.count || 0,
+        award: award.count || 0,
+        dispute: dispute.count || 0,
+        arbitration: arbitration.count || 0,
+        cancellation: cancellation.count || 0,
+      };
+    },
+  });
+
   const filtered = useMemo(() =>
     typeFilter === 'all' ? events : events.filter(e => e.eventType === typeFilter),
     [events, typeFilter],
   );
 
-  const now = new Date();
-  const thisMonth = events.filter(e => {
-    const d = new Date(e.created_at);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  });
-
-  const awardsCount = thisMonth.filter(e => e.eventType === 'award').length;
-  const disputesCount = thisMonth.filter(e => e.eventType === 'dispute' || e.eventType === 'arbitration').length;
-  const cancellationsCount = thisMonth.filter(e => e.eventType === 'cancellation').length;
+  const awardsCount = monthCounts.award;
+  const disputesCount = monthCounts.dispute + monthCounts.arbitration;
+  const cancellationsCount = monthCounts.cancellation;
 
   const handleRun = async () => {
     setRunning(true);
@@ -143,7 +177,7 @@ export default function Tenders() {
         <Card className="glass-panel border-border">
           <CardHeader className="pb-1">
             <div className="text-xs text-muted-foreground">Events This Month</div>
-            <CardTitle className="text-2xl">{thisMonth.length}</CardTitle>
+            <CardTitle className="text-2xl">{monthCounts.total}</CardTitle>
           </CardHeader>
         </Card>
         <Card className="glass-panel border-border">
