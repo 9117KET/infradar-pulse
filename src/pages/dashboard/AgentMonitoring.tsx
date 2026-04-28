@@ -280,21 +280,48 @@ export default function AgentMonitoring() {
     [projects, contactCounts, evidenceCounts],
   );
 
-  const getAgentStats = (taskType: string) =>
-    computeAgentStats(tasks ?? [], taskType);
+  const getAgentStats = (taskType: string) => {
+    const taskStats = computeAgentStats(tasks ?? [], taskType);
+    const summary = agentConfigs?.[taskType];
+    if (!summary) return taskStats;
+    return {
+      ...taskStats,
+      completed: Math.max(taskStats.completed, summary.success_count ?? 0),
+      failed: Math.max(taskStats.failed, summary.failure_count ?? 0),
+      total: Math.max(taskStats.total, (summary.success_count ?? 0) + (summary.failure_count ?? 0)),
+      successRate: ((summary.success_count ?? 0) + (summary.failure_count ?? 0)) > 0
+        ? Math.round(((summary.success_count ?? 0) / ((summary.success_count ?? 0) + (summary.failure_count ?? 0))) * 100)
+        : taskStats.successRate,
+      lastRun: taskStats.lastRun ?? (summary.last_run_at ? {
+        id: `${taskType}-summary`,
+        task_type: taskType,
+        status: summary.last_run_status ?? 'completed',
+        query: '',
+        error: null,
+        result: null,
+        created_at: summary.last_run_at,
+        completed_at: summary.last_run_at,
+        current_step: null,
+      } : undefined),
+    };
+  };
 
   const getAgentRunTotal = (agent: typeof AGENTS[0]) => {
-    const taskRuns = getAgentStats(agent.type).total;
+    const summaryRuns = agentConfigs?.[agent.type]
+      ? (agentConfigs[agent.type].success_count ?? 0) + (agentConfigs[agent.type].failure_count ?? 0)
+      : 0;
     const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
-    return Math.max(taskRuns, schedulerRuns);
+    const recentRuns = getAgentStats(agent.type).total;
+    return Math.max(summaryRuns, schedulerRuns, recentRuns);
   };
 
   const getLastActivityAt = (agent: typeof AGENTS[0]) => {
     const taskLastRun = getAgentStats(agent.type).lastRun?.created_at;
+    const summaryLastRun = agentConfigs?.[agent.type]?.last_run_at ?? undefined;
     const schedulerLastRun = schedulerActivity?.[agent.type]?.last_scheduler_run ?? undefined;
-    if (!taskLastRun) return schedulerLastRun;
-    if (!schedulerLastRun) return taskLastRun;
-    return new Date(schedulerLastRun).getTime() > new Date(taskLastRun).getTime() ? schedulerLastRun : taskLastRun;
+    return [taskLastRun, summaryLastRun, schedulerLastRun]
+      .filter(Boolean)
+      .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
   };
 
   const isStale = (agent: typeof AGENTS[0]) =>
@@ -344,9 +371,16 @@ export default function AgentMonitoring() {
   // showed agents that were paused or currently running (empty for most users).
   const visibleAgents = AGENTS;
 
-  const totalRuns = tasks?.length || 0;
-  const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
-  const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
+  const summaryRows = Object.values(agentConfigs ?? {});
+  const totalRuns = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0) + (row.failure_count ?? 0), 0)
+    : tasks?.length || 0;
+  const totalCompleted = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0), 0)
+    : tasks?.filter(t => t.status === 'completed').length || 0;
+  const totalFailed = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.failure_count ?? 0), 0)
+    : tasks?.filter(t => t.status === 'failed').length || 0;
   const staleCount = AGENTS.filter(a => isStale(a)).length;
 
   const agentNameMap: Record<string, string> = {};
@@ -545,7 +579,7 @@ export default function AgentMonitoring() {
           const stale = isStale(agent);
           const lastActivityAt = getLastActivityAt(agent);
           const agentRuns = getAgentRunTotal(agent);
-          const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
+          const isEnabled = agentConfigs ? (agentConfigs[agent.type]?.enabled !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
 
