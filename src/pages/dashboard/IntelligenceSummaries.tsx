@@ -325,26 +325,26 @@ export default function IntelligenceSummaries() {
   const { data: digests = [], isLoading: digestsLoading } = useQuery({
     queryKey: ['digests'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from('digests')
-        .select('id,title,summary,markdown,payload,read,status,created_at')
+        .select<SummaryItem>('id,title,summary,markdown,payload,read,status,created_at')
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data ?? []).map((d: any) => ({ ...d, type: 'digest' as const }));
+      return (data ?? []).map(d => ({ ...d, type: 'digest' as const }));
     },
   });
 
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
     queryKey: ['report-runs'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await db
         .from('report_runs')
-        .select('id,report_type,status,title,markdown,citations,parameters,created_at,completed_at')
+        .select<SummaryItem & { report_type?: string }>('id,report_type,status,title,markdown,citations,parameters,created_at,completed_at')
         .order('created_at', { ascending: false })
         .limit(25);
       if (error) throw error;
-      return (data ?? []).map((r: any) => ({
+      return (data ?? []).map(r => ({
         id: r.id,
         type: 'report' as const,
         title: r.title || r.report_type,
@@ -363,7 +363,7 @@ export default function IntelligenceSummaries() {
 
   const markRead = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('digests').update({ read: true }).eq('id', id);
+      const { error } = await db.from('digests').update({ read: true }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['digests'] }),
