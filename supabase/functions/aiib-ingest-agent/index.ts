@@ -2,15 +2,13 @@
  * aiib-ingest-agent
  *
  * Ingests Asian Infrastructure Investment Bank (AIIB) infrastructure projects.
- * AIIB does not publish a public REST API, so this agent uses Firecrawl to
- * scrape the AIIB projects portal and Perplexity for deeper research, then
- * uses an LLM to extract structured project data.
+ * AIIB does not publish a public REST API, so this MVP agent uses Lovable AI
+ * to create a source-aware research corpus and extract structured project data.
  *
  * Portal: https://www.aiib.org/en/projects/list/index.html
  * Coverage: 77 member states across Asia, Middle East, Africa, Europe
  *
- * Requires: FIRECRAWL_API_KEY
- * Optional: PERPLEXITY_API_KEY (enriches coverage), OPENAI_API_KEY / LLM_API_KEY
+ * Requires: LOVABLE_API_KEY, provided by Lovable Cloud.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -50,43 +48,6 @@ interface AiibProject {
   project_id?: string;
   description?: string;
   approval_year?: string;
-}
-
-async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<string> {
-  const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: true }),
-  });
-  if (!res.ok) return "";
-  const data = await res.json();
-  return data?.data?.markdown || "";
-}
-
-async function searchWithFirecrawl(query: string, apiKey: string): Promise<string> {
-  const res = await fetch("https://api.firecrawl.dev/v1/search", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ query, limit: 5, scrapeOptions: { formats: ["markdown"] } }),
-  });
-  if (!res.ok) return "";
-  const data = await res.json();
-  const results = data?.data || [];
-  return results.map((r: Record<string, unknown>) => r?.markdown || r?.content || "").join("\n\n");
-}
-
-async function researchWithPerplexity(query: string, apiKey: string): Promise<string> {
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "sonar",
-      messages: [{ role: "user", content: query }],
-    }),
-  });
-  if (!res.ok) return "";
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || "";
 }
 
 const AIIB_COUNTRY_CENTROIDS: Record<string, [number, number]> = {
@@ -162,9 +123,6 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-
     supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "aiib-ingest")) return pausedResponse("aiib-ingest");
@@ -173,44 +131,21 @@ serve(async (req) => {
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
     taskId = lock.taskId;
 
-    if (!FIRECRAWL_API_KEY) {
-      const errMsg = "No research text (set FIRECRAWL_API_KEY)";
-      if (taskId) {
-        await supabase.from("research_tasks").update({
-          status: "failed", error: errMsg, completed_at: new Date().toISOString(),
-        }).eq("id", taskId);
-      }
-      return new Response(JSON.stringify({ error: errMsg }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    console.log("Scraping AIIB project portal...");
-    const rawChunks: string[] = [];
-
-    // Scrape AIIB portal pages
-    for (const url of AIIB_PORTAL_PAGES) {
+    for (const q of PERPLEXITY_QUERIES) {
       try {
-        const text = await scrapeWithFirecrawl(url, FIRECRAWL_API_KEY);
-        if (text) rawChunks.push(text);
-      } catch (e) { console.warn(`Firecrawl scrape failed for ${url}:`, e); }
-    }
-
-    // Firecrawl search for AIIB projects
-    try {
-      const searchText = await searchWithFirecrawl(
-        "site:aiib.org infrastructure project approved active loan grant",
-        FIRECRAWL_API_KEY
-      );
-      if (searchText) rawChunks.push(searchText);
-    } catch (e) { console.warn("Firecrawl search failed:", e); }
-
-    // Perplexity deep research if available
-    if (PERPLEXITY_API_KEY) {
-      for (const q of PERPLEXITY_QUERIES) {
-        try {
-          const text = await researchWithPerplexity(q, PERPLEXITY_API_KEY);
-          if (text) rawChunks.push(text);
-        } catch (e) { console.warn("Perplexity query failed:", e); }
-      }
+        const research = await chatCompletions({
+          messages: [
+            { role: "system", content: "You are an infrastructure intelligence analyst covering Asian Infrastructure Investment Bank projects. Produce source-aware notes with project names, countries, sectors, approval years, amounts and official AIIB URLs where known." },
+            { role: "user", content: `${q}. Also consider AIIB portal pages: ${AIIB_PORTAL_PAGES.join(", ")}` },
+          ],
+        });
+        if (research.ok) {
+          const data = await research.json();
+          const content = data?.choices?.[0]?.message?.content;
+          if (content) rawChunks.push(`Lovable AI AIIB research:
+${content}`);
+        }
+      } catch (e) { console.warn("Lovable AI AIIB research failed:", e); }
     }
 
     const raw = rawChunks.join("\n\n---\n\n");
@@ -228,7 +163,6 @@ serve(async (req) => {
 
     // Use LLM to extract structured project data
     const extraction = await chatCompletions({
-      model: Deno.env.get("LLM_MODEL") || Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -256,7 +190,8 @@ Return ONLY valid JSON array, no markdown, no explanation.`,
 
     let projects: AiibProject[] = [];
     try {
-      const content = extraction.choices?.[0]?.message?.content || "[]";
+      const data = extraction.ok ? await extraction.json() : null;
+      const content = data?.choices?.[0]?.message?.content || "[]";
       const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       projects = JSON.parse(cleaned);
       if (!Array.isArray(projects)) projects = [];
