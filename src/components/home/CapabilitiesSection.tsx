@@ -10,7 +10,7 @@ const MODULES = [
   { icon: HardHat, title: 'Contractor intelligence', desc: 'Track which firms win bids globally. Get alerts when contractors on your portfolio show financial distress before it becomes a project crisis.', label: 'Module 06' },
   { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, permit denials, and political risk indicators across 9 signal categories.', label: 'Module 07' },
   { icon: Search, title: 'Procurement monitoring (20+ sources)', desc: 'Tenders from multilateral banks, national procurement portals, and UN agencies - surface opportunities before competitors find them.', label: 'Module 08', wide: true },
-  { icon: FileText, title: 'Decision-ready reporting', desc: 'One-click exports with confidence scores, provenance chains, and executive summaries.', label: 'Module 09' },
+  { icon: FileText, title: 'AI market reports', desc: 'Generate country, sector, tender, and portfolio briefs from live projects, alerts, confidence scores, and source citations.', label: 'Module 09' },
   { icon: Sparkles, title: 'Ask in plain English', desc: 'Skip the filter forms. Ask "renewable energy projects in West Africa above $100M in tender stage" and get instant, ranked results powered by AI-driven query translation.', label: 'Module 10', wide: true },
 ];
 
@@ -23,7 +23,7 @@ export function CapabilitiesSection() {
           <em className="not-italic text-gradient-teal">Modern</em> infrastructure intelligence
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          Verified signals, real-time updates, confidence scoring, and global infrastructure coverage across all continents.
+          Verified signals, real-time updates, confidence scoring, AI Q&amp;A, and report-quality intelligence across all continents.
         </p>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
