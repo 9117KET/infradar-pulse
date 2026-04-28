@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { useProjects } from '@/hooks/use-projects';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
+import { STAGES } from '@/data/projects';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Building2, Cpu, Droplets, Factory, Fuel, Hexagon, Home, Landmark,
   Mountain, Server, Sun, Train, Wifi, Zap,
 } from 'lucide-react';
-
-const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'] as const;
 
 const STAGE_COLORS: Record<string, string> = {
   Planned: 'border-slate-500/40 bg-slate-500/5',
@@ -18,6 +18,8 @@ const STAGE_COLORS: Record<string, string> = {
   Financing: 'border-amber-500/40 bg-amber-500/5',
   Construction: 'border-emerald-500/40 bg-emerald-500/5',
   Completed: 'border-teal-500/40 bg-teal-500/5',
+  Cancelled: 'border-red-500/40 bg-red-500/5',
+  Stopped: 'border-red-700/40 bg-red-700/5',
 };
 
 const STAGE_HEADER: Record<string, string> = {
@@ -27,9 +29,11 @@ const STAGE_HEADER: Record<string, string> = {
   Financing: 'text-amber-400',
   Construction: 'text-emerald-400',
   Completed: 'text-teal-400',
+  Cancelled: 'text-red-400',
+  Stopped: 'text-red-500',
 };
 
-const SECTOR_ICONS: Record<string, any> = {
+const SECTOR_ICONS: Record<string, LucideIcon> = {
   'AI Infrastructure': Cpu, 'Building Construction': Home, 'Chemical': Hexagon,
   'Data Centers': Server, 'Digital Infrastructure': Wifi, 'Energy': Zap,
   'Industrial': Factory, 'Infrastructure': Landmark, 'Mining': Mountain,
@@ -48,14 +52,12 @@ export default function Pipeline() {
   const { trackedProjects, isLoading: trackedLoading } = useTrackedProjects();
   const [scope, setScope] = useState<'portfolio' | 'all'>('all');
 
-  const trackedIds = new Set(trackedProjects.map(t => t.project_id));
-
-  const source = useMemo(() =>
-    scope === 'portfolio'
+  const source = useMemo(() => {
+    const trackedIds = new Set(trackedProjects.map(t => t.project_id));
+    return scope === 'portfolio'
       ? allProjects.filter(p => p.dbId && trackedIds.has(p.dbId))
-      : allProjects,
-    [allProjects, trackedIds, scope]
-  );
+      : allProjects;
+  }, [allProjects, trackedProjects, scope]);
 
   const columns = useMemo(() =>
     STAGES.map(stage => {
