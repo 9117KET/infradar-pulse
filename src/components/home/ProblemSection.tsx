@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 const STATS = [
   { value: '85%', label: 'Projects delayed', sub: 'Major infrastructure programs' },
   { value: '$1.5T+', label: 'Capital at risk', sub: 'Global cost overruns annually' },
-  { value: '6–12 mo', label: 'Signal lag', sub: 'Typical intelligence delay, emerging markets' },
+  { value: '6-12 mo', label: 'Signal lag', sub: 'Typical intelligence delay, emerging markets' },
   { value: '$4k+', label: 'Per static report', sub: 'Single-topic PDFs before subscriptions or add-ons' },
 ];
 
