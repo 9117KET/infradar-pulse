@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileLoading, setProfileLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const fetchedProfileFor = useRef<string | null>(null);
+  const claimedPilotFor = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (uid: string, force = false) => {
     if (!force && fetchedProfileFor.current === uid) return;
@@ -86,15 +87,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
+  const claimPilotAccess = useCallback(async (currentUser: User) => {
+    if (claimedPilotFor.current === currentUser.id) return;
+    claimedPilotFor.current = currentUser.id;
+    const { data } = await (supabase.rpc as any)('claim_own_pilot_access', {
+      p_email: currentUser.email ?? null,
+      p_environment: 'live',
+    });
+    if (data?.granted && data?.reason === 'created') {
+      void trackEvent('pilot_access_granted', { seat_number: data.seat_number, ends_at: data.ends_at }, 'monetization');
+    }
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
       if (session?.user) {
+        void claimPilotAccess(session.user);
         fetchProfile(session.user.id);
       } else {
         fetchedProfileFor.current = null;
+        claimedPilotFor.current = null;
         setProfile(null);
         setRoles([]);
         setProfileLoading(false);
@@ -107,9 +122,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
         if (session?.user) {
+          void claimPilotAccess(session.user);
           fetchProfile(session.user.id);
         } else {
           fetchedProfileFor.current = null;
+          claimedPilotFor.current = null;
           setProfileLoading(false);
         }
       })
@@ -119,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [claimPilotAccess, fetchProfile]);
 
   const completeTour = useCallback(async () => {
     if (!user) return;

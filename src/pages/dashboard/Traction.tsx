@@ -3,8 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut } from 'lucide-react';
+import { TrendingUp, Users, CreditCard, MessageSquare, Mail, Share2, ArrowUpRight, ArrowDownRight, Minus, MousePointerClick, LogOut, Gift } from 'lucide-react';
 
 interface TractionStats {
   total_signups: number;
@@ -35,6 +39,7 @@ interface ProductAnalyticsSummary {
 
 type FunnelStep = { step: string; count: number };
 type PaywallDropoff = { feature: string; paywall_views: number; signouts_30m: number; conversion_intent_30m: number };
+type PilotSummary = { enabled: boolean; max_seats: number; used_seats: number; remaining_seats: number; active_grants: number; expiring_soon: number; duration_days: number };
 
 const PLAN_COLORS: Record<string, string> = {
   pro: 'hsl(var(--primary))',
@@ -99,8 +104,13 @@ export default function Traction() {
   const [productStats, setProductStats] = useState<ProductAnalyticsSummary | null>(null);
   const [signupFunnel, setSignupFunnel] = useState<FunnelStep[]>([]);
   const [paywallDropoff, setPaywallDropoff] = useState<PaywallDropoff[]>([]);
+  const [pilotSummary, setPilotSummary] = useState<PilotSummary | null>(null);
+  const [pilotEnabled, setPilotEnabled] = useState(true);
+  const [pilotMaxSeats, setPilotMaxSeats] = useState(100);
+  const [pilotDurationDays, setPilotDurationDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -113,18 +123,42 @@ export default function Traction() {
       rpc('get_product_analytics_summary', { p_days: 30 }),
       rpc('get_signup_funnel', { p_days: 30 }),
       rpc('get_paywall_dropoff', { p_days: 30 }),
-    ]).then(([traction, product, funnel, dropoff]) => {
-      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error;
+      rpc('get_pilot_access_summary', { p_environment: 'live' }),
+    ]).then(([traction, product, funnel, dropoff, pilot]) => {
+      const err = traction.error ?? product.error ?? funnel.error ?? dropoff.error ?? pilot.error;
       if (err) { setError(err.message); }
       else {
         setStats(traction.data as TractionStats);
         setProductStats(product.data as ProductAnalyticsSummary);
         setSignupFunnel((funnel.data ?? []) as FunnelStep[]);
         setPaywallDropoff((dropoff.data ?? []) as PaywallDropoff[]);
+        const pilotData = pilot.data as PilotSummary;
+        setPilotSummary(pilotData);
+        setPilotEnabled(!!pilotData?.enabled);
+        setPilotMaxSeats(pilotData?.max_seats ?? 100);
+        setPilotDurationDays(pilotData?.duration_days ?? 30);
       }
       setLoading(false);
     });
   }, []);
+
+  const updatePilotConfig = async () => {
+    const maxSeats = Math.max(1, Math.floor(Number(pilotMaxSeats) || 100));
+    const durationDays = Math.max(1, Math.floor(Number(pilotDurationDays) || 30));
+    const { error: updateError } = await (supabase as any)
+      .from('pilot_access_config')
+      .update({ enabled: pilotEnabled, max_seats: maxSeats, duration_days: durationDays })
+      .eq('environment', 'live');
+
+    if (updateError) {
+      toast({ title: 'Could not update pilot settings', description: updateError.message, variant: 'destructive' });
+      return;
+    }
+
+    const { data } = await (supabase.rpc as any)('get_pilot_access_summary', { p_environment: 'live' });
+    if (data) setPilotSummary(data as PilotSummary);
+    toast({ title: 'Pilot settings updated', description: `${maxSeats} seats · ${durationDays} days · ${pilotEnabled ? 'enabled' : 'disabled'}` });
+  };
 
   const mrr = stats?.plan_breakdown
     ? stats.plan_breakdown.reduce((sum, p) => sum + (PLAN_MRR[p.plan] ?? 0) * p.count, 0)
@@ -171,6 +205,41 @@ export default function Traction() {
           <KpiCard title="Signouts After Paywall" value={productStats?.signouts_after_paywall ?? 0} sub="within 30 minutes" icon={LogOut} />
         </>}
       </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {loading ? Array.from({ length: 4 }).map((_, i) => (
+          <Card key={`pilot-${i}`}><CardContent className="pt-6"><Skeleton className="h-8 w-20 mb-2" /><Skeleton className="h-3 w-16" /></CardContent></Card>
+        )) : <>
+          <KpiCard title="Pilot Seats Used" value={`${pilotSummary?.used_seats ?? 0}/${pilotSummary?.max_seats ?? 100}`} sub={pilotSummary?.enabled ? 'pilot enabled' : 'pilot disabled'} icon={Gift} />
+          <KpiCard title="Pilot Remaining" value={pilotSummary?.remaining_seats ?? 0} sub={`${pilotSummary?.duration_days ?? 30}-day access`} icon={Users} />
+          <KpiCard title="Active Pilot Grants" value={pilotSummary?.active_grants ?? 0} sub="full access users" icon={CreditCard} />
+          <KpiCard title="Expiring Soon" value={pilotSummary?.expiring_soon ?? 0} sub="next 7 days" icon={LogOut} />
+        </>}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2"><Gift className="h-4 w-4 text-primary" /> Pilot Access Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto] md:items-end">
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Enabled</span>
+            <div className="flex h-10 items-center gap-2 rounded-md border border-input bg-background px-3">
+              <Switch checked={pilotEnabled} onCheckedChange={setPilotEnabled} />
+              <span className="text-foreground">{pilotEnabled ? 'On' : 'Off'}</span>
+            </div>
+          </label>
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Seats</span>
+            <Input type="number" min={1} value={pilotMaxSeats} onChange={(e) => setPilotMaxSeats(Number(e.target.value))} />
+          </label>
+          <label className="space-y-2 text-xs text-muted-foreground">
+            <span>Days</span>
+            <Input type="number" min={1} value={pilotDurationDays} onChange={(e) => setPilotDurationDays(Number(e.target.value))} />
+          </label>
+          <Button onClick={updatePilotConfig} disabled={loading}>Save</Button>
+        </CardContent>
+      </Card>
 
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
