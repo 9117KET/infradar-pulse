@@ -40,6 +40,15 @@ const PLAN_BADGE: Record<string, string> = {
 export function FeatureGate({ feature, variant = 'page', children }: FeatureGateProps) {
   const { plan, staffBypass, loading } = useEntitlements();
   const [open, setOpen] = useState(false);
+  const minPlan = FEATURE_MIN_PLAN[feature];
+  const label = FEATURE_LABELS[feature];
+  const badge = PLAN_BADGE[minPlan] ?? `${minPlan} plan`;
+
+  useEffect(() => {
+    if (!loading && !canAccessFeature(plan, feature, staffBypass)) {
+      void trackEvent('paywall_viewed', { feature, min_plan: minPlan, variant }, 'monetization');
+    }
+  }, [feature, loading, minPlan, plan, staffBypass, variant]);
 
   if (loading) {
     return (
@@ -54,14 +63,6 @@ export function FeatureGate({ feature, variant = 'page', children }: FeatureGate
   }
 
   if (canAccessFeature(plan, feature, staffBypass)) return <>{children}</>;
-
-  const minPlan = FEATURE_MIN_PLAN[feature];
-  const label = FEATURE_LABELS[feature];
-  const badge = PLAN_BADGE[minPlan] ?? `${minPlan} plan`;
-
-  useEffect(() => {
-    void trackEvent('paywall_viewed', { feature, min_plan: minPlan, variant }, 'monetization');
-  }, [feature, minPlan, variant]);
 
   const openUpgrade = (source: string) => {
     void trackEvent('paywall_cta_clicked', { feature, min_plan: minPlan, action: 'start_trial', source }, 'monetization');
