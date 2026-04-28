@@ -18,7 +18,19 @@ export interface AlertStats {
 const SUPABASE_PAGE_SIZE = 1000;
 const MAX_UNCAPPED_ALERT_PAGES = 100;
 
-function mapAlertRow(a: any): Alert {
+type AlertRow = {
+  id: string;
+  project_id: string | null;
+  project_name: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  category: AlertCategory | null;
+  message: string;
+  created_at: string;
+  read: boolean;
+  source_url: string | null;
+};
+
+function mapAlertRow(a: AlertRow): Alert {
   return {
     id: a.id,
     projectId: a.project_id || '',
@@ -60,7 +72,7 @@ export function useAlerts() {
           ...ALERT_CATEGORIES.map(c => supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('category', c.value)),
         ]);
 
-        let rows: any[] = [];
+        let rows: AlertRow[] = [];
         if (rowCap > 0) {
           const { data, error } = await supabase
             .from('alerts')
