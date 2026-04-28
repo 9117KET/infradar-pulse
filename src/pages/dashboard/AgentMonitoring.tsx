@@ -81,7 +81,7 @@ async function fetchAllResearchTasks(): Promise<TaskRow[]> {
       .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
     if (!data?.length) break;
-    all.push(...(data as TaskRow[]));
+    all.push(...(data as unknown as TaskRow[]));
     if (data.length < PAGE_SIZE) break;
   }
   return all;

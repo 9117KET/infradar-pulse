@@ -594,8 +594,8 @@ function ReferralSection() {
   // Load or generate referral code
   useEffect(() => {
     if (!user) return;
-    supabase.from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
-      .then(({ data }) => { if (data?.code) setCode(data.code); });
+    (supabase as any).from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
+      .then(({ data }: { data: { code: string } | null }) => { if (data?.code) setCode(data.code); });
   }, [user]);
 
   const getOrCreateCode = async () => {
@@ -604,7 +604,7 @@ function ReferralSection() {
     // Generate a short random code
     const raw = Array.from(crypto.getRandomValues(new Uint8Array(5)))
       .map(b => b.toString(36)).join('').toUpperCase();
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('referral_codes')
       .insert({ user_id: user.id, code: raw })
       .select('code')
