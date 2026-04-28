@@ -18,16 +18,31 @@ export type Database = {
         Row: {
           agent_type: string
           enabled: boolean
+          failure_count: number
+          last_duration_ms: number | null
+          last_run_at: string | null
+          last_run_status: string | null
+          success_count: number
           updated_at: string
         }
         Insert: {
           agent_type: string
           enabled?: boolean
+          failure_count?: number
+          last_duration_ms?: number | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          success_count?: number
           updated_at?: string
         }
         Update: {
           agent_type?: string
           enabled?: boolean
+          failure_count?: number
+          last_duration_ms?: number | null
+          last_run_at?: string | null
+          last_run_status?: string | null
+          success_count?: number
           updated_at?: string
         }
         Relationships: []
@@ -833,6 +848,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           created_at: string
+          current_step: string | null
           error: string | null
           id: string
           query: string
@@ -844,6 +860,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          current_step?: string | null
           error?: string | null
           id?: string
           query: string
@@ -855,6 +872,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          current_step?: string | null
           error?: string | null
           id?: string
           query?: string
@@ -1170,6 +1188,10 @@ export type Database = {
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
+      begin_agent_task: {
+        Args: { p_query: string; p_requested_by?: string; p_task_type: string }
+        Returns: Json
+      }
       check_trial_eligible: {
         Args: {
           p_email: string
@@ -1210,6 +1232,10 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      finish_agent_run: {
+        Args: { p_agent_type: string; p_duration_ms?: number; p_status: string }
+        Returns: undefined
       }
       get_agent_scheduler_activity: {
         Args: never
