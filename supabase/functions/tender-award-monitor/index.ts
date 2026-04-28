@@ -6,7 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "tender-award-monitor", "Tender / award / dispute scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("tender-award-monitor");
     const taskId = lock.taskId;
+    const runStartedAt = new Date();
 
     const { data: projects } = await supabase
       .from("projects")
@@ -38,42 +40,23 @@ serve(async (req) => {
       .eq("approved", true)
       .limit(25);
 
-    const raw: string[] = [];
-    if (PERPLEXITY_API_KEY && projects?.length) {
-      const q =
-        `infrastructure EPC tender award contract dispute arbitration cancellation ${projects?.slice(0, 6).map((p) => p.name).join(" ")} 2025`;
-      try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "Infrastructure procurement and contracts analyst." },
-              { role: "user", content: q },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
-      } catch (e) {
-        console.error("Perplexity:", e);
-      }
-    }
+    await setTaskStep(supabase, taskId, "Searching");
+    const q = `infrastructure EPC tender award contract dispute arbitration cancellation ${projects?.slice(0, 6).map((p) => p.name).join(" ") || "global infrastructure"} 2025`;
+    const research = projects?.length ? await fetchPerplexityResearch({
+      apiKey: PERPLEXITY_API_KEY,
+      agentName: "tender-award-monitor",
+      systemPrompt: "Infrastructure procurement and contracts analyst.",
+      userPrompt: q,
+    }) : { ok: false as const, error: "No projects available for tender scan" };
 
-    if (!raw.length) {
-      if (taskId) {
-        await supabase.from("research_tasks").update({
-          status: "failed",
-          error: "No research text",
-          completed_at: new Date().toISOString(),
-        }).eq("id", taskId);
-      }
-      return new Response(JSON.stringify({ success: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!research.ok) {
+      const error = research.error;
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "tender-award-monitor", "failed", runStartedAt);
+      return new Response(JSON.stringify({ success: false, error }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const raw = [research.text];
+    await setTaskStep(supabase, taskId, "Extracting");
 
     const aiRes = await chatCompletions({
         messages: [
@@ -146,6 +129,7 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+    await finishAgentRun(supabase, "tender-award-monitor", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
     return new Response(JSON.stringify({ success: true, events: events.length, alerts: alertsCreated }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

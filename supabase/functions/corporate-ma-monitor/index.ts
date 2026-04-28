@@ -6,7 +6,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "corporate-ma-monitor", "Corporate / M&A / counterparty scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("corporate-ma-monitor");
     const taskId = lock.taskId;
+    const runStartedAt = new Date();
 
     const { data: projects } = await supabase
       .from("projects")
@@ -38,41 +40,23 @@ serve(async (req) => {
       .eq("approved", true)
       .limit(25);
 
-    const raw: string[] = [];
-    if (PERPLEXITY_API_KEY && projects?.length) {
-      const q = `infrastructure project ownership changes M&A joint venture SPV acquisition ${projects.slice(0, 8).map((p) => p.name).join(" ")} 2025 2026`;
-      try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a corporate intelligence analyst for infrastructure and project finance." },
-              { role: "user", content: q },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const data = await res.json();
-        if (data?.choices?.[0]?.message?.content) raw.push(data.choices[0].message.content);
-      } catch (e) {
-        console.error("Perplexity:", e);
-      }
-    }
+    await setTaskStep(supabase, taskId, "Searching");
+    const q = `infrastructure project ownership changes M&A joint venture SPV acquisition ${projects?.slice(0, 8).map((p) => p.name).join(" ") || "global infrastructure"} 2025 2026`;
+    const research = projects?.length ? await fetchPerplexityResearch({
+      apiKey: PERPLEXITY_API_KEY,
+      agentName: "corporate-ma-monitor",
+      systemPrompt: "You are a corporate intelligence analyst for infrastructure and project finance.",
+      userPrompt: q,
+    }) : { ok: false as const, error: "No projects available for corporate scan" };
 
-    if (!raw.length) {
-      if (taskId) {
-        await supabase.from("research_tasks").update({
-          status: "failed",
-          error: "No research text (set PERPLEXITY_API_KEY)",
-          completed_at: new Date().toISOString(),
-        }).eq("id", taskId);
-      }
-      return new Response(JSON.stringify({ success: false }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!research.ok) {
+      const error = research.error;
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "corporate-ma-monitor", "failed", runStartedAt);
+      return new Response(JSON.stringify({ success: false, error }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const raw = [research.text];
+    await setTaskStep(supabase, taskId, "Extracting");
 
     const aiRes = await chatCompletions({
         messages: [
@@ -145,6 +129,7 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+    await finishAgentRun(supabase, "corporate-ma-monitor", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
     return new Response(JSON.stringify({ success: true, events: events.length, alerts: alertsCreated }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
