@@ -33,7 +33,7 @@ const AIIB_SECTORS = [
   "environment", "social", "health", "finance",
 ];
 
-const PERPLEXITY_QUERIES = [
+const AIIB_RESEARCH_PROMPTS = [
   "AIIB Asian Infrastructure Investment Bank approved infrastructure projects 2023 2024 2025 transport energy",
   "AIIB new projects Central Asia South Asia Southeast Asia construction pipeline funding",
   "AIIB Bangladesh India Indonesia Pakistan Vietnam infrastructure loan approval amount",
@@ -131,7 +131,9 @@ serve(async (req) => {
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
     taskId = lock.taskId;
 
-    for (const q of PERPLEXITY_QUERIES) {
+    const rawChunks: string[] = [];
+
+    for (const q of AIIB_RESEARCH_PROMPTS) {
       try {
         const research = await chatCompletions({
           messages: [
