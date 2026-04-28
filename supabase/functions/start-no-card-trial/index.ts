@@ -43,10 +43,16 @@ serve(async (req) => {
     const environment = body?.environment === 'live' ? 'live' : 'sandbox';
     const emailNormalized = email.trim().toLowerCase().replace(/\+[^@]*(@)/, '$1');
 
-    const [{ data: existingTrial }, { data: existingSub }, { data: existingLifetime }] = await Promise.all([
+    const [{ data: existingTrial }, { data: existingHistory }, { data: existingSub }, { data: existingLifetime }] = await Promise.all([
       admin
         .from('no_card_trial_grants')
         .select('id, ends_at, status')
+        .eq('environment', environment)
+        .or(`user_id.eq.${user.id},email_normalized.eq.${emailNormalized}`)
+        .maybeSingle(),
+      admin
+        .from('trial_history')
+        .select('id')
         .eq('environment', environment)
         .or(`user_id.eq.${user.id},email_normalized.eq.${emailNormalized}`)
         .maybeSingle(),
@@ -68,7 +74,7 @@ serve(async (req) => {
     if (existingSub || existingLifetime) {
       return new Response(JSON.stringify({ error: 'Your account already has paid access.' }), { status: 409, headers: corsHeaders });
     }
-    if (existingTrial) {
+    if (existingTrial || existingHistory) {
       return new Response(JSON.stringify({ error: 'This account has already used the 3-day trial.' }), { status: 409, headers: corsHeaders });
     }
 
