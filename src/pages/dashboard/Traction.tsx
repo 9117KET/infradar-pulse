@@ -105,8 +105,12 @@ export default function Traction() {
   const [signupFunnel, setSignupFunnel] = useState<FunnelStep[]>([]);
   const [paywallDropoff, setPaywallDropoff] = useState<PaywallDropoff[]>([]);
   const [pilotSummary, setPilotSummary] = useState<PilotSummary | null>(null);
+  const [pilotEnabled, setPilotEnabled] = useState(true);
+  const [pilotMaxSeats, setPilotMaxSeats] = useState(100);
+  const [pilotDurationDays, setPilotDurationDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const rpc = supabase.rpc.bind(supabase) as unknown as (
@@ -128,11 +132,33 @@ export default function Traction() {
         setProductStats(product.data as ProductAnalyticsSummary);
         setSignupFunnel((funnel.data ?? []) as FunnelStep[]);
         setPaywallDropoff((dropoff.data ?? []) as PaywallDropoff[]);
-        setPilotSummary(pilot.data as PilotSummary);
+        const pilotData = pilot.data as PilotSummary;
+        setPilotSummary(pilotData);
+        setPilotEnabled(!!pilotData?.enabled);
+        setPilotMaxSeats(pilotData?.max_seats ?? 100);
+        setPilotDurationDays(pilotData?.duration_days ?? 30);
       }
       setLoading(false);
     });
   }, []);
+
+  const updatePilotConfig = async () => {
+    const maxSeats = Math.max(1, Math.floor(Number(pilotMaxSeats) || 100));
+    const durationDays = Math.max(1, Math.floor(Number(pilotDurationDays) || 30));
+    const { error: updateError } = await (supabase as any)
+      .from('pilot_access_config')
+      .update({ enabled: pilotEnabled, max_seats: maxSeats, duration_days: durationDays })
+      .eq('environment', 'live');
+
+    if (updateError) {
+      toast({ title: 'Could not update pilot settings', description: updateError.message, variant: 'destructive' });
+      return;
+    }
+
+    const { data } = await (supabase.rpc as any)('get_pilot_access_summary', { p_environment: 'live' });
+    if (data) setPilotSummary(data as PilotSummary);
+    toast({ title: 'Pilot settings updated', description: `${maxSeats} seats · ${durationDays} days · ${pilotEnabled ? 'enabled' : 'disabled'}` });
+  };
 
   const mrr = stats?.plan_breakdown
     ? stats.plan_breakdown.reduce((sum, p) => sum + (PLAN_MRR[p.plan] ?? 0) * p.count, 0)
