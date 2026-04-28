@@ -73,7 +73,7 @@ export function UpgradeDialog({
 
   const subscribe = async () => {
     try {
-      void trackEvent('checkout_started', { plan: 'starter', source: 'upgrade_dialog', reason }, 'monetization');
+      void trackEvent('paywall_cta_clicked', { action: 'subscribe', plan: 'starter', source: 'upgrade_dialog', reason }, 'monetization');
       await openCheckout('starter_monthly_no_trial');
       onOpenChange(false);
     } catch (e) {
@@ -87,8 +87,8 @@ export function UpgradeDialog({
 
   const beginTrial = async () => {
     try {
+      void trackEvent('paywall_cta_clicked', { action: 'start_trial', source: 'upgrade_dialog', reason }, 'monetization');
       await startTrial();
-      void trackEvent('trial_started', { source: 'upgrade_dialog', reason }, 'monetization');
       toast({ title: 'Trial started', description: 'Your 3-day trial is active. No card was required.' });
       onOpenChange(false);
     } catch (e) {
@@ -102,7 +102,6 @@ export function UpgradeDialog({
 
   const submitQuotaRequest = async () => {
     if (reason === 'default') return;
-    void trackEvent('quota_request_started', { reason, metric: REASON_TO_METRIC[reason] }, 'monetization');
     setSubmittingRequest(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
