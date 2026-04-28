@@ -1379,6 +1379,13 @@ export type Database = {
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
+      admin_list_user_emails: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
         Returns: Json
