@@ -101,8 +101,8 @@ export default function Pricing() {
             Intelligence that pays for itself
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-            While incumbents charge $5,000-$200,000/year for quarterly PDF reports, InfradarAI delivers{' '}
-            <span className="text-foreground font-medium">real-time AI intelligence</span> at a fraction of the cost.
+            Instead of paying thousands for a single static market report, subscribe to living project intelligence: verified data,
+            alerts, portfolio Q&amp;A, and <span className="text-foreground font-medium">AI-generated market reports</span> that update with your scope.
             No free trial - pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
@@ -192,6 +192,7 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI digest email alerts</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full alert rules</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio chat (AI Q&amp;A)</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI digest and market snapshot summaries</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
             </ul>
             {user ? (
@@ -221,7 +222,7 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day - CSV &amp; Excel (.xlsx), up to 10,000 rows</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Watermarked project tearsheet PDFs (per-project one-pager)</li>
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI-generated intelligence report PDF downloads</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI-generated country, sector, tender and portfolio report PDFs</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI digest email alerts</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Delay risk scores</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Early warning alerts</li>
