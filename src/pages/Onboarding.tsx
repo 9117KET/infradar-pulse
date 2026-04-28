@@ -11,7 +11,7 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { REGIONS, SECTORS, STAGES, type ProjectStage, type Region, type Sector } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES, type ProjectStage, type Region } from '@/data/projects';
 import {
   ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
   FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star,
