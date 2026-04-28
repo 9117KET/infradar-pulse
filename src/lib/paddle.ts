@@ -21,6 +21,10 @@ export function getPaddleEnvironment(): 'sandbox' | 'live' {
   return clientToken?.startsWith('test_') ? 'sandbox' : 'live';
 }
 
+export function isLiveCheckoutEnabled(): boolean {
+  return getPaddleEnvironment() === 'sandbox';
+}
+
 export async function initializePaddle(): Promise<void> {
   if (paddleInitialized) return;
   if (!clientToken) throw new Error('Payments are not configured yet.');
