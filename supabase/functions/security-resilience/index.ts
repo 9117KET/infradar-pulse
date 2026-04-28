@@ -22,7 +22,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
@@ -43,7 +42,6 @@ serve(async (req) => {
 
     await setTaskStep(supabase, taskId, "Searching");
     const research = await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
       agentName: "security-resilience",
       systemPrompt: "Infrastructure security and resilience analyst.",
       userPrompt: "critical infrastructure cybersecurity outage ransomware grid data center energy pipeline OT security incidents 2025 2026",

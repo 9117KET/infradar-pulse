@@ -22,7 +22,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
@@ -43,7 +42,6 @@ serve(async (req) => {
     await setTaskStep(supabase, taskId, "Searching");
     const q = `infrastructure project ownership changes M&A joint venture SPV acquisition ${projects?.slice(0, 8).map((p) => p.name).join(" ") || "global infrastructure"} 2025 2026`;
     const research = projects?.length ? await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
       agentName: "corporate-ma-monitor",
       systemPrompt: "You are a corporate intelligence analyst for infrastructure and project finance.",
       userPrompt: q,

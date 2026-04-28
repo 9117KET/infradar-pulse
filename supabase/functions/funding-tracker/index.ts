@@ -18,7 +18,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -33,29 +32,8 @@ serve(async (req) => {
     const rawContent: string[] = [];
 
     // Search Firecrawl for dev bank announcements
-    if (FIRECRAWL_API_KEY) {
-      const searches = [
-        "World Bank infrastructure project approval worldwide 2025",
-        "Asian Development Bank ADB new project funding 2025",
-        "IFC AIIB EBRD infrastructure investment global 2025",
-        "African Development Bank AfDB new project funding 2025",
-      ];
-      for (const q of searches.slice(0, 2)) {
-        try {
-          const res = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ query: q, limit: 3, scrapeOptions: { formats: ["markdown"] } }),
-          });
-          const data = await res.json();
-          if (data?.data) {
-            for (const r of data.data.slice(0, 2)) {
-              if (r.markdown) rawContent.push(`Source: ${r.url}\n${r.markdown.slice(0, 2000)}`);
-            }
-          }
-        } catch (e) { console.error("Firecrawl error:", e); }
-      }
-    }
+    // MVP: external crawlers are intentionally not required. Lovable AI provides the research corpus.
+
 
     const aiResearch = await runResearchPrompt({
       systemRole: "You are a development finance analyst tracking infrastructure funding flows worldwide.",
