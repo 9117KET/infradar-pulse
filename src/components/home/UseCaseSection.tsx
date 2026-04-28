@@ -74,7 +74,7 @@ export function UseCaseSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How infrastructure teams use InfradarAI</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          From business development teams and infrastructure consultants building market maps to EPC contractors, development finance analysts, and project finance professionals monitoring tenders, portfolios, and risk - one platform, multiple workflows.
+          From business development teams and infrastructure consultants building market maps to EPC contractors, project managers, development finance analysts, project finance professionals, owners, developers, and procurement teams monitoring tenders, delivery, portfolios, and risk - one platform, multiple workflows.
         </p>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-2">
