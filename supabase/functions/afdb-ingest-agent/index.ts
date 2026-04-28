@@ -28,7 +28,7 @@ const AFDB_PAGES = [
   { url: "https://projectsportal.afdb.org/dataportal/VProject/approvedProjects", label: "Approved Projects" },
 ];
 
-// AfDB also publishes searchable results — these targeted Firecrawl queries focus on sectors
+// AfDB also publishes searchable results — these targeted Lovable AI research prompts focus on sectors
 const AFDB_SEARCH_QUERIES = [
   "AfDB African Development Bank infrastructure project ongoing construction transport energy water 2022 2023 2024",
   "African Development Bank approved project transport road rail port airport Africa 2023 2024",

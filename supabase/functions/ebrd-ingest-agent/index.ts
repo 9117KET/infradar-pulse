@@ -21,7 +21,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// EBRD Perplexity queries — sectors and regions under EBRD mandate
+// EBRD Lovable AI research prompts — sectors and regions under EBRD mandate
 const EBRD_QUERIES = [
   "EBRD European Bank for Reconstruction Development infrastructure project approved 2023 2024 Eastern Europe Central Asia transport energy",
   "EBRD infrastructure project approved ongoing 2023 2024 Ukraine Moldova Georgia Armenia Azerbaijan Kazakhstan Uzbekistan",

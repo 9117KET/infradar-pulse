@@ -31,7 +31,7 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    // Search Firecrawl for dev bank announcements
+    // Build Lovable AI research corpus for development bank announcements
     // MVP: external crawlers are intentionally not required. Lovable AI provides the research corpus.
 
 

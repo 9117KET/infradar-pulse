@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
-import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
+import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,7 +34,7 @@ serve(async (req) => {
     const countries = [...new Set(projects?.map(p => p.country) || [])];
 
     await setTaskStep(supabase, taskId, "Searching");
-    const research = countries.length ? await fetchPerplexityResearch({
+    const research = countries.length ? await fetchAgentResearch({
       agentName: "regulatory-monitor",
       systemPrompt: "You are a regulatory compliance analyst for infrastructure projects worldwide.",
       userPrompt: `Summarise (1) notable EIA approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025, naming specific projects, agencies, and dates; and (2) recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} during 2024-2025, focusing on items that could materially change project timelines or financing.`,
