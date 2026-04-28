@@ -18,7 +18,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -32,21 +31,8 @@ serve(async (req) => {
 
     const rawContent: string[] = [];
 
-    if (FIRECRAWL_API_KEY) {
-      try {
-        const res = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ query: "infrastructure construction contract awards bids global worldwide 2025", limit: 5, scrapeOptions: { formats: ["markdown"] } }),
-        });
-        const data = await res.json();
-        if (data?.data) {
-          for (const r of data.data.slice(0, 3)) {
-            if (r.markdown) rawContent.push(`Source: ${r.url}\n${r.markdown.slice(0, 2000)}`);
-          }
-        }
-      } catch (e) { console.error("Firecrawl error:", e); }
-    }
+    // MVP: external crawlers are intentionally not required. Lovable AI provides the research corpus.
+
 
     const aiResearch = await runResearchPrompt({
       systemRole: "You are a competitive intelligence analyst for the global infrastructure construction sector.",

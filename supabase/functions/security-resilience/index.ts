@@ -7,7 +7,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
-import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
+import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +22,6 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
@@ -42,8 +41,7 @@ serve(async (req) => {
       .limit(30);
 
     await setTaskStep(supabase, taskId, "Searching");
-    const research = await fetchPerplexityResearch({
-      apiKey: PERPLEXITY_API_KEY,
+    const research = await fetchAgentResearch({
       agentName: "security-resilience",
       systemPrompt: "Infrastructure security and resilience analyst.",
       userPrompt: "critical infrastructure cybersecurity outage ransomware grid data center energy pipeline OT security incidents 2025 2026",
