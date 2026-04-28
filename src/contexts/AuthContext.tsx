@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profileData && !profileData.acq_source) {
       const utms = getStoredUtmParams();
       if (utms && Object.keys(utms).length > 0) {
-        await supabase.from('profiles').update(utms).eq('id', uid);
+        await supabase.from('profiles').update(utms as Record<string, string>).eq('id', uid);
         clearUtmParams();
       }
     }

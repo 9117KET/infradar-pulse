@@ -21,6 +21,7 @@ function makeTask(overrides: Partial<TaskRow> = {}): TaskRow {
     result: null,
     created_at: new Date().toISOString(),
     completed_at: new Date().toISOString(),
+    current_step: null,
     ...overrides,
   };
 }
