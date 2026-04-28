@@ -13,6 +13,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Building2, Plus, Mail, CalendarDays, ChevronRight, DollarSign, Handshake } from 'lucide-react';
 
+const db = supabase as any;
+
 const STATUSES = [
   { key: 'prospect', label: 'Prospect', color: 'bg-muted text-muted-foreground' },
   { key: 'intro',    label: 'Intro',    color: 'bg-blue-500/20 text-blue-400' },
@@ -83,12 +85,12 @@ export default function BDPipeline() {
   const { data: partners = [], isLoading } = useQuery<BDPartner[]>({
     queryKey: ['bd-partners'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('bd_partners')
         .select('*')
         .order('updated_at', { ascending: false });
       if (error) throw error;
-      return data as BDPartner[];
+      return data as unknown as BDPartner[];
     },
   });
 
@@ -106,10 +108,10 @@ export default function BDPipeline() {
         next_action_at: values.next_action_at || null,
       };
       if (editing) {
-        const { error } = await supabase.from('bd_partners').update(payload).eq('id', editing.id);
+        const { error } = await db.from('bd_partners').update(payload).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('bd_partners').insert(payload);
+        const { error } = await db.from('bd_partners').insert(payload);
         if (error) throw error;
       }
     },
@@ -125,7 +127,7 @@ export default function BDPipeline() {
 
   const advanceStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from('bd_partners').update({ deal_status: status }).eq('id', id);
+      const { error } = await db.from('bd_partners').update({ deal_status: status }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bd-partners'] }),
