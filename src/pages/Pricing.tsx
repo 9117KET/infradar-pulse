@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { supabase } from '@/integrations/supabase/client';
-import { getPaddleEnvironment } from '@/lib/paddle';
+import { getPaddleEnvironment, isLiveCheckoutEnabled } from '@/lib/paddle';
 import { cn } from '@/lib/utils';
 
 // Competitor names are intentionally anonymized to keep the comparison
@@ -33,6 +33,7 @@ export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { openCheckout, loading } = usePaddleCheckout();
+  const navigate = useNavigate();
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [seatsTaken, setSeatsTaken] = useState<number | null>(null);
 
@@ -54,6 +55,11 @@ export default function Pricing() {
   }, []);
 
   const goCheckout = async (priceId: PlanPriceId) => {
+    if (!isLiveCheckoutEnabled()) {
+      navigate('/contact?intent=pilot');
+      return;
+    }
+
     try {
       await openCheckout(priceId);
     } catch (e) {
@@ -91,6 +97,7 @@ export default function Pricing() {
   const seatsRemaining =
     seatsTaken === null ? null : Math.max(0, LIFETIME_MAX_SEATS - seatsTaken);
   const lifetimeSoldOut = seatsRemaining !== null && seatsRemaining <= 0;
+  const checkoutEnabled = isLiveCheckoutEnabled();
 
   return (
     <div className="py-20">
@@ -198,11 +205,11 @@ export default function Pricing() {
             {user ? (
               <Button className="w-full teal-glow" onClick={() => void goCheckout(starterPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isYearly ? 'Subscribe yearly' : 'Subscribe'}
+                {checkoutEnabled ? (isYearly ? 'Subscribe yearly' : 'Subscribe') : 'Request pilot access'}
               </Button>
             ) : (
               <Button className="w-full teal-glow" asChild>
-                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to subscribe'}</Link>
+                <Link to="/login">{checkoutEnabled ? 'Sign in to subscribe' : 'Sign in to request pilot'}</Link>
               </Button>
             )}
           </div>
@@ -232,11 +239,11 @@ export default function Pricing() {
             {user ? (
               <Button className="w-full" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isYearly ? 'Subscribe yearly' : 'Subscribe'}
+                {checkoutEnabled ? (isYearly ? 'Subscribe yearly' : 'Subscribe') : 'Request pilot access'}
               </Button>
             ) : (
               <Button className="w-full" asChild>
-                <Link to="/login">{isYearly ? 'Sign in to subscribe' : 'Sign in to subscribe'}</Link>
+                <Link to="/login">{checkoutEnabled ? 'Sign in to subscribe' : 'Sign in to request pilot'}</Link>
               </Button>
             )}
           </div>
@@ -313,7 +320,7 @@ export default function Pricing() {
                     onClick={() => void goCheckout('lifetime_pro_onetime')}
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Crown className="h-4 w-4 mr-2" />}
-                    {lifetimeSoldOut ? 'Sold out' : 'Claim lifetime access'}
+                    {lifetimeSoldOut ? 'Sold out' : checkoutEnabled ? 'Claim lifetime access' : 'Request founder access'}
                   </Button>
                 ) : (
                   <Button size="lg" className="w-full md:w-auto teal-glow" asChild>
