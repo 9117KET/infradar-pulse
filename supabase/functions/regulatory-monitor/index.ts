@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { fetchPerplexityResearch } from "../_shared/perplexity.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,34 +29,27 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "regulatory-monitor", "Regulatory compliance scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("regulatory-monitor");
     const taskId = lock.taskId;
+    const runStartedAt = new Date();
 
     const { data: projects } = await supabase.from("projects").select("id, name, country, sector").eq("approved", true).limit(30);
     const countries = [...new Set(projects?.map(p => p.country) || [])];
 
-    let raw = "";
-    if (PERPLEXITY_API_KEY && countries.length) {
-      try {
-        const res = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a regulatory compliance analyst for infrastructure projects worldwide." },
-              { role: "user", content: `Summarise (1) notable EIA approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025, naming specific projects, agencies, and dates; and (2) recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} during 2024-2025, focusing on items that could materially change project timelines or financing.` },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const data = await res.json();
-        raw = data?.choices?.[0]?.message?.content ?? "";
-      } catch (e) { console.error("Perplexity:", e); }
-    }
+    await setTaskStep(supabase, taskId, "Searching");
+    const research = countries.length ? await fetchPerplexityResearch({
+      apiKey: PERPLEXITY_API_KEY,
+      agentName: "regulatory-monitor",
+      systemPrompt: "You are a regulatory compliance analyst for infrastructure projects worldwide.",
+      userPrompt: `Summarise (1) notable EIA approvals, denials, and pending reviews for major infrastructure projects in ${countries.join(", ")} during 2024-2025, naming specific projects, agencies, and dates; and (2) recent construction permit blocks, sanctions, and regulatory or policy changes affecting infrastructure investment in ${countries.join(", ")} during 2024-2025, focusing on items that could materially change project timelines or financing.`,
+    }) : { ok: false as const, error: "No countries available for regulatory scan" };
 
-    if (!raw) {
-      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No research text (set PERPLEXITY_API_KEY)", completed_at: new Date().toISOString() }).eq("id", taskId);
-      return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!research.ok) {
+      const error = research.error;
+      if (taskId) await supabase.from("research_tasks").update({ status: "failed", error, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "regulatory-monitor", "failed", runStartedAt);
+      return new Response(JSON.stringify({ success: false, error }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const raw = research.text;
+    await setTaskStep(supabase, taskId, "Extracting");
 
     const aiRes = await chatCompletions({
         messages: [
@@ -127,6 +121,8 @@ serve(async (req) => {
     const alertsCreated = alertRows.length;
 
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { findings: findings.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
+
+    await finishAgentRun(supabase, "regulatory-monitor", "completed", runStartedAt);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
