@@ -11,7 +11,7 @@ const MODULES = [
   { icon: ShieldCheck, title: 'Multi-source validation', desc: 'Cross-referencing government filings, news feeds, registry data, and partner intelligence to eliminate conflicting signals.' },
   { icon: Globe, title: 'Geospatial intelligence', desc: 'Interactive map-based analysis with location-enriched risk overlays, project clustering, and regional comparison tools.' },
   { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, political risk factors, and supply chain disruptions.' },
-  { icon: FileText, title: 'Decision-ready reporting', desc: 'One-click exports with confidence scores, provenance chains, and executive-ready summaries tailored to your role.' },
+  { icon: FileText, title: 'AI-powered market reports', desc: 'Country, sector, tender and portfolio briefs generated from live project data, alerts, confidence scores and citations.' },
 ];
 
 export default function Services() {
@@ -20,7 +20,7 @@ export default function Services() {
       <div className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="font-serif text-4xl font-bold mb-4">Services</h1>
-          <p className="text-muted-foreground max-w-2xl mb-12">Platform modules designed for infrastructure intelligence professionals worldwide, organized around 14 regional coverage buckets.</p>
+          <p className="text-muted-foreground max-w-2xl mb-12">Platform modules designed for infrastructure intelligence professionals worldwide, organized around 14 regional coverage buckets and built to turn live data into report-quality answers.</p>
 
           <div className="grid gap-6 md:grid-cols-2 mb-12">
             {MODULES.map((m, i) => (

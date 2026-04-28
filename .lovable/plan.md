@@ -1,65 +1,98 @@
-## Plan: Fix alert counts and alert-dependent intelligence
+## Plan: AI-powered market reports as MVP competitive advantage
 
-The current issue is caused by the default 1,000-row read ceiling when the app fetches `alerts` without pagination. The `useAlerts` hook gets the true total count, but its actual alert list only loads the first 1,000 rows for uncapped users/staff. Any page that calculates stats from that list can therefore show capped totals, unread counts, category counts, country/project alert counts, and risk signals.
+Build a first version of “premium intelligence reports” that uses InfraRadar’s own live projects, alerts, updates, tenders, portfolio, and citations to generate structured market reports users can act on inside the platform, rather than buying static single reports.
 
-### What I will change
+### 1) Update product positioning and marketing copy
 
-1. **Fix the shared alerts data hook**
-   - Update `src/hooks/use-alerts.ts` so unlimited users/staff load alerts in pages using `.range()` instead of a single uncapped query.
-   - Keep plan-based row caps intact for capped users.
-   - Wait for entitlement loading before fetching, matching the pattern already used by `useProjects`, so users do not briefly see incorrect/capped states.
-   - Ensure loading is cleared safely on errors and unmounts.
+- Refresh pricing and homepage/services messaging to clearly position InfraRadarAI as:
+  - subscription access to living infrastructure intelligence,
+  - AI Q&A over projects/alerts/portfolio,
+  - decision-ready reports at a fraction of single-report pricing.
+- Keep competitor references category-based, not directly naming MEED in public copy.
+- Add messaging around “from static $4k+ PDFs to living AI intelligence” where appropriate.
 
-2. **Return accurate alert stats**
-   - Extend the hook so `stats.total` uses the true database count when available instead of `alerts.length` only.
-   - Add accurate server-side counts for unread, critical, and category breakdowns where possible, so summary cards are not limited by the fetched page set.
-   - Keep the loaded alert list for feed rendering/pagination, but make the KPI cards reflect the actual alert universe.
+### 2) Upgrade the report generation workflow
 
-3. **Make alert pages use the right source of truth**
-   - Update `src/pages/dashboard/Alerts.tsx` so:
-     - Total/unread/critical cards show true counts.
-     - Category filter chips use accurate category counts.
-     - The alert feed still paginates the loaded rows cleanly.
-     - The truncation banner only appears for actual plan caps, not the backend’s 1,000-row default.
-   - Review and adjust alert-dependent pages that currently derive counts from `useAlerts()`:
-     - Dashboard overview
-     - Real-time monitoring
-     - Projects risk tab
-     - Risk & Anomaly Signals
-     - Countries and Country Detail
+- Extend `report-agent` from a generic weekly snapshot into a report builder with report templates such as:
+  - Country Projects Market Report
+  - Sector Pipeline Report
+  - Tender & Awards Outlook
+  - Portfolio Risk Brief
+- Allow parameters like country, region, sector, stage, and time window.
+- Generate structured reports with sections inspired by high-quality market reports, without copying competitor content:
+  - Executive summary
+  - Market/pipeline overview
+  - Sector breakdown
+  - Key projects and stakeholders
+  - Tender / award outlook
+  - Risk and alert signals
+  - Opportunities and recommended actions
+  - Data quality / confidence notes
+  - Source citations
 
-4. **Fix direct alert queries outside the hook**
-   - Review direct `.from('alerts')` calls, especially `src/pages/dashboard/Tenders.tsx`.
-   - For pages that intentionally show recent activity, keep a clear finite limit.
-   - For pages that claim totals/counts, use count queries or paginated reads so numbers are not silently capped.
+### 3) Use platform data, not generic AI text
 
-5. **Backend alert intelligence check**
-   - Review `supabase/functions/alert-intelligence/index.ts` because it fetches 30-day alerts with no explicit pagination. If the last 30 days can exceed 1,000 rows, update it to page through alerts or use a deliberate capped sample plus accurate total count in the prompt/result.
+- Feed the report agent with current InfraRadar data:
+  - approved projects matching selected scope,
+  - alerts and risk categories,
+  - project updates/changelog entries,
+  - recent insights,
+  - tender/construction alerts where available,
+  - source URLs and evidence links.
+- Add aggregate statistics before calling AI so reports contain actual metrics: project count, total value, stage distribution, sector distribution, high-risk counts, critical alerts, and top projects.
+- Keep source URLs and confidence scoring visible so reports are credible and auditable.
 
-### Technical details
+### 4) Improve the Intelligence Summaries / Reports UI
 
-- Use a reusable pagination pattern similar to `useProjects`:
+- Replace the basic “Generate Report” button with a small report generator panel:
+  - report type selector,
+  - country/region selector,
+  - sector selector,
+  - time window selector,
+  - generate button.
+- Show generated reports as polished cards with metadata: scope, status, generated date, project count/value where available, and source count.
+- Render report content in readable markdown instead of raw preformatted text.
+- Add a “view report” expanded layout with section headings, citations, and clear CTAs to inspect projects/alerts.
 
-```text
-if rowCap > 0:
-  fetch latest alerts with .limit(rowCap)
-else:
-  fetch alerts in 1,000-row pages with .range(from, to)
-```
+### 5) Improve PDF export quality for reports
 
-- Add lightweight count queries such as:
+- Replace plain text PDF output with a more premium branded layout:
+  - InfraRadarAI title page/header,
+  - report title, scope, generated date,
+  - KPI summary block,
+  - sectioned content,
+  - citations appendix,
+  - watermark / plan-based export rules already used elsewhere.
+- Keep the current entitlement gating: PDF report downloads remain a paid/Pro value driver.
+- Use a browser-side PDF generator for MVP so no new database schema is required immediately
 
-```text
-all alerts count
-unread alerts count
-critical alerts count
-category-specific counts
-```
+### 6) Add roadmap notes for future report features
 
-- Keep existing RLS policies unchanged; this is a read/query correctness fix, not a schema/security change.
+- Add/update roadmap documentation for post-MVP report capabilities:
+  - scheduled monthly/country reports,
+  - report library by country/sector,
+  - white-label enterprise reports,
+  - report sharing links,
+  - deeper chart-heavy PDF generation,
+  - analyst review/approval workflow before publishing public reports.
 
-### Expected result
+## Technical details
 
-- Admin/staff and unlimited users no longer see alert totals capped at 1,000.
-- Alert cards, category chips, overview KPIs, monitoring KPIs, country/project risk views, and alert intelligence use consistent counts.
-- Plan-capped users still see the intended capped feed with a clear upgrade/truncation banner.
+- Frontend files likely to update:
+  - `src/pages/dashboard/IntelligenceSummaries.tsx`
+  - `src/pages/dashboard/Reports.tsx` if still needed, or keep it aligned with the consolidated summaries route
+  - `src/pages/Pricing.tsx`
+  - homepage/service copy components such as `HeroSection`, `ProblemSection`, `CapabilitiesSection`, and `Services`
+  - possibly `src/lib/api/agents.ts` to pass new report parameters
+- Backend function to update:
+  - `supabase/functions/report-agent/index.ts`
+- No database migration is required for the MVP because `report_runs.parameters`, `markdown`, and `citations` already support this. If metadata needs to be stored separately later, that can be a future migration.
+- Existing auth/security stays intact: report generation remains staff/researcher-controlled unless we intentionally open a user-facing report builder later behind entitlements.
+
+## MVP acceptance criteria
+
+- A researcher/admin can generate a scoped market report, e.g. “UAE projects market, 30 days” or “Energy pipeline in MENA”.
+- The report uses real InfraRadar project/alert/update data and includes citations when available.
+- The UI makes reports feel like a premium intelligence product, not a raw AI note.
+- Marketing/pricing copy communicates the advantage: users get living AI intelligence and report-quality outputs through subscription instead of paying thousands for one static PDF.
+- Existing routes and consolidated navigation continue to work.

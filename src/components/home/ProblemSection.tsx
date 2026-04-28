@@ -4,11 +4,11 @@ const STATS = [
   { value: '85%', label: 'Projects delayed', sub: 'Major infrastructure programs' },
   { value: '$1.5T+', label: 'Capital at risk', sub: 'Global cost overruns annually' },
   { value: '6–12 mo', label: 'Signal lag', sub: 'Typical intelligence delay, emerging markets' },
-  { value: '$200k/yr', label: 'Incumbent cost', sub: 'Top-tier vendor pricing vs. InfradarAI from $0' },
+  { value: '$4k+', label: 'Per static report', sub: 'Single-topic PDFs before subscriptions or add-ons' },
 ];
 
 const FLAWS = [
-  'Annual PDF reports with zero real-time updates',
+  'Expensive static reports with zero real-time updates',
   'Human analysts as bottleneck - research takes weeks',
   'No confidence scoring - reliability is unknown',
   'Sector-siloed: energy OR transport, never integrated',
