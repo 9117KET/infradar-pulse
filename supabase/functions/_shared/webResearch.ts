@@ -4,7 +4,7 @@
  * supply chain, stakeholder, etc.).
  *
  * Replaces previous Perplexity calls in agents that don't strictly need live
- * web search — Gemini is highly capable of producing structured analyst
+ * web search. Lovable AI is capable of producing structured analyst
  * commentary from a query + portfolio context, and Lovable AI is included in
  * the Lovable Cloud plan with no separate API key required.
  *
@@ -13,7 +13,7 @@
  */
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 
 export type ResearchPrompt = {
   /** Domain framing — e.g. "regulatory compliance analyst for infrastructure". */
@@ -57,7 +57,7 @@ export async function runResearchPrompt(prompt: ResearchPrompt): Promise<string 
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      console.error(`webResearch: gateway ${res.status} — ${body.slice(0, 200)}`);
+      console.error(`webResearch: gateway ${res.status} - ${body.slice(0, 200)}`);
       return null;
     }
     const data = await res.json();
