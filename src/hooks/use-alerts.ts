@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Alert, AlertCategory } from '@/data/alerts';
+import { ALERT_CATEGORIES } from '@/data/alerts';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 import { useEntitlements } from './useEntitlements';
@@ -14,11 +15,30 @@ export interface AlertStats {
   mostActiveCategory: string;
 }
 
+const SUPABASE_PAGE_SIZE = 1000;
+const MAX_UNCAPPED_ALERT_PAGES = 100;
+
+function mapAlertRow(a: any): Alert {
+  return {
+    id: a.id,
+    projectId: a.project_id || '',
+    projectName: a.project_name,
+    severity: a.severity,
+    category: (a.category || 'market') as AlertCategory,
+    message: a.message,
+    time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
+    createdAt: a.created_at,
+    read: a.read,
+    sourceUrl: a.source_url || undefined,
+  };
+}
+
 export function useAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalAvailable, setTotalAvailable] = useState(0);
-  const { plan, staffBypass, isAnonymous } = useEntitlements();
+  const [stats, setStats] = useState<AlertStats>({ total: 0, unread: 0, critical: 0, byCategory: {}, mostActiveCategory: 'market' });
+  const { plan, staffBypass, isAnonymous, loading: entLoading } = useEntitlements();
 
   // Anonymous viewers (public marketing) get the same view as before; signed-in
   // users hit the plan-based row cap mirroring EXPORT_ROW_CAPS so they can't
@@ -29,42 +49,64 @@ export function useAlerts() {
     let mounted = true;
 
     async function fetchAlerts() {
+      if (entLoading) return;
       setLoading(true);
 
-      // Cheap HEAD count for the truncation banner. Falls back gracefully if
-      // the count call fails — we never block the page on it.
-      const { count } = await supabase
-        .from('alerts')
-        .select('id', { count: 'exact', head: true });
+      try {
+        const [{ count: totalCount }, { count: unreadCount }, { count: criticalCount }, ...categoryCounts] = await Promise.all([
+          supabase.from('alerts').select('id', { count: 'exact', head: true }),
+          supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('read', false),
+          supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('severity', 'critical'),
+          ...ALERT_CATEGORIES.map(c => supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('category', c.value)),
+        ]);
 
-      let query = supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false });
+        let rows: any[] = [];
+        if (rowCap > 0) {
+          const { data, error } = await supabase
+            .from('alerts')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(rowCap);
+          if (error) throw error;
+          rows = data ?? [];
+        } else {
+          let from = 0;
+          for (let i = 0; i < MAX_UNCAPPED_ALERT_PAGES; i++) {
+            const { data, error } = await supabase
+              .from('alerts')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .range(from, from + SUPABASE_PAGE_SIZE - 1);
+            if (error) throw error;
+            if (!data?.length) break;
+            rows.push(...data);
+            if (data.length < SUPABASE_PAGE_SIZE) break;
+            from += SUPABASE_PAGE_SIZE;
+          }
+        }
 
-      if (rowCap > 0) {
-        query = query.limit(rowCap);
+        if (!mounted) return;
+
+        const byCategory: Record<string, number> = {};
+        ALERT_CATEGORIES.forEach((c, index) => {
+          byCategory[c.value] = categoryCounts[index]?.count ?? 0;
+        });
+        const mostActiveCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]?.[0] || 'market';
+
+        setTotalAvailable(totalCount ?? rows.length);
+        setStats({
+          total: totalCount ?? rows.length,
+          unread: unreadCount ?? rows.filter((a) => !a.read).length,
+          critical: criticalCount ?? rows.filter((a) => a.severity === 'critical').length,
+          byCategory,
+          mostActiveCategory,
+        });
+        setAlerts(rows.map(mapAlertRow));
+      } catch (error) {
+        if (mounted) toast.error(error instanceof Error ? error.message : 'Failed to load alerts');
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      const { data } = await query;
-
-      if (!mounted) return;
-      if (typeof count === 'number') setTotalAvailable(count);
-      if (data) {
-        setAlerts(data.map((a: any) => ({
-          id: a.id,
-          projectId: a.project_id || '',
-          projectName: a.project_name,
-          severity: a.severity,
-          category: (a.category || 'market') as AlertCategory,
-          message: a.message,
-          time: formatDistanceToNow(new Date(a.created_at), { addSuffix: true }),
-          createdAt: a.created_at,
-          read: a.read,
-          sourceUrl: a.source_url || undefined,
-        })));
-      }
-      setLoading(false);
     }
 
     fetchAlerts();
@@ -80,20 +122,7 @@ export function useAlerts() {
       mounted = false;
       supabase.removeChannel(channel);
     };
-  }, [rowCap]);
-
-  const stats: AlertStats = (() => {
-    const byCategory: Record<string, number> = {};
-    let unread = 0;
-    let critical = 0;
-    for (const a of alerts) {
-      byCategory[a.category] = (byCategory[a.category] || 0) + 1;
-      if (!a.read) unread++;
-      if (a.severity === 'critical') critical++;
-    }
-    const mostActiveCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]?.[0] || 'market';
-    return { total: alerts.length, unread, critical, byCategory, mostActiveCategory };
-  })();
+  }, [entLoading, rowCap]);
 
   const filterByCategory = (category: AlertCategory | 'all') => {
     if (category === 'all') return alerts;
