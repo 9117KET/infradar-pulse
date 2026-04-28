@@ -1,155 +1,227 @@
-## Plan: document the platform vision and fix the remaining agent AI dependencies
+## Recommended approach
 
-### What I verified first
+Use a first-party product analytics layer in Lovable Cloud rather than sending all behavior directly to a third-party analytics tool first. This gives you ownership of the data, keeps it tied to your existing users/plans/roles, and lets you answer questions like:
 
-I scanned the codebase for external AI/search usage and confirmed the concern is valid. The shared AI wrapper now points to Lovable AI, but several agents still contain direct Perplexity and Firecrawl quota dependencies.
+- Which users sign up but never verify email?
+- Which users hit a paywall and then sign out or leave?
+- Which features are attempted most before upgrading?
+- Where do users drop during onboarding?
+- Which acquisition sources produce activated or paid users?
+- Which pages/actions predict trial start, subscription, or churn?
 
-Remaining direct Perplexity usage found in:
+External research points to the same principle: start with deliberate “growth events” instead of relying only on autocapture. PostHog’s product analytics guidance specifically recommends tracking business-critical events like signup, subscription, and purchase explicitly, then using funnels/retention to find friction. PostHog/Mixpanel/Amplitude can be useful later, but the first step should be a clean event taxonomy and server-backed tracking.
 
-- `contact-finder`
-- `user-research`
-- `aiib-ingest-agent`
-- `ebrd-ingest-agent`
+## What I would build
 
-Remaining Perplexity wrapper dependency found in:
+### 1. Add a `user_events` analytics table
 
-- `tender-award-monitor`
-- `supply-chain-monitor`
-- `stakeholder-intel`
-- `security-resilience`
-- `regulatory-monitor`
-- `corporate-ma-monitor`
-- `esg-social-monitor`
-
-Remaining Firecrawl-required or Firecrawl-first paths found in:
-
-- `afdb-ingest-agent`
-- `aiib-ingest-agent`
-- `ebrd-ingest-agent`
-- `research-agent`
-- `user-research`
-- `contact-finder`
-- `market-intel`
-- `funding-tracker`
-- `sentiment-analyzer`
-- shared `_shared/perplexity.ts` fallback
-
-The most serious failure risks are:
-
-1. Some agents fail or return no work when external credits are gone.
-2. Some ingest agents require `FIRECRAWL_API_KEY` before they can run.
-3. The documentation still says `_shared/llm.ts` uses old external OpenAI-style environment variables, which is now outdated.
-
-### Implementation scope
-
-#### 1. Add durable product documentation to the codebase
-
-Create a dedicated documentation area for future builders and for future public documentation pages, likely under `docs/product/`:
-
-- `docs/product/PLATFORM_VISION.md`
-  - Who InfraRadarAI serves: BD teams, EPC contractors, project managers, consultants, developers, investors, DFIs, lenders, public-sector teams and researchers.
-  - The platform promise: verified global infrastructure intelligence, opportunity discovery, risk monitoring, and portfolio workflows.
-  - The difference between implemented core features and future roadmap features.
-- `docs/product/FEATURE_CATALOG.md`
-  - Detailed descriptions of the already implemented high-value features:
-    - Infrastructure project database
-    - Global map and public exploration
-    - Natural-language project search
-    - Project detail pages with evidence and updates
-    - Portfolio/watchlist
-    - Portfolio chat
-    - Tenders and awards
-    - Alerts and alert rules
-    - Country intelligence
-    - Intelligence summaries and report builder
-    - Human-in-the-loop review queue
-    - Agent monitoring
-    - Contact discovery
-    - Billing, trial and onboarding
-  - For each feature: user value, target users, current implementation state, future enhancement ideas.
-- `docs/product/USER_GUIDE.md`
-  - Practical “how to use the platform” guidance for non-technical users:
-    - How to find projects
-    - How to evaluate a project
-    - How to build a portfolio
-    - How to use alerts
-    - How to use AI search and reports
-    - How internal researchers verify projects
-- `docs/product/AGENT_ARCHITECTURE.md`
-  - Current agent suite and purpose.
-  - The rule that MVP agents must use Lovable AI first and must not depend on Perplexity/OpenAI credits.
-  - Future extension section explaining that external tools like Perplexity/OpenAI/Firecrawl can be added later as optional enrichment, not required runtime dependencies.
-
-Also update:
-
-- `FEATURES.md` to link to these new docs.
-- `README.md` to explain where product vision, feature docs, roadmap and agent architecture live.
-- `CLAUDE.md` to correct the outdated `_shared/llm.ts` description so future agents use Lovable AI by default.
-
-#### 2. Standardize agent research on Lovable AI for the MVP
-
-Refactor the remaining agents so external AI quotas do not block agent execution.
-
-The MVP rule will be:
-
-- Primary reasoning and research narrative: Lovable AI via `_shared/llm.ts` / `_shared/webResearch.ts`.
-- No direct calls to `api.perplexity.ai`.
-- No direct calls to `api.openai.com`.
-- Firecrawl may remain only as optional future enrichment where useful, but agents must continue without it.
-- Agents should degrade gracefully and record a useful `research_tasks.error` or `result.message`, not silently produce nothing.
-
-Specific changes:
-
-- Replace direct Perplexity calls in `contact-finder`, `user-research`, `aiib-ingest-agent`, and `ebrd-ingest-agent` with Lovable AI prompts.
-- Remove `PERPLEXITY_API_KEY` reads from agent files where it is now only passed into the wrapper.
-- Rename or adapt `_shared/perplexity.ts` so it no longer implies a Perplexity dependency. Either:
-  - keep a compatibility export for existing imports but document it as a Lovable AI-backed research helper, or
-  - introduce `_shared/agentResearch.ts` and migrate imports cleanly.
-- Update Firecrawl-required ingest agents so missing Firecrawl does not immediately fail. Instead, use Lovable AI to produce an MVP research corpus from official source URLs, DB context and known MDB/project prompts.
-
-#### 3. Improve agent reliability and observability
-
-Add small reliability improvements while making the migration:
-
-- Ensure each affected agent calls `finishAgentRun` consistently on completed and failed paths where that pattern is already used.
-- Make failure messages explicit, for example: `Lovable AI research returned no content`, rather than `No research text`.
-- Surface AI gateway failures from `_shared/webResearch.ts` clearly, including 402 and 429 cases, so it is obvious whether the problem is Lovable AI credits/rate limits rather than Perplexity.
-
-#### 4. Deployment and verification after approval
-
-After implementation, I will:
-
-- Re-run a code scan to confirm there are no remaining direct `api.perplexity.ai`, `OPENAI_API_KEY`, direct `api.openai.com`, or required `PERPLEXITY_API_KEY` paths in the agent suite.
-- Deploy the affected backend functions.
-- Pull recent function logs for the most important agents after deployment.
-- Report exactly what changed, which functions were deployed, and what remains intentionally optional for later.
-
-### Technical notes
-
-The intended final flow is:
+Create a dedicated event table with fields like:
 
 ```text
-Agent trigger
-  -> staff/auth gate
-  -> agent enabled/running gate
-  -> gather DB/project context
-  -> Lovable AI research/extraction
-  -> write projects, alerts, contacts or reports
-  -> update research_tasks
-  -> update agent_config run status
+user_events
+- id
+- user_id nullable
+- anonymous_id nullable
+- session_id
+- event_name
+- event_category
+- page_path
+- referrer
+- properties jsonb
+- plan_key nullable
+- roles text[]
+- created_at
 ```
 
-External tools later:
+Security model:
 
-```text
-Optional enrichment layer
-  -> Perplexity / Firecrawl / OpenAI / other connectors
-  -> only when customer traction justifies it
-  -> never required for MVP agent completion
+- Users cannot read all analytics events.
+- Users can insert only their own events through a controlled backend function.
+- Admins can read aggregated analytics only.
+- Raw event access should be staff/admin-only, ideally mostly via aggregated RPCs.
+
+This avoids exposing behavioral data across users.
+
+### 2. Add a secure `track-event` backend function
+
+Create a backend function that receives validated event payloads from the app.
+
+It will:
+
+- Validate event name/category/properties.
+- Attach authenticated user ID from the JWT when present.
+- Accept anonymous events before signup with a random anonymous/session ID.
+- Add safe request metadata such as user agent and current URL path.
+- Rate-limit or cap payload size to avoid abuse.
+- Insert into `user_events` using service permissions so the frontend never directly writes arbitrary analytics rows.
+
+No external API keys are required for the first-party version.
+
+### 3. Add a client analytics utility
+
+Add a small `src/lib/analytics.ts` wrapper with functions like:
+
+```ts
+analytics.track('paywall_viewed', { feature, minPlan })
+analytics.identify(user)
+analytics.page()
 ```
 
-No database schema changes are expected for this pass. This is documentation plus backend function refactoring and deployment.
+The wrapper will:
 
-&nbsp;
+- Store `anonymous_id` and `session_id` locally.
+- Capture UTM/source data already supported by the app.
+- Avoid capturing sensitive data such as passwords, full free-text prompts, payment details, or raw emails in event properties.
+- Fail silently if analytics insertion fails so the product never breaks because tracking failed.
 
-Also use any lovable connectors as you deem necessary thst will achieve our works, when I started building this platform from scratch lovable automatically connected these connectors like fireclaw which was used in searching and scraping lots of date, we should continue similarly but making sure it serves the purpose of the platform for this first version and this can be improved in the future with external services 
+### 4. Track the most important product events
+
+Instrument the flows that matter most for understanding drop-off and conversion:
+
+#### Acquisition and signup
+
+- `page_viewed`
+- `signup_started`
+- `signup_completed`
+- `email_verification_required`
+- `email_verified_callback`
+- `login_completed`
+- `google_login_started`
+- `google_login_completed`
+- `logout_clicked`
+
+#### Onboarding and activation
+
+- `onboarding_started`
+- `onboarding_step_completed`
+- `onboarding_completed`
+- `tour_started`
+- `tour_completed`
+- `first_project_viewed`
+- `first_search_performed`
+- `first_project_tracked`
+
+#### Paywall and monetization
+
+- `paywall_viewed`
+- `paywall_cta_clicked`
+- `trial_started`
+- `checkout_started`
+- `checkout_completed` if payment webhook confirms it
+- `quota_request_started`
+- `quota_request_submitted`
+- `pricing_page_viewed`
+
+This directly answers your example: “did they sign out after hitting the paywall?” by querying users/sessions where `paywall_viewed` is followed by `logout_clicked` or no further activity.
+
+#### Core product usage
+
+- `dashboard_viewed`
+- `project_opened`
+- `search_performed`
+- `filter_applied`
+- `watchlist_added`
+- `ai_query_started`
+- `ai_query_completed`
+- `export_attempted`
+- `insight_opened`
+
+### 5. Add admin analytics views to the existing Traction dashboard
+
+Extend `/dashboard/traction` with product behavior analytics:
+
+- Signup funnel: landing → signup started → signup completed → email verified → onboarded → activated → trial/paid.
+- Paywall funnel: paywall viewed → start trial / checkout / compare plans / sign out / inactive.
+- Top paywalled features causing drop-off.
+- Activation metrics: first project viewed, first saved project, first AI action, first export.
+- Retention table: active again after 1 day, 7 days, 30 days.
+- Recent high-intent users: users who hit paywall multiple times or viewed pricing but did not convert.
+
+Keep this admin-only using the existing `has_role(auth.uid(), 'admin')` approach.
+
+### 6. Add aggregated RPCs instead of exposing raw event tables to the UI
+
+Create functions such as:
+
+- `get_product_analytics_summary(days integer)`
+- `get_signup_funnel(days integer)`
+- `get_paywall_dropoff(days integer)`
+- `get_activation_cohorts(days integer)`
+
+These return counts and grouped rows for charts without exposing individual behavior unnecessarily.
+
+### 7. Privacy and compliance safeguards
+
+Update the privacy notice if needed to clearly state that product usage events are collected to improve the platform.
+
+Implementation safeguards:
+
+- Do not track passwords, payment card details, raw AI prompts, sensitive user text, or private project notes.
+- Keep properties allowlisted per event where possible.
+- Use a short-to-medium retention window for raw events, e.g. 180 or 365 days, while keeping aggregate metrics longer.
+- Make analytics admin-only.
+- Respect basic browser privacy controls where appropriate.
+
+## Optional later upgrade: connect PostHog
+
+After first-party tracking is in place, you can optionally forward selected events to PostHog for session replay, funnels, heatmaps, and feature flags.
+
+I would not start with full third-party autocapture because this platform has sensitive infrastructure intelligence workflows. A better path is:
+
+1. First-party event tracking now.
+2. Clean event taxonomy.
+3. Admin dashboard.
+4. Optional PostHog later for visual funnels/session replay, with sensitive fields masked.
+
+## Technical implementation plan
+
+1. Database migration
+   - Create `user_events` table.
+   - Enable RLS.
+   - Add safe policies.
+   - Add indexes on `user_id`, `session_id`, `event_name`, `created_at`, and selected properties if needed.
+   - Add admin-only aggregate RPCs.
+
+2. Backend function
+   - Add `supabase/functions/track-event/index.ts`.
+   - Validate input with strict schemas.
+   - Resolve authenticated user from bearer token when available.
+   - Insert sanitized events.
+
+3. Frontend analytics library
+   - Add `src/lib/analytics.ts`.
+   - Add route-level page tracking in `App`/router layer.
+   - Track auth events in `Login.tsx`, `AuthCallback.tsx`, and `AuthContext.tsx`.
+
+4. Paywall instrumentation
+   - Track `paywall_viewed` and CTA clicks in `FeatureGate.tsx`.
+   - Track trial, checkout, pricing, quota request actions in `UpgradeDialog.tsx` and billing hooks.
+
+5. Activation instrumentation
+   - Track onboarding completion, project opens, saved project actions, AI attempts, exports, and insight reads in the relevant hooks/pages.
+
+6. Dashboard
+   - Extend `Traction.tsx` with product behavior sections and charts.
+   - Keep all analytics pages behind admin role guards.
+
+7. Verification
+   - Confirm anonymous page events, signup events, authenticated events, paywall events, and signout events are recorded.
+   - Confirm regular users cannot read other users’ events.
+   - Confirm admin summaries return the expected funnel/drop-off counts.
+
+## Best first milestone
+
+Start with the minimum event set that answers your paywall/drop-off question:
+
+- `signup_completed`
+- `email_verification_required`
+- `login_completed`
+- `onboarding_completed`
+- `paywall_viewed`
+- `paywall_cta_clicked`
+- `trial_started`
+- `checkout_started`
+- `logout_clicked`
+- `page_viewed`
+
+Then add deeper product events once the foundation is working.
