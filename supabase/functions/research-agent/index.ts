@@ -140,7 +140,6 @@ serve(async (req) => {
 
   try {
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -192,10 +191,10 @@ serve(async (req) => {
       }
     }
 
-    // Step 2: Deep research with Perplexity — 4 queries per run, cycling through groups
-    if (PERPLEXITY_API_KEY) {
+    // Step 2: Deep research with Lovable AI, cycling through groups
+    {
       if (taskId) await setTaskStep(supabase, taskId, "Searching");
-      console.log("Researching with Perplexity...");
+      console.log("Researching with Lovable AI...");
 
       const groupNames = [...new Set(RESEARCH_QUERIES.map((q) => q.group))];
       // Cycle offset based on current time so successive runs hit different groups
@@ -208,30 +207,19 @@ serve(async (req) => {
         const queriesInGroup = RESEARCH_QUERIES.filter((q) => q.group === group);
         const chosen = queriesInGroup[Math.floor(Math.random() * queriesInGroup.length)];
         try {
-          const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${PERPLEXITY_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "sonar",
-              messages: [
-                { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
-                { role: "user", content: chosen.query },
-              ],
-              search_recency_filter: "month",
-            }),
+          const aiResearch = await chatCompletions({
+            messages: [
+              { role: "system", content: "You are an infrastructure intelligence analyst. Provide detailed information about current infrastructure megaprojects worldwide. IMPORTANT: Always include direct URLs to your sources for each project mentioned." },
+              { role: "user", content: chosen.query },
+            ],
           });
-          const pxData = await pxResponse.json();
-          if (pxData?.choices?.[0]?.message?.content) {
-            rawContent.push(`Perplexity Research [${group}]:\n${pxData.choices[0].message.content}`);
-            if (pxData.citations) {
-              rawContent.push(`Citations: ${pxData.citations.join(", ")}`);
-            }
+          if (aiResearch.ok) {
+            const aiData = await aiResearch.json();
+            const content = aiData?.choices?.[0]?.message?.content;
+            if (content) rawContent.push(`Lovable AI Research [${group}]:\n${content}`);
           }
         } catch (e) {
-          console.error(`Perplexity error for group ${group}:`, e);
+          console.error(`Lovable AI research error for group ${group}:`, e);
         }
       }
     }

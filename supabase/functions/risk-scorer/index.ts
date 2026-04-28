@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
+import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
@@ -29,8 +30,6 @@ serve(async (req) => {
   const taskId = lock.taskId;
 
   try {
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-
     const { data: projects } = await supabase.from("projects").select("*")
       .eq("approved", true)
       .order("last_updated", { ascending: true });
@@ -43,27 +42,11 @@ serve(async (req) => {
     let scored = 0;
     let geoContext = "";
 
-    if (PERPLEXITY_API_KEY) {
-      try {
-        const countries = [...new Set(projects.map((p: any) => p.country))].join(", ");
-        const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a geopolitical risk analyst. Provide concise risk signals." },
-              { role: "user", content: `What are the current geopolitical, economic, and supply chain risk signals for infrastructure projects in these countries: ${countries}? Focus on political instability, currency risks, sanctions, supply chain disruptions, and regulatory changes in the past month.` },
-            ],
-            search_recency_filter: "month",
-          }),
-        });
-        const pxData = await pxResponse.json();
-        geoContext = pxData?.choices?.[0]?.message?.content || "";
-      } catch (e) {
-        console.error("Perplexity risk context error:", e);
-      }
-    }
+    const countries = [...new Set(projects.map((p: any) => p.country))].join(", ");
+    geoContext = await runResearchPrompt({
+      systemRole: "You are a geopolitical risk analyst. Provide concise risk signals for infrastructure investment.",
+      query: `What are the current geopolitical, economic, and supply chain risk signals for infrastructure projects in these countries: ${countries}? Focus on political instability, currency risks, sanctions, supply chain disruptions, and regulatory changes in the past month.`,
+    }) || "";
 
     if (!geoContext) {
       const result = { success: true, message: "No risk context available", scored: 0 };
