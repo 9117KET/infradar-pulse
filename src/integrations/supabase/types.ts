@@ -462,6 +462,42 @@ export type Database = {
         }
         Relationships: []
       }
+      no_card_trial_grants: {
+        Row: {
+          created_at: string
+          email_normalized: string
+          ends_at: string
+          environment: string
+          id: string
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_normalized: string
+          ends_at?: string
+          environment?: string
+          id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_normalized?: string
+          ends_at?: string
+          environment?: string
+          id?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pending_role_assignments: {
         Row: {
           created_at: string | null
