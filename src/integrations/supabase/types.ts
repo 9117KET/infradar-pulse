@@ -485,6 +485,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          acq_campaign: string | null
+          acq_content: string | null
+          acq_medium: string | null
+          acq_source: string | null
+          acq_term: string | null
           company: string | null
           created_at: string | null
           critical_only: boolean
@@ -492,6 +497,7 @@ export type Database = {
           email_alerts: boolean
           id: string
           onboarded: boolean | null
+          referred_by_code: string | null
           regions: string[] | null
           role: string | null
           sectors: string[] | null
@@ -501,6 +507,11 @@ export type Database = {
           weekly_digest: boolean
         }
         Insert: {
+          acq_campaign?: string | null
+          acq_content?: string | null
+          acq_medium?: string | null
+          acq_source?: string | null
+          acq_term?: string | null
           company?: string | null
           created_at?: string | null
           critical_only?: boolean
@@ -508,6 +519,7 @@ export type Database = {
           email_alerts?: boolean
           id: string
           onboarded?: boolean | null
+          referred_by_code?: string | null
           regions?: string[] | null
           role?: string | null
           sectors?: string[] | null
@@ -517,6 +529,11 @@ export type Database = {
           weekly_digest?: boolean
         }
         Update: {
+          acq_campaign?: string | null
+          acq_content?: string | null
+          acq_medium?: string | null
+          acq_source?: string | null
+          acq_term?: string | null
           company?: string | null
           created_at?: string | null
           critical_only?: boolean
@@ -524,6 +541,7 @@ export type Database = {
           email_alerts?: boolean
           id?: string
           onboarded?: boolean | null
+          referred_by_code?: string | null
           regions?: string[] | null
           role?: string | null
           sectors?: string[] | null
@@ -843,6 +861,95 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_events: {
+        Row: {
+          code: string
+          conversion_environment: string | null
+          conversion_plan_key: string | null
+          conversion_price_id: string | null
+          conversion_subscription_id: string | null
+          converted_at: string | null
+          converted_to_paid: boolean
+          created_at: string
+          id: string
+          referred_id: string
+          referrer_id: string
+          reward_status: string
+        }
+        Insert: {
+          code: string
+          conversion_environment?: string | null
+          conversion_plan_key?: string | null
+          conversion_price_id?: string | null
+          conversion_subscription_id?: string | null
+          converted_at?: string | null
+          converted_to_paid?: boolean
+          created_at?: string
+          id?: string
+          referred_id: string
+          referrer_id: string
+          reward_status?: string
+        }
+        Update: {
+          code?: string
+          conversion_environment?: string | null
+          conversion_plan_key?: string | null
+          conversion_price_id?: string | null
+          conversion_subscription_id?: string | null
+          converted_at?: string | null
+          converted_to_paid?: boolean
+          created_at?: string
+          id?: string
+          referred_id?: string
+          referrer_id?: string
+          reward_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_events_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_events_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       research_tasks: {
         Row: {
@@ -1211,6 +1318,7 @@ export type Database = {
         }
         Returns: number
       }
+      claim_referral_signup: { Args: { p_code: string }; Returns: boolean }
       consume_quota: {
         Args: {
           p_daily_cap: number

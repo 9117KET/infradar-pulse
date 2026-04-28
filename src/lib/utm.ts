@@ -6,6 +6,7 @@ export interface UtmParams {
   acq_campaign?: string;
   acq_term?: string;
   acq_content?: string;
+  referred_by_code?: string;
 }
 
 /**
@@ -16,7 +17,8 @@ export interface UtmParams {
 export function captureUtmParams(): void {
   if (typeof window === 'undefined') return;
   const params = new URLSearchParams(window.location.search);
-  const source = params.get('utm_source') ?? params.get('ref');
+  const referralCode = params.get('ref')?.trim().toUpperCase();
+  const source = params.get('utm_source') ?? (referralCode ? 'referral' : null);
   if (!source) return; // nothing to capture
   if (sessionStorage.getItem(STORAGE_KEY)) return; // already captured
 
@@ -26,6 +28,7 @@ export function captureUtmParams(): void {
     acq_campaign: params.get('utm_campaign') ?? undefined,
     acq_term: params.get('utm_term') ?? undefined,
     acq_content: params.get('utm_content') ?? undefined,
+    referred_by_code: referralCode || undefined,
   };
   // Strip undefined keys so we don't write empty strings to the DB
   Object.keys(entry).forEach(k => {
@@ -52,4 +55,9 @@ export function getStoredUtmParams(): UtmParams | null {
 export function clearUtmParams(): void {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(STORAGE_KEY);
+}
+
+export function getStoredReferralCode(): string | null {
+  const stored = getStoredUtmParams();
+  return stored?.referred_by_code ?? null;
 }
