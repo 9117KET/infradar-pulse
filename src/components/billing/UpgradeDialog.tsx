@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { isLiveCheckoutEnabled } from '@/lib/paddle';
+import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 
 type Reason = 'ai' | 'export' | 'insight' | 'default';
 
@@ -58,6 +59,7 @@ export function UpgradeDialog({
   reason?: Reason;
 }) {
   const { openCheckout, loading } = usePaddleCheckout();
+  const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { toast } = useToast();
   const { plan } = useEntitlements();
   const { title, description } = COPY[reason] ?? COPY.default;
@@ -75,6 +77,20 @@ export function UpgradeDialog({
     } catch (e) {
       toast({
         title: 'Checkout unavailable',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const beginTrial = async () => {
+    try {
+      await startTrial();
+      toast({ title: 'Trial started', description: 'Your 3-day trial is active. No card was required.' });
+      onOpenChange(false);
+    } catch (e) {
+      toast({
+        title: 'Trial unavailable',
         description: e instanceof Error ? e.message : 'Please try again.',
         variant: 'destructive',
       });
@@ -177,6 +193,10 @@ export function UpgradeDialog({
                   Request temporary quota
                 </Button>
               )}
+              <Button variant="outline" onClick={() => void beginTrial()} disabled={trialLoading}>
+                {trialLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Start 3-day trial
+              </Button>
               {checkoutEnabled ? (
                 <Button className="teal-glow" onClick={() => void subscribe()} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
