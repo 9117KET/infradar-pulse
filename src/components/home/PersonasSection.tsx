@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BriefcaseBusiness, Compass, BarChart3, Search, Landmark, HardHat } from 'lucide-react';
+import { BriefcaseBusiness, Compass, BarChart3, Search, Landmark, HardHat, ClipboardCheck, Building2, FileSearch } from 'lucide-react';
 
 const PERSONAS = [
   { icon: Search, role: 'Business development teams', use: 'Pipeline intelligence', bullets: ['Map stakeholder networks and decision-makers', 'Track bid activity across 20+ procurement portals', 'Optimize outreach timing with pipeline signals'] },
@@ -7,6 +7,9 @@ const PERSONAS = [
   { icon: Compass, role: 'Infrastructure consultants', use: 'Market advisory', bullets: ['Build country and sector briefs from live data', 'Compare project pipelines across 14 regions', 'Turn monitoring into report-quality deliverables'] },
   { icon: Landmark, role: 'Development finance analysts', use: 'Portfolio monitoring', bullets: ['Track projects you fund in real time', 'Early warning before loans go non-performing', 'Replace manual spreadsheets with verified signals'] },
   { icon: BarChart3, role: 'Project finance professionals', use: 'Risk monitoring', bullets: ['Real-time delay alerts across loan portfolios', 'Contractor distress signals before default', 'Political risk proximity to election calendars'] },
+  { icon: ClipboardCheck, role: 'Project managers', use: 'Delivery oversight', bullets: ['Monitor milestones, slippage, and site progress', 'Turn scattered updates into one operating view', 'Escalate delivery risks before they become claims'] },
+  { icon: Building2, role: 'Owners and developers', use: 'Asset pipeline planning', bullets: ['Track market demand and comparable projects', 'Benchmark delivery partners and counterparties', 'Coordinate investment, delivery, and reporting teams'] },
+  { icon: FileSearch, role: 'Procurement and tender teams', use: 'Opportunity tracking', bullets: ['Centralize tender calendars and award signals', 'Prioritize bids by region, sector, and value', 'Spot procurement changes before deadlines move'] },
   { icon: BriefcaseBusiness, role: 'Infrastructure organizations', use: 'Strategic planning', bullets: ['Track emerging markets and pipeline value', 'Monitor competitor and partner activity', 'Coordinate decisions around one verified source'] },
 ];
 
