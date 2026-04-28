@@ -133,6 +133,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -150,7 +151,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
     taskId = lock.taskId;
-    const runStartedAt = new Date();
+    runStartedAt = new Date();
 
     // Step 1: Discover available project datasets via CKAN package list
     await setTaskStep(supabase, taskId, "Searching");
@@ -242,7 +243,7 @@ serve(async (req) => {
         await supabase.from("research_tasks").update({
           status: "failed", error: result.error, result, completed_at: new Date().toISOString(),
         }).eq("id", taskId);
-        await finishAgentRun(supabase, "adb-ingest", "failed", runStartedAt);
+        await finishAgentRun(supabase, "adb-ingest", "failed", runStartedAt ?? new Date());
       }
       return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -360,7 +361,7 @@ serve(async (req) => {
       }).eq("id", taskId);
     }
 
-    await finishAgentRun(supabase, "adb-ingest", "completed", runStartedAt);
+    await finishAgentRun(supabase, "adb-ingest", "completed", runStartedAt ?? new Date());
     console.log(`ADB ingest complete: fetched=${processLimit} inserted=${inserted} updated=${updated} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
