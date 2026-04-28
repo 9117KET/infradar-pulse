@@ -69,22 +69,26 @@ interface SchedulerActivity {
   scheduler_failures: number;
 }
 
+interface AgentConfigRow {
+  agent_type: string;
+  enabled: boolean;
+  last_run_at: string | null;
+  last_run_status: string | null;
+  success_count: number;
+  failure_count: number;
+  last_duration_ms: number | null;
+}
+
 const PAGE_SIZE = 1000;
 
-async function fetchAllResearchTasks(): Promise<TaskRow[]> {
-  const all: TaskRow[] = [];
-  for (let from = 0; from < 50_000; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from('research_tasks')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data?.length) break;
-    all.push(...(data as unknown as TaskRow[]));
-    if (data.length < PAGE_SIZE) break;
-  }
-  return all;
+async function fetchRecentResearchTasks(): Promise<TaskRow[]> {
+  const { data, error } = await supabase
+    .from('research_tasks')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(0, PAGE_SIZE - 1);
+  if (error) throw error;
+  return (data ?? []) as unknown as TaskRow[];
 }
 
 const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
@@ -104,7 +108,7 @@ export default function AgentMonitoring() {
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
-    queryFn: fetchAllResearchTasks,
+    queryFn: fetchRecentResearchTasks,
     refetchInterval: 15000,
   });
 
@@ -119,7 +123,7 @@ export default function AgentMonitoring() {
       }, {});
     },
     enabled: staffReady,
-    refetchInterval: staffReady ? 30000 : false,
+    refetchInterval: 30000,
   });
 
   // Data coverage query - paginated so the 1000-row Supabase default cap does
@@ -189,9 +193,11 @@ export default function AgentMonitoring() {
   const { data: agentConfigs } = useQuery({
     queryKey: ['agent-configs'],
     queryFn: async () => {
-      const { data } = await supabase.from('agent_config').select('agent_type, enabled');
-      const map: Record<string, boolean> = {};
-      (data || []).forEach((row: { agent_type: string; enabled: boolean }) => { map[row.agent_type] = row.enabled !== false; });
+      const { data } = await supabase
+        .from('agent_config')
+        .select('agent_type, enabled, last_run_at, last_run_status, success_count, failure_count, last_duration_ms');
+      const map: Record<string, AgentConfigRow> = {};
+      ((data ?? []) as AgentConfigRow[]).forEach(row => { map[row.agent_type] = row; });
       return map;
     },
     refetchInterval: staffReady ? 30000 : false,
