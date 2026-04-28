@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Loader2 } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ export default function AuthCallback() {
         navigate('/login', { replace: true });
         return;
       }
+      void trackEvent('login_completed', { method: type === 'signup' ? 'email_verification' : 'oauth_or_email_link' }, 'auth');
+      if (type === 'signup') void trackEvent('email_verified_callback', { method: 'email' }, 'auth');
       // Onboarding decides if profile setup is needed. If not, dashboard.
       navigate('/dashboard', { replace: true });
     })();
