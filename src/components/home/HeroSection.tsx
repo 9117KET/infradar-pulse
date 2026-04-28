@@ -60,7 +60,7 @@ export function HeroSection() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Built for business development teams, EPC contractors, infrastructure consultants, development finance analysts, and project finance professionals who need timely market intelligence. Real-time signals across <span className="text-foreground font-medium">14 regions</span>, AI Q&amp;A, and report-quality briefs from live verified data - not one-off static PDFs.
+            Built for business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams who need timely market intelligence. Real-time signals across <span className="text-foreground font-medium">14 regions</span>, AI Q&amp;A, and report-quality briefs from live verified data - not one-off static PDFs.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
