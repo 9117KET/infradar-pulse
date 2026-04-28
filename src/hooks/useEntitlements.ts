@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { effectivePlan, PLAN_LIMITS, PlanKey } from '@/lib/billing/limits';
 import { getPaddleEnvironment } from '@/lib/paddle';
+import { useAuth } from '@/contexts/AuthContext';
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -17,7 +18,8 @@ export type SubInfo = {
 };
 
 export function useEntitlements() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, roles, loading: authLoading, profileLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [plan, setPlan] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState<Partial<Record<UsageMetric, number>>>({});
@@ -26,17 +28,8 @@ export function useEntitlements() {
   const [hasLifetime, setHasLifetime] = useState(false);
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
 
-  useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
   const refresh = useCallback(async () => {
+    if (authLoading || profileLoading) return;
     if (!userId) {
       setPlan('free');
       setUsage({});
@@ -50,8 +43,19 @@ export function useEntitlements() {
 
     setLoading(true);
     try {
+      const staffFromRoles = roles.includes('admin') || roles.includes('researcher');
+      if (staffFromRoles) {
+        setStaffBypass(true);
+        setPlan('enterprise');
+        setUsage({});
+        setHasLifetime(false);
+        setSubInfo(null);
+        setLoading(false);
+        return;
+      }
+
       const environment = getPaddleEnvironment();
-      const [{ data: sub }, { data: counters }, { data: roleRow }, { data: lifetime }] = await Promise.all([
+      const [{ data: sub }, { data: counters }, { data: lifetime }] = await Promise.all([
         supabase
           .from('subscriptions')
           .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
@@ -65,7 +69,6 @@ export function useEntitlements() {
           .select('metric, count')
           .eq('user_id', userId)
           .eq('period_start', todayUtc()),
-        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
         // Lifetime grant overrides everything below staff bypass.
         // Cast to any: lifetime_grants is a brand-new table not yet in generated types.
         (supabase as any)
@@ -89,7 +92,7 @@ export function useEntitlements() {
           : null,
       );
 
-      const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
+      const bypass = staffFromRoles;
       setStaffBypass(!!bypass);
 
       if (bypass) {
@@ -111,7 +114,7 @@ export function useEntitlements() {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [authLoading, profileLoading, roles, userId]);
 
   useEffect(() => {
     void refresh();

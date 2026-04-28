@@ -69,22 +69,26 @@ interface SchedulerActivity {
   scheduler_failures: number;
 }
 
+interface AgentConfigRow {
+  agent_type: string;
+  enabled: boolean;
+  last_run_at: string | null;
+  last_run_status: string | null;
+  success_count: number;
+  failure_count: number;
+  last_duration_ms: number | null;
+}
+
 const PAGE_SIZE = 1000;
 
-async function fetchAllResearchTasks(): Promise<TaskRow[]> {
-  const all: TaskRow[] = [];
-  for (let from = 0; from < 50_000; from += PAGE_SIZE) {
-    const { data, error } = await supabase
-      .from('research_tasks')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data?.length) break;
-    all.push(...(data as unknown as TaskRow[]));
-    if (data.length < PAGE_SIZE) break;
-  }
-  return all;
+async function fetchRecentResearchTasks(): Promise<TaskRow[]> {
+  const { data, error } = await supabase
+    .from('research_tasks')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .range(0, PAGE_SIZE - 1);
+  if (error) throw error;
+  return (data ?? []) as unknown as TaskRow[];
 }
 
 const WORKFLOW_STEPS = ['Searching', 'Extracting', 'Analyzing', 'Saving'];
@@ -93,6 +97,7 @@ export default function AgentMonitoring() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { canUseAi, isFreeTier, staffBypass, loading: entLoading } = useEntitlements();
+  const staffReady = !entLoading && staffBypass;
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [runningAgent, setRunningAgent] = useState<string | null>(null);
   const [togglingAgent, setTogglingAgent] = useState<string | null>(null);
@@ -103,7 +108,7 @@ export default function AgentMonitoring() {
 
   const { data: tasks, refetch } = useQuery({
     queryKey: ['research-tasks-monitoring'],
-    queryFn: fetchAllResearchTasks,
+    queryFn: fetchRecentResearchTasks,
     refetchInterval: 15000,
   });
 
@@ -117,7 +122,7 @@ export default function AgentMonitoring() {
         return acc;
       }, {});
     },
-    enabled: !entLoading && staffBypass,
+    enabled: staffReady,
     refetchInterval: 30000,
   });
 
@@ -142,7 +147,8 @@ export default function AgentMonitoring() {
       }
       return all;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   const { data: contactCounts } = useQuery({
@@ -160,7 +166,8 @@ export default function AgentMonitoring() {
       data.forEach(c => { counts[c.project_id] = (counts[c.project_id] || 0) + 1; });
       return counts;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   const { data: evidenceCounts } = useQuery({
@@ -178,19 +185,22 @@ export default function AgentMonitoring() {
       data.forEach(e => { counts[e.project_id] = (counts[e.project_id] || 0) + 1; });
       return counts;
     },
-    refetchInterval: 60000,
+    enabled: staffReady,
+    refetchInterval: staffReady ? 60000 : false,
   });
 
   // Agent enabled/paused state
   const { data: agentConfigs } = useQuery({
     queryKey: ['agent-configs'],
     queryFn: async () => {
-      const { data } = await supabase.from('agent_config').select('agent_type, enabled');
-      const map: Record<string, boolean> = {};
-      (data || []).forEach((row: { agent_type: string; enabled: boolean }) => { map[row.agent_type] = row.enabled !== false; });
+      const { data } = await supabase
+        .from('agent_config')
+        .select('agent_type, enabled, last_run_at, last_run_status, success_count, failure_count, last_duration_ms');
+      const map: Record<string, AgentConfigRow> = {};
+      ((data ?? []) as AgentConfigRow[]).forEach(row => { map[row.agent_type] = row; });
       return map;
     },
-    refetchInterval: 30000,
+    refetchInterval: staffReady ? 30000 : false,
   });
 
   const toggleMutation = useMutation({
@@ -270,21 +280,48 @@ export default function AgentMonitoring() {
     [projects, contactCounts, evidenceCounts],
   );
 
-  const getAgentStats = (taskType: string) =>
-    computeAgentStats(tasks ?? [], taskType);
+  const getAgentStats = (taskType: string) => {
+    const taskStats = computeAgentStats(tasks ?? [], taskType);
+    const summary = agentConfigs?.[taskType];
+    if (!summary) return taskStats;
+    return {
+      ...taskStats,
+      completed: Math.max(taskStats.completed, summary.success_count ?? 0),
+      failed: Math.max(taskStats.failed, summary.failure_count ?? 0),
+      total: Math.max(taskStats.total, (summary.success_count ?? 0) + (summary.failure_count ?? 0)),
+      successRate: ((summary.success_count ?? 0) + (summary.failure_count ?? 0)) > 0
+        ? Math.round(((summary.success_count ?? 0) / ((summary.success_count ?? 0) + (summary.failure_count ?? 0))) * 100)
+        : taskStats.successRate,
+      lastRun: taskStats.lastRun ?? (summary.last_run_at ? {
+        id: `${taskType}-summary`,
+        task_type: taskType,
+        status: summary.last_run_status ?? 'completed',
+        query: '',
+        error: null,
+        result: null,
+        created_at: summary.last_run_at,
+        completed_at: summary.last_run_at,
+        current_step: null,
+      } : undefined),
+    };
+  };
 
   const getAgentRunTotal = (agent: typeof AGENTS[0]) => {
-    const taskRuns = getAgentStats(agent.type).total;
+    const summaryRuns = agentConfigs?.[agent.type]
+      ? (agentConfigs[agent.type].success_count ?? 0) + (agentConfigs[agent.type].failure_count ?? 0)
+      : 0;
     const schedulerRuns = schedulerActivity?.[agent.type]?.scheduler_runs ?? 0;
-    return Math.max(taskRuns, schedulerRuns);
+    const recentRuns = getAgentStats(agent.type).total;
+    return Math.max(summaryRuns, schedulerRuns, recentRuns);
   };
 
   const getLastActivityAt = (agent: typeof AGENTS[0]) => {
     const taskLastRun = getAgentStats(agent.type).lastRun?.created_at;
+    const summaryLastRun = agentConfigs?.[agent.type]?.last_run_at ?? undefined;
     const schedulerLastRun = schedulerActivity?.[agent.type]?.last_scheduler_run ?? undefined;
-    if (!taskLastRun) return schedulerLastRun;
-    if (!schedulerLastRun) return taskLastRun;
-    return new Date(schedulerLastRun).getTime() > new Date(taskLastRun).getTime() ? schedulerLastRun : taskLastRun;
+    return [taskLastRun, summaryLastRun, schedulerLastRun]
+      .filter(Boolean)
+      .sort((a, b) => new Date(b!).getTime() - new Date(a!).getTime())[0];
   };
 
   const isStale = (agent: typeof AGENTS[0]) =>
@@ -334,9 +371,16 @@ export default function AgentMonitoring() {
   // showed agents that were paused or currently running (empty for most users).
   const visibleAgents = AGENTS;
 
-  const totalRuns = tasks?.length || 0;
-  const totalCompleted = tasks?.filter(t => t.status === 'completed').length || 0;
-  const totalFailed = tasks?.filter(t => t.status === 'failed').length || 0;
+  const summaryRows = Object.values(agentConfigs ?? {});
+  const totalRuns = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0) + (row.failure_count ?? 0), 0)
+    : tasks?.length || 0;
+  const totalCompleted = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.success_count ?? 0), 0)
+    : tasks?.filter(t => t.status === 'completed').length || 0;
+  const totalFailed = summaryRows.length
+    ? summaryRows.reduce((sum, row) => sum + (row.failure_count ?? 0), 0)
+    : tasks?.filter(t => t.status === 'failed').length || 0;
   const staleCount = AGENTS.filter(a => isStale(a)).length;
 
   const agentNameMap: Record<string, string> = {};
@@ -495,7 +539,7 @@ export default function AgentMonitoring() {
       </div>
 
       {/* Data Coverage Dashboard — staff only */}
-      {staffBypass && (
+      {staffReady && (
         <div className="glass-panel rounded-xl p-5">
           <h2 className="text-sm font-semibold mb-4 flex items-center gap-2">
             <Database className="h-4 w-4 text-primary" /> Data Coverage ({projects?.length || 0} projects)
@@ -535,7 +579,7 @@ export default function AgentMonitoring() {
           const stale = isStale(agent);
           const lastActivityAt = getLastActivityAt(agent);
           const agentRuns = getAgentRunTotal(agent);
-          const isEnabled = agentConfigs ? (agentConfigs[agent.type] !== false) : true;
+          const isEnabled = agentConfigs ? (agentConfigs[agent.type]?.enabled !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
 
@@ -597,7 +641,7 @@ export default function AgentMonitoring() {
                 <span>
                   {lastActivityAt ? `Last: ${timeAgo(lastActivityAt)}` : 'Never run'}
                 </span>
-                {staffBypass && <div className="flex items-center gap-1">
+                {staffReady && <div className="flex items-center gap-1">
                   {/* Pause / Resume toggle */}
                   <Button
                     variant="ghost"
