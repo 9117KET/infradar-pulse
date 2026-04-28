@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
-import { DollarSign, Compass, BarChart3, Search, Landmark, HardHat } from 'lucide-react';
+import { BriefcaseBusiness, Compass, BarChart3, Search, Landmark, HardHat } from 'lucide-react';
 
 const PERSONAS = [
-  { icon: Landmark, role: 'DFI Analysts', use: 'Portfolio monitoring', bullets: ['Track projects you fund in real time', 'Early warning before loans go non-performing', 'Replace manual spreadsheets with verified signals'] },
-  { icon: DollarSign, role: 'Investors & CFOs', use: 'Investment due diligence', bullets: ['Shorten diligence cycles from weeks to hours', 'Verify project readiness with confidence scores', 'Surface risk flags 6-9 months in advance'] },
-  { icon: HardHat, role: 'EPC Contractors', use: 'Tender intelligence', bullets: ['Find tenders before competitors do', 'Track competitor bid activity and win rates', 'Monitor contractor financial health across consortia'] },
-  { icon: Compass, role: 'Strategy leaders', use: 'Market opportunity analysis', bullets: ['Map emerging markets and pipeline value', 'Track competitor pipelines by region and sector', 'Identify partnership and acquisition signals'] },
-  { icon: BarChart3, role: 'Project finance teams', use: 'Risk monitoring', bullets: ['Real-time delay alerts across loan portfolios', 'Contractor distress signals before default', 'Political risk proximity to election calendars'] },
-  { icon: Search, role: 'Business development', use: 'Competitive intelligence', bullets: ['Map stakeholder networks and decision-makers', 'Track bid activity across 20+ procurement portals', 'Optimize outreach timing with pipeline signals'] },
+  { icon: Search, role: 'Business development teams', use: 'Pipeline intelligence', bullets: ['Map stakeholder networks and decision-makers', 'Track bid activity across 20+ procurement portals', 'Optimize outreach timing with pipeline signals'] },
+  { icon: HardHat, role: 'EPC contractors', use: 'Tender intelligence', bullets: ['Find tenders before competitors do', 'Track competitor bid activity and win rates', 'Monitor contractor financial health across consortia'] },
+  { icon: Compass, role: 'Infrastructure consultants', use: 'Market advisory', bullets: ['Build country and sector briefs from live data', 'Compare project pipelines across 14 regions', 'Turn monitoring into report-quality deliverables'] },
+  { icon: Landmark, role: 'Development finance analysts', use: 'Portfolio monitoring', bullets: ['Track projects you fund in real time', 'Early warning before loans go non-performing', 'Replace manual spreadsheets with verified signals'] },
+  { icon: BarChart3, role: 'Project finance professionals', use: 'Risk monitoring', bullets: ['Real-time delay alerts across loan portfolios', 'Contractor distress signals before default', 'Political risk proximity to election calendars'] },
+  { icon: BriefcaseBusiness, role: 'Infrastructure organizations', use: 'Strategic planning', bullets: ['Track emerging markets and pipeline value', 'Monitor competitor and partner activity', 'Coordinate decisions around one verified source'] },
 ];
 
 export function PersonasSection() {
@@ -15,7 +15,7 @@ export function PersonasSection() {
     <section id="personas" className="relative py-24">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 80%, rgba(107,216,203,0.05) 0%, transparent 70%)' }} />
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 className="font-serif text-3xl font-bold sm:text-4xl">One platform, six ways to win</h2>
+        <h2 className="font-serif text-3xl font-bold sm:text-4xl">Built for the teams that shape infrastructure markets</h2>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PERSONAS.map((p, i) => (
