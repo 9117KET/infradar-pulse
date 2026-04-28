@@ -519,6 +519,75 @@ export type Database = {
         }
         Relationships: []
       }
+      pilot_access_config: {
+        Row: {
+          duration_days: number
+          enabled: boolean
+          environment: string
+          max_seats: number
+          updated_at: string
+        }
+        Insert: {
+          duration_days?: number
+          enabled?: boolean
+          environment?: string
+          max_seats?: number
+          updated_at?: string
+        }
+        Update: {
+          duration_days?: number
+          enabled?: boolean
+          environment?: string
+          max_seats?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pilot_access_grants: {
+        Row: {
+          created_at: string
+          email_normalized: string | null
+          ends_at: string
+          environment: string
+          grant_source: string
+          granted_by: string | null
+          id: string
+          seat_number: number | null
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_normalized?: string | null
+          ends_at: string
+          environment?: string
+          grant_source?: string
+          granted_by?: string | null
+          id?: string
+          seat_number?: number | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_normalized?: string | null
+          ends_at?: string
+          environment?: string
+          grant_source?: string
+          granted_by?: string | null
+          id?: string
+          seat_number?: number | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           acq_campaign: string | null
@@ -1379,6 +1448,10 @@ export type Database = {
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
+      admin_grant_pilot_access: {
+        Args: { p_email?: string; p_environment?: string; p_user_id: string }
+        Returns: Json
+      }
       admin_list_user_emails: {
         Args: never
         Returns: {
@@ -1408,6 +1481,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: number
+      }
+      claim_own_pilot_access: {
+        Args: { p_email?: string; p_environment?: string }
+        Returns: Json
       }
       claim_referral_signup: { Args: { p_code: string }; Returns: boolean }
       consume_quota: {
@@ -1450,12 +1527,20 @@ export type Database = {
         }[]
       }
       get_paywall_dropoff: { Args: { p_days?: number }; Returns: Json }
+      get_pilot_access_summary: {
+        Args: { p_environment?: string }
+        Returns: Json
+      }
       get_product_analytics_summary: {
         Args: { p_days?: number }
         Returns: Json
       }
       get_signup_funnel: { Args: { p_days?: number }; Returns: Json }
       get_traction_stats: { Args: never; Returns: Json }
+      has_active_pilot_access: {
+        Args: { _user_id: string; check_env?: string }
+        Returns: boolean
+      }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
