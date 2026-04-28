@@ -205,83 +205,39 @@ serve(async (req) => {
 
     const taskId = task.id;
 
-    // ── Step 1: Perplexity Search (fast, do before returning) ──
+    // ── Step 1-2: Lovable AI research corpus ──
     let searchResults: Array<{ url: string; title: string; description: string }> = [];
-    const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
+    const scrapedContent: string[] = [];
 
-    if (perplexityKey) {
-      try {
-        const pResp = await fetch("https://api.perplexity.ai/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${perplexityKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "sonar",
-            messages: [
-              { role: "system", content: "You are a research assistant specializing in global infrastructure projects. Return factual information with source URLs." },
-              { role: "user", content: `Research this query and provide detailed information with sources: ${query}` },
-            ],
-          }),
-        });
-        const pData = await pResp.json();
-        const content = pData.choices?.[0]?.message?.content || "";
-        const citations = pData.citations || [];
-        searchResults = citations.map((url: string, i: number) => ({
-          url,
-          title: `Source ${i + 1}`,
-          description: content.substring(i * 200, (i + 1) * 200),
-        }));
-      } catch (e) {
-        console.error("Perplexity error:", e);
+    try {
+      const researchResp = await chatCompletions({
+        messages: [
+          { role: "system", content: "You are a research assistant specializing in global infrastructure projects. Produce a concise research brief with project names, countries, sectors, funding signals, stakeholders, and source URLs where you know them. Do not call external APIs." },
+          { role: "user", content: `Research this infrastructure query for the InfraRadarAI database: ${query}` },
+        ],
+      });
+      if (researchResp.ok) {
+        const data = await researchResp.json();
+        const content = data?.choices?.[0]?.message?.content;
+        if (content) {
+          scrapedContent.push(content.substring(0, 8000));
+          searchResults = [{ url: "https://infradarai.com", title: "Lovable AI research brief", description: content.substring(0, 240) }];
+        }
       }
+    } catch (e) {
+      console.error("Lovable AI research error:", e);
     }
 
     await supabase.from("research_tasks").update({
       result: {
-        step: "scraping",
-        sources: searchResults.map((s) => ({ url: s.url, status: "scraping" })),
+        step: "extracting",
+        sources: searchResults.map((s) => ({ url: s.url, status: "ready" })),
         sources_found: searchResults.length,
-        pages_scraped: 0,
+        pages_scraped: scrapedContent.length,
         projects: [],
-        message: `Found ${searchResults.length} sources. Scraping pages...`,
+        message: scrapedContent.length ? "Research brief generated. Extracting project details..." : "Lovable AI returned no research content.",
       },
     }).eq("id", taskId);
-
-    // ── Step 2: Firecrawl Scrape ──
-    const scrapedContent: string[] = [];
-    const firecrawlKey = Deno.env.get("FIRECRAWL_API_KEY");
-    const urlsToScrape = searchResults.slice(0, 5);
-
-    if (firecrawlKey && urlsToScrape.length > 0) {
-      for (let i = 0; i < urlsToScrape.length; i++) {
-        try {
-          const sResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ url: urlsToScrape[i].url, formats: ["markdown"], onlyMainContent: true }),
-          });
-          const sData = await sResp.json();
-          const md = sData.data?.markdown || sData.markdown || "";
-          if (md) scrapedContent.push(md.substring(0, 3000));
-
-          const updatedSources = searchResults.map((s, idx) => ({
-            url: s.url,
-            status: idx <= i ? "scraped" : idx < urlsToScrape.length ? "scraping" : "found",
-          }));
-          await supabase.from("research_tasks").update({
-            result: {
-              step: "scraping",
-              sources: updatedSources,
-              sources_found: searchResults.length,
-              pages_scraped: i + 1,
-              projects: [],
-              message: `Scraped ${i + 1} of ${urlsToScrape.length} pages...`,
-            },
-          }).eq("id", taskId);
-        } catch (e) {
-          console.error("Firecrawl error:", e);
-        }
-      }
-    }
 
     // Return taskId immediately - AI extraction and enrichment run in background
     const backgroundWork = runResearch(supabase, taskId, query.trim(), searchResults, scrapedContent)

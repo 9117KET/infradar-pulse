@@ -41,8 +41,6 @@ serve(async (req) => {
       }
     }
 
-    const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -110,64 +108,30 @@ serve(async (req) => {
     });
 
     let totalInserted = 0;
-    const perplexityWarning = !PERPLEXITY_API_KEY ? "PERPLEXITY_API_KEY not set — discovery quality is reduced." : undefined;
-
     for (const project of needsContacts) {
       const rawContent: string[] = [];
       const projectStakeholders = stakeholderMap[project.id] || [];
       const citationUrls: string[] = [];
 
-      if (PERPLEXITY_API_KEY) {
-        try {
-          const searchQuery = `"${project.name}" ${project.country} main contractor EPC procurement officer project manager email phone contact site engineer ${projectStakeholders.slice(0, 3).join(" ")}`;
-          const pxResponse = await fetch("https://api.perplexity.ai/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${PERPLEXITY_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: "sonar",
-              messages: [
-                { role: "system", content: "Find contact information for people involved in this infrastructure project. Prioritize main contractor contacts. Include names, phone numbers, emails, job titles, and organizations. Always cite the URL where each contact was found." },
-                { role: "user", content: searchQuery },
-              ],
-              search_recency_filter: "year",
-            }),
-          });
-          const pxData = await pxResponse.json();
-          if (pxData?.choices?.[0]?.message?.content) {
-            rawContent.push(`Perplexity: ${pxData.choices[0].message.content}`);
-            if (pxData.citations) {
-              citationUrls.push(...pxData.citations);
-              rawContent.push(`Sources: ${pxData.citations.join(", ")}`);
-            }
+      try {
+        const searchQuery = `"${project.name}" ${project.country} main contractor EPC procurement officer project manager email phone contact site engineer ${projectStakeholders.slice(0, 3).join(" ")}`;
+        const researchResponse = await chatCompletions({
+          messages: [
+            { role: "system", content: "You are an infrastructure contact discovery analyst. Identify likely publicly listed project stakeholders and contact leads. Use only source-aware statements and include source URLs when known. Do not fabricate emails or phone numbers." },
+            { role: "user", content: searchQuery },
+          ],
+        });
+        if (researchResponse.ok) {
+          const researchData = await researchResponse.json();
+          const content = researchData?.choices?.[0]?.message?.content;
+          if (content) {
+            rawContent.push(`Lovable AI contact research:
+${content}`);
+            if (project.source_url) citationUrls.push(project.source_url);
           }
-        } catch (e) {
-          console.error("Perplexity error for", project.name, e);
         }
-      }
-
-      if (FIRECRAWL_API_KEY && projectStakeholders.length > 0) {
-        try {
-          const searchResponse = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${FIRECRAWL_API_KEY}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              query: `${projectStakeholders[0]} ${project.country} contact team leadership email procurement`,
-              limit: 3,
-              scrapeOptions: { formats: ["markdown"] },
-            }),
-          });
-          const searchData = await searchResponse.json();
-          if (searchData?.data) {
-            for (const result of searchData.data.slice(0, 2)) {
-              if (result.markdown) {
-                rawContent.push(`Firecrawl (${result.url}): ${result.markdown.slice(0, 2000)}`);
-                if (result.url) citationUrls.push(result.url);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Firecrawl error for", project.name, e);
-        }
+      } catch (e) {
+        console.error("Lovable AI contact research error for", project.name, e);
       }
 
       if (rawContent.length === 0) continue;
