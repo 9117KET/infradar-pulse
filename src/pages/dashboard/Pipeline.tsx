@@ -2,14 +2,13 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProjects } from '@/hooks/use-projects';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
+import { STAGES } from '@/data/projects';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Building2, Cpu, Droplets, Factory, Fuel, Hexagon, Home, Landmark,
   Mountain, Server, Sun, Train, Wifi, Zap,
 } from 'lucide-react';
-
-const STAGES = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed'] as const;
 
 const STAGE_COLORS: Record<string, string> = {
   Planned: 'border-slate-500/40 bg-slate-500/5',
@@ -18,6 +17,8 @@ const STAGE_COLORS: Record<string, string> = {
   Financing: 'border-amber-500/40 bg-amber-500/5',
   Construction: 'border-emerald-500/40 bg-emerald-500/5',
   Completed: 'border-teal-500/40 bg-teal-500/5',
+  Cancelled: 'border-red-500/40 bg-red-500/5',
+  Stopped: 'border-red-700/40 bg-red-700/5',
 };
 
 const STAGE_HEADER: Record<string, string> = {
@@ -27,6 +28,8 @@ const STAGE_HEADER: Record<string, string> = {
   Financing: 'text-amber-400',
   Construction: 'text-emerald-400',
   Completed: 'text-teal-400',
+  Cancelled: 'text-red-400',
+  Stopped: 'text-red-500',
 };
 
 const SECTOR_ICONS: Record<string, any> = {
