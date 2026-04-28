@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,7 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { REGIONS, SECTORS, STAGES } from '@/data/projects';
+import { REGIONS, SECTORS, STAGES, type ProjectStage, type Region, type Sector } from '@/data/projects';
 import {
   ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
   FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star,
@@ -67,7 +68,7 @@ const ROLE_TIPS: Record<string, { tip: string; startWith: string }> = {
   supply_chain: { tip: 'As Supply Chain/Logistics, timing and demand signals are crucial.', startWith: 'Start with Monitoring for real-time project updates.' },
 };
 
-function FeatureCard({ icon: Icon, name, desc }: { icon: any; name: string; desc: string }) {
+function FeatureCard({ icon: Icon, name, desc }: { icon: LucideIcon; name: string; desc: string }) {
   return (
     <div className="flex gap-3 p-4 rounded-xl border border-border bg-card/50 hover:bg-card/80 transition-colors">
       <div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -109,9 +110,9 @@ export default function Onboarding() {
       .eq('approved', true)
       .order('confidence', { ascending: false })
       .limit(24);
-    if (regions.length > 0) query = query.in('region', regions as any);
-    if (sectors.length > 0) query = query.in('sector', sectors as any);
-    if (stages.length > 0) query = query.in('stage', stages as any);
+    if (regions.length > 0) query = query.in('region', regions as Region[]);
+    if (sectors.length > 0) query = query.in('sector', sectors as Sector[]);
+    if (stages.length > 0) query = query.in('stage', stages as ProjectStage[]);
     query.then(({ data }) => {
       if (cancelled) return;
       setSuggestedProjects(data ?? []);
@@ -123,7 +124,8 @@ export default function Onboarding() {
   const toggleProject = (id: string) => {
     setSelectedProjectIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
