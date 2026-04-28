@@ -222,6 +222,38 @@ async function upsertSubscription(data: any, env: PaddleEnv, isCreate: boolean) 
       console.error('record_trial_started failed (non-fatal):', err);
     }
   }
+
+  if (['active', 'trialing', 'past_due'].includes(status) && planKey !== 'free') {
+    await markReferralConverted(userId, {
+      environment: env,
+      planKey,
+      priceId,
+      subscriptionId: id,
+    });
+  }
+}
+
+async function markReferralConverted(
+  userId: string,
+  details: { environment: PaddleEnv; planKey: string; priceId: string | undefined; subscriptionId: string },
+) {
+  try {
+    await supabase
+      .from('referral_events')
+      .update({
+        converted_to_paid: true,
+        conversion_environment: details.environment,
+        conversion_plan_key: details.planKey,
+        conversion_price_id: details.priceId ?? null,
+        conversion_subscription_id: details.subscriptionId,
+        converted_at: new Date().toISOString(),
+        reward_status: 'earned',
+      })
+      .eq('referred_id', userId)
+      .eq('converted_to_paid', false);
+  } catch (err) {
+    console.error('markReferralConverted failed (non-fatal):', err);
+  }
 }
 
 // Records every Paddle event into billing_events for the user-facing audit log.
