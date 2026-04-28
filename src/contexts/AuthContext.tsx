@@ -60,12 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from('profiles').select('*').eq('id', uid).maybeSingle(),
       supabase.from('user_roles').select('role').eq('user_id', uid),
     ]);
-    const profileData = profileRes.data as (UserProfile & { acq_source?: string | null }) | null;
+    const profileData = profileRes.data as (UserProfile & { acq_source?: string | null; referred_by_code?: string | null }) | null;
     // One-time attribution write: if profile has no source yet but we captured UTMs, persist them
     if (profileData && !profileData.acq_source) {
       const utms = getStoredUtmParams();
       if (utms && Object.keys(utms).length > 0) {
-        await supabase.from('profiles').update(utms as Record<string, string>).eq('id', uid);
+        const referralCode = utms.referred_by_code;
+        const { referred_by_code: _ref, ...profileAttribution } = utms;
+        await supabase.from('profiles').update(profileAttribution as Record<string, string>).eq('id', uid);
+        if (referralCode && !profileData.referred_by_code) {
+          await supabase.rpc('claim_referral_signup' as never, { p_code: referralCode } as never);
+        }
         clearUtmParams();
       }
     }
