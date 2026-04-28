@@ -42,6 +42,16 @@ type TenderEvent = {
   created_at: string;
 };
 
+type TenderAlertRow = {
+  id: string;
+  project_id: string | null;
+  project_name: string | null;
+  message: string;
+  severity: string;
+  source_url: string | null;
+  created_at: string;
+};
+
 function parseEventType(message: string): string {
   const m = message.match(EVENT_TYPE_REGEX);
   return m ? m[1].toLowerCase() : 'award';
@@ -78,7 +88,7 @@ export default function Tenders() {
         .order('created_at', { ascending: false })
         .limit(200);
       if (error) throw error;
-      return (data ?? []).map((row: any): TenderEvent => ({
+      return ((data ?? []) as TenderAlertRow[]).map((row): TenderEvent => ({
         id: row.id,
         eventType: parseEventType(row.message),
         projectName: row.project_name || 'Unknown project',
