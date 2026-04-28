@@ -382,10 +382,10 @@ export default function Pricing() {
 
         <div className="glass-panel rounded-xl p-8 max-w-4xl mx-auto">
           <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" /> Built for DFI analysts, project finance teams, and EPC contractors
+            <Building2 className="h-5 w-5 text-primary" /> Built for infrastructure commercial, finance, and delivery teams
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            InfradarAI replaces expensive consultant engagements and stale research subscriptions with{' '}
+            For business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams, InfradarAI replaces expensive consultant engagements and stale research subscriptions with{' '}
             <span className="text-foreground">real-time AI research</span>,{' '}
             <span className="text-foreground">confidence-scored signals</span>, and{' '}
             <span className="text-foreground">self-serve workflows</span> - no annual contracts, no sales calls, no waiting for a quarterly report.
