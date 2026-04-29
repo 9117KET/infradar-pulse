@@ -74,6 +74,7 @@ serve(async (req) => {
       name?: string;
       country?: string | null;
       sector?: string | null;
+      value_usd?: number | null;
       source_url?: string | null;
       detailed_analysis?: string | null;
       key_risks?: string | null;
@@ -294,7 +295,7 @@ serve(async (req) => {
           sourceUrl: finalSourceUrl,
           confidence: 70,
           description: String(updates.detailed_analysis ?? project.detailed_analysis ?? project.description ?? ""),
-          valueUsd: 0,
+          valueUsd: project.value_usd ?? 0,
           evidenceCount: finalEvidenceCount,
           officialSourceCount: finalSourceUrl.includes("worldbank.org") || finalSourceUrl.includes("adb.org") || finalSourceUrl.includes("gov") ? 1 : 0,
           contactCount: finalContactCount,
