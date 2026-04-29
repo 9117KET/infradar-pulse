@@ -18,18 +18,20 @@ import {
   Mail, Phone, User, Building2, RefreshCw
 } from 'lucide-react';
 
-const PAGE_SIZE = 1000;
+const REVIEW_PAGE_SIZE = 25;
 
-async function fetchAllPages<T>(buildQuery: (from: number, to: number) => any, maxRows = 100_000): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; from < maxRows; from += PAGE_SIZE) {
-    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data?.length) break;
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-  }
-  return rows;
+function Pager({ page, total, onPageChange }: { page: number; total: number; onPageChange: (page: number) => void }) {
+  const totalPages = Math.max(1, Math.ceil(total / REVIEW_PAGE_SIZE));
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+      <span>{total === 0 ? '0' : page * REVIEW_PAGE_SIZE + 1}–{Math.min((page + 1) * REVIEW_PAGE_SIZE, total)} of {total}</span>
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>Previous</Button>
+        <span>Page {page + 1} of {totalPages}</span>
+        <Button size="sm" variant="outline" onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))} disabled={page + 1 >= totalPages}>Next</Button>
+      </div>
+    </div>
+  );
 }
 
 interface EvidenceRow {
@@ -61,40 +63,88 @@ export default function ReviewQueue() {
   const [approveGuardOpen, setApproveGuardOpen] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('candidates');
+  const [legacyPage, setLegacyPage] = useState(0);
+  const [candidatePage, setCandidatePage] = useState(0);
+  const [updatePage, setUpdatePage] = useState(0);
+  const [duplicatePage, setDuplicatePage] = useState(0);
+  const [sourceIssuePage, setSourceIssuePage] = useState(0);
 
-  const { data: pending = [], isLoading } = useQuery({
-    queryKey: ['pending-projects'],
+  const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
+    queryKey: ['pending-projects', legacyPage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => supabase
+      const from = legacyPage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await supabase
         .from('projects')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('approved', false)
         .order('created_at', { ascending: false })
-        .range(from, to));
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
+  const pending = pendingPageResult.rows;
 
-  const { data: candidates = [] } = useQuery({
-    queryKey: ['project-candidates-review'],
+  const { data: candidatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['project-candidates-review', candidatePage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => (supabase as any)
+      const from = candidatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
         .from('project_candidates')
-        .select('*')
+        .select('*', { count: 'exact' })
         .in('review_status', ['ready_for_review', 'needs_research'])
         .order('created_at', { ascending: false })
-        .range(from, to));
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
+    },
+  });
+  const candidates = candidatePageResult.rows;
+
+  const { data: updatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['update-proposals-review', updatePage],
+    queryFn: async () => {
+      const from = updatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
+        .from('update_proposals')
+        .select('*, projects(name, country, sector, stage, status)', { count: 'exact' })
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
+    },
+  });
+  const updateProposals = updatePageResult.rows;
+
+  const { data: duplicatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['duplicate-candidates-review', duplicatePage],
+    queryFn: async () => {
+      const from = duplicatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
+        .from('project_candidates')
+        .select('*', { count: 'exact' })
+        .or('duplicate_of.not.is.null,canonical_project_id.not.is.null,pipeline_status.eq.deduping')
+        .order('duplicate_confidence', { ascending: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
 
-  const { data: updateProposals = [] } = useQuery({
-    queryKey: ['update-proposals-review'],
+  const { data: sourceIssuePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['source-issues-review', sourceIssuePage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => (supabase as any)
-        .from('update_proposals')
-        .select('*, projects(name, country, sector, stage, status)')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .range(from, to));
+      const staleBefore = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const from = sourceIssuePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
+        .from('source_registry')
+        .select('*', { count: 'exact' })
+        .or(`status.eq.failing,last_success_at.is.null,last_success_at.lt.${staleBefore}`)
+        .order('last_failure_at', { ascending: false, nullsFirst: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
 
@@ -104,11 +154,12 @@ export default function ReviewQueue() {
     queryKey: ['pending-evidence', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const data = await fetchAllPages<any>((from, to) => supabase
+      const { data, error } = await supabase
         .from('evidence_sources')
         .select('id, project_id, source, url, type, verified, date, title')
         .in('project_id', pendingIds)
-        .range(from, to));
+        .range(0, 999);
+      if (error) throw error;
       const map: Record<string, EvidenceRow[]> = {};
       (data || []).forEach((e: any) => {
         if (!map[e.project_id]) map[e.project_id] = [];
@@ -123,11 +174,12 @@ export default function ReviewQueue() {
     queryKey: ['pending-contacts', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const data = await fetchAllPages<any>((from, to) => supabase
+      const { data, error } = await supabase
         .from('project_contacts')
         .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
         .in('project_id', pendingIds)
-        .range(from, to));
+        .range(0, 999);
+      if (error) throw error;
       const map: Record<string, ContactRow[]> = {};
       (data || []).forEach((c: any) => {
         if (!map[c.project_id]) map[c.project_id] = [];
@@ -157,13 +209,6 @@ export default function ReviewQueue() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
       toast({ title: 'Project rejected and removed' });
-    },
-  });
-
-  const approveAll = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('projects').update({ approved: true }).eq('approved', false);
-      if (error) throw error;
     },
   });
 
@@ -264,43 +309,19 @@ export default function ReviewQueue() {
             Review Queue
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {pending.length} AI-discovered project{pending.length !== 1 ? 's' : ''} awaiting review.
+            {pendingPageResult.total} AI-discovered project{pendingPageResult.total !== 1 ? 's' : ''} awaiting review.
             Approve expects at least one reachable contact (name + email or phone + http source URL) unless you override.
           </p>
         </div>
-        {pending.length > 1 && (
-          <Button
-            size="sm"
-            onClick={() => {
-              const lackingReachable = pending.filter((p: any) => !hasReachableContactRow(p.id)).length;
-              approveAll.mutate(undefined, {
-                onSuccess: () => {
-                  queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
-                  queryClient.invalidateQueries({ queryKey: ['projects'] });
-                  toast({
-                    title: 'All projects approved',
-                    description:
-                      lackingReachable > 0
-                        ? `${lackingReachable} project(s) had no reachable contact on file — consider follow-up.`
-                        : 'They will appear on the dashboard and globe.',
-                  });
-                },
-              });
-            }}
-            disabled={approveAll.isPending}
-            className="teal-glow"
-          >
-            {approveAll.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-            Approve all ({pending.length})
-          </Button>
-        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/60">
-          <TabsTrigger value="candidates">Legacy Queue ({pending.length})</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline Candidates ({candidates.length})</TabsTrigger>
-          <TabsTrigger value="updates">Update Proposals ({updateProposals.length})</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 bg-muted/60">
+          <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="updates">Update Proposals ({updatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="sources">Source Issues ({sourceIssuePageResult.total})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -544,6 +565,36 @@ export default function ReviewQueue() {
           })}
         </div>
       )}
+          <Pager page={legacyPage} total={pendingPageResult.total} onPageChange={setLegacyPage} />
+        </TabsContent>
+
+        <TabsContent value="duplicates" className="space-y-3">
+          {duplicatePageResult.rows.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No duplicate suggestions</h3>
+              <p className="text-sm text-muted-foreground mt-1">Entity resolution suggestions will appear here before merge decisions.</p>
+            </div>
+          ) : <>
+            <Pager page={duplicatePage} total={duplicatePageResult.total} onPageChange={setDuplicatePage} />
+            {duplicatePageResult.rows.map((candidate: any) => (
+              <div key={candidate.id} className="glass-panel rounded-xl p-5 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-semibold">{candidate.name}</h3>
+                    <p className="text-xs text-muted-foreground">{candidate.country} · {candidate.sector || 'Unknown sector'} · {candidate.pipeline_status}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-500/15 text-amber-400">Duplicate risk {candidate.duplicate_confidence ?? '—'}%</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">{candidate.description || 'No extracted description.'}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'requested_research' })}>More research</Button>
+                  <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject duplicate</Button>
+                </div>
+              </div>
+            ))}
+            <Pager page={duplicatePage} total={duplicatePageResult.total} onPageChange={setDuplicatePage} />
+          </>}
         </TabsContent>
 
         <TabsContent value="pipeline" className="space-y-3">
@@ -553,7 +604,9 @@ export default function ReviewQueue() {
               <h3 className="font-serif text-lg font-semibold">No pipeline candidates</h3>
               <p className="text-sm text-muted-foreground mt-1">Source-first candidates will appear here after ingest and extraction.</p>
             </div>
-          ) : candidates.map((candidate: any) => {
+          ) : <>
+            <Pager page={candidatePage} total={candidatePageResult.total} onPageChange={setCandidatePage} />
+            {candidates.map((candidate: any) => {
             const quality = calculateIntelligenceQuality({
               sourceUrl: candidate.source_url,
               confidence: candidate.confidence,
@@ -590,7 +643,9 @@ export default function ReviewQueue() {
                 {candidate.source_url && <a href={candidate.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{candidate.source_url}</a>}
               </div>
             );
-          })}
+            })}
+            <Pager page={candidatePage} total={candidatePageResult.total} onPageChange={setCandidatePage} />
+          </>}
         </TabsContent>
 
         <TabsContent value="updates" className="space-y-3">
@@ -600,7 +655,9 @@ export default function ReviewQueue() {
               <h3 className="font-serif text-lg font-semibold">No pending updates</h3>
               <p className="text-sm text-muted-foreground mt-1">Approved project changes will wait here before being applied.</p>
             </div>
-          ) : updateProposals.map((proposal: any) => (
+          ) : <>
+            <Pager page={updatePage} total={updatePageResult.total} onPageChange={setUpdatePage} />
+            {updateProposals.map((proposal: any) => (
             <div key={proposal.id} className="glass-panel rounded-xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 min-w-0">
@@ -619,7 +676,35 @@ export default function ReviewQueue() {
               </div>
               {proposal.source_url && <a href={proposal.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{proposal.source_url}</a>}
             </div>
-          ))}
+            ))}
+            <Pager page={updatePage} total={updatePageResult.total} onPageChange={setUpdatePage} />
+          </>}
+        </TabsContent>
+
+        <TabsContent value="sources" className="space-y-3">
+          {sourceIssuePageResult.rows.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <FileCheck2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No stale or failing sources</h3>
+              <p className="text-sm text-muted-foreground mt-1">Source registry issues will appear here when crawls fail or sources go stale.</p>
+            </div>
+          ) : <>
+            <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />
+            {sourceIssuePageResult.rows.map((source: any) => (
+              <div key={source.id} className="glass-panel rounded-xl p-5 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-semibold">{source.name}</h3>
+                    <p className="text-xs text-muted-foreground">{source.kind} · reliability {source.reliability_score}% · last success {source.last_success_at ? new Date(source.last_success_at).toLocaleDateString() : 'never'}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-red-500/15 text-red-400 capitalize">{source.status}</Badge>
+                </div>
+                {source.last_error && <p className="text-sm text-muted-foreground line-clamp-2">{source.last_error}</p>}
+                {source.base_url && <a href={source.base_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{source.base_url}</a>}
+              </div>
+            ))}
+            <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />
+          </>}
         </TabsContent>
       </Tabs>
 
