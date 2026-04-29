@@ -1,7 +1,12 @@
 // Validates an email against the disposable provider blocklist server-side.
 // Called by the Login page before signUp() so we never even create an
 // auth.users row for a throwaway domain.
+import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 import { checkDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from "../_shared/disposableEmail.ts";
+
+const BodySchema = z.object({
+  email: z.string().trim().email().max(255),
+});
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,8 +20,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email } = await req.json().catch(() => ({ email: null }));
-    const result = checkDisposableEmail(email);
+    const parsed = BodySchema.safeParse(await req.json().catch(() => null));
+    if (!parsed.success) {
+      return new Response(
+        JSON.stringify({ ok: false, reason: "INVALID_EMAIL", message: "Please enter a valid email address." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const result = checkDisposableEmail(parsed.data.email);
 
     if (!result.ok) {
       const status = result.reason === "DISPOSABLE_EMAIL" ? 422 : 400;
