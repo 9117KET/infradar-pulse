@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +28,7 @@ serve(async (req) => {
   const lock = await beginAgentTask(supabase, "update-check", "Checking approved projects for recent updates", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("update-check");
   const taskId = lock.taskId;
+  const runStartedAt = new Date();
 
   try {
     const { data: projects } = await supabase.from("projects").select("*")
@@ -127,7 +128,15 @@ Analyze if there are meaningful changes. Return JSON with:
                   if (analysis.confidence_adjustment) {
                     updates.confidence = Math.max(0, Math.min(100, project.confidence + analysis.confidence_adjustment));
                   }
-                  await supabase.from("projects").update(updates).eq("id", project.id);
+                  await supabase.from("update_proposals").insert({
+                    project_id: project.id,
+                    proposed_by_agent: "update-check",
+                    field_changes: updates,
+                    source_url: project.source_url || null,
+                    confidence: Math.max(0, Math.min(100, project.confidence + (analysis.confidence_adjustment ?? 0))),
+                    impact: analysis.alert_message || "Project update detected",
+                    status: "pending",
+                  });
                   updatedCount++;
 
                   if (analysis.alert_message) {
@@ -153,6 +162,8 @@ Analyze if there are meaningful changes. Return JSON with:
 
     const result = { success: true, projects_checked: Math.min(projects.length, 50), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+    await recordAgentEvent(supabase, "update-check", "completed", "Update proposals created for reviewer approval", taskId, result);
+    await finishAgentRun(supabase, "update-check", "completed", runStartedAt);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
@@ -161,6 +172,8 @@ Analyze if there are meaningful changes. Return JSON with:
     console.error("Update checker error:", e);
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId) await supabase.from("research_tasks").update({ status: "failed", completed_at: new Date().toISOString(), error: errMsg }).eq("id", taskId);
+    await recordAgentEvent(supabase, "update-check", "failed", errMsg, taskId);
+    await finishAgentRun(supabase, "update-check", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
