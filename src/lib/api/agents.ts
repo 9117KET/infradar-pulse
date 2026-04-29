@@ -65,13 +65,13 @@ export const agentApi = {
 
   runWorldBankIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
     invokeAgentWithBody('world-bank-ingest-agent', { ...(opts ?? {}) }),
-  runIfcIngest: (opts?: { status?: string; limit?: number }) =>
+  runIfcIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
     invokeAgentWithBody('ifc-ingest-agent', { ...(opts ?? {}) }),
-  runAdbIngest: (opts?: { limit?: number }) =>
+  runAdbIngest: (opts?: { limit?: number; offset?: number }) =>
     invokeAgentWithBody('adb-ingest-agent', { ...(opts ?? {}) }),
   runAfdbIngest: () => invokeAgent('afdb-ingest-agent'),
   runEbrdIngest: () => invokeAgent('ebrd-ingest-agent'),
-  runIadbIngest: (opts?: { status?: string; limit?: number }) =>
+  runIadbIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
     invokeAgentWithBody('iadb-ingest-agent', { ...(opts ?? {}) }),
   runAiibIngest: () => invokeAgent('aiib-ingest-agent'),
   runEntityDedup: () => invokeAgent('entity-dedup'),
