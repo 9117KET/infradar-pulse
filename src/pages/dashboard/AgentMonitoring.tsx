@@ -389,6 +389,33 @@ export default function AgentMonitoring() {
   const isStale = (agent: typeof AGENTS[0]) =>
     isAgentStale(getLastActivityAt(agent), agent.scheduleMinutes);
 
+  const getAgentState = (agent: typeof AGENTS[0], isEnabled: boolean, isRunningNow: boolean, stale: boolean, lastStatus?: string | null) => {
+    if (!isEnabled) return { label: 'Paused', className: 'text-muted-foreground border-muted/40 bg-muted/10' };
+    if (isRunningNow) return { label: 'Running', className: 'text-amber-400 border-amber-400/30 bg-amber-400/10' };
+    if (stale) return { label: 'Stale', className: 'text-amber-400 border-amber-400/30 bg-amber-400/10' };
+    if (lastStatus === 'failed') return { label: 'Error', className: 'text-destructive border-destructive/30 bg-destructive/10' };
+    if (lastStatus === 'completed') return { label: 'Healthy', className: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10' };
+    return { label: 'Idle', className: 'text-muted-foreground border-border bg-background/40' };
+  };
+
+  const getThroughput24h = (taskType: string) => {
+    const since = Date.now() - 24 * 60 * 60 * 1000;
+    const runs = (tasks ?? []).filter(t => t.task_type === taskType && new Date(t.created_at).getTime() >= since);
+    return {
+      total: runs.length,
+      completed: runs.filter(t => t.status === 'completed').length,
+      failed: runs.filter(t => t.status === 'failed').length,
+    };
+  };
+
+  const formatDuration = (ms?: number | null) => {
+    if (!ms) return '—';
+    if (ms < 1000) return `${ms}ms`;
+    const seconds = Math.round(ms / 1000);
+    if (seconds < 60) return `${seconds}s`;
+    return `${Math.round(seconds / 60)}m`;
+  };
+
   const runAgent = async (name: string, fn: (() => Promise<unknown>) | null) => {
     if (!staffBypass) {
       toast({
