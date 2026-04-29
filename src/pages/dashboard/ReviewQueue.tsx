@@ -283,11 +283,11 @@ export default function ReviewQueue() {
             Review Queue
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {pending.length} AI-discovered project{pending.length !== 1 ? 's' : ''} awaiting review.
+            {pendingPageResult.total} AI-discovered project{pendingPageResult.total !== 1 ? 's' : ''} awaiting review.
             Approve expects at least one reachable contact (name + email or phone + http source URL) unless you override.
           </p>
         </div>
-        {pending.length > 1 && (
+        {pendingPageResult.total > 1 && (
           <Button
             size="sm"
             onClick={() => {
@@ -310,16 +310,16 @@ export default function ReviewQueue() {
             className="teal-glow"
           >
             {approveAll.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-            Approve all ({pending.length})
+             Approve all ({pendingPageResult.total})
           </Button>
         )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-3 bg-muted/60">
-          <TabsTrigger value="candidates">Legacy Queue ({pending.length})</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline Candidates ({candidates.length})</TabsTrigger>
-          <TabsTrigger value="updates">Update Proposals ({updateProposals.length})</TabsTrigger>
+          <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="updates">Update Proposals ({updatePageResult.total})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -563,6 +563,7 @@ export default function ReviewQueue() {
           })}
         </div>
       )}
+          <Pager page={legacyPage} total={pendingPageResult.total} onPageChange={setLegacyPage} />
         </TabsContent>
 
         <TabsContent value="pipeline" className="space-y-3">
@@ -572,7 +573,9 @@ export default function ReviewQueue() {
               <h3 className="font-serif text-lg font-semibold">No pipeline candidates</h3>
               <p className="text-sm text-muted-foreground mt-1">Source-first candidates will appear here after ingest and extraction.</p>
             </div>
-          ) : candidates.map((candidate: any) => {
+          ) : <>
+            <Pager page={candidatePage} total={candidatePageResult.total} onPageChange={setCandidatePage} />
+            {candidates.map((candidate: any) => {
             const quality = calculateIntelligenceQuality({
               sourceUrl: candidate.source_url,
               confidence: candidate.confidence,
@@ -609,7 +612,9 @@ export default function ReviewQueue() {
                 {candidate.source_url && <a href={candidate.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{candidate.source_url}</a>}
               </div>
             );
-          })}
+            })}
+            <Pager page={candidatePage} total={candidatePageResult.total} onPageChange={setCandidatePage} />
+          </>}
         </TabsContent>
 
         <TabsContent value="updates" className="space-y-3">
@@ -619,7 +624,9 @@ export default function ReviewQueue() {
               <h3 className="font-serif text-lg font-semibold">No pending updates</h3>
               <p className="text-sm text-muted-foreground mt-1">Approved project changes will wait here before being applied.</p>
             </div>
-          ) : updateProposals.map((proposal: any) => (
+          ) : <>
+            <Pager page={updatePage} total={updatePageResult.total} onPageChange={setUpdatePage} />
+            {updateProposals.map((proposal: any) => (
             <div key={proposal.id} className="glass-panel rounded-xl p-5 space-y-3">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-2 min-w-0">
@@ -638,7 +645,9 @@ export default function ReviewQueue() {
               </div>
               {proposal.source_url && <a href={proposal.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{proposal.source_url}</a>}
             </div>
-          ))}
+            ))}
+            <Pager page={updatePage} total={updatePageResult.total} onPageChange={setUpdatePage} />
+          </>}
         </TabsContent>
       </Tabs>
 
