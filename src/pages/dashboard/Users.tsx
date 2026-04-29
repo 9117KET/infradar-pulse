@@ -237,9 +237,14 @@ export default function UsersPage() {
                         </Button>
                       </div>
                     ) : u.pilotStatus === 'revoked' ? (
-                      <Badge variant="outline" className="text-xs border-destructive/40 text-destructive">
-                        Revoked
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs border-destructive/40 text-destructive">
+                          Revoked
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantPilotAccess(u)}>
+                          <Gift className="mr-1 h-3 w-3" /> Grant again
+                        </Button>
+                      </div>
                     ) : (
                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantPilotAccess(u)}>
                         <Gift className="mr-1 h-3 w-3" /> Grant
