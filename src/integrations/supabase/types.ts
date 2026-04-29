@@ -1539,6 +1539,10 @@ export type Database = {
         Args: { p_days?: number }
         Returns: Json
       }
+      get_public_pilot_access_counter: {
+        Args: { p_environment?: string }
+        Returns: Json
+      }
       get_signup_funnel: { Args: { p_days?: number }; Returns: Json }
       get_traction_stats: { Args: never; Returns: Json }
       has_active_pilot_access: {
