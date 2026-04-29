@@ -45,7 +45,7 @@ export default function ForgotPassword() {
       <div className="glass-panel rounded-xl p-8 w-full max-w-sm teal-glow">
         <div className="flex items-center gap-2 justify-center mb-6">
           <InfradarLogo size={32} />
-          <span className="font-serif text-lg font-semibold tracking-wide">INFRADAR</span>
+          <span className="font-serif text-lg font-semibold tracking-wide">INFRADARAI</span>
         </div>
         <h1 className="font-serif text-lg text-center mb-1">Reset your password</h1>
         <p className="text-sm text-muted-foreground text-center mb-6">

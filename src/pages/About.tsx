@@ -9,12 +9,12 @@ import { PipelineSection } from '@/components/home/PipelineSection';
 export default function About() {
   useEffect(() => {
     const prevTitle = document.title;
-    document.title = 'About Infradar | Verified Infrastructure Intelligence';
+    document.title = 'About INFRADARAI | Verified Infrastructure Intelligence';
     const meta = document.querySelector('meta[name="description"]');
     const prevDesc = meta?.getAttribute('content') ?? '';
     meta?.setAttribute(
       'content',
-      'Infradar is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data.',
+      'INFRADARAI is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data.',
     );
     return () => {
       document.title = prevTitle;
@@ -30,7 +30,7 @@ export default function About() {
         <header className="mb-14 text-center">
           <div className="flex items-center justify-center gap-3 mb-6">
             <InfradarLogo size={44} />
-            <span className="font-serif text-2xl font-semibold tracking-wide">INFRADAR</span>
+            <span className="font-serif text-2xl font-semibold tracking-wide">INFRADARAI</span>
           </div>
           <h1 className="font-serif text-4xl sm:text-5xl font-bold mb-4">
             The verified intelligence layer for global infrastructure

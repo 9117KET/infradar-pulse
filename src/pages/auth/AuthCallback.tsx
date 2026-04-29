@@ -56,7 +56,7 @@ export default function AuthCallback() {
       <div className="glass-panel rounded-xl p-8 w-full max-w-sm text-center">
         <div className="flex items-center gap-2 justify-center mb-4">
           <InfradarLogo size={32} />
-          <span className="font-serif text-lg font-semibold tracking-wide">INFRADAR</span>
+          <span className="font-serif text-lg font-semibold tracking-wide">INFRADARAI</span>
         </div>
         {error ? (
           <>

@@ -20,7 +20,7 @@ export default function Privacy() {
             <li><strong>Content you submit:</strong> saved searches, tracked projects, notes, support messages.</li>
             <li><strong>Usage and telemetry:</strong> pages visited, features used, queries run, timestamps.</li>
             <li><strong>Device and connection data:</strong> IP address, browser, operating system, device identifiers.</li>
-            <li><strong>Authentication data:</strong> session tokens and, where you choose Google sign-in, your Google account identifier and email.</li>
+            <li><strong>Authentication data:</strong> session tokens, email address, and abuse-prevention checks for disposable or masked email providers.</li>
             <li><strong>Subscription and billing metadata:</strong> plan, status, renewal dates, invoice references. Card and payment details are collected and held by Paddle, not by us.</li>
           </ul>
 
@@ -47,7 +47,7 @@ export default function Privacy() {
             </li>
             <li><strong>Cloud and infrastructure providers</strong> (hosting, database, storage, email delivery, error monitoring) acting as our processors.</li>
             <li><strong>Analytics and product telemetry providers</strong> acting as our processors.</li>
-            <li><strong>Authentication providers</strong> (e.g. Google, where you choose to sign in with Google).</li>
+            <li><strong>Authentication and email providers</strong> used to create accounts, manage sessions, and protect the Service from abuse.</li>
             <li><strong>Professional advisers</strong> such as lawyers, accountants and auditors, where necessary.</li>
             <li><strong>Authorities and regulators</strong> where we are required to disclose by law or to protect our rights.</li>
             <li><strong>Successors</strong> in the event of a merger, acquisition or asset sale, subject to equivalent protections.</li>
