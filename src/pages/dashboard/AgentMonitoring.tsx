@@ -693,6 +693,73 @@ export default function AgentMonitoring() {
         </div>
       )}
 
+      {/* Agent state table */}
+      <div className="glass-panel rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" /> Agent State Matrix
+          </h2>
+          <p className="text-xs text-muted-foreground">Throughput is based on recent runs in the last 24 hours</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-background/50 text-xs text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="px-5 py-3 text-left font-medium">Agent</th>
+                <th className="px-4 py-3 text-left font-medium">State</th>
+                <th className="px-4 py-3 text-left font-medium">Last run</th>
+                <th className="px-4 py-3 text-right font-medium">Success</th>
+                <th className="px-4 py-3 text-right font-medium">Errors</th>
+                <th className="px-4 py-3 text-right font-medium">Throughput</th>
+                <th className="px-4 py-3 text-right font-medium">Avg duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleAgents.map(agent => {
+                const stats = getAgentStats(agent.type);
+                const Icon = agent.icon;
+                const isRunningNow = runningAgent === agent.name || stats.running > 0;
+                const stale = isStale(agent);
+                const lastActivityAt = getLastActivityAt(agent);
+                const config = agentConfigs?.[agent.type];
+                const isEnabled = agentConfigs ? (config?.enabled !== false) : true;
+                const state = getAgentState(agent, isEnabled, isRunningNow, stale, stats.lastRun?.status ?? config?.last_run_status);
+                const throughput = getThroughput24h(agent.type);
+
+                return (
+                  <tr key={agent.type} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Icon className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">{agent.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{agent.schedule}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className={`text-[10px] ${state.className}`}>{state.label}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {lastActivityAt ? timeAgo(lastActivityAt) : 'Never'}
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs font-semibold text-emerald-400">{stats.completed}</td>
+                    <td className="px-4 py-3 text-right text-xs font-semibold text-destructive">{stats.failed}</td>
+                    <td className="px-4 py-3 text-right text-xs text-foreground whitespace-nowrap">
+                      {throughput.total}/24h
+                      <span className="ml-1 text-[10px] text-muted-foreground">({throughput.completed} ok, {throughput.failed} err)</span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-xs text-muted-foreground whitespace-nowrap">{formatDuration(config?.last_duration_ms)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Agent grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {visibleAgents.length === 0 && !staffBypass && (
