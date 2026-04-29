@@ -96,6 +96,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (data?.granted && data?.reason === 'created') {
       void trackEvent('pilot_access_granted', { seat_number: data.seat_number, ends_at: data.ends_at }, 'monetization');
+      void supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'pilot-access-granted',
+          recipientEmail: currentUser.email,
+          idempotencyKey: `pilot-access-granted:${currentUser.id}:${data.seat_number ?? 'seat'}`,
+          templateData: {
+            email: currentUser.email,
+            seatNumber: data.seat_number ?? null,
+            endsAt: data.ends_at,
+            durationDays: data.duration_days ?? 30,
+          },
+        },
+      });
     }
   }, []);
 
