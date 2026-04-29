@@ -205,8 +205,8 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body is fine */ }
 
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
-    const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
-    const startOffset: number = Number(body.offset) || 0;
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 200, 1), 5000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
