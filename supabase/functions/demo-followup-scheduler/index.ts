@@ -12,6 +12,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { isAgentEnabled, pausedResponse } from '../_shared/agentGate.ts'
+import { requireStaffOrRespond } from '../_shared/requireStaff.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,9 +22,12 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
+  const gate = await requireStaffOrRespond(req)
+  if (gate instanceof Response) return gate
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const supabase = createClient(supabaseUrl, serviceKey)
+  const supabase = gate.supabaseAdmin ?? createClient(supabaseUrl, serviceKey)
 
   // Agent gate — pause/resume from AgentMonitoring dashboard
   if (!await isAgentEnabled(supabase, 'demo_followup')) {
@@ -31,8 +35,8 @@ Deno.serve(async (req) => {
   }
 
   const now = new Date()
-  const sent: string[] = []
-  const errors: string[] = []
+  let sent = 0
+  let errors = 0
 
   // --- Step 1: subscribers who signed up 3+ days ago and haven't had step 1 yet ---
   const day3Cutoff = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
@@ -72,13 +76,15 @@ Deno.serve(async (req) => {
             .from('subscribers')
             .update({ follow_up_step: 1, follow_up_sent_at: now.toISOString() })
             .eq('id', row.id)
-          sent.push(`step1:${row.email}`)
+          sent += 1
         } else {
           const body = await res.text()
-          errors.push(`step1:${row.email}: ${res.status} ${body}`)
+          errors += 1
+          console.error('[demo-followup] step1 send error', { status: res.status, body })
         }
       } catch (err) {
-        errors.push(`step1:${row.email}: ${String(err)}`)
+        errors += 1
+        console.error('[demo-followup] step1 exception', err)
       }
     }
   }
@@ -118,18 +124,20 @@ Deno.serve(async (req) => {
             .from('subscribers')
             .update({ follow_up_step: 2, follow_up_sent_at: now.toISOString() })
             .eq('id', row.id)
-          sent.push(`step2:${row.email}`)
+          sent += 1
         } else {
           const body = await res.text()
-          errors.push(`step2:${row.email}: ${res.status} ${body}`)
+          errors += 1
+          console.error('[demo-followup] step2 send error', { status: res.status, body })
         }
       } catch (err) {
-        errors.push(`step2:${row.email}: ${String(err)}`)
+        errors += 1
+        console.error('[demo-followup] step2 exception', err)
       }
     }
   }
 
-  console.log('[demo-followup] done', { sent: sent.length, errors: errors.length })
+  console.log('[demo-followup] done', { sent, errors })
   return new Response(JSON.stringify({ sent, errors }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   })
