@@ -103,9 +103,10 @@ export default function UsersPage() {
   useEffect(() => { fetchUsers(); }, []);
 
   const changeRole = async (userId: string, newRole: AppRole) => {
-    // Delete existing roles, insert new one
-    await supabase.from('user_roles').delete().eq('user_id', userId);
-    const { error } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole });
+    const { error } = await (supabase.rpc as any)('admin_set_user_role', {
+      p_user_id: userId,
+      p_role: newRole,
+    });
     if (error) {
       toast({ title: 'Error updating role', description: error.message, variant: 'destructive' });
     } else {
