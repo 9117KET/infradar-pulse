@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { calculateIntelligenceQuality } from '@/lib/intelligence-quality';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -13,7 +15,7 @@ import { isReachableContact } from '@/lib/contact-validation';
 import {
   Check, X, ExternalLink, Bot, MapPin, DollarSign,
   ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2,
-  Mail, Phone, User, Building2
+  Mail, Phone, User, Building2, RefreshCw
 } from 'lucide-react';
 
 interface EvidenceRow {
@@ -44,6 +46,7 @@ export default function ReviewQueue() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [approveGuardOpen, setApproveGuardOpen] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('candidates');
 
   const { data: pending = [], isLoading } = useQuery({
     queryKey: ['pending-projects'],
@@ -55,6 +58,32 @@ export default function ReviewQueue() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: candidates = [] } = useQuery({
+    queryKey: ['project-candidates-review'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('project_candidates')
+        .select('*')
+        .in('review_status', ['ready_for_review', 'needs_research'])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: updateProposals = [] } = useQuery({
+    queryKey: ['update-proposals-review'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('update_proposals')
+        .select('*, projects(name, country, sector, stage, status)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -122,6 +151,31 @@ export default function ReviewQueue() {
     mutationFn: async () => {
       const { error } = await supabase.from('projects').update({ approved: true }).eq('approved', false);
       if (error) throw error;
+    },
+  });
+
+  const candidateAction = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
+      const nextStatus = action === 'approved' ? 'approved' : action === 'rejected' ? 'rejected' : 'needs_research';
+      const { error } = await (supabase as any).from('project_candidates').update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+      await (supabase as any).from('review_actions').insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
+      toast({ title: 'Candidate updated' });
+    },
+  });
+
+  const updateAction = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' }) => {
+      const { error } = await (supabase as any).from('update_proposals').update({ status: action, reviewed_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+      await (supabase as any).from('review_actions').insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['update-proposals-review'] });
+      toast({ title: 'Update proposal reviewed' });
     },
   });
 
@@ -210,6 +264,14 @@ export default function ReviewQueue() {
         )}
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 bg-muted/60">
+          <TabsTrigger value="candidates">Legacy Queue ({pending.length})</TabsTrigger>
+          <TabsTrigger value="pipeline">Pipeline Candidates ({candidates.length})</TabsTrigger>
+          <TabsTrigger value="updates">Update Proposals ({updateProposals.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="candidates" className="space-y-4">
       {pending.length === 0 ? (
         <div className="glass-panel rounded-xl p-12 text-center">
           <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -450,6 +512,84 @@ export default function ReviewQueue() {
           })}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="pipeline" className="space-y-3">
+          {candidates.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No pipeline candidates</h3>
+              <p className="text-sm text-muted-foreground mt-1">Source-first candidates will appear here after ingest and extraction.</p>
+            </div>
+          ) : candidates.map((candidate: any) => {
+            const quality = calculateIntelligenceQuality({
+              sourceUrl: candidate.source_url,
+              confidence: candidate.confidence,
+              description: candidate.description,
+              valueUsd: candidate.value_usd,
+              lat: candidate.lat,
+              lng: candidate.lng,
+              evidenceCount: Array.isArray(candidate.extracted_claims?.evidence_ids) ? candidate.extracted_claims.evidence_ids.length : 0,
+              lastUpdated: candidate.updated_at,
+            });
+            return (
+              <div key={candidate.id} className="glass-panel rounded-xl p-5 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-serif font-semibold">{candidate.name}</h3>
+                      <Badge variant="outline">{candidate.stage}</Badge>
+                      <Badge variant="outline" className="bg-primary/10 text-primary">Quality {quality.totalScore}</Badge>
+                      <Badge variant="outline" className="capitalize">{quality.recommendation.replace('_', ' ')}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{candidate.country} · {candidate.region || 'Unknown region'} · {candidate.sector || 'Unknown sector'}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{candidate.description || 'No description extracted yet.'}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {quality.missingFields.map(field => <Badge key={field} variant="outline" className="text-[10px]">Missing {field}</Badge>)}
+                      {quality.flags.map(flag => <Badge key={flag} variant="outline" className="text-[10px]">{flag.replace(/_/g, ' ')}</Badge>)}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'requested_research' })}>More research</Button>
+                    <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject</Button>
+                    <Button size="sm" className="teal-glow" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'approved' })}><Check className="h-4 w-4 mr-1" />Approve</Button>
+                  </div>
+                </div>
+                {candidate.source_url && <a href={candidate.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{candidate.source_url}</a>}
+              </div>
+            );
+          })}
+        </TabsContent>
+
+        <TabsContent value="updates" className="space-y-3">
+          {updateProposals.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <RefreshCw className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No pending updates</h3>
+              <p className="text-sm text-muted-foreground mt-1">Approved project changes will wait here before being applied.</p>
+            </div>
+          ) : updateProposals.map((proposal: any) => (
+            <div key={proposal.id} className="glass-panel rounded-xl p-5 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-serif font-semibold">{proposal.projects?.name || 'Project update'}</h3>
+                    <Badge variant="outline">Confidence {proposal.confidence}%</Badge>
+                    <Badge variant="outline">{proposal.proposed_by_agent}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{proposal.impact || 'Field changes detected.'}</p>
+                  <pre className="text-xs bg-muted/30 rounded-md p-3 overflow-auto max-h-36">{JSON.stringify(proposal.field_changes, null, 2)}</pre>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => updateAction.mutate({ id: proposal.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject</Button>
+                  <Button size="sm" className="teal-glow" onClick={() => updateAction.mutate({ id: proposal.id, action: 'approved' })}><Check className="h-4 w-4 mr-1" />Approve</Button>
+                </div>
+              </div>
+              {proposal.source_url && <a href={proposal.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{proposal.source_url}</a>}
+            </div>
+          ))}
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={approveGuardOpen} onOpenChange={setApproveGuardOpen}>
         <AlertDialogContent>

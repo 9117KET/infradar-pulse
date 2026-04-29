@@ -147,6 +147,27 @@ export async function finishAgentRun(
   } catch { /* best-effort */ }
 }
 
+export async function recordAgentEvent(
+  supabase: SupabaseClient,
+  agentType: string,
+  eventType: string,
+  message = "",
+  taskId?: string | null,
+  counters: Record<string, unknown> = {},
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    await supabase.from("agent_run_events").insert({
+      task_id: taskId ?? null,
+      agent_type: agentType,
+      event_type: eventType,
+      message,
+      counters,
+      metadata,
+    });
+  } catch { /* best-effort */ }
+}
+
 /**
  * Standard 200 response to return when an agent is already running.
  * Returns { success: true, skipped: true } so callers know it was intentional.
