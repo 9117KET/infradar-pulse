@@ -104,10 +104,11 @@ export default function ReviewQueue() {
     queryKey: ['pending-evidence', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const data = await fetchAllPages<any>((from, to) => supabase
         .from('evidence_sources')
         .select('id, project_id, source, url, type, verified, date, title')
-        .in('project_id', pendingIds);
+        .in('project_id', pendingIds)
+        .range(from, to));
       const map: Record<string, EvidenceRow[]> = {};
       (data || []).forEach((e: any) => {
         if (!map[e.project_id]) map[e.project_id] = [];
@@ -122,10 +123,11 @@ export default function ReviewQueue() {
     queryKey: ['pending-contacts', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const data = await fetchAllPages<any>((from, to) => supabase
         .from('project_contacts')
         .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
-        .in('project_id', pendingIds);
+        .in('project_id', pendingIds)
+        .range(from, to));
       const map: Record<string, ContactRow[]> = {};
       (data || []).forEach((c: any) => {
         if (!map[c.project_id]) map[c.project_id] = [];
