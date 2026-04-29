@@ -29,6 +29,13 @@ const COMPETITOR_TABLE = [
 const LIFETIME_MAX_SEATS = 100;
 
 type Cycle = 'monthly' | 'yearly';
+type PilotCounter = {
+  enabled: boolean;
+  max_seats: number;
+  used_seats: number;
+  remaining_seats: number;
+  duration_days: number;
+};
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -38,6 +45,7 @@ export default function Pricing() {
   const navigate = useNavigate();
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [seatsTaken, setSeatsTaken] = useState<number | null>(null);
+  const [pilotCounter, setPilotCounter] = useState<PilotCounter | null>(null);
 
   // Public seat counter — drives the urgency badge on the Lifetime card.
   useEffect(() => {
@@ -53,6 +61,28 @@ export default function Pricing() {
     })();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadPilotCounter = async () => {
+      const { data, error } = await (supabase.rpc as any)('get_public_pilot_access_counter', {
+        p_environment: 'live',
+      });
+      if (!cancelled && !error && data) setPilotCounter(data as PilotCounter);
+    };
+
+    void loadPilotCounter();
+    const interval = window.setInterval(loadPilotCounter, 30000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadPilotCounter();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
@@ -117,6 +147,11 @@ export default function Pricing() {
   const seatsRemaining =
     seatsTaken === null ? null : Math.max(0, LIFETIME_MAX_SEATS - seatsTaken);
   const lifetimeSoldOut = seatsRemaining !== null && seatsRemaining <= 0;
+  const pilotMaxSeats = pilotCounter?.max_seats ?? 100;
+  const pilotUsedSeats = pilotCounter?.used_seats ?? 0;
+  const pilotRemainingSeats = pilotCounter?.remaining_seats ?? pilotMaxSeats;
+  const pilotDurationDays = pilotCounter?.duration_days ?? 30;
+  const pilotProgress = pilotMaxSeats > 0 ? Math.min(100, Math.round((pilotUsedSeats / pilotMaxSeats) * 100)) : 0;
   const checkoutEnabled = isLiveCheckoutEnabled();
 
   return (
@@ -133,14 +168,22 @@ export default function Pricing() {
             Pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Pilot users get 30 days of full access with no credit card while seats are available. Card details are only requested for paid upgrades,
+            Pilot users get {pilotDurationDays} days of full access with no credit card while seats are available. Card details are only requested for paid upgrades,
             and your first paid charge has a 14-day refund guarantee.
           </p>
         </div>
 
-        <div className="mb-10 rounded-xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm text-primary flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
-          <Gift className="h-4 w-4 shrink-0" />
-          <span><span className="font-semibold">Pilot phase:</span> the first 100 standard users receive 30 days of full platform access automatically after signup.</span>
+        <div className="mb-10 rounded-xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm text-primary">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 shrink-0" />
+              <span><span className="font-semibold">Pilot phase:</span> {pilotRemainingSeats} of {pilotMaxSeats} full-access seats remaining.</span>
+            </div>
+            <span className="text-xs text-primary/80">{pilotDurationDays} days · no card required</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/15">
+            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pilotProgress}%` }} />
+          </div>
         </div>
 
         {/* Billing cycle toggle */}
