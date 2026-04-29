@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { calculateIntelligenceQuality } from '@/lib/intelligence-quality';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -13,7 +15,7 @@ import { isReachableContact } from '@/lib/contact-validation';
 import {
   Check, X, ExternalLink, Bot, MapPin, DollarSign,
   ShieldAlert, Loader2, Inbox, AlertTriangle, Link2, FileCheck2,
-  Mail, Phone, User, Building2
+  Mail, Phone, User, Building2, RefreshCw
 } from 'lucide-react';
 
 interface EvidenceRow {
