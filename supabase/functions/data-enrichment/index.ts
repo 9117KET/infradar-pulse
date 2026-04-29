@@ -4,7 +4,8 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { calculateIntelligenceQuality } from "../_shared/intelligenceQuality.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -113,6 +114,7 @@ serve(async (req) => {
     let enriched = 0;
     let contactsAdded = 0;
     let sourcesBackfilled = 0;
+    let qualityScoresWritten = 0;
 
     for (const project of toEnrich) {
       try {
@@ -284,14 +286,43 @@ serve(async (req) => {
             contactsAdded++;
           }
         }
+
+        const finalEvidenceCount = (evidenceCounts[project.id] ?? 0) + (extracted.evidence_sources?.length ?? 0);
+        const finalContactCount = (contactCounts[project.id] ?? 0) + contactsAdded;
+        const finalSourceUrl = String(updates.source_url ?? project.source_url ?? "");
+        const quality = calculateIntelligenceQuality({
+          sourceUrl: finalSourceUrl,
+          confidence: 70,
+          description: String(updates.detailed_analysis ?? project.detailed_analysis ?? project.description ?? ""),
+          valueUsd: 0,
+          evidenceCount: finalEvidenceCount,
+          officialSourceCount: finalSourceUrl.includes("worldbank.org") || finalSourceUrl.includes("adb.org") || finalSourceUrl.includes("gov") ? 1 : 0,
+          contactCount: finalContactCount,
+          lastUpdated: new Date().toISOString(),
+        });
+        await supabase.from("quality_scores").insert({
+          project_id: project.id,
+          total_score: quality.total_score,
+          source_score: quality.source_score,
+          evidence_score: quality.evidence_score,
+          completeness_score: quality.completeness_score,
+          freshness_score: quality.freshness_score,
+          confidence_score: quality.confidence_score,
+          missing_fields: quality.missing_fields,
+          flags: quality.flags,
+          recommendation: quality.recommendation,
+          details: { source: "data-enrichment" },
+        });
+        qualityScoresWritten++;
       } catch (e) {
         console.error(`Error enriching ${project.name}:`, e);
       }
     }
 
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled };
+    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled, quality_scores_written: qualityScoresWritten };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+    await recordAgentEvent(supabase, "data-enrichment", "completed", "Data enrichment completed with quality scoring", taskId, result);
     await finishAgentRun(supabase, "data-enrichment", "completed", runStartedAt);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
@@ -301,6 +332,7 @@ serve(async (req) => {
     console.error("Data enrichment error:", e);
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId) await supabase.from("research_tasks").update({ status: "failed", completed_at: new Date().toISOString(), error: errMsg }).eq("id", taskId);
+    await recordAgentEvent(supabase, "data-enrichment", "failed", errMsg, taskId);
     await finishAgentRun(supabase, "data-enrichment", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
