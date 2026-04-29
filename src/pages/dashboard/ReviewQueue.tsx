@@ -66,6 +66,8 @@ export default function ReviewQueue() {
   const [legacyPage, setLegacyPage] = useState(0);
   const [candidatePage, setCandidatePage] = useState(0);
   const [updatePage, setUpdatePage] = useState(0);
+  const [duplicatePage, setDuplicatePage] = useState(0);
+  const [sourceIssuePage, setSourceIssuePage] = useState(0);
 
   const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
     queryKey: ['pending-projects', legacyPage],
@@ -114,6 +116,37 @@ export default function ReviewQueue() {
     },
   });
   const updateProposals = updatePageResult.rows;
+
+  const { data: duplicatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['duplicate-candidates-review', duplicatePage],
+    queryFn: async () => {
+      const from = duplicatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
+        .from('project_candidates')
+        .select('*', { count: 'exact' })
+        .or('duplicate_of.not.is.null,canonical_project_id.not.is.null,pipeline_status.eq.deduping')
+        .order('duplicate_confidence', { ascending: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
+    },
+  });
+
+  const { data: sourceIssuePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['source-issues-review', sourceIssuePage],
+    queryFn: async () => {
+      const staleBefore = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const from = sourceIssuePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
+        .from('source_registry')
+        .select('*', { count: 'exact' })
+        .or(`status.eq.failing,last_success_at.is.null,last_success_at.lt.${staleBefore}`)
+        .order('last_failure_at', { ascending: false, nullsFirst: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
+    },
+  });
 
   // Load evidence sources for all pending projects
   const pendingIds = pending.map((p: any) => p.id);
