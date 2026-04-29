@@ -394,6 +394,7 @@ export default function DashboardLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+  if (!user.email_confirmed_at) return <Navigate to="/login" replace />;
   if (profile && !profile.onboarded) return <Navigate to="/onboarding" replace />;
 
   return (
