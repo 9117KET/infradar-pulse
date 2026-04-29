@@ -418,8 +418,9 @@ ${rawContent.join("\n\n---\n\n")}`;
       JSON.stringify({
         success: true,
         extracted: extractedProjects.length,
-        inserted,
-        updated,
+        candidates_created: candidatesCreated,
+        candidates_updated: candidatesUpdated,
+        update_proposals_created: updateProposalsCreated,
         sources_processed: rawContent.length,
         missing_source: skippedNoSource,
       }),
