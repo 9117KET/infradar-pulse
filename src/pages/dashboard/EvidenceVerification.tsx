@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useProjects } from '@/hooks/use-projects';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
+const PAGE_SIZE = 50;
 const TYPE_COLORS: Record<string, string> = {
   Satellite: 'hsl(var(--primary))',
   Filing: 'hsl(210, 60%, 55%)',
@@ -18,9 +21,59 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function EvidenceVerification() {
-  const { projects, loading } = useProjects();
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [page, setPage] = useState(0);
+
+  const evidenceStats = useQuery({
+    queryKey: ['evidence-verification-stats'],
+    queryFn: async () => {
+      const [{ count: totalSources }, { count: totalVerified }, { data: evidenceTypes }, { data: satRows }] = await Promise.all([
+        supabase.from('evidence_sources').select('id', { count: 'exact', head: true }),
+        supabase.from('evidence_sources').select('id', { count: 'exact', head: true }).eq('verified', true),
+        supabase.from('evidence_sources').select('type, verified').range(0, 4999),
+        supabase.from('evidence_sources').select('project_id').eq('type', 'Satellite').eq('verified', true).range(0, 4999),
+      ]);
+      const satVerifiedProjects = new Set((satRows ?? []).map((row: any) => row.project_id)).size;
+      return { totalSources: totalSources ?? 0, totalVerified: totalVerified ?? 0, evidenceTypes: evidenceTypes ?? [], satVerifiedProjects };
+    },
+  });
+
+  const projectsPage = useQuery({
+    queryKey: ['evidence-verification-projects', page],
+    queryFn: async () => {
+      const from = page * PAGE_SIZE;
+      const { data: projectRows, error, count } = await supabase
+        .from('projects')
+        .select('id, slug, name, country, confidence', { count: 'exact' })
+        .eq('approved', true)
+        .order('last_updated', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) throw error;
+
+      const projectIds = (projectRows ?? []).map((p: any) => p.id);
+      const { data: evidenceRows, error: evidenceError } = projectIds.length
+        ? await supabase.from('evidence_sources').select('id, project_id, source, url, type, verified, date, title, description, added_by').in('project_id', projectIds).range(0, 999)
+        : { data: [], error: null };
+      if (evidenceError) throw evidenceError;
+
+      const evidenceMap: Record<string, any[]> = {};
+      (evidenceRows ?? []).forEach((e: any) => {
+        if (!evidenceMap[e.project_id]) evidenceMap[e.project_id] = [];
+        evidenceMap[e.project_id].push(e);
+      });
+
+      return {
+        rows: (projectRows ?? []).map((p: any) => ({ ...p, id: p.slug, dbId: p.id, evidence: evidenceMap[p.id] ?? [] })),
+        total: count ?? 0,
+      };
+    },
+  });
+
+  const projects = projectsPage.data?.rows ?? [];
+  const totalProjects = projectsPage.data?.total ?? 0;
+  const loading = projectsPage.isLoading;
+  const totalPages = Math.max(1, Math.ceil(totalProjects / PAGE_SIZE));
 
   const projectsWithData = useMemo(() => projects.map(p => {
     const typesPresent = new Set<string>(p.evidence.map(e => e.type));
@@ -44,9 +97,9 @@ export default function EvidenceVerification() {
   });
 
   // Stats
-  const allEvidence = projects.flatMap(p => p.evidence);
-  const totalSources = allEvidence.length;
-  const totalVerified = allEvidence.filter(e => e.verified).length;
+  const allEvidence = evidenceStats.data?.evidenceTypes ?? [];
+  const totalSources = evidenceStats.data?.totalSources ?? 0;
+  const totalVerified = evidenceStats.data?.totalVerified ?? 0;
   const satVerified = projectsWithData.filter(p => p.satelliteVerified).length;
   const fullCoverage = projectsWithData.filter(p => p.coverage >= 4).length;
   const conflictCount = projectsWithData.filter(p => p.hasConflict).length;
