@@ -210,6 +210,20 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
     taskId = lock.taskId;
+    const runStartedAt = new Date();
+
+    const { data: sourceRow } = await supabase.from("source_registry").upsert({
+      source_key: "world-bank-projects",
+      name: "World Bank Projects Database",
+      kind: "mdb",
+      base_url: "https://projects.worldbank.org",
+      reliability_score: 95,
+      crawl_frequency_minutes: 1440,
+      supports_api: true,
+      status: "active",
+      last_success_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "source_key" }).select("id").single();
 
     // Infrastructure-relevant World Bank sector codes
     // TX=Transport, YA=Energy & Mining, WS=Water, TU=Urban Dev, TC=ICT, YB=Industry & Trade
@@ -219,6 +233,9 @@ serve(async (req) => {
     let inserted = 0;
     let updated = 0;
     let skipped = 0;
+    let evidenceWritten = 0;
+    let candidatesWritten = 0;
+    let qualityScoresWritten = 0;
     let fetched = 0;
     const pageSize = 100;
     const statuses = statusFilter.split(",").map((s) => s.trim());
