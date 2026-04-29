@@ -167,22 +167,39 @@ export default function Pricing() {
             alerts, portfolio Q&amp;A, and <span className="text-foreground font-medium">AI-generated market reports</span> that update with your scope.
             Pay for what you use, cancel anytime.
           </p>
-          <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Pilot users get {pilotDurationDays} days of full access with no credit card while seats are available. Card details are only requested for paid upgrades,
-            and your first paid charge has a 14-day refund guarantee.
-          </p>
         </div>
 
-        <div className="mb-10 rounded-xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm text-primary">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Gift className="h-4 w-4 shrink-0" />
-              <span><span className="font-semibold">Pilot phase:</span> {pilotRemainingSeats} of {pilotMaxSeats} full-access seats remaining.</span>
+        <div className="mb-10 overflow-hidden rounded-xl border border-primary/40 bg-primary/10 shadow-[0_0_40px_hsl(var(--primary)/0.12)]">
+          <div className="grid gap-0 md:grid-cols-[1.25fr_0.75fr]">
+            <div className="p-5 sm:p-6">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-background/40 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-primary">
+                <Gift className="h-3.5 w-3.5" />
+                Pilot access now open
+              </div>
+              <h2 className="font-serif text-2xl font-bold text-foreground sm:text-3xl">
+                First {pilotMaxSeats} signups get {pilotDurationDays} days of Pro access.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+                Pilot users get {pilotDurationDays} days of full access with no credit card while seats are available. Card details are only requested for paid upgrades, and your first paid charge has a 14-day refund guarantee.
+              </p>
             </div>
-            <span className="text-xs text-primary/80">{pilotDurationDays} days · no card required</span>
-          </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-primary/15">
-            <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pilotProgress}%` }} />
+            <div className="border-t border-primary/20 bg-background/35 p-5 sm:p-6 md:border-l md:border-t-0">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Seats remaining</div>
+                  <div className="mt-1 text-4xl font-bold text-foreground">{pilotRemainingSeats}</div>
+                </div>
+                <div className="text-right text-sm text-muted-foreground">
+                  <span className="font-semibold text-primary">{pilotUsedSeats}</span> used<br />of {pilotMaxSeats}
+                </div>
+              </div>
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-primary/15">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pilotProgress}%` }} />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Granted automatically after signup. Admins can increase the seat cap or manually grant access later.
+              </p>
+            </div>
           </div>
         </div>
 
