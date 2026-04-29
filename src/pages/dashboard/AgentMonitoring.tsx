@@ -49,6 +49,9 @@ const AGENTS = [
   { type: 'security-resilience', name: 'Security & Resilience', icon: Shield, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runSecurityResilience },
   { type: 'tender-award-monitor', name: 'Tender / Award', icon: Gavel, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runTenderAwardMonitor },
   { type: 'executive-briefing', name: 'Executive Briefing', icon: ScrollText, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runExecutiveBriefing },
+  { type: 'source-ingest', name: 'Source Ingest', icon: Globe, schedule: 'On demand', scheduleMinutes: 0, fn: null },
+  { type: 'user-research', name: 'User Research', icon: Search, schedule: 'On demand', scheduleMinutes: 0, fn: null },
+  { type: 'insight-sources', name: 'Insight Sources', icon: Zap, schedule: 'On demand', scheduleMinutes: 0, fn: () => agentApi.runInsightSourcesAgent() },
 ];
 
 interface LogEntry {
@@ -367,7 +370,7 @@ export default function AgentMonitoring() {
   const isStale = (agent: typeof AGENTS[0]) =>
     isAgentStale(getLastActivityAt(agent), agent.scheduleMinutes);
 
-  const runAgent = async (name: string, fn: () => Promise<unknown>) => {
+  const runAgent = async (name: string, fn: (() => Promise<unknown>) | null) => {
     if (!staffBypass) {
       toast({
         title: 'Team access required',
@@ -378,6 +381,13 @@ export default function AgentMonitoring() {
     }
     if (!canUseAi) {
       setUpgradeOpen(true);
+      return;
+    }
+    if (!fn) {
+      toast({
+        title: 'Parameters required',
+        description: 'This agent requires parameters and must be triggered from the API.',
+      });
       return;
     }
     setRunningAgent(name);
