@@ -13,8 +13,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
 import { chatCompletions } from "../_shared/llm.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +118,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -130,6 +132,15 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "aiib-ingest", "AIIB Projects Portal", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "aiib-projects",
+      name: "Asian Infrastructure Investment Bank Projects Portal",
+      baseUrl: "https://www.aiib.org/en/projects/list/index.html",
+      reliabilityScore: 84,
+      supportsApi: false,
+    });
 
     const rawChunks: string[] = [];
 
@@ -203,8 +214,9 @@ Return ONLY valid JSON array, no markdown, no explanation.`,
 
     console.log(`Extracted ${projects.length} AIIB projects from text`);
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
 
     for (const p of projects) {
