@@ -343,8 +343,18 @@ ${rawContent.join("\n\n---\n\n")}`;
 
     // Step 4: Upsert into database
     if (taskId) await setTaskStep(supabase, taskId, "Saving");
-    let inserted = 0;
-    let updated = 0;
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "web-research-agent",
+      name: "AI Web Research Agent",
+      kind: "news",
+      baseUrl: "https://infradarai.com/research-agent",
+      reliabilityScore: 55,
+      supportsApi: false,
+    });
+
+    let candidatesCreated = 0;
+    let candidatesUpdated = 0;
+    let updateProposalsCreated = 0;
     let skippedNoSource = 0;
 
     for (const ep of extractedProjects) {
@@ -357,134 +367,49 @@ ${rawContent.join("\n\n---\n\n")}`;
         ep.confidence = 30;
       }
 
-      const slug = ep.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-      const { data: existing } = await supabase
-        .from("projects")
-        .select("id, confidence, source_url")
-        .eq("slug", slug)
-        .maybeSingle();
-
-      if (existing) {
-        // Update if new confidence is higher, or if we now have a source URL where one was missing
-        const existingMissingSource = !existing.source_url || existing.source_url === '';
-        if (ep.confidence > (existing.confidence || 0) || (existingMissingSource && isValidSource)) {
-          const updatePayload: Record<string, unknown> = {
-            confidence: Math.max(ep.confidence, existing.confidence || 0),
-            stage: ep.stage,
-            status: ep.status || "Pending",
-            last_updated: new Date().toISOString(),
-          };
-          if (existingMissingSource && isValidSource) {
-            updatePayload.source_url = bestSourceUrl;
-          }
-
-          await supabase.from("projects").update(updatePayload).eq("id", existing.id);
-
-          await supabase.from("project_updates").insert({
-            project_id: existing.id,
-            field_changed: existingMissingSource && isValidSource ? "source_url" : "confidence",
-            old_value: existingMissingSource ? "" : String(existing.confidence),
-            new_value: existingMissingSource && isValidSource ? bestSourceUrl : String(ep.confidence),
-            source: ep.evidence_source || "AI Research Agent",
-          });
-
-          updated++;
-        }
-      } else {
-        const { data: newProject } = await supabase.from("projects").insert({
-          slug,
-          name: ep.name,
-          country: ep.country,
-          region: ep.region,
-          sector: ep.sector,
-          stage: ep.stage,
-          status: ep.status || "Pending",
-          value_usd: ep.value_usd || 0,
-          value_label: ep.value_label || "$0",
-          confidence: ep.confidence || 50,
-          risk_score: ep.risk_score || 50,
-          lat: ep.lat,
-          lng: ep.lng,
-          description: ep.description,
-          timeline: ep.timeline || "",
-          source_url: bestSourceUrl,
-          ai_generated: true,
-          approved: false,
-        }).select().single();
-
-        if (newProject) {
-          if (ep.stakeholders?.length) {
-            await supabase.from("project_stakeholders").insert(
-              ep.stakeholders.map((name) => ({ project_id: newProject.id, name }))
-            );
-          }
-
-          // Add evidence (always use a real URL)
-          const evidenceUrl = ep.evidence_url || bestSourceUrl || "#";
-          if (ep.evidence_source) {
-            await supabase.from("evidence_sources").insert({
-              project_id: newProject.id,
-              source: ep.evidence_source,
-              url: evidenceUrl,
-              type: ep.evidence_type || "News",
-              verified: false,
-              date: new Date().toISOString().split("T")[0],
-              title: ep.name,
-              description: ep.description?.substring(0, 200) || "",
-            });
-          }
-
-          if (ep.contacts?.length && bestSourceUrl && String(bestSourceUrl).startsWith("http")) {
-            const validContacts = ep.contacts.filter((c: any) => {
-              const name = (c.name || "").trim();
-              if (!name) return false;
-              if (!(c.phone || c.email)) return false;
-              const url = (c.source_url && String(c.source_url).startsWith("http")) ? c.source_url : bestSourceUrl;
-              return url && String(url).startsWith("http");
-            });
-            if (validContacts.length > 0) {
-              await supabase.from("project_contacts").insert(
-                validContacts.map((c: any) => ({
-                  project_id: newProject.id,
-                  name: c.name,
-                  role: c.role || '',
-                  organization: c.organization || '',
-                  phone: c.phone || null,
-                  email: c.email || null,
-                  contact_type: c.contact_type || 'general',
-                  source: ep.evidence_source || 'AI Research Agent',
-                  source_url: (c.source_url && String(c.source_url).startsWith("http")) ? c.source_url : bestSourceUrl,
-                  added_by: 'ai',
-                }))
-              );
-            }
-          }
-
-          await supabase.from("alerts").insert({
-            project_id: newProject.id,
-            project_name: ep.name,
-            severity: "medium",
-            message: `New project discovered: ${ep.name} (${ep.country}): ${ep.value_label || "value TBD"}`,
-            category: "market",
-            source_url: bestSourceUrl || null,
-          });
-
-          inserted++;
-          if (!isValidSource) skippedNoSource++;
-        }
-      }
+      const staged = await stagePipelineProject(supabase, {
+        sourceId: sourceRow?.id ?? null,
+        sourceKey: "web-research-agent",
+        sourceName: ep.evidence_source || "AI Web Research Agent",
+        discoveredBy: "discovery",
+        externalId: null,
+        apiUrl: bestSourceUrl || null,
+        name: ep.name,
+        country: ep.country,
+        region: ep.region,
+        sector: ep.sector,
+        stage: ep.stage,
+        status: ep.status || "Pending",
+        valueUsd: ep.value_usd || 0,
+        valueLabel: ep.value_label || "$0",
+        confidence: ep.confidence || 50,
+        riskScore: ep.risk_score || 50,
+        lat: ep.lat,
+        lng: ep.lng,
+        description: ep.description,
+        timeline: ep.timeline || "",
+        sourceUrl: isValidSource ? bestSourceUrl : `https://infradarai.com/research-agent/${crypto.randomUUID()}`,
+        rawPayload: ep,
+        extractedClaims: { evidence_source: ep.evidence_source ?? null, contacts: ep.contacts ?? [], stakeholders: ep.stakeholders ?? [] },
+        stakeholder: Array.isArray(ep.stakeholders) ? ep.stakeholders[0] : null,
+      });
+      if (staged.outcome === "candidate_created") candidatesCreated++;
+      else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+      else if (staged.outcome === "update_proposed") updateProposalsCreated++;
+      if (!isValidSource) skippedNoSource++;
     }
 
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { extracted: extractedProjects.length, inserted, updated, sources: rawContent.length, missing_source: skippedNoSource },
+        result: { extracted: extractedProjects.length, candidates_created: candidatesCreated, candidates_updated: candidatesUpdated, update_proposals_created: updateProposalsCreated, sources: rawContent.length, missing_source: skippedNoSource },
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
-    console.log(`Research complete: ${extractedProjects.length} extracted, ${inserted} new, ${updated} updated, ${skippedNoSource} missing source`);
+    const result = { extracted: extractedProjects.length, candidates_created: candidatesCreated, candidates_updated: candidatesUpdated, update_proposals_created: updateProposalsCreated, sources: rawContent.length, missing_source: skippedNoSource };
+    await recordAgentEvent(supabase, "discovery", "completed", "Research agent staged source-first candidates", taskId, result);
+    console.log(`Research complete: ${extractedProjects.length} extracted, ${candidatesCreated} candidates, ${updateProposalsCreated} proposals, ${skippedNoSource} missing source`);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
     await finishAgentRun(supabase, "discovery", "completed", runStartedAt);
