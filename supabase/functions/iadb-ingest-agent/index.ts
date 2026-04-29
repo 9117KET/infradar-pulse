@@ -265,6 +265,8 @@ serve(async (req) => {
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "iadb-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "iadb-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
