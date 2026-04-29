@@ -100,7 +100,7 @@ export default function EvidenceVerification() {
   const allEvidence = evidenceStats.data?.evidenceTypes ?? [];
   const totalSources = evidenceStats.data?.totalSources ?? 0;
   const totalVerified = evidenceStats.data?.totalVerified ?? 0;
-  const satVerified = projectsWithData.filter(p => p.satelliteVerified).length;
+  const satVerified = evidenceStats.data?.satVerifiedProjects ?? 0;
   const fullCoverage = projectsWithData.filter(p => p.coverage >= 4).length;
   const conflictCount = projectsWithData.filter(p => p.hasConflict).length;
 
@@ -262,6 +262,16 @@ export default function EvidenceVerification() {
 
       {/* Full Table */}
       <Card className="glass-panel border-border">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>{totalProjects === 0 ? '0' : page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalProjects)} of {totalProjects} projects</span>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>Previous</Button>
+              <span>Page {page + 1} of {totalPages}</span>
+              <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page + 1 >= totalPages}>Next</Button>
+            </div>
+          </div>
+        </CardHeader>
         <CardContent className="p-0">
           {loading ? (
             <p className="text-sm text-muted-foreground text-center py-8">Loading…</p>
@@ -332,6 +342,13 @@ export default function EvidenceVerification() {
             </Table>
           )}
         </CardContent>
+        <CardHeader className="pt-3">
+          <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground">
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>Previous</Button>
+            <span>Page {page + 1} of {totalPages}</span>
+            <Button size="sm" variant="outline" onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page + 1 >= totalPages}>Next</Button>
+          </div>
+        </CardHeader>
       </Card>
     </div>
   );
