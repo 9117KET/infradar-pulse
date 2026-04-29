@@ -353,16 +353,22 @@ serve(async (req) => {
               .maybeSingle();
 
             if (existing) {
-              // Update if World Bank confidence is higher or source URL was missing
               const missingSource = !existing.source_url;
               if (confidence > (existing.confidence || 0) || missingSource) {
-                await supabase!.from("projects").update({
-                  confidence: Math.max(confidence, existing.confidence || 0),
-                  stage,
-                  status: infraStatus,
-                  source_url: existing.source_url || projectUrl,
-                  last_updated: new Date().toISOString(),
-                }).eq("id", existing.id);
+                await supabase!.from("update_proposals").insert({
+                  project_id: existing.id,
+                  proposed_by_agent: "world-bank-ingest",
+                  field_changes: {
+                    confidence: Math.max(confidence, existing.confidence || 0),
+                    stage,
+                    status: infraStatus,
+                    source_url: existing.source_url || projectUrl,
+                  },
+                  evidence_id: evidence?.id ?? null,
+                  source_url: projectUrl,
+                  confidence,
+                  impact: "World Bank source found a fresher or stronger project record.",
+                });
                 updated++;
               } else {
                 skipped++;
