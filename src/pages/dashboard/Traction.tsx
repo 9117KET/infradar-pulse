@@ -39,7 +39,7 @@ interface ProductAnalyticsSummary {
 
 type FunnelStep = { step: string; count: number };
 type PaywallDropoff = { feature: string; paywall_views: number; signouts_30m: number; conversion_intent_30m: number };
-type PilotSummary = { enabled: boolean; max_seats: number; used_seats: number; remaining_seats: number; active_grants: number; expiring_soon: number; duration_days: number };
+type PilotSummary = { enabled: boolean; max_seats: number; used_seats: number; remaining_seats: number; active_grants: number; revoked_grants: number; expired_grants: number; expiring_soon: number; duration_days: number };
 
 const PLAN_COLORS: Record<string, string> = {
   pro: 'hsl(var(--primary))',
@@ -212,7 +212,7 @@ export default function Traction() {
         )) : <>
           <KpiCard title="Pilot Seats Used" value={`${pilotSummary?.used_seats ?? 0}/${pilotSummary?.max_seats ?? 100}`} sub={pilotSummary?.enabled ? 'pilot enabled' : 'pilot disabled'} icon={Gift} />
           <KpiCard title="Pilot Remaining" value={pilotSummary?.remaining_seats ?? 0} sub={`${pilotSummary?.duration_days ?? 30}-day access`} icon={Users} />
-          <KpiCard title="Active Pilot Grants" value={pilotSummary?.active_grants ?? 0} sub="full access users" icon={CreditCard} />
+          <KpiCard title="Active Pilot Grants" value={pilotSummary?.active_grants ?? 0} sub={`${pilotSummary?.revoked_grants ?? 0} revoked · ${pilotSummary?.expired_grants ?? 0} expired`} icon={CreditCard} />
           <KpiCard title="Expiring Soon" value={pilotSummary?.expiring_soon ?? 0} sub="next 7 days" icon={LogOut} />
         </>}
       </div>
