@@ -24,7 +24,7 @@ export default function Login() {
   const refCode = new URLSearchParams(location.search).get('ref')?.toUpperCase() ?? getStoredReferralCode();
 
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true });
+    if (user?.email_confirmed_at) navigate('/dashboard', { replace: true });
   }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,8 +75,11 @@ export default function Login() {
         toast({ title: 'Sign up failed', description: error.message, variant: 'destructive' });
       } else {
         void trackEvent('signup_completed', { method: 'email' }, 'auth');
-        toast({ title: 'Account created', description: 'Your INFRADARAI access is ready.' });
-        navigate('/dashboard');
+        toast({
+          title: 'Check your email',
+          description: `We sent a verification link to ${email}. Confirm it once, then sign in with your password anytime.`,
+        });
+        setIsSignUp(false);
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });

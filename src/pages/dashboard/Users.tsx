@@ -4,16 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Shield, UserPlus } from 'lucide-react';
+import { AlertTriangle, Gift, MailCheck, Shield, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { AppRole } from '@/contexts/AuthContext';
+import { checkDisposableEmail } from '@/lib/disposable-email';
 
 interface UserRow {
   id: string;
   display_name: string | null;
   company: string | null;
   email: string;
+  emailConfirmedAt: string | null;
+  suspiciousEmailDomain: string | null;
   role: AppRole;
   pilotEndsAt: string | null;
   pilotSeat: number | null;
@@ -75,7 +78,9 @@ export default function UsersPage() {
       const isActive = grant.status === 'active' && new Date(grant.ends_at).getTime() > Date.now();
       if (isActive || !existing) pilotMap.set(grant.user_id, { ends_at: grant.ends_at, seat_number: grant.seat_number, status: grant.status });
     }
-    const emailMap = new Map<string, string>(((emailRows ?? []) as Array<{ user_id: string; email: string }>).map((r) => [r.user_id, r.email]));
+    const emailMap = new Map<string, { email: string; email_confirmed_at: string | null }>(
+      ((emailRows ?? []) as Array<{ user_id: string; email: string; email_confirmed_at: string | null }>).map((r) => [r.user_id, r]),
+    );
 
     const roleMap = new Map<string, AppRole>();
     for (const r of roles) {
@@ -85,17 +90,24 @@ export default function UsersPage() {
       }
     }
 
-    const mapped: UserRow[] = profilesList.map((p: { id: string; display_name: string | null; company: string | null; updated_at: string | null }) => ({
-      id: p.id,
-      display_name: p.display_name,
-      company: p.company,
-      email: emailMap.get(p.id) ?? '',
-      role: roleMap.get(p.id) || 'user',
-      pilotEndsAt: pilotMap.get(p.id)?.ends_at ?? null,
-      pilotSeat: pilotMap.get(p.id)?.seat_number ?? null,
-      pilotStatus: pilotMap.get(p.id)?.status ?? null,
-      updated_at: p.updated_at,
-    }));
+    const mapped: UserRow[] = profilesList.map((p: { id: string; display_name: string | null; company: string | null; updated_at: string | null }) => {
+      const emailInfo = emailMap.get(p.id);
+      const email = emailInfo?.email ?? '';
+      const disposableCheck = email ? checkDisposableEmail(email) : null;
+      return {
+        id: p.id,
+        display_name: p.display_name,
+        company: p.company,
+        email,
+        emailConfirmedAt: emailInfo?.email_confirmed_at ?? null,
+        suspiciousEmailDomain: disposableCheck?.ok === false && disposableCheck.reason === 'DISPOSABLE_EMAIL' ? disposableCheck.domain ?? email.split('@')[1] ?? null : null,
+        role: roleMap.get(p.id) || 'user',
+        pilotEndsAt: pilotMap.get(p.id)?.ends_at ?? null,
+        pilotSeat: pilotMap.get(p.id)?.seat_number ?? null,
+        pilotStatus: pilotMap.get(p.id)?.status ?? null,
+        updated_at: p.updated_at,
+      };
+    });
     setUsers(mapped);
     setLoading(false);
   };
@@ -203,6 +215,22 @@ export default function UsersPage() {
                   <td className="p-3">
                     <div className="font-medium">{u.display_name || 'Unnamed'}</div>
                     <div className="text-xs text-muted-foreground break-all">{u.email || `${u.id.slice(0, 8)}…`}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {u.emailConfirmedAt ? (
+                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                          <MailCheck className="mr-1 h-3 w-3" /> Verified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
+                          Email unverified
+                        </Badge>
+                      )}
+                      {u.suspiciousEmailDomain && (
+                        <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-500">
+                          <AlertTriangle className="mr-1 h-3 w-3" /> Throwaway? {u.suspiciousEmailDomain}
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3 text-muted-foreground">{u.company || '-'}</td>
                   <td className="p-3">
