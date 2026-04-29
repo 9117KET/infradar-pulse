@@ -327,6 +327,25 @@ serve(async (req) => {
 
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+            const rawPayload = JSON.stringify({ id: p.id, name, country, wbRegion, wbSector, wbStatus, totalAmt, projectUrl, description });
+            const contentHash = await sha256(`world-bank:${p.id}:${rawPayload}`);
+            const { data: evidence } = await supabase!.from("raw_evidence").upsert({
+              source_id: sourceRow?.id ?? null,
+              source_key: "world-bank-projects",
+              url: projectUrl,
+              canonical_url: projectUrl,
+              title: name,
+              published_at: approvalDate ? new Date(approvalDate).toISOString() : null,
+              content_hash: contentHash,
+              extracted_text: rawPayload,
+              summary: description,
+              kind: "mdb",
+              fetch_status: "fetched",
+              extraction_confidence: confidence,
+              metadata: { world_bank_id: p.id, status: wbStatus, sector: wbSector, api_url: apiUrl.toString() },
+            }, { onConflict: "url" }).select("id").single();
+            if (evidence?.id) evidenceWritten++;
+
             // Check for existing project
             const { data: existing } = await supabase!
               .from("projects")
