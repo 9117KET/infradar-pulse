@@ -212,44 +212,30 @@ serve(async (req) => {
             : `IADB-financed ${sector.toLowerCase()} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`;
           const timeline = approvalYear ? `${approvalYear}–` : "";
 
-          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 120);
-
-          const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-          if (existing) {
-            if (confidence > (existing.confidence || 0) || !existing.source_url) {
-              await supabase!.from("projects").update({
-                confidence: Math.max(confidence, existing.confidence || 0),
-                stage, status: infraStatus,
-                source_url: existing.source_url || projectUrl,
-                last_updated: new Date().toISOString(),
-              }).eq("id", existing.id);
-              updated++;
-            } else { skipped++; }
-          } else {
-            const { data: newProject } = await supabase!.from("projects").insert({
-              slug, name, country, region, sector, stage, status: infraStatus,
-              value_usd: totalAmt, value_label: valueLabel, confidence,
-              risk_score: 35, lat, lng, description: shortDesc, timeline,
-              source_url: projectUrl, ai_generated: false, approved: true,
-            }).select().single();
-
-            if (newProject) {
-              await supabase!.from("evidence_sources").insert({
-                project_id: newProject.id,
-                source: `Inter-American Development Bank${lendingType ? ` — ${lendingType}` : ""}`,
-                url: projectUrl, type: "Filing", verified: true,
-                date: approvalDate ? approvalDate.substring(0, 10) : new Date().toISOString().split("T")[0],
-                title: name, description: shortDesc,
-              });
-              await supabase!.from("alerts").insert({
-                project_id: newProject.id, project_name: name, severity: "low",
-                message: `IADB project ingested: ${name} (${country}) — ${valueLabel}`,
-                category: "market", source_url: projectUrl,
-              });
-              inserted++;
-            }
-          }
+          const staged = await stagePipelineProject(supabase!, {
+            sourceId: sourceRow?.id ?? null,
+            sourceKey: "iadb-projects",
+            sourceName: `Inter-American Development Bank${lendingType ? ` — ${lendingType}` : ""}`,
+            discoveredBy: "iadb-ingest",
+            externalId: operNum,
+            apiUrl: url.toString(),
+            name, country, region, sector, stage, status: infraStatus,
+            valueUsd: totalAmt,
+            valueLabel,
+            confidence,
+            riskScore: 35,
+            lat, lng,
+            description: shortDesc,
+            timeline,
+            sourceUrl: projectUrl,
+            publishedAt: approvalDate || null,
+            rawPayload: row,
+            extractedClaims: { iadb_operation_number: operNum, lending_type: lendingType },
+          });
+          if (staged.outcome === "candidate_created") candidatesWritten++;
+          else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+          else if (staged.outcome === "update_proposed") updatesProposed++;
+          else skipped++;
         } catch (rowErr) {
           console.error(`Error processing IADB row:`, rowErr);
           skipped++;
@@ -259,14 +245,16 @@ serve(async (req) => {
       if (records.length < batchSize) break;
     }
 
-    const result = { success: true, fetched, inserted, updated, skipped, source: "IADB" };
+    const result = { success: true, fetched, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IADB", offset: startOffset };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
-    console.log(`IADB ingest complete: fetched=${fetched} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "iadb-ingest", "completed", "IADB ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "iadb-ingest", "completed", runStartedAt);
+    console.log(`IADB ingest complete: fetched=${fetched} candidates=${candidatesWritten} updated_candidates=${candidatesUpdated} update_proposals=${updatesProposed} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
