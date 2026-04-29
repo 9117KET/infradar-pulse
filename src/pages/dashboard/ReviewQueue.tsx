@@ -156,25 +156,44 @@ export default function ReviewQueue() {
 
   const candidateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
-      const nextStatus = action === 'approved' ? 'approved' : action === 'rejected' ? 'rejected' : 'needs_research';
+      if (action === 'approved') {
+        const { error } = await (supabase as any).rpc('promote_project_candidate', {
+          p_candidate_id: id,
+          p_reason: 'Approved from verification workbench',
+        });
+        if (error) throw error;
+        return;
+      }
+      const nextStatus = action === 'rejected' ? 'rejected' : 'needs_research';
       const { error } = await (supabase as any).from('project_candidates').update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
       await (supabase as any).from('review_actions').insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Candidate updated' });
     },
   });
 
   const updateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' }) => {
+      if (action === 'approved') {
+        const { error } = await (supabase as any).rpc('apply_update_proposal', {
+          p_update_proposal_id: id,
+          p_reason: 'Approved from verification workbench',
+        });
+        if (error) throw error;
+        return;
+      }
       const { error } = await (supabase as any).from('update_proposals').update({ status: action, reviewed_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
       await (supabase as any).from('review_actions').insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['update-proposals-review'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Update proposal reviewed' });
     },
   });
