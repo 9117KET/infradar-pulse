@@ -1456,6 +1456,7 @@ export type Database = {
         Args: never
         Returns: {
           email: string
+          email_confirmed_at: string
           user_id: string
         }[]
       }

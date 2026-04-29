@@ -88,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback((role: AppRole) => roles.includes(role), [roles]);
 
   const claimPilotAccess = useCallback(async (currentUser: User) => {
+    if (!currentUser.email_confirmed_at) return;
     if (claimedPilotFor.current === currentUser.id) return;
     claimedPilotFor.current = currentUser.id;
     const { data } = await (supabase.rpc as any)('claim_own_pilot_access', {
