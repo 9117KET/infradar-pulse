@@ -88,6 +88,11 @@ export default function Terms() {
             change prices or plan features on reasonable prior notice; changes will not apply to a
             billing cycle that has already been paid for.
           </p>
+          <p>
+            Paid subscription charges include a minimum 14-day refund window. Refund requests made
+            within 14 days of the order date do not require exceptions, additional conditions, or a
+            specific reason.
+          </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">8. Trials</h2>
           <p>
