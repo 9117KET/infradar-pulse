@@ -14,7 +14,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -122,6 +123,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -136,23 +138,34 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body */ }
 
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
-    const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 200, 1), 5000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "ifc-ingest", `IFC Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("ifc-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "ifc-projects",
+      name: "IFC Projects Database",
+      baseUrl: "https://projects.worldbank.org",
+      reliabilityScore: 92,
+      supportsApi: true,
+    });
 
     // IFC-financed projects via World Bank API (source=IF)
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
     const pageSize = 100;
     const statuses = statusFilter.split(",").map((s) => s.trim());
 
     for (const status of statuses) {
-      let offset = 0;
+      let offset = startOffset;
       const perStatusLimit = Math.ceil(totalLimit / statuses.length);
       let statusFetched = 0;
 
@@ -213,46 +226,31 @@ serve(async (req) => {
             else valueLabel = "Value TBD";
 
             const confidence = wbStatus === "Active" ? 82 : 68;
-            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-            const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-            if (existing) {
-              if (confidence > (existing.confidence || 0) || !existing.source_url) {
-                await supabase!.from("projects").update({
-                  confidence: Math.max(confidence, existing.confidence || 0),
-                  stage, status: infraStatus,
-                  source_url: existing.source_url || projectUrl,
-                  last_updated: new Date().toISOString(),
-                }).eq("id", existing.id);
-                updated++;
-              } else { skipped++; }
-            } else {
-              const { data: newProject } = await supabase!.from("projects").insert({
-                slug, name, country, region, sector, stage, status: infraStatus,
-                value_usd: totalAmt, value_label: valueLabel, confidence,
-                risk_score: 38, lat, lng, description, timeline,
-                source_url: projectUrl, ai_generated: false, approved: true,
-              }).select().single();
-
-              if (newProject) {
-                await supabase!.from("evidence_sources").insert({
-                  project_id: newProject.id, source: "IFC Projects Database",
-                  url: projectUrl, type: "Filing", verified: true,
-                  date: new Date().toISOString().split("T")[0], title: name,
-                  description: description.substring(0, 200),
-                });
-                if (p.borrower) {
-                  await supabase!.from("project_stakeholders").insert({ project_id: newProject.id, name: String(p.borrower).trim() });
-                }
-                await supabase!.from("alerts").insert({
-                  project_id: newProject.id, project_name: name, severity: "low",
-                  message: `IFC project ingested: ${name} (${country}) — ${valueLabel}`,
-                  category: "market", source_url: projectUrl,
-                });
-                inserted++;
-              }
-            }
+            const staged = await stagePipelineProject(supabase!, {
+              sourceId: sourceRow?.id ?? null,
+              sourceKey: "ifc-projects",
+              sourceName: "IFC Projects Database",
+              discoveredBy: "ifc-ingest",
+              externalId: p.id,
+              apiUrl: apiUrl.toString(),
+              name, country, region, sector, stage, status: infraStatus,
+              valueUsd: totalAmt,
+              valueLabel,
+              confidence,
+              riskScore: 38,
+              lat, lng,
+              description,
+              timeline,
+              sourceUrl: projectUrl,
+              publishedAt: approvalDate || null,
+              rawPayload: { id: p.id, name, country, wbSector, wbStatus, totalAmt, projectUrl, description, borrower: p.borrower ?? null },
+              extractedClaims: { ifc_id: p.id, borrower: p.borrower ?? null },
+              stakeholder: p.borrower ? String(p.borrower).trim() : null,
+            });
+            if (staged.outcome === "candidate_created") candidatesWritten++;
+            else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+            else if (staged.outcome === "update_proposed") updatesProposed++;
+            else skipped++;
           } catch (err) { console.error(`Error processing IFC project ${(p as any).id}:`, err); skipped++; }
         }
 
@@ -261,12 +259,15 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, fetched, inserted, updated, skipped, source: "IFC" };
+    const result = { success: true, fetched, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IFC" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+
+    await recordAgentEvent(supabase, "ifc-ingest", "completed", "IFC ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "ifc-ingest", "completed", runStartedAt);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
@@ -277,6 +278,8 @@ serve(async (req) => {
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "ifc-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "ifc-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

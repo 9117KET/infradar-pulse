@@ -8,13 +8,14 @@
  * Resource: 814b7b54-477a-4c25-b3bf-6be05412069d (All Operations dataset)
  *
  * Accepted body params:
- *   limit   - max projects to ingest (default: 300, max: 1000)
+ *   limit   - max projects to ingest (default: 300, max: 10000)
  *   status  - filter by project status: "Active" | "Implementation" | "Closed" (default: "Active,Implementation")
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,7 +54,7 @@ function mapIadbRegion(country: string): string {
   const c = (country || "").toLowerCase();
   const caribbean = ["cuba", "haiti", "dominican", "jamaica", "barbados", "bahamas", "trinidad", "grenada", "lucia", "antigua", "dominica", "guyana", "suriname", "belize"];
   if (caribbean.some((x) => c.includes(x))) return "Caribbean";
-  return "Latin America";
+  return "South America";
 }
 
 function mapIadbSector(sector: string, subsector: string): string {
@@ -87,6 +88,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -99,17 +101,28 @@ serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const totalLimit: number = Math.min(Number(body.limit) || 300, 1000);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
     const statusFilter: string = String(body.status || "Active,Implementation");
 
     const lock = await beginAgentTask(supabase, "iadb-ingest", `IADB Projects API — status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("iadb-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "iadb-projects",
+      name: "Inter-American Development Bank Operations Data",
+      baseUrl: "https://data.iadb.org",
+      reliabilityScore: 90,
+      supportsApi: true,
+    });
 
     console.log(`Fetching IADB projects (status:${statusFilter}, limit:${totalLimit})...`);
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
     const BATCH = 100;
@@ -129,8 +142,8 @@ serve(async (req) => {
 
     const statusVariants = statusFilter.toLowerCase().split(",").map((s) => s.trim());
 
-    for (let offset = 0; offset < totalLimit; offset += BATCH) {
-      const batchSize = Math.min(BATCH, totalLimit - offset);
+    for (let offset = startOffset; offset < startOffset + totalLimit; offset += BATCH) {
+      const batchSize = Math.min(BATCH, startOffset + totalLimit - offset);
       const url = new URL(IADB_API);
       url.searchParams.set("resource_id", IADB_RESOURCE_ID);
       url.searchParams.set("limit", String(batchSize));
@@ -199,44 +212,30 @@ serve(async (req) => {
             : `IADB-financed ${sector.toLowerCase()} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`;
           const timeline = approvalYear ? `${approvalYear}–` : "";
 
-          const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 120);
-
-          const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-          if (existing) {
-            if (confidence > (existing.confidence || 0) || !existing.source_url) {
-              await supabase!.from("projects").update({
-                confidence: Math.max(confidence, existing.confidence || 0),
-                stage, status: infraStatus,
-                source_url: existing.source_url || projectUrl,
-                last_updated: new Date().toISOString(),
-              }).eq("id", existing.id);
-              updated++;
-            } else { skipped++; }
-          } else {
-            const { data: newProject } = await supabase!.from("projects").insert({
-              slug, name, country, region, sector, stage, status: infraStatus,
-              value_usd: totalAmt, value_label: valueLabel, confidence,
-              risk_score: 35, lat, lng, description: shortDesc, timeline,
-              source_url: projectUrl, ai_generated: false, approved: true,
-            }).select().single();
-
-            if (newProject) {
-              await supabase!.from("evidence_sources").insert({
-                project_id: newProject.id,
-                source: `Inter-American Development Bank${lendingType ? ` — ${lendingType}` : ""}`,
-                url: projectUrl, type: "Filing", verified: true,
-                date: approvalDate ? approvalDate.substring(0, 10) : new Date().toISOString().split("T")[0],
-                title: name, description: shortDesc,
-              });
-              await supabase!.from("alerts").insert({
-                project_id: newProject.id, project_name: name, severity: "low",
-                message: `IADB project ingested: ${name} (${country}) — ${valueLabel}`,
-                category: "market", source_url: projectUrl,
-              });
-              inserted++;
-            }
-          }
+          const staged = await stagePipelineProject(supabase!, {
+            sourceId: sourceRow?.id ?? null,
+            sourceKey: "iadb-projects",
+            sourceName: `Inter-American Development Bank${lendingType ? ` — ${lendingType}` : ""}`,
+            discoveredBy: "iadb-ingest",
+            externalId: operNum,
+            apiUrl: url.toString(),
+            name, country, region, sector, stage, status: infraStatus,
+            valueUsd: totalAmt,
+            valueLabel,
+            confidence,
+            riskScore: 35,
+            lat, lng,
+            description: shortDesc,
+            timeline,
+            sourceUrl: projectUrl,
+            publishedAt: approvalDate || null,
+            rawPayload: row,
+            extractedClaims: { iadb_operation_number: operNum, lending_type: lendingType },
+          });
+          if (staged.outcome === "candidate_created") candidatesWritten++;
+          else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+          else if (staged.outcome === "update_proposed") updatesProposed++;
+          else skipped++;
         } catch (rowErr) {
           console.error(`Error processing IADB row:`, rowErr);
           skipped++;
@@ -246,14 +245,16 @@ serve(async (req) => {
       if (records.length < batchSize) break;
     }
 
-    const result = { success: true, fetched, inserted, updated, skipped, source: "IADB" };
+    const result = { success: true, fetched, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IADB", offset: startOffset };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
-    console.log(`IADB ingest complete: fetched=${fetched} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "iadb-ingest", "completed", "IADB ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "iadb-ingest", "completed", runStartedAt);
+    console.log(`IADB ingest complete: fetched=${fetched} candidates=${candidatesWritten} updated_candidates=${candidatesUpdated} update_proposals=${updatesProposed} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
@@ -264,6 +265,8 @@ serve(async (req) => {
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "iadb-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "iadb-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

@@ -18,6 +18,20 @@ import {
   Mail, Phone, User, Building2, RefreshCw
 } from 'lucide-react';
 
+const PAGE_SIZE = 1000;
+
+async function fetchAllPages<T>(buildQuery: (from: number, to: number) => any, maxRows = 100_000): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; from < maxRows; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 interface EvidenceRow {
   id: string;
   source: string;
@@ -51,39 +65,36 @@ export default function ReviewQueue() {
   const { data: pending = [], isLoading } = useQuery({
     queryKey: ['pending-projects'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      return fetchAllPages<any>((from, to) => supabase
         .from('projects')
         .select('*')
         .eq('approved', false)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data;
+        .order('created_at', { ascending: false })
+        .range(from, to));
     },
   });
 
   const { data: candidates = [] } = useQuery({
     queryKey: ['project-candidates-review'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      return fetchAllPages<any>((from, to) => (supabase as any)
         .from('project_candidates')
         .select('*')
         .in('review_status', ['ready_for_review', 'needs_research'])
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+        .order('created_at', { ascending: false })
+        .range(from, to));
     },
   });
 
   const { data: updateProposals = [] } = useQuery({
     queryKey: ['update-proposals-review'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      return fetchAllPages<any>((from, to) => (supabase as any)
         .from('update_proposals')
         .select('*, projects(name, country, sector, stage, status)')
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+        .order('created_at', { ascending: false })
+        .range(from, to));
     },
   });
 
@@ -93,10 +104,11 @@ export default function ReviewQueue() {
     queryKey: ['pending-evidence', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const data = await fetchAllPages<any>((from, to) => supabase
         .from('evidence_sources')
         .select('id, project_id, source, url, type, verified, date, title')
-        .in('project_id', pendingIds);
+        .in('project_id', pendingIds)
+        .range(from, to));
       const map: Record<string, EvidenceRow[]> = {};
       (data || []).forEach((e: any) => {
         if (!map[e.project_id]) map[e.project_id] = [];
@@ -111,10 +123,11 @@ export default function ReviewQueue() {
     queryKey: ['pending-contacts', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
+      const data = await fetchAllPages<any>((from, to) => supabase
         .from('project_contacts')
         .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
-        .in('project_id', pendingIds);
+        .in('project_id', pendingIds)
+        .range(from, to));
       const map: Record<string, ContactRow[]> = {};
       (data || []).forEach((c: any) => {
         if (!map[c.project_id]) map[c.project_id] = [];
