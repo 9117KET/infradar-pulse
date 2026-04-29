@@ -195,55 +195,49 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
         }
 
         const confidence = Number(ep.confidence) || 75;
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-        if (existing) {
-          if (confidence > (existing.confidence || 0) || !existing.source_url) {
-            await supabase!.from("projects").update({
-              confidence: Math.max(confidence, existing.confidence || 0),
-              stage: ep.stage, status: ep.status || "Pending",
-              source_url: existing.source_url || bestUrl,
-              last_updated: new Date().toISOString(),
-            }).eq("id", existing.id);
-            updated++;
-          }
-        } else {
-          const { data: newProject } = await supabase!.from("projects").insert({
-            slug, name, country: ep.country, region: ep.region, sector: ep.sector,
-            stage: ep.stage, status: ep.status || "Pending",
-            value_usd: totalAmt, value_label: valueLabel, confidence,
-            risk_score: 42, lat, lng,
-            description: `EBRD-financed ${ep.sector} project in ${ep.country}.`,
-            timeline: "", source_url: bestUrl, ai_generated: false, approved: true,
-          }).select().single();
-
-          if (newProject) {
-            await supabase!.from("evidence_sources").insert({
-              project_id: newProject.id, source: "EBRD Projects Database",
-              url: bestUrl, type: "Filing", verified: true,
-              date: new Date().toISOString().split("T")[0], title: name,
-              description: `EBRD ${ep.sector} project in ${ep.country}.`,
-            });
-            await supabase!.from("alerts").insert({
-              project_id: newProject.id, project_name: name, severity: "low",
-              message: `EBRD project ingested: ${name} (${ep.country}) — ${valueLabel}`,
-              category: "market", source_url: bestUrl,
-            });
-            inserted++;
-          }
-        }
-      } catch (projectErr) { console.error("Error processing EBRD project:", projectErr); }
+        const description = `EBRD-financed ${ep.sector} project in ${ep.country}.`;
+        const staged = await stagePipelineProject(supabase!, {
+          sourceId: sourceRow?.id ?? null,
+          sourceKey: "ebrd-projects",
+          sourceName: "EBRD Projects Database",
+          discoveredBy: "ebrd-ingest",
+          externalId: null,
+          apiUrl: "https://www.ebrd.com/work-with-us/projects/psd.html",
+          name,
+          country: ep.country,
+          region: ep.region,
+          sector: ep.sector,
+          stage: ep.stage,
+          status: ep.status || "Pending",
+          valueUsd: totalAmt,
+          valueLabel,
+          confidence,
+          riskScore: 42,
+          lat, lng,
+          description,
+          timeline: "",
+          sourceUrl: bestUrl,
+          rawPayload: ep,
+          extractedClaims: { extraction_source: "lovable-ai-ebrd-research" },
+        });
+        if (staged.outcome === "candidate_created") candidatesWritten++;
+        else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+        else if (staged.outcome === "update_proposed") updatesProposed++;
+        else skipped++;
+      } catch (projectErr) { console.error("Error processing EBRD project:", projectErr); skipped++; }
     }
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
-    const result = { success: true, extracted: extractedProjects.length, inserted, updated, source: "EBRD" };
+    const result = { success: true, extracted: extractedProjects.length, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "EBRD" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+
+    await recordAgentEvent(supabase, "ebrd-ingest", "completed", "EBRD ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "ebrd-ingest", "completed", runStartedAt);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
@@ -254,6 +248,8 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "ebrd-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "ebrd-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
