@@ -54,7 +54,7 @@ function mapIadbRegion(country: string): string {
   const c = (country || "").toLowerCase();
   const caribbean = ["cuba", "haiti", "dominican", "jamaica", "barbados", "bahamas", "trinidad", "grenada", "lucia", "antigua", "dominica", "guyana", "suriname", "belize"];
   if (caribbean.some((x) => c.includes(x))) return "Caribbean";
-  return "Latin America";
+  return "South America";
 }
 
 function mapIadbSector(sector: string, subsector: string): string {
