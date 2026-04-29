@@ -1,227 +1,539 @@
-## Recommended approach
+## Diagnosis: why the current agent system is underperforming
 
-Use a first-party product analytics layer in Lovable Cloud rather than sending all behavior directly to a third-party analytics tool first. This gives you ownership of the data, keeps it tied to your existing users/plans/roles, and lets you answer questions like:
+The current setup has the right building blocks, but the workflow is too “agent-per-feature” and not enough “intelligence pipeline.” The result is inconsistent quality, duplicated work, weak verification, and a Review Queue that only checks a few obvious fields.
 
-- Which users sign up but never verify email?
-- Which users hit a paywall and then sign out or leave?
-- Which features are attempted most before upgrading?
-- Where do users drop during onboarding?
-- Which acquisition sources produce activated or paid users?
-- Which pages/actions predict trial start, subscription, or churn?
+Current issues I found:
 
-External research points to the same principle: start with deliberate “growth events” instead of relying only on autocapture. PostHog’s product analytics guidance specifically recommends tracking business-critical events like signup, subscription, and purchase explicitly, then using funnels/retention to find friction. PostHog/Mixpanel/Amplitude can be useful later, but the first step should be a clean event taxonomy and server-backed tracking.
+1. Discovery relies too heavily on generated research summaries instead of a source-first crawl/extraction model.
+2. Several agents write directly into final tables without a strong staging/evidence layer.
+3. Quality rules are scattered across agent prompts, the Review Queue, and utility functions instead of being enforced centrally.
+4. Agent monitoring shows runs and coverage, but not enough about data quality, source reliability, queue bottlenecks, confidence changes, or why projects fail verification.
+5. Review Queue approval is too simple: approve/reject based mostly on source/contact presence, instead of a structured quality checklist.
+6. Agent interactions are not orchestrated. Discovery, enrichment, deduplication, update checking, contacts, and risk scoring should behave like stages in one pipeline, not independent buttons.
+7. Current tasks use `research_tasks`, but there is no durable per-project pipeline state like “discovered → extracted → deduped → enriched → verified → approved → monitored.”
 
-## What I would build
+## Proposed rebuild: source-first Infrastructure Intelligence Pipeline
 
-### 1. Add a `user_events` analytics table
-
-Create a dedicated event table with fields like:
+I would redesign the platform around this flow:
 
 ```text
-user_events
-- id
-- user_id nullable
-- anonymous_id nullable
-- session_id
-- event_name
-- event_category
-- page_path
-- referrer
-- properties jsonb
-- plan_key nullable
-- roles text[]
-- created_at
+Source Registry
+   ↓
+Source Ingest Agent
+   ↓
+Raw Evidence Store
+   ↓
+Extraction Agent
+   ↓
+Candidate Project Staging
+   ↓
+Dedup + Entity Resolution
+   ↓
+Enrichment Agents
+   ↓
+Quality Scoring + Verification Rules
+   ↓
+Review Queue
+   ↓
+Approved Project Graph
+   ↓
+Continuous Monitoring + Update Agents
 ```
 
-Security model:
+This means agents no longer independently “invent” or directly finalize records. They feed an auditable pipeline where every project has sources, extraction evidence, quality metrics, and review history.
 
-- Users cannot read all analytics events.
-- Users can insert only their own events through a controlled backend function.
-- Admins can read aggregated analytics only.
-- Raw event access should be staff/admin-only, ideally mostly via aggregated RPCs.
+## Key architectural changes
 
-This avoids exposing behavioral data across users.
+### 1. Add a proper Source Registry
 
-### 2. Add a secure `track-event` backend function
+Create a managed registry of source types:
 
-Create a backend function that receives validated event payloads from the app.
+- Multilateral development banks: World Bank, IFC, ADB, AfDB, EBRD, IADB, AIIB
+- Government procurement portals
+- PPP units
+- Energy/water/transport regulators
+- Tender portals
+- Company press releases
+- News and trade publications
+- Satellite / geospatial intelligence sources where available
 
-It will:
+Each source should have:
 
-- Validate event name/category/properties.
-- Attach authenticated user ID from the JWT when present.
-- Accept anonymous events before signup with a random anonymous/session ID.
-- Add safe request metadata such as user agent and current URL path.
-- Rate-limit or cap payload size to avoid abuse.
-- Insert into `user_events` using service permissions so the frontend never directly writes arbitrary analytics rows.
+- source name
+- source type
+- region/country coverage
+- reliability score
+- crawl frequency
+- last successful ingest
+- last failure
+- whether it supports structured API, RSS, sitemap, or web scrape
 
-No external API keys are required for the first-party version.
+This makes agent behavior observable and tunable instead of hardcoded.
 
-### 3. Add a client analytics utility
+### 2. Add a Raw Evidence layer
 
-Add a small `src/lib/analytics.ts` wrapper with functions like:
+Before writing to `projects`, every agent should save source material into a raw evidence table:
 
-```ts
-analytics.track('paywall_viewed', { feature, minPlan })
-analytics.identify(user)
-analytics.page()
+- source URL
+- title
+- publication date
+- extracted text / summary
+- source type
+- project candidate links
+- hash/fingerprint to prevent duplicates
+- fetch status
+- extraction confidence
+
+This creates auditability. If a project is later questioned, staff can see exactly where the claim came from.
+
+### 3. Add Candidate Projects separate from approved Projects
+
+Instead of using `projects.approved = false` as the main staging mechanism, create a dedicated candidate layer:
+
+- candidate project name
+- normalized name
+- country / region
+- sector / subsector
+- stage
+- value estimate
+- timeline
+- extracted claims
+- source evidence IDs
+- duplicate candidates
+- quality score
+- review status
+
+Only after review should data be promoted into the final `projects` table.
+
+This avoids polluting production project records with low-confidence or incomplete AI output.
+
+### 4. Centralize the quality scoring model
+
+Add one shared quality scoring function used by all agents and Review Queue.
+
+Suggested score dimensions:
+
+- Source quality: official/MDB/government > trade press > generic article
+- Source count: one source is weak; two or more independent sources is stronger
+- URL validity: no placeholder, no homepage-only URL, no broken URL
+- Project specificity: project has a real name, location, sector, value, stage, timeline
+- Financial confidence: value has source and currency/date context
+- Stakeholder confidence: owner, contractor, financier, authority, or consultant identified
+- Recency: last source/update date
+- Geospatial confidence: coordinates are project/site-level, not just country centroid
+- Contradiction risk: conflicting stage/value/timeline across sources
+- Completeness: core fields are filled
+
+Example approval gates:
+
+```text
+Auto-approve: 85+ quality score, 2+ strong sources, no contradictions
+Staff review: 50–84 quality score
+Reject / needs research: below 50 or missing source URL
+Never approve: no source URL, placeholder source, unverifiable project name
 ```
 
-The wrapper will:
+This aligns with the project rule that all projects require source URLs and unverified records cap at 30% confidence.
 
-- Store `anonymous_id` and `session_id` locally.
-- Capture UTM/source data already supported by the app.
-- Avoid capturing sensitive data such as passwords, full free-text prompts, payment details, or raw emails in event properties.
-- Fail silently if analytics insertion fails so the product never breaks because tracking failed.
+## Agent redesign
 
-### 4. Track the most important product events
+### A. Source Ingest Agents
 
-Instrument the flows that matter most for understanding drop-off and conversion:
+Purpose: fetch new data from registered sources.
 
-#### Acquisition and signup
+Keep existing MDB ingest agents, but refactor them to write into raw evidence and candidates first, not directly to final project records.
 
-- `page_viewed`
-- `signup_started`
-- `signup_completed`
-- `email_verification_required`
-- `email_verified_callback`
-- `login_completed`
-- `google_login_started`
-- `google_login_completed`
-- `logout_clicked`
+Agents:
 
-#### Onboarding and activation
+- World Bank ingest
+- IFC ingest
+- ADB ingest
+- AfDB ingest
+- EBRD ingest
+- IADB ingest
+- AIIB ingest
+- Source ingest from URL
+- Tender/procurement ingest
+- News/trade publication ingest
 
-- `onboarding_started`
-- `onboarding_step_completed`
-- `onboarding_completed`
-- `tour_started`
-- `tour_completed`
-- `first_project_viewed`
-- `first_search_performed`
-- `first_project_tracked`
+Output:
 
-#### Paywall and monetization
+- raw evidence rows
+- candidate project rows
+- source run logs
 
-- `paywall_viewed`
-- `paywall_cta_clicked`
-- `trial_started`
-- `checkout_started`
-- `checkout_completed` if payment webhook confirms it
-- `quota_request_started`
-- `quota_request_submitted`
-- `pricing_page_viewed`
+### B. Extraction Agent
 
-This directly answers your example: “did they sign out after hitting the paywall?” by querying users/sessions where `paywall_viewed` is followed by `logout_clicked` or no further activity.
+Purpose: turn raw source text into structured project candidates.
 
-#### Core product usage
+It should extract:
 
-- `dashboard_viewed`
-- `project_opened`
-- `search_performed`
-- `filter_applied`
-- `watchlist_added`
-- `ai_query_started`
-- `ai_query_completed`
-- `export_attempted`
-- `insight_opened`
+- project name
+- location
+- sector/subsector
+- stage
+- value
+- funding source
+- stakeholders
+- dates
+- risks
+- source-backed claims
 
-### 5. Add admin analytics views to the existing Traction dashboard
+Important change: every extracted field should include the source/evidence it came from, not just the final value.
 
-Extend `/dashboard/traction` with product behavior analytics:
+Example:
 
-- Signup funnel: landing → signup started → signup completed → email verified → onboarded → activated → trial/paid.
-- Paywall funnel: paywall viewed → start trial / checkout / compare plans / sign out / inactive.
-- Top paywalled features causing drop-off.
-- Activation metrics: first project viewed, first saved project, first AI action, first export.
-- Retention table: active again after 1 day, 7 days, 30 days.
-- Recent high-intent users: users who hit paywall multiple times or viewed pricing but did not convert.
+```text
+field: value_usd
+value: 2500000000
+source_evidence_id: abc
+confidence: 82
+quote: “The project is valued at…”
+```
 
-Keep this admin-only using the existing `has_role(auth.uid(), 'admin')` approach.
+### C. Entity Resolution / Dedup Agent
 
-### 6. Add aggregated RPCs instead of exposing raw event tables to the UI
+Purpose: merge duplicates before review.
 
-Create functions such as:
+It should compare:
 
-- `get_product_analytics_summary(days integer)`
-- `get_signup_funnel(days integer)`
-- `get_paywall_dropoff(days integer)`
-- `get_activation_cohorts(days integer)`
+- normalized project name
+- country/region
+- sector
+- coordinates
+- sponsor/stakeholder names
+- source URLs
+- financing institution project IDs
 
-These return counts and grouped rows for charts without exposing individual behavior unnecessarily.
+It should produce:
 
-### 7. Privacy and compliance safeguards
+- “same project” suggestions
+- duplicate confidence
+- canonical project candidate
+- merge preview for staff
 
-Update the privacy notice if needed to clearly state that product usage events are collected to improve the platform.
+### D. Enrichment Agent
 
-Implementation safeguards:
+Purpose: fill gaps only after a candidate/project exists.
 
-- Do not track passwords, payment card details, raw AI prompts, sensitive user text, or private project notes.
-- Keep properties allowlisted per event where possible.
-- Use a short-to-medium retention window for raw events, e.g. 180 or 365 days, while keeping aggregate metrics longer.
-- Make analytics admin-only.
-- Respect basic browser privacy controls where appropriate.
+Sub-agents:
 
-## Optional later upgrade: connect PostHog
+- Funding enrichment
+- Stakeholder/contact enrichment
+- Risk enrichment
+- ESG/social enrichment
+- Regulatory/permitting enrichment
+- Tender/award enrichment
+- Geospatial/site enrichment
 
-After first-party tracking is in place, you can optionally forward selected events to PostHog for session replay, funnels, heatmaps, and feature flags.
+Each enrichment should add evidence-backed claims, not overwrite fields blindly.
 
-I would not start with full third-party autocapture because this platform has sensitive infrastructure intelligence workflows. A better path is:
+### E. Update Monitor Agent
 
-1. First-party event tracking now.
-2. Clean event taxonomy.
-3. Admin dashboard.
-4. Optional PostHog later for visual funnels/session replay, with sensitive fields masked.
+Purpose: monitor approved projects over time.
 
-## Technical implementation plan
+It should:
 
-1. Database migration
-   - Create `user_events` table.
-   - Enable RLS.
-   - Add safe policies.
-   - Add indexes on `user_id`, `session_id`, `event_name`, `created_at`, and selected properties if needed.
-   - Add admin-only aggregate RPCs.
+- check source URLs for changes
+- search recent updates from authoritative sources
+- detect stage changes, delays, cancellations, awards, financing close, commissioning
+- create update proposals instead of directly changing high-impact fields
+- reduce confidence if sources go stale
 
-2. Backend function
-   - Add `supabase/functions/track-event/index.ts`.
-   - Validate input with strict schemas.
-   - Resolve authenticated user from bearer token when available.
-   - Insert sanitized events.
+Review Queue should then show “update proposals” as well as “new project candidates.”
 
-3. Frontend analytics library
-   - Add `src/lib/analytics.ts`.
-   - Add route-level page tracking in `App`/router layer.
-   - Track auth events in `Login.tsx`, `AuthCallback.tsx`, and `AuthContext.tsx`.
+### F. Alert Intelligence Agent
 
-4. Paywall instrumentation
-   - Track `paywall_viewed` and CTA clicks in `FeatureGate.tsx`.
-   - Track trial, checkout, pricing, quota request actions in `UpgradeDialog.tsx` and billing hooks.
+Purpose: convert verified updates into actionable alerts.
 
-5. Activation instrumentation
-   - Track onboarding completion, project opens, saved project actions, AI attempts, exports, and insight reads in the relevant hooks/pages.
+Better alert types:
 
-6. Dashboard
-   - Extend `Traction.tsx` with product behavior sections and charts.
-   - Keep all analytics pages behind admin role guards.
+- stage change
+- delay risk
+- financing risk
+- procurement event
+- contract award
+- cancellation/stoppage
+- regulatory/permitting issue
+- ESG/social controversy
+- security/resilience incident
+- supply chain issue
 
-7. Verification
-   - Confirm anonymous page events, signup events, authenticated events, paywall events, and signout events are recorded.
-   - Confirm regular users cannot read other users’ events.
-   - Confirm admin summaries return the expected funnel/drop-off counts.
+Alerts should link to source evidence and affected projects.
 
-## Best first milestone
+## Review Queue redesign
 
-Start with the minimum event set that answers your paywall/drop-off question:
+The Review Queue should become the “Intelligence Verification Workbench.”
 
-- `signup_completed`
-- `email_verification_required`
-- `login_completed`
-- `onboarding_completed`
-- `paywall_viewed`
-- `paywall_cta_clicked`
-- `trial_started`
-- `checkout_started`
-- `logout_clicked`
-- `page_viewed`
+### Current Review Queue
 
-Then add deeper product events once the foundation is working.
+- Lists unapproved projects
+- Shows basic fields
+- Checks source/contact presence
+- Approve/reject
+
+### Redesigned Review Queue
+
+It should have tabs:
+
+1. New project candidates
+2. Duplicate/merge suggestions
+3. Enrichment proposals
+4. Update proposals
+5. Low-confidence records
+6. Broken/stale sources
+
+Each item should show:
+
+- quality score
+- confidence score
+- source count
+- official source status
+- missing fields
+- contradictions
+- duplicate risk
+- last agent that touched it
+- evidence excerpts
+- source URLs
+- recommended action
+
+Reviewer actions:
+
+- approve candidate
+- request more research
+- merge with existing project
+- reject candidate
+- approve selected fields only
+- edit before approval
+- assign to researcher
+- add verification note/reason
+
+Bulk approval should be removed or made very restricted. Bulk approval is risky for an intelligence product.
+
+## Agent Monitoring redesign
+
+The current Agent Monitoring page is useful, but it should shift from “did the function run?” to “is the intelligence pipeline healthy?”
+
+### New monitoring sections
+
+1. Pipeline Health
+   - candidates discovered
+   - candidates extracted
+   - duplicates detected
+   - candidates approved
+   - candidates rejected
+   - average time to approval
+   - stuck items by pipeline stage
+
+2. Data Quality
+   - source URL coverage
+   - 2+ source coverage
+   - official source coverage
+   - contact coverage
+   - funding coverage
+   - risk coverage
+   - geospatial precision coverage
+   - average confidence
+   - stale project count
+
+3. Agent Reliability
+   - success rate by agent
+   - failure reason categories
+   - last run duration
+   - records processed per run
+   - retry count
+   - API/source failures
+   - output quality score by agent
+
+4. Source Reliability
+   - sources currently failing
+   - sources with stale data
+   - source freshness by region
+   - source yield: how many valid candidates each source produces
+   - source rejection rate
+
+5. Review Bottlenecks
+   - pending review count
+   - high-value pending projects
+   - high-confidence candidates waiting approval
+   - candidates blocked by missing source/contact
+   - assigned reviewer workload
+
+6. Agent Controls
+   - pause/resume
+   - run now
+   - run targeted by region/sector/source
+   - dry-run mode
+   - reprocess failed items
+   - retry source
+   - rebuild quality scores
+
+## Better agent interactions
+
+Instead of agents being isolated, they should trigger the next stage based on outcomes.
+
+Example:
+
+```text
+World Bank Ingest completes
+  → Extraction Agent runs on new raw evidence
+  → Dedup Agent checks candidates
+  → Enrichment Agent fills missing fields
+  → Quality Scorer calculates readiness
+  → Review Queue receives candidate
+```
+
+For approved projects:
+
+```text
+Update Monitor finds change
+  → Evidence saved
+  → Change proposal created
+  → Risk/alert agents evaluate impact
+  → Review Queue approves or rejects update
+  → User alert/digest generated
+```
+
+This could be implemented with database task rows and scheduled functions first. Later, if needed, it could move to a durable workflow connector for more advanced orchestration.
+
+## Database changes I would propose
+
+Add these tables or equivalent structures:
+
+1. `source_registry`
+   - tracks sources, reliability, coverage, schedule, status
+
+2. `raw_evidence`
+   - stores fetched source documents and extracted snippets
+
+3. `project_candidates`
+   - staging layer before final project approval
+
+4. `candidate_evidence_links`
+   - links candidates to supporting evidence
+
+5. `project_claims`
+   - field-level claims with source references
+
+6. `agent_runs`
+   - richer replacement/complement for `research_tasks`
+
+7. `agent_run_events`
+   - step logs, errors, counters, quality metrics
+
+8. `quality_scores`
+   - per candidate/project quality breakdown
+
+9. `review_actions`
+   - audit trail of approvals, rejections, overrides, merge decisions
+
+10. `update_proposals`
+   - proposed changes to approved projects before applying them
+
+This would preserve current tables while adding a stronger intelligence pipeline around them.
+
+## Frontend changes
+
+### Agent Monitoring page
+
+Rebuild into a Command Center with:
+
+- pipeline overview cards
+- source health table
+- quality coverage matrix
+- per-agent run timeline
+- error drilldowns
+- stuck queue panel
+- agent controls
+- charts by region/sector/source
+
+### Review Queue page
+
+Rebuild into a Verification Workbench with:
+
+- tabs by review item type
+- quality score card
+- evidence viewer
+- field-by-field diff/approval
+- duplicate merge UI
+- source validation status
+- reviewer notes
+- request-more-research action
+
+### Project Detail page
+
+Add:
+
+- evidence-backed field history
+- source confidence section
+- update history
+- claim provenance
+- “why this confidence score?” explanation
+
+## Implementation plan
+
+### Phase 1: stabilize and measure
+
+- Audit all existing agents for auth, task lifecycle, error handling, and direct writes.
+- Standardize every agent to use shared lifecycle helpers.
+- Add richer task/run metadata: processed count, inserted count, updated count, skipped count, source count, quality count.
+- Fix agents that do not call `finishAgentRun` consistently.
+- Add clearer failure messages in monitoring.
+
+### Phase 2: source-first data model
+
+- Add source registry, raw evidence, candidate project, quality score, review action, and update proposal tables.
+- Add RLS policies so only staff can manage internal intelligence workflow data.
+- Keep public users limited to approved project data only.
+
+### Phase 3: refactor ingest and discovery
+
+- Convert MDB ingest agents to write evidence/candidates first.
+- Refactor Research Agent into Source Discovery + Extraction instead of direct project creation.
+- Add dedup before any candidate reaches review.
+- Enforce source URL and confidence caps centrally.
+
+### Phase 4: rebuild Review Queue
+
+- Replace simple unapproved-project review with a multi-tab verification workbench.
+- Add quality scoring, evidence excerpts, duplicate suggestions, and field-level approval.
+- Remove unsafe bulk approval or restrict it to high-confidence candidates only.
+
+### Phase 5: rebuild Agent Monitoring
+
+- Add pipeline health metrics.
+- Add source health metrics.
+- Add quality coverage metrics.
+- Add per-agent reliability and output quality metrics.
+- Add targeted run controls.
+
+### Phase 6: continuous monitoring and updates
+
+- Convert update checker to create update proposals instead of directly mutating important fields.
+- Connect alerts/digests to approved update proposals.
+- Add stale source detection and automatic “needs refresh” queue.
+
+## Recommended first build step
+
+I would start with Phase 1 and Phase 2 together:
+
+1. Add the new source/evidence/candidate/quality/review schema.
+2. Add a shared quality scoring function.
+3. Refactor one agent first, probably World Bank ingest, into the new pipeline.
+4. Rebuild Review Queue around candidates and quality scores.
+5. Once the pattern works, migrate the other agents into the same architecture.
+
+This avoids trying to rewrite all agents at once while immediately improving data quality and review accuracy.
+
+## Expected result
+
+After this rebuild, INFRADARAI would have:
+
+- more reliable project discovery
+- fewer hallucinated or weak records
+- clear source provenance for every project
+- stronger confidence scoring
+- better reviewer workflows
+- measurable agent performance
+- better continuous project updates
+- a more defensible intelligence product for infrastructure professionals
