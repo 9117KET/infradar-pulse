@@ -8,13 +8,14 @@
  * Resource: 814b7b54-477a-4c25-b3bf-6be05412069d (All Operations dataset)
  *
  * Accepted body params:
- *   limit   - max projects to ingest (default: 300, max: 1000)
+ *   limit   - max projects to ingest (default: 300, max: 10000)
  *   status  - filter by project status: "Active" | "Implementation" | "Closed" (default: "Active,Implementation")
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,6 +88,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -99,17 +101,28 @@ serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const totalLimit: number = Math.min(Number(body.limit) || 300, 1000);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
     const statusFilter: string = String(body.status || "Active,Implementation");
 
     const lock = await beginAgentTask(supabase, "iadb-ingest", `IADB Projects API — status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("iadb-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "iadb-projects",
+      name: "Inter-American Development Bank Operations Data",
+      baseUrl: "https://data.iadb.org",
+      reliabilityScore: 90,
+      supportsApi: true,
+    });
 
     console.log(`Fetching IADB projects (status:${statusFilter}, limit:${totalLimit})...`);
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
     const BATCH = 100;
@@ -129,8 +142,8 @@ serve(async (req) => {
 
     const statusVariants = statusFilter.toLowerCase().split(",").map((s) => s.trim());
 
-    for (let offset = 0; offset < totalLimit; offset += BATCH) {
-      const batchSize = Math.min(BATCH, totalLimit - offset);
+    for (let offset = startOffset; offset < startOffset + totalLimit; offset += BATCH) {
+      const batchSize = Math.min(BATCH, startOffset + totalLimit - offset);
       const url = new URL(IADB_API);
       url.searchParams.set("resource_id", IADB_RESOURCE_ID);
       url.searchParams.set("limit", String(batchSize));
