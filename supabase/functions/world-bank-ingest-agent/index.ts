@@ -189,6 +189,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -210,7 +211,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
     taskId = lock.taskId;
-    const runStartedAt = new Date();
+    runStartedAt = new Date();
 
     const { data: sourceRow } = await supabase.from("source_registry").upsert({
       source_key: "world-bank-projects",
