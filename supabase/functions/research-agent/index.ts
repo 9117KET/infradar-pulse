@@ -388,7 +388,7 @@ ${rawContent.join("\n\n---\n\n")}`;
         lng: ep.lng,
         description: ep.description,
         timeline: ep.timeline || "",
-        sourceUrl: isValidSource ? bestSourceUrl : `https://infradarai.com/research-agent/${crypto.randomUUID()}`,
+        sourceUrl: isValidSource ? bestSourceUrl : "",
         rawPayload: ep,
         extractedClaims: { evidence_source: ep.evidence_source ?? null, contacts: ep.contacts ?? [], stakeholders: ep.stakeholders ?? [] },
         stakeholder: Array.isArray(ep.stakeholders) ? ep.stakeholders[0] : null,
