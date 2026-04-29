@@ -14,13 +14,24 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { calculateIntelligenceQuality } from "../_shared/intelligenceQuality.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+async function sha256(input: string): Promise<string> {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function normalizeName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
 
 // ---------------------------------------------------------------------------
 // Mapping helpers
@@ -178,6 +189,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -199,15 +211,31 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const { data: sourceRow } = await supabase.from("source_registry").upsert({
+      source_key: "world-bank-projects",
+      name: "World Bank Projects Database",
+      kind: "mdb",
+      base_url: "https://projects.worldbank.org",
+      reliability_score: 95,
+      crawl_frequency_minutes: 1440,
+      supports_api: true,
+      status: "active",
+      last_success_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "source_key" }).select("id").single();
 
     // Infrastructure-relevant World Bank sector codes
     // TX=Transport, YA=Energy & Mining, WS=Water, TU=Urban Dev, TC=ICT, YB=Industry & Trade
     // YZ=Mining, LZ=General Infra, JA=Other
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
 
-    let inserted = 0;
     let updated = 0;
     let skipped = 0;
+    let evidenceWritten = 0;
+    let candidatesWritten = 0;
+    let qualityScoresWritten = 0;
     let fetched = 0;
     const pageSize = 100;
     const statuses = statusFilter.split(",").map((s) => s.trim());
@@ -298,6 +326,25 @@ serve(async (req) => {
 
             const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
+            const rawPayload = JSON.stringify({ id: p.id, name, country, wbRegion, wbSector, wbStatus, totalAmt, projectUrl, description });
+            const contentHash = await sha256(`world-bank:${p.id}:${rawPayload}`);
+            const { data: evidence } = await supabase!.from("raw_evidence").upsert({
+              source_id: sourceRow?.id ?? null,
+              source_key: "world-bank-projects",
+              url: projectUrl,
+              canonical_url: projectUrl,
+              title: name,
+              published_at: approvalDate ? new Date(approvalDate).toISOString() : null,
+              content_hash: contentHash,
+              extracted_text: rawPayload,
+              summary: description,
+              kind: "mdb",
+              fetch_status: "fetched",
+              extraction_confidence: confidence,
+              metadata: { world_bank_id: p.id, status: wbStatus, sector: wbSector, api_url: apiUrl.toString() },
+            }, { onConflict: "url" }).select("id").single();
+            if (evidence?.id) evidenceWritten++;
+
             // Check for existing project
             const { data: existing } = await supabase!
               .from("projects")
@@ -321,11 +368,22 @@ serve(async (req) => {
                 skipped++;
               }
             } else {
-              // Insert new project
-              const { data: newProject } = await supabase!
-                .from("projects")
+              const quality = calculateIntelligenceQuality({
+                sourceUrl: projectUrl,
+                confidence,
+                description,
+                valueUsd: totalAmt,
+                lat,
+                lng,
+                evidenceCount: 1,
+                officialSourceCount: 1,
+                lastUpdated: new Date().toISOString(),
+              });
+
+              const { data: candidate } = await supabase!
+                .from("project_candidates")
                 .insert({
-                  slug,
+                  normalized_name: normalizeName(name),
                   name,
                   country,
                   region,
@@ -341,50 +399,53 @@ serve(async (req) => {
                   description,
                   timeline,
                   source_url: projectUrl,
-                  ai_generated: false, // this is real primary source data
-                  approved: true,
+                  extracted_claims: { world_bank_id: p.id, borrower: p.borrower ?? null, implementing_agency: p.impagency ?? null },
+                  pipeline_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
+                  review_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
+                  discovered_by: "world-bank-ingest",
                 })
-                .select()
+                .select("id")
                 .single();
 
-              if (newProject) {
-                // Add World Bank as evidence source
-                await supabase!.from("evidence_sources").insert({
-                  project_id: newProject.id,
-                  source: "World Bank Projects Database",
-                  url: projectUrl,
-                  type: "Filing",
-                  verified: true, // World Bank data is authoritative
-                  date: new Date().toISOString().split("T")[0],
-                  title: name,
-                  description: description.substring(0, 200),
-                });
-
-                // Add borrower as stakeholder if available
-                if (p.borrower) {
-                  await supabase!.from("project_stakeholders").insert({
-                    project_id: newProject.id,
-                    name: String(p.borrower).trim(),
+              if (candidate?.id) {
+                candidatesWritten++;
+                if (evidence?.id) {
+                  await supabase!.from("candidate_evidence_links").insert({
+                    candidate_id: candidate.id,
+                    evidence_id: evidence.id,
+                    supports_fields: ["name", "country", "sector", "stage", "value_usd", "timeline", "source_url"],
+                    relevance_score: 95,
+                    quote: description.substring(0, 500),
                   });
+                  const claims = [
+                    ["stage", stage], ["status", infraStatus], ["value_usd", String(totalAmt)], ["timeline", timeline], ["source_url", projectUrl],
+                  ];
+                  for (const [field, value] of claims) {
+                    if (!value) continue;
+                    await supabase!.from("project_claims").insert({
+                      candidate_id: candidate.id,
+                      evidence_id: evidence.id,
+                      field_name: field,
+                      field_value: value,
+                      confidence,
+                      quote: description.substring(0, 300),
+                    });
+                  }
                 }
-                if (p.impagency) {
-                  await supabase!.from("project_stakeholders").insert({
-                    project_id: newProject.id,
-                    name: String(p.impagency).trim(),
-                  });
-                }
-
-                // Create discovery alert
-                await supabase!.from("alerts").insert({
-                  project_id: newProject.id,
-                  project_name: name,
-                  severity: "low",
-                  message: `World Bank project ingested: ${name} (${country}) — ${valueLabel}`,
-                  category: "market",
-                  source_url: projectUrl,
+                await supabase!.from("quality_scores").insert({
+                  candidate_id: candidate.id,
+                  total_score: quality.total_score,
+                  source_score: quality.source_score,
+                  evidence_score: quality.evidence_score,
+                  completeness_score: quality.completeness_score,
+                  freshness_score: quality.freshness_score,
+                  confidence_score: quality.confidence_score,
+                  missing_fields: quality.missing_fields,
+                  flags: quality.flags,
+                  recommendation: quality.recommendation,
+                  details: { source: "world-bank-ingest", world_bank_id: p.id },
                 });
-
-                inserted++;
+                qualityScoresWritten++;
               }
             }
           } catch (projectErr) {
@@ -399,7 +460,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, fetched, inserted, updated, skipped, status_filter: statusFilter };
+    const result = { success: true, fetched, candidates_created: candidatesWritten, existing_projects_updated: updated, skipped, evidence_written: evidenceWritten, quality_scores_written: qualityScoresWritten, status_filter: statusFilter };
 
     if (taskId) {
       await supabase.from("research_tasks").update({
@@ -409,24 +470,30 @@ serve(async (req) => {
       }).eq("id", taskId);
     }
 
-    console.log(`World Bank ingest complete: fetched=${fetched} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "world-bank-ingest", "completed", "World Bank ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "world-bank-ingest", "completed", runStartedAt);
+
+    console.log(`World Bank ingest complete: fetched=${fetched} candidates=${candidatesWritten} updated=${updated} skipped=${skipped}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("World Bank ingest agent error:", e);
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed",
-          error: e instanceof Error ? e.message : "Unknown error",
+          error: errMsg,
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "world-bank-ingest", "failed", errMsg, taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "world-bank-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: errMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
