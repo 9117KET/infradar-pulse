@@ -40,7 +40,7 @@ export function Navbar() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5">
           <InfradarLogo size={28} />
-          <span className="font-serif text-lg font-semibold tracking-wide text-foreground">INFRADAR</span>
+          <span className="font-serif text-lg font-semibold tracking-wide text-foreground">INFRADARAI</span>
         </Link>
 
         {/* Desktop */}
