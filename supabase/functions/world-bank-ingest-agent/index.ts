@@ -369,11 +369,22 @@ serve(async (req) => {
                 skipped++;
               }
             } else {
-              // Insert new project
-              const { data: newProject } = await supabase!
-                .from("projects")
+              const quality = calculateIntelligenceQuality({
+                sourceUrl: projectUrl,
+                confidence,
+                description,
+                valueUsd: totalAmt,
+                lat,
+                lng,
+                evidenceCount: 1,
+                officialSourceCount: 1,
+                lastUpdated: new Date().toISOString(),
+              });
+
+              const { data: candidate } = await supabase!
+                .from("project_candidates")
                 .insert({
-                  slug,
+                  normalized_name: normalizeName(name),
                   name,
                   country,
                   region,
@@ -389,49 +400,53 @@ serve(async (req) => {
                   description,
                   timeline,
                   source_url: projectUrl,
-                  ai_generated: false, // this is real primary source data
-                  approved: true,
+                  extracted_claims: { world_bank_id: p.id, borrower: p.borrower ?? null, implementing_agency: p.impagency ?? null },
+                  pipeline_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
+                  review_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
+                  discovered_by: "world-bank-ingest",
                 })
-                .select()
+                .select("id")
                 .single();
 
-              if (newProject) {
-                // Add World Bank as evidence source
-                await supabase!.from("evidence_sources").insert({
-                  project_id: newProject.id,
-                  source: "World Bank Projects Database",
-                  url: projectUrl,
-                  type: "Filing",
-                  verified: true, // World Bank data is authoritative
-                  date: new Date().toISOString().split("T")[0],
-                  title: name,
-                  description: description.substring(0, 200),
-                });
-
-                // Add borrower as stakeholder if available
-                if (p.borrower) {
-                  await supabase!.from("project_stakeholders").insert({
-                    project_id: newProject.id,
-                    name: String(p.borrower).trim(),
+              if (candidate?.id) {
+                candidatesWritten++;
+                if (evidence?.id) {
+                  await supabase!.from("candidate_evidence_links").insert({
+                    candidate_id: candidate.id,
+                    evidence_id: evidence.id,
+                    supports_fields: ["name", "country", "sector", "stage", "value_usd", "timeline", "source_url"],
+                    relevance_score: 95,
+                    quote: description.substring(0, 500),
                   });
+                  const claims = [
+                    ["stage", stage], ["status", infraStatus], ["value_usd", String(totalAmt)], ["timeline", timeline], ["source_url", projectUrl],
+                  ];
+                  for (const [field, value] of claims) {
+                    if (!value) continue;
+                    await supabase!.from("project_claims").insert({
+                      candidate_id: candidate.id,
+                      evidence_id: evidence.id,
+                      field_name: field,
+                      field_value: value,
+                      confidence,
+                      quote: description.substring(0, 300),
+                    });
+                  }
                 }
-                if (p.impagency) {
-                  await supabase!.from("project_stakeholders").insert({
-                    project_id: newProject.id,
-                    name: String(p.impagency).trim(),
-                  });
-                }
-
-                // Create discovery alert
-                await supabase!.from("alerts").insert({
-                  project_id: newProject.id,
-                  project_name: name,
-                  severity: "low",
-                  message: `World Bank project ingested: ${name} (${country}) — ${valueLabel}`,
-                  category: "market",
-                  source_url: projectUrl,
+                await supabase!.from("quality_scores").insert({
+                  candidate_id: candidate.id,
+                  total_score: quality.total_score,
+                  source_score: quality.source_score,
+                  evidence_score: quality.evidence_score,
+                  completeness_score: quality.completeness_score,
+                  freshness_score: quality.freshness_score,
+                  confidence_score: quality.confidence_score,
+                  missing_fields: quality.missing_fields,
+                  flags: quality.flags,
+                  recommendation: quality.recommendation,
+                  details: { source: "world-bank-ingest", world_bank_id: p.id },
                 });
-
+                qualityScoresWritten++;
                 inserted++;
               }
             }
