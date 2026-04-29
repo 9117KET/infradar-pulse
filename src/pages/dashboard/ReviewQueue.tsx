@@ -546,7 +546,7 @@ export default function ReviewQueue() {
                     <p className="text-sm text-muted-foreground line-clamp-2">{candidate.description || 'No description extracted yet.'}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {quality.missingFields.map(field => <Badge key={field} variant="outline" className="text-[10px]">Missing {field}</Badge>)}
-                      {quality.flags.map(flag => <Badge key={flag} variant="outline" className="text-[10px]">{flag.replaceAll('_', ' ')}</Badge>)}
+                      {quality.flags.map(flag => <Badge key={flag} variant="outline" className="text-[10px]">{flag.replace(/_/g, ' ')}</Badge>)}
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
