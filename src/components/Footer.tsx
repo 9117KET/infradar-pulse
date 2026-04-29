@@ -26,7 +26,7 @@ export function Footer() {
     <footer className="relative border-t border-border overflow-hidden">
       {/* Giant watermark */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
-        <span className="font-serif text-[10rem] sm:text-[14rem] font-bold tracking-widest text-white/[0.02]">INFRADAR</span>
+        <span className="font-serif text-[8rem] sm:text-[12rem] font-bold tracking-widest text-white/[0.02]">INFRADARAI</span>
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6">
@@ -35,7 +35,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
               <InfradarLogo size={24} />
-              <span className="font-serif text-base font-semibold tracking-wide">INFRADAR</span>
+              <span className="font-serif text-base font-semibold tracking-wide">INFRADARAI</span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Verified infrastructure intelligence for high-stakes decisions across 14 global regions.
@@ -73,7 +73,7 @@ export function Footer() {
         </div>
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Infradar. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} INFRADARAI. All rights reserved.</p>
           <div className="flex gap-4">
             {LEGAL_LINKS.map(l => (
               <Link key={l.href} to={l.href} className="text-xs text-muted-foreground hover:text-primary transition-colors">{l.label}</Link>
