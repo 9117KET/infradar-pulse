@@ -7,25 +7,23 @@ export default function Refund() {
           <p>Last updated: April 2026</p>
 
           <p>
-            This Refund Policy applies to subscriptions to the Infradar platform, operated by Kinlo
+            This Refund Policy applies to subscriptions to the INFRADARAI platform, operated by Kinlo
             and Glen. Our order process is conducted by our online reseller Paddle.com, which is the
             Merchant of Record for all our orders and handles payments, refunds and returns.
           </p>
 
-          <h2 className="font-serif text-xl font-bold text-foreground pt-4">14-Day Money-Back Guarantee</h2>
+          <h2 className="font-serif text-xl font-bold text-foreground pt-4">14-Day Refund Window</h2>
           <p>
-            We offer a 14-day money-back guarantee on your first paid charge for any Infradar
-            subscription plan. If you are not satisfied with the Service, you can request a full
-            refund of that first charge within 14 days of the order date. No specific reason is
-            required.
+            We offer a minimum 14-day refund window for paid INFRADARAI subscription charges. If you
+            are not satisfied with the Service, you can request a full refund within 14 days of the
+            order date. No exceptions, additional conditions, or specific reason are required.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Renewals</h2>
           <p>
-            Subscription renewals (after the first paid charge) are not automatically eligible for a
-            refund. We understand that renewals can occasionally be unexpected. If you are charged
-            for a renewal you did not intend to keep, contact us or Paddle promptly and we will
-            review your request in good faith on a case-by-case basis.
+            Subscription renewals are covered by the same minimum 14-day refund window. If you are
+            charged for a renewal you did not intend to keep, request a refund within 14 days of the
+            renewal order date through Paddle or by contacting us for assistance.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">How to Request a Refund</h2>
