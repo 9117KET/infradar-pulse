@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon } from 'lucide-react';
+import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
@@ -133,9 +133,14 @@ export default function Pricing() {
             Pay for what you use, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto">
-            Start with a 3-day trial, no card required. Card details are only requested for paid upgrades,
+            Pilot users get 30 days of full access with no credit card while seats are available. Card details are only requested for paid upgrades,
             and your first paid charge has a 14-day refund guarantee.
           </p>
+        </div>
+
+        <div className="mb-10 rounded-xl border border-primary/30 bg-primary/10 px-5 py-4 text-sm text-primary flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-center">
+          <Gift className="h-4 w-4 shrink-0" />
+          <span><span className="font-semibold">Pilot phase:</span> the first 100 standard users receive 30 days of full platform access automatically after signup.</span>
         </div>
 
         {/* Billing cycle toggle */}
