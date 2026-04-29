@@ -23,7 +23,7 @@ const COMPETITOR_TABLE = [
   { name: 'Project finance data terminal', price: '$20k-$100k / yr', update: 'Financial feeds', blur: true },
   { name: 'Regional MENA/Africa intel platform', price: '$3k-$12k / yr', update: 'Weekly updates', blur: true },
   { name: 'Construction & tender aggregator', price: '$4k-$20k / yr', update: 'Daily, unverified', blur: true },
-  { name: 'InfradarAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
+  { name: 'INFRADARAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
 ];
 
 const LIFETIME_MAX_SEATS = 100;
@@ -386,7 +386,7 @@ export default function Pricing() {
                   <InfinityIcon className="h-6 w-6 text-primary" />
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4 max-w-xl">
-                  Get permanent Pro-tier access to InfradarAI. Every future feature, every new agent,
+                  Get permanent Pro-tier access to INFRADARAI. Every future feature, every new agent,
                   every market we cover, yours at no extra cost. Help us build the category, get
                   rewarded forever.
                 </p>
@@ -436,10 +436,10 @@ export default function Pricing() {
         {/* Competitor comparison */}
         <div className="glass-panel rounded-xl p-8 max-w-4xl mx-auto mb-8">
           <h3 className="font-serif text-lg font-semibold mb-1 flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" /> Why InfradarAI vs. legacy intelligence vendors
+            <Shield className="h-5 w-5 text-primary" /> Why INFRADARAI vs. legacy intelligence vendors
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Legacy vendors sell static PDF reports for thousands per topic. InfradarAI turns the same job into a living workflow:
+            Legacy vendors sell static PDF reports for thousands per topic. INFRADARAI turns the same job into a living workflow:
             search the data, monitor alerts, ask AI questions, and generate fresh report-quality briefs from your selected scope.
           </p>
           <div className="overflow-x-auto">
@@ -480,12 +480,12 @@ export default function Pricing() {
             <Building2 className="h-5 w-5 text-primary" /> Built for infrastructure commercial, finance, and delivery teams
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            For business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams, InfradarAI replaces expensive consultant engagements and stale research subscriptions with{' '}
+            For business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams, INFRADARAI replaces expensive consultant engagements and stale research subscriptions with{' '}
             <span className="text-foreground">real-time AI research</span>,{' '}
             <span className="text-foreground">confidence-scored signals</span>, and{' '}
             <span className="text-foreground">self-serve workflows</span> for faster market research and pipeline decisions.
             Export your pipeline as CSV, Excel (.xlsx), project tearsheets, and intelligence reports with account-level audit traceability.
-            Enterprise and API access available for teams embedding InfradarAI into their own workflows.
+            Enterprise and API access available for teams embedding INFRADARAI into their own workflows.
           </p>
         </div>
       </div>
