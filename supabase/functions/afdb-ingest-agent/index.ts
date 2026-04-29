@@ -14,7 +14,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -56,6 +58,15 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "afdb-ingest", "African Development Bank Projects Portal", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("afdb-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "afdb-projects",
+      name: "African Development Bank Projects Portal",
+      baseUrl: "https://projectsportal.afdb.org",
+      reliabilityScore: 86,
+      supportsApi: false,
+    });
 
     const rawContent: string[] = [];
 
@@ -181,8 +192,10 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
       return [0, 20]; // center of Africa
     }
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
+    let skipped = 0;
 
     for (const ep of extractedProjects) {
       try {
