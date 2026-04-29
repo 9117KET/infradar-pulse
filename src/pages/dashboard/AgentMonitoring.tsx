@@ -94,6 +94,14 @@ interface AgentMonitoringSummary {
   };
 }
 
+interface PipelineSummary {
+  candidate_counts?: Record<string, number>;
+  source_health?: { total_sources?: number; active_sources?: number; failing_sources?: number; stale_sources?: number };
+  quality?: { avg_score?: number; approve_ready?: number; needs_research?: number; missing_source?: number };
+  review?: { pending_candidates?: number; high_confidence_pending?: number; update_proposals?: number };
+  agent_events?: { events_24h?: number; errors_24h?: number };
+}
+
 const PAGE_SIZE = 1000;
 
 async function fetchRecentResearchTasks(): Promise<TaskRow[]> {
@@ -156,6 +164,17 @@ export default function AgentMonitoring() {
     },
     enabled: staffReady,
     refetchInterval: 30000,
+  });
+
+  const { data: pipelineSummary } = useQuery({
+    queryKey: ['intelligence-pipeline-summary', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc('get_intelligence_pipeline_summary');
+      if (error) throw error;
+      return data as PipelineSummary;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
   });
 
   // Data coverage query - paginated so the 1000-row Supabase default cap does
