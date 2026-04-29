@@ -219,7 +219,61 @@ export const DISPOSABLE_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
   "hide-my-email.com",
   "fastmailmask.com",
   "edu.sg.com",
+  "emailtmp.com",
+  "emailtemp.org",
+  "tempmailbox.com",
+  "tempmailbox.net",
+  "temporary-mail.net",
+  "temporaryemail.net",
+  "temporaryemail.us",
+  "throwaway.email",
+  "throwawaymail.net",
+  "throwawaymail.org",
+  "fakemail.net",
+  "fakemail.io",
+  "fake-mail.net",
+  "fake-mail.ml",
+  "fakeemail.net",
+  "fakeemailaddress.com",
+  "mail7.io",
+  "mail.tm",
+  "mail.gw",
+  "dropmail.me",
+  "dropmail.ml",
+  "tmpmail.co",
+  "tmpmail.io",
+  "tmail.io",
+  "tmail.ws",
+  "1secmail.com",
+  "1secmail.org",
+  "1secmail.net",
+  "esiix.com",
+  "xojxe.com",
+  "yoggm.com",
+  "rteet.com",
+  "dcobe.com",
+  "wuuvo.com",
+  "vjuum.com",
+  "disposablemail.com",
+  "disposable-email.ml",
+  "getairmail.com",
+  "airmail.cc",
+  "mailnesia.net",
+  "mailhazard.com",
+  "mailhazard.us",
+  "spamfree24.org",
+  "spamfree24.com",
+  "spamfree24.de",
+  "spamfree24.eu",
+  "spamfree24.net",
+  "spamfree24.info",
+  "0-mail.com",
+  "0815.ru",
+  "0815.su",
+  "0815.ry",
 ]);
+
+const SUSPICIOUS_DOMAIN_PATTERNS = /(^|[.-])(temp|tmp|trash|throwaway|disposable|burner|fake|spam|mailinator|yopmail|guerrilla|10minute|minute|inbox|nada|discard|anon)([.-]|$)/i;
 
 export type DisposableCheckResult =
   | { ok: true; domain: string }
@@ -251,6 +305,10 @@ export function checkDisposableEmail(email: string | null | undefined): Disposab
     if (DISPOSABLE_EMAIL_DOMAINS.has(candidate)) {
       return { ok: false, reason: "DISPOSABLE_EMAIL", domain: candidate };
     }
+  }
+
+  if (SUSPICIOUS_DOMAIN_PATTERNS.test(domain)) {
+    return { ok: false, reason: "DISPOSABLE_EMAIL", domain };
   }
 
   return { ok: true, domain };
