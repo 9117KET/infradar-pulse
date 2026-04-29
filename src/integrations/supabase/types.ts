@@ -745,6 +745,80 @@ export type Database = {
           },
         ]
       }
+      project_recheck_findings: {
+        Row: {
+          confidence_snapshot: number | null
+          contact_count: number | null
+          created_at: string
+          created_by: string
+          finding_type: Database["public"]["Enums"]["project_recheck_finding_type"]
+          id: string
+          last_detected_at: string
+          missing_fields: string[]
+          notes: string
+          project_id: string
+          quality_score: number | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_reason: string | null
+          risk_snapshot: number | null
+          severity: Database["public"]["Enums"]["project_recheck_severity"]
+          source_count: number | null
+          status: Database["public"]["Enums"]["project_recheck_status"]
+          updated_at: string
+        }
+        Insert: {
+          confidence_snapshot?: number | null
+          contact_count?: number | null
+          created_at?: string
+          created_by?: string
+          finding_type: Database["public"]["Enums"]["project_recheck_finding_type"]
+          id?: string
+          last_detected_at?: string
+          missing_fields?: string[]
+          notes?: string
+          project_id: string
+          quality_score?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_reason?: string | null
+          risk_snapshot?: number | null
+          severity?: Database["public"]["Enums"]["project_recheck_severity"]
+          source_count?: number | null
+          status?: Database["public"]["Enums"]["project_recheck_status"]
+          updated_at?: string
+        }
+        Update: {
+          confidence_snapshot?: number | null
+          contact_count?: number | null
+          created_at?: string
+          created_by?: string
+          finding_type?: Database["public"]["Enums"]["project_recheck_finding_type"]
+          id?: string
+          last_detected_at?: string
+          missing_fields?: string[]
+          notes?: string
+          project_id?: string
+          quality_score?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_reason?: string | null
+          risk_snapshot?: number | null
+          severity?: Database["public"]["Enums"]["project_recheck_severity"]
+          source_count?: number | null
+          status?: Database["public"]["Enums"]["project_recheck_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_recheck_findings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_stakeholders: {
         Row: {
           id: string
@@ -1538,6 +1612,7 @@ export type Database = {
           task_type: string
         }[]
       }
+      get_existing_project_recheck_summary: { Args: never; Returns: Json }
       get_paywall_dropoff: { Args: { p_days?: number }; Returns: Json }
       get_pilot_access_summary: {
         Args: { p_environment?: string }
@@ -1648,6 +1723,14 @@ export type Database = {
         | "resolved"
         | "wont_fix"
       feedback_type: "bug" | "idea" | "praise" | "other"
+      project_recheck_finding_type:
+        | "missing_source"
+        | "missing_contact"
+        | "low_confidence"
+        | "stale_record"
+        | "high_risk"
+      project_recheck_severity: "low" | "medium" | "high" | "critical"
+      project_recheck_status: "open" | "in_review" | "resolved" | "dismissed"
       project_region:
         | "MENA"
         | "East Africa"
@@ -1830,6 +1913,15 @@ export const Constants = {
         "wont_fix",
       ],
       feedback_type: ["bug", "idea", "praise", "other"],
+      project_recheck_finding_type: [
+        "missing_source",
+        "missing_contact",
+        "low_confidence",
+        "stale_record",
+        "high_risk",
+      ],
+      project_recheck_severity: ["low", "medium", "high", "critical"],
+      project_recheck_status: ["open", "in_review", "resolved", "dismissed"],
       project_region: [
         "MENA",
         "East Africa",
