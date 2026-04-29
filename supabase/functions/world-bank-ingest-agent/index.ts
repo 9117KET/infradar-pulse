@@ -462,7 +462,7 @@ serve(async (req) => {
       }
     }
 
-    const result = { success: true, fetched, inserted, updated, skipped, status_filter: statusFilter };
+    const result = { success: true, fetched, candidates_created: candidatesWritten, existing_projects_updated: updated, skipped, evidence_written: evidenceWritten, quality_scores_written: qualityScoresWritten, status_filter: statusFilter };
 
     if (taskId) {
       await supabase.from("research_tasks").update({
@@ -472,24 +472,30 @@ serve(async (req) => {
       }).eq("id", taskId);
     }
 
-    console.log(`World Bank ingest complete: fetched=${fetched} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "world-bank-ingest", "completed", "World Bank ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "world-bank-ingest", "completed", runStartedAt);
+
+    console.log(`World Bank ingest complete: fetched=${fetched} candidates=${candidatesWritten} updated=${updated} skipped=${skipped}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("World Bank ingest agent error:", e);
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
           status: "failed",
-          error: e instanceof Error ? e.message : "Unknown error",
+          error: errMsg,
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "world-bank-ingest", "failed", errMsg, taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "world-bank-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: errMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
