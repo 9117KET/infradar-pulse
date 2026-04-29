@@ -349,10 +349,12 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-5 bg-muted/60">
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
           <TabsTrigger value="updates">Update Proposals ({updatePageResult.total})</TabsTrigger>
+          <TabsTrigger value="sources">Source Issues ({sourceIssuePageResult.total})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -599,6 +601,35 @@ export default function ReviewQueue() {
           <Pager page={legacyPage} total={pendingPageResult.total} onPageChange={setLegacyPage} />
         </TabsContent>
 
+        <TabsContent value="duplicates" className="space-y-3">
+          {duplicatePageResult.rows.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No duplicate suggestions</h3>
+              <p className="text-sm text-muted-foreground mt-1">Entity resolution suggestions will appear here before merge decisions.</p>
+            </div>
+          ) : <>
+            <Pager page={duplicatePage} total={duplicatePageResult.total} onPageChange={setDuplicatePage} />
+            {duplicatePageResult.rows.map((candidate: any) => (
+              <div key={candidate.id} className="glass-panel rounded-xl p-5 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-semibold">{candidate.name}</h3>
+                    <p className="text-xs text-muted-foreground">{candidate.country} · {candidate.sector || 'Unknown sector'} · {candidate.pipeline_status}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-500/15 text-amber-400">Duplicate risk {candidate.duplicate_confidence ?? '—'}%</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2">{candidate.description || 'No extracted description.'}</p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'requested_research' })}>More research</Button>
+                  <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject duplicate</Button>
+                </div>
+              </div>
+            ))}
+            <Pager page={duplicatePage} total={duplicatePageResult.total} onPageChange={setDuplicatePage} />
+          </>}
+        </TabsContent>
+
         <TabsContent value="pipeline" className="space-y-3">
           {candidates.length === 0 ? (
             <div className="glass-panel rounded-xl p-12 text-center">
@@ -680,6 +711,32 @@ export default function ReviewQueue() {
             </div>
             ))}
             <Pager page={updatePage} total={updatePageResult.total} onPageChange={setUpdatePage} />
+          </>}
+        </TabsContent>
+
+        <TabsContent value="sources" className="space-y-3">
+          {sourceIssuePageResult.rows.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <FileCheck2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No stale or failing sources</h3>
+              <p className="text-sm text-muted-foreground mt-1">Source registry issues will appear here when crawls fail or sources go stale.</p>
+            </div>
+          ) : <>
+            <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />
+            {sourceIssuePageResult.rows.map((source: any) => (
+              <div key={source.id} className="glass-panel rounded-xl p-5 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="font-serif font-semibold">{source.name}</h3>
+                    <p className="text-xs text-muted-foreground">{source.kind} · reliability {source.reliability_score}% · last success {source.last_success_at ? new Date(source.last_success_at).toLocaleDateString() : 'never'}</p>
+                  </div>
+                  <Badge variant="outline" className="bg-red-500/15 text-red-400 capitalize">{source.status}</Badge>
+                </div>
+                {source.last_error && <p className="text-sm text-muted-foreground line-clamp-2">{source.last_error}</p>}
+                {source.base_url && <a href={source.base_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{source.base_url}</a>}
+              </div>
+            ))}
+            <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />
           </>}
         </TabsContent>
       </Tabs>
