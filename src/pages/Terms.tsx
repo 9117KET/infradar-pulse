@@ -8,8 +8,8 @@ export default function Terms() {
 
           <p>
             These Terms of Service ("Terms") form a binding agreement between you and Kinlo and Glen
-            ("Kinlo and Glen", "we", "us"), trading as Infradar, governing your access to and use of
-            the Infradar platform, websites and related services (the "Service"). By creating an
+            ("Kinlo and Glen", "we", "us"), trading as INFRADARAI, governing your access to and use of
+            the INFRADARAI platform, websites and related services (the "Service"). By creating an
             account, accessing or otherwise using the Service, you confirm that you have read,
             understood and agree to be bound by these Terms. If you do not agree, you must not use the
             Service.
@@ -24,7 +24,7 @@ export default function Terms() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">2. The Service</h2>
           <p>
-            Infradar provides infrastructure intelligence services, including project monitoring,
+            INFRADARAI provides infrastructure intelligence services, including project monitoring,
             evidence verification, alerts, dashboards, exports and analytical reporting across the
             regions supported by the platform. Features available to you depend on the plan you have
             selected.
