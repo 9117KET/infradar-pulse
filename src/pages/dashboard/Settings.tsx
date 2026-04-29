@@ -509,7 +509,7 @@ function BillingTab() {
       <div className="glass-panel rounded-xl p-6 space-y-3">
         {!hasActiveSub && !staffBypass && (
           <>
-            <p className="text-xs text-muted-foreground">Start a 3-day trial with no card, or choose a paid plan. Paid upgrades require checkout and include a 14-day refund guarantee on the first charge.</p>
+            <p className="text-xs text-muted-foreground">Start a 3-day trial with no card, or choose a paid plan. Paid subscription charges include a minimum 14-day refund window with no extra conditions.</p>
             <div className="flex flex-wrap gap-2">
               {!isNoCardTrialing && (
                 <Button variant="outline" disabled={!!busy || trialLoading} onClick={() => void beginTrial()}>
