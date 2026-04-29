@@ -164,7 +164,7 @@ export default function ReviewQueue() {
         if (error) throw error;
         return;
       }
-      const nextStatus = action === 'approved' ? 'approved' : action === 'rejected' ? 'rejected' : 'needs_research';
+      const nextStatus = action === 'rejected' ? 'rejected' : 'needs_research';
       const { error } = await (supabase as any).from('project_candidates').update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
       await (supabase as any).from('review_actions').insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
