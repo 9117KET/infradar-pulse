@@ -46,6 +46,7 @@ export default function ReviewQueue() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [approveGuardOpen, setApproveGuardOpen] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('candidates');
 
   const { data: pending = [], isLoading } = useQuery({
     queryKey: ['pending-projects'],
@@ -57,6 +58,32 @@ export default function ReviewQueue() {
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: candidates = [] } = useQuery({
+    queryKey: ['project-candidates-review'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('project_candidates')
+        .select('*')
+        .in('review_status', ['ready_for_review', 'needs_research'])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: updateProposals = [] } = useQuery({
+    queryKey: ['update-proposals-review'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('update_proposals')
+        .select('*, projects(name, country, sector, stage, status)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
