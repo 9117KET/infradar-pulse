@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Gift, Shield, UserPlus } from 'lucide-react';
+import { AlertTriangle, Gift, MailCheck, Shield, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { AppRole } from '@/contexts/AuthContext';
@@ -215,6 +215,22 @@ export default function UsersPage() {
                   <td className="p-3">
                     <div className="font-medium">{u.display_name || 'Unnamed'}</div>
                     <div className="text-xs text-muted-foreground break-all">{u.email || `${u.id.slice(0, 8)}…`}</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {u.emailConfirmedAt ? (
+                        <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+                          <MailCheck className="mr-1 h-3 w-3" /> Verified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] border-destructive/40 text-destructive">
+                          Email unverified
+                        </Badge>
+                      )}
+                      {u.suspiciousEmailDomain && (
+                        <Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-500">
+                          <AlertTriangle className="mr-1 h-3 w-3" /> Throwaway? {u.suspiciousEmailDomain}
+                        </Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="p-3 text-muted-foreground">{u.company || '-'}</td>
                   <td className="p-3">
