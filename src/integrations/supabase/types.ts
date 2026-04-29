@@ -1463,6 +1463,13 @@ export type Database = {
         Args: { p_environment?: string; p_user_id: string }
         Returns: Json
       }
+      admin_set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: Json
+      }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
         Returns: Json
