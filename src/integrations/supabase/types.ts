@@ -1459,6 +1459,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_revoke_pilot_access: {
+        Args: { p_environment?: string; p_user_id: string }
+        Returns: Json
+      }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
         Returns: Json

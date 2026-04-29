@@ -17,6 +17,7 @@ interface UserRow {
   role: AppRole;
   pilotEndsAt: string | null;
   pilotSeat: number | null;
+  pilotStatus: string | null;
   updated_at: string | null;
 }
 
@@ -68,11 +69,11 @@ export default function UsersPage() {
 
     const profilesList = profiles ?? [];
     const roles = rolesRows ?? [];
-    const pilotMap = new Map<string, { ends_at: string; seat_number: number | null }>();
+    const pilotMap = new Map<string, { ends_at: string; seat_number: number | null; status: string }>();
     for (const grant of pilotRows ?? []) {
-      if (grant.status === 'active' && new Date(grant.ends_at).getTime() > Date.now()) {
-        pilotMap.set(grant.user_id, { ends_at: grant.ends_at, seat_number: grant.seat_number });
-      }
+      const existing = pilotMap.get(grant.user_id);
+      const isActive = grant.status === 'active' && new Date(grant.ends_at).getTime() > Date.now();
+      if (isActive || !existing) pilotMap.set(grant.user_id, { ends_at: grant.ends_at, seat_number: grant.seat_number, status: grant.status });
     }
     const emailMap = new Map<string, string>(((emailRows ?? []) as Array<{ user_id: string; email: string }>).map((r) => [r.user_id, r.email]));
 
@@ -92,6 +93,7 @@ export default function UsersPage() {
       role: roleMap.get(p.id) || 'user',
       pilotEndsAt: pilotMap.get(p.id)?.ends_at ?? null,
       pilotSeat: pilotMap.get(p.id)?.seat_number ?? null,
+      pilotStatus: pilotMap.get(p.id)?.status ?? null,
       updated_at: p.updated_at,
     }));
     setUsers(mapped);
@@ -136,6 +138,23 @@ export default function UsersPage() {
       fetchUsers();
     } else {
       toast({ title: 'Pilot seats unavailable', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    }
+  };
+
+  const revokePilotAccess = async (user: UserRow) => {
+    const { data, error } = await (supabase.rpc as any)('admin_revoke_pilot_access', {
+      p_user_id: user.id,
+      p_environment: 'live',
+    });
+    if (error) {
+      toast({ title: 'Could not revoke pilot access', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.revoked) {
+      toast({ title: 'Pilot access revoked', description: `Seat ${data.seat_number ?? '—'} no longer grants access.` });
+      fetchUsers();
+    } else {
+      toast({ title: 'No active pilot grant', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
     }
   };
 
@@ -204,9 +223,22 @@ export default function UsersPage() {
                     </Select>
                   </td>
                   <td className="p-3">
-                    {u.pilotEndsAt ? (
-                      <Badge variant="outline" className="text-xs border-primary/40 text-primary">
-                        <Gift className="mr-1 h-3 w-3" /> Seat {u.pilotSeat ?? '—'} · {new Date(u.pilotEndsAt).toLocaleDateString()}
+                    {u.role === 'admin' || u.role === 'researcher' ? (
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                        Included via role
+                      </Badge>
+                    ) : u.pilotStatus === 'active' && u.pilotEndsAt && new Date(u.pilotEndsAt).getTime() > Date.now() ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary">
+                          <Gift className="mr-1 h-3 w-3" /> Seat {u.pilotSeat ?? '—'} · {new Date(u.pilotEndsAt).toLocaleDateString()}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => revokePilotAccess(u)}>
+                          Revoke
+                        </Button>
+                      </div>
+                    ) : u.pilotStatus === 'revoked' ? (
+                      <Badge variant="outline" className="text-xs border-destructive/40 text-destructive">
+                        Revoked
                       </Badge>
                     ) : (
                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantPilotAccess(u)}>
