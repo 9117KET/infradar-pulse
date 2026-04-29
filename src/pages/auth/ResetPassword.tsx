@@ -59,7 +59,7 @@ export default function ResetPassword() {
       <div className="glass-panel rounded-xl p-8 w-full max-w-sm teal-glow">
         <div className="flex items-center gap-2 justify-center mb-6">
           <InfradarLogo size={32} />
-          <span className="font-serif text-lg font-semibold tracking-wide">INFRADAR</span>
+          <span className="font-serif text-lg font-semibold tracking-wide">INFRADARAI</span>
         </div>
         <h1 className="font-serif text-lg text-center mb-6">Choose a new password</h1>
 
