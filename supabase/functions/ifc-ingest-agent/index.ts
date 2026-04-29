@@ -14,7 +14,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -122,6 +123,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -136,23 +138,34 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body */ }
 
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
-    const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 200, 1), 5000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "ifc-ingest", `IFC Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("ifc-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "ifc-projects",
+      name: "IFC Projects Database",
+      baseUrl: "https://projects.worldbank.org",
+      reliabilityScore: 92,
+      supportsApi: true,
+    });
 
     // IFC-financed projects via World Bank API (source=IF)
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
     const pageSize = 100;
     const statuses = statusFilter.split(",").map((s) => s.trim());
 
     for (const status of statuses) {
-      let offset = 0;
+      let offset = startOffset;
       const perStatusLimit = Math.ceil(totalLimit / statuses.length);
       let statusFetched = 0;
 
