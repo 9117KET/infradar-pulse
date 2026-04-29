@@ -539,6 +539,38 @@ export default function AgentMonitoring() {
         </div>
       </div>
 
+      {staffReady && pipelineSummary && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="glass-panel rounded-xl p-5 space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2"><Database className="h-4 w-4 text-primary" /> Pipeline Health</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs text-muted-foreground">Pending Review</p><p className="text-xl font-bold">{pipelineSummary.review?.pending_candidates ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Update Proposals</p><p className="text-xl font-bold">{pipelineSummary.review?.update_proposals ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">High Confidence</p><p className="text-xl font-bold">{pipelineSummary.review?.high_confidence_pending ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Events 24h</p><p className="text-xl font-bold">{pipelineSummary.agent_events?.events_24h ?? 0}</p></div>
+            </div>
+          </div>
+          <div className="glass-panel rounded-xl p-5 space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /> Quality Intelligence</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs text-muted-foreground">Avg Score</p><p className="text-xl font-bold">{pipelineSummary.quality?.avg_score ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Approve Ready</p><p className="text-xl font-bold">{pipelineSummary.quality?.approve_ready ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Needs Research</p><p className="text-xl font-bold">{pipelineSummary.quality?.needs_research ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Missing Source</p><p className="text-xl font-bold">{pipelineSummary.quality?.missing_source ?? 0}</p></div>
+            </div>
+          </div>
+          <div className="glass-panel rounded-xl p-5 space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2"><Globe className="h-4 w-4 text-primary" /> Source Reliability</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs text-muted-foreground">Sources</p><p className="text-xl font-bold">{pipelineSummary.source_health?.total_sources ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Active</p><p className="text-xl font-bold">{pipelineSummary.source_health?.active_sources ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Failing</p><p className="text-xl font-bold">{pipelineSummary.source_health?.failing_sources ?? 0}</p></div>
+              <div><p className="text-xs text-muted-foreground">Stale</p><p className="text-xl font-bold">{pipelineSummary.source_health?.stale_sources ?? 0}</p></div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Activity Timeline + Live Process */}
       <div className="grid gap-4 lg:grid-cols-3">
         {/* 7-day Activity */}
