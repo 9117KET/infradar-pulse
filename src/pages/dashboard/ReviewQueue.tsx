@@ -156,6 +156,14 @@ export default function ReviewQueue() {
 
   const candidateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
+      if (action === 'approved') {
+        const { error } = await (supabase as any).rpc('promote_project_candidate', {
+          p_candidate_id: id,
+          p_reason: 'Approved from verification workbench',
+        });
+        if (error) throw error;
+        return;
+      }
       const nextStatus = action === 'approved' ? 'approved' : action === 'rejected' ? 'rejected' : 'needs_research';
       const { error } = await (supabase as any).from('project_candidates').update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
@@ -163,6 +171,8 @@ export default function ReviewQueue() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Candidate updated' });
     },
   });
