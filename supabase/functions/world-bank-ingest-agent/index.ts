@@ -231,7 +231,6 @@ serve(async (req) => {
     // YZ=Mining, LZ=General Infra, JA=Other
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
 
-    let inserted = 0;
     let updated = 0;
     let skipped = 0;
     let evidenceWritten = 0;
@@ -447,7 +446,6 @@ serve(async (req) => {
                   details: { source: "world-bank-ingest", world_bank_id: p.id },
                 });
                 qualityScoresWritten++;
-                inserted++;
               }
             }
           } catch (projectErr) {
