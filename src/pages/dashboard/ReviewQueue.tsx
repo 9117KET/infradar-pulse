@@ -212,13 +212,6 @@ export default function ReviewQueue() {
     },
   });
 
-  const approveAll = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from('projects').update({ approved: true }).eq('approved', false);
-      if (error) throw error;
-    },
-  });
-
   const candidateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
       if (action === 'approved') {
@@ -320,32 +313,6 @@ export default function ReviewQueue() {
             Approve expects at least one reachable contact (name + email or phone + http source URL) unless you override.
           </p>
         </div>
-        {pendingPageResult.total > 1 && (
-          <Button
-            size="sm"
-            onClick={() => {
-              const lackingReachable = pending.filter((p: any) => !hasReachableContactRow(p.id)).length;
-              approveAll.mutate(undefined, {
-                onSuccess: () => {
-                  queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
-                  queryClient.invalidateQueries({ queryKey: ['projects'] });
-                  toast({
-                    title: 'All projects approved',
-                    description:
-                      lackingReachable > 0
-                        ? `${lackingReachable} project(s) had no reachable contact on file — consider follow-up.`
-                        : 'They will appear on the dashboard and globe.',
-                  });
-                },
-              });
-            }}
-            disabled={approveAll.isPending}
-            className="teal-glow"
-          >
-            {approveAll.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-4 w-4 mr-1" />}
-             Approve all ({pendingPageResult.total})
-          </Button>
-        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
