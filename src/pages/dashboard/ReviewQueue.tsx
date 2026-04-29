@@ -18,18 +18,20 @@ import {
   Mail, Phone, User, Building2, RefreshCw
 } from 'lucide-react';
 
-const PAGE_SIZE = 1000;
+const REVIEW_PAGE_SIZE = 25;
 
-async function fetchAllPages<T>(buildQuery: (from: number, to: number) => any, maxRows = 100_000): Promise<T[]> {
-  const rows: T[] = [];
-  for (let from = 0; from < maxRows; from += PAGE_SIZE) {
-    const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    if (!data?.length) break;
-    rows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-  }
-  return rows;
+function Pager({ page, total, onPageChange }: { page: number; total: number; onPageChange: (page: number) => void }) {
+  const totalPages = Math.max(1, Math.ceil(total / REVIEW_PAGE_SIZE));
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+      <span>{total === 0 ? '0' : page * REVIEW_PAGE_SIZE + 1}–{Math.min((page + 1) * REVIEW_PAGE_SIZE, total)} of {total}</span>
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" onClick={() => onPageChange(Math.max(0, page - 1))} disabled={page === 0}>Previous</Button>
+        <span>Page {page + 1} of {totalPages}</span>
+        <Button size="sm" variant="outline" onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))} disabled={page + 1 >= totalPages}>Next</Button>
+      </div>
+    </div>
+  );
 }
 
 interface EvidenceRow {
@@ -61,42 +63,57 @@ export default function ReviewQueue() {
   const [approveGuardOpen, setApproveGuardOpen] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('candidates');
+  const [legacyPage, setLegacyPage] = useState(0);
+  const [candidatePage, setCandidatePage] = useState(0);
+  const [updatePage, setUpdatePage] = useState(0);
 
-  const { data: pending = [], isLoading } = useQuery({
-    queryKey: ['pending-projects'],
+  const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
+    queryKey: ['pending-projects', legacyPage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => supabase
+      const from = legacyPage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await supabase
         .from('projects')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('approved', false)
         .order('created_at', { ascending: false })
-        .range(from, to));
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
+  const pending = pendingPageResult.rows;
 
-  const { data: candidates = [] } = useQuery({
-    queryKey: ['project-candidates-review'],
+  const { data: candidatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['project-candidates-review', candidatePage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => (supabase as any)
+      const from = candidatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
         .from('project_candidates')
-        .select('*')
+        .select('*', { count: 'exact' })
         .in('review_status', ['ready_for_review', 'needs_research'])
         .order('created_at', { ascending: false })
-        .range(from, to));
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
+  const candidates = candidatePageResult.rows;
 
-  const { data: updateProposals = [] } = useQuery({
-    queryKey: ['update-proposals-review'],
+  const { data: updatePageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['update-proposals-review', updatePage],
     queryFn: async () => {
-      return fetchAllPages<any>((from, to) => (supabase as any)
+      const from = updatePage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await (supabase as any)
         .from('update_proposals')
-        .select('*, projects(name, country, sector, stage, status)')
+        .select('*, projects(name, country, sector, stage, status)', { count: 'exact' })
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
-        .range(from, to));
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
     },
   });
+  const updateProposals = updatePageResult.rows;
 
   // Load evidence sources for all pending projects
   const pendingIds = pending.map((p: any) => p.id);
@@ -104,11 +121,12 @@ export default function ReviewQueue() {
     queryKey: ['pending-evidence', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const data = await fetchAllPages<any>((from, to) => supabase
+      const { data, error } = await supabase
         .from('evidence_sources')
         .select('id, project_id, source, url, type, verified, date, title')
         .in('project_id', pendingIds)
-        .range(from, to));
+        .range(0, 999);
+      if (error) throw error;
       const map: Record<string, EvidenceRow[]> = {};
       (data || []).forEach((e: any) => {
         if (!map[e.project_id]) map[e.project_id] = [];
@@ -123,11 +141,12 @@ export default function ReviewQueue() {
     queryKey: ['pending-contacts', pendingIds],
     enabled: pendingIds.length > 0,
     queryFn: async () => {
-      const data = await fetchAllPages<any>((from, to) => supabase
+      const { data, error } = await supabase
         .from('project_contacts')
         .select('id, project_id, name, role, organization, email, phone, contact_type, source_url, verified')
         .in('project_id', pendingIds)
-        .range(from, to));
+        .range(0, 999);
+      if (error) throw error;
       const map: Record<string, ContactRow[]> = {};
       (data || []).forEach((c: any) => {
         if (!map[c.project_id]) map[c.project_id] = [];
