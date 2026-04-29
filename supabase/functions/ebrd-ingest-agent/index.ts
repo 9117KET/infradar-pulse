@@ -13,7 +13,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -50,6 +52,15 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "ebrd-ingest", "EBRD Infrastructure Projects", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("ebrd-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "ebrd-projects",
+      name: "EBRD Projects Database",
+      baseUrl: "https://www.ebrd.com/work-with-us/projects/psd.html",
+      reliabilityScore: 86,
+      supportsApi: false,
+    });
 
     const rawContent: string[] = [];
 
@@ -160,8 +171,10 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
       return [45, 30]; // center of EBRD coverage area
     }
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
+    let skipped = 0;
 
     for (const ep of extractedProjects) {
       try {
