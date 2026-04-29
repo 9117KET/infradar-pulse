@@ -14,7 +14,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,12 +147,21 @@ serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const totalLimit: number = Math.min(Number(body.limit) || 300, 1000);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "adb-projects",
+      name: "Asian Development Bank Data Portal",
+      baseUrl: "https://data.adb.org",
+      reliabilityScore: 90,
+      supportsApi: true,
+    });
 
     // Step 1: Discover available project datasets via CKAN package list
     await setTaskStep(supabase, taskId, "Searching");
@@ -264,14 +274,15 @@ serve(async (req) => {
     const rows = parseCsv(csvText);
     console.log(`Parsed ${rows.length} ADB project rows`);
 
-    // Step 4: Upsert into projects table
-    let inserted = 0;
-    let updated = 0;
+    // Step 4: Stage source-first project candidates for review
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
-    const processLimit = Math.min(rows.length, totalLimit);
+    const processLimit = Math.min(Math.max(rows.length - startOffset, 0), totalLimit);
 
     for (let i = 0; i < processLimit; i++) {
-      const row = rows[i];
+      const row = rows[startOffset + i];
       try {
         // ADB CSV columns vary; try multiple possible column names
         const name = (
