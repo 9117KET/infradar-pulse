@@ -209,6 +209,15 @@ export const DISPOSABLE_EMAIL_DOMAINS: ReadonlySet<string> = new Set([
   "tempmail.us.com",
   "minuteinbox.com",
   "anonaddy.me",
+  "addy.io",
+  "simplelogin.com",
+  "simplelogin.io",
+  "duck.com",
+  "relay.firefox.com",
+  "mozmail.com",
+  "privaterelay.appleid.com",
+  "hide-my-email.com",
+  "fastmailmask.com",
   "edu.sg.com",
 ]);
 
@@ -248,4 +257,4 @@ export function checkDisposableEmail(email: string | null | undefined): Disposab
 }
 
 export const DISPOSABLE_EMAIL_MESSAGE =
-  "Please sign up with a real work email. Disposable / temporary email providers are not supported.";
+  "Please sign up with a real Gmail or work email. Disposable, masked, relay, or temporary email providers are not supported.";
