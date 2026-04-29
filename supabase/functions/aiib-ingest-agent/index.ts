@@ -13,8 +13,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
 import { chatCompletions } from "../_shared/llm.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +118,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -130,6 +132,15 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "aiib-ingest", "AIIB Projects Portal", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "aiib-projects",
+      name: "Asian Infrastructure Investment Bank Projects Portal",
+      baseUrl: "https://www.aiib.org/en/projects/list/index.html",
+      reliabilityScore: 84,
+      supportsApi: false,
+    });
 
     const rawChunks: string[] = [];
 
@@ -203,8 +214,9 @@ Return ONLY valid JSON array, no markdown, no explanation.`,
 
     console.log(`Extracted ${projects.length} AIIB projects from text`);
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
 
     for (const p of projects) {
@@ -234,57 +246,48 @@ Return ONLY valid JSON array, no markdown, no explanation.`,
         const description = p.description
           || `AIIB-financed ${sector.toLowerCase()} project in ${p.country}${p.approval_year ? ` (approved ${p.approval_year})` : ""}.`;
 
-        const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 120);
-
-        const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-        if (existing) {
-          if (confidence > (existing.confidence || 0) || !existing.source_url) {
-            await supabase!.from("projects").update({
-              confidence: Math.max(confidence, existing.confidence || 0),
-              stage, status: infraStatus,
-              source_url: existing.source_url || projectUrl,
-              last_updated: new Date().toISOString(),
-            }).eq("id", existing.id);
-            updated++;
-          } else { skipped++; }
-        } else {
-          const { data: newProject } = await supabase!.from("projects").insert({
-            slug, name: p.name, country: p.country, region, sector, stage, status: infraStatus,
-            value_usd: totalAmt, value_label: valueLabel, confidence,
-            risk_score: 38, lat, lng, description: description.substring(0, 200), timeline,
-            source_url: projectUrl, ai_generated: true, approved: true,
-          }).select().single();
-
-          if (newProject) {
-            await supabase!.from("evidence_sources").insert({
-              project_id: newProject.id, source: "Asian Infrastructure Investment Bank",
-              url: projectUrl, type: "Filing", verified: false,
-              date: new Date().toISOString().split("T")[0], title: p.name,
-              description: description.substring(0, 200),
-            });
-            await supabase!.from("alerts").insert({
-              project_id: newProject.id, project_name: p.name, severity: "low",
-              message: `AIIB project ingested: ${p.name} (${p.country}) — ${valueLabel}`,
-              category: "market", source_url: projectUrl,
-            });
-            inserted++;
-          }
-        }
+        const staged = await stagePipelineProject(supabase!, {
+          sourceId: sourceRow?.id ?? null,
+          sourceKey: "aiib-projects",
+          sourceName: "Asian Infrastructure Investment Bank Projects Portal",
+          discoveredBy: "aiib-ingest",
+          externalId: p.project_id ?? null,
+          apiUrl: AIIB_PORTAL_PAGES[0],
+          name: p.name,
+          country: p.country,
+          region, sector, stage, status: infraStatus,
+          valueUsd: totalAmt,
+          valueLabel,
+          confidence,
+          riskScore: 38,
+          lat, lng,
+          description: description.substring(0, 200),
+          timeline,
+          sourceUrl: projectUrl,
+          publishedAt: p.approval_year ? `${p.approval_year}-01-01` : null,
+          rawPayload: p,
+          extractedClaims: { aiib_project_id: p.project_id ?? null, extraction_source: "lovable-ai-aiib-research" },
+        });
+        if (staged.outcome === "candidate_created") candidatesWritten++;
+        else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+        else if (staged.outcome === "update_proposed") updatesProposed++;
+        else skipped++;
       } catch (rowErr) {
         console.error("Error processing AIIB project:", rowErr);
         skipped++;
       }
     }
 
-    const result = { success: true, extracted: projects.length, inserted, updated, skipped, source: "AIIB" };
+    const result = { success: true, extracted: projects.length, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "AIIB" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
-    console.log(`AIIB ingest complete: extracted=${projects.length} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "aiib-ingest", "completed", "AIIB ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "aiib-ingest", "completed", runStartedAt);
+    console.log(`AIIB ingest complete: extracted=${projects.length} candidates=${candidatesWritten} updated_candidates=${candidatesUpdated} update_proposals=${updatesProposed} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
@@ -295,6 +298,8 @@ Return ONLY valid JSON array, no markdown, no explanation.`,
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "aiib-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "aiib-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

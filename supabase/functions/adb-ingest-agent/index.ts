@@ -14,7 +14,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,12 +147,21 @@ serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const totalLimit: number = Math.min(Number(body.limit) || 300, 1000);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "adb-projects",
+      name: "Asian Development Bank Data Portal",
+      baseUrl: "https://data.adb.org",
+      reliabilityScore: 90,
+      supportsApi: true,
+    });
 
     // Step 1: Discover available project datasets via CKAN package list
     await setTaskStep(supabase, taskId, "Searching");
@@ -264,14 +274,15 @@ serve(async (req) => {
     const rows = parseCsv(csvText);
     console.log(`Parsed ${rows.length} ADB project rows`);
 
-    // Step 4: Upsert into projects table
-    let inserted = 0;
-    let updated = 0;
+    // Step 4: Stage source-first project candidates for review
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
     let skipped = 0;
-    const processLimit = Math.min(rows.length, totalLimit);
+    const processLimit = Math.min(Math.max(rows.length - startOffset, 0), totalLimit);
 
     for (let i = 0; i < processLimit; i++) {
-      const row = rows[i];
+      const row = rows[startOffset + i];
       try {
         // ADB CSV columns vary; try multiple possible column names
         const name = (
@@ -310,43 +321,30 @@ serve(async (req) => {
 
         const confidence = infraStatus === "Verified" ? 82 : 65;
         const description = `ADB-financed ${sectorRaw || "infrastructure"} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`;
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-        const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
-
-        if (existing) {
-          if (confidence > (existing.confidence || 0) || !existing.source_url) {
-            await supabase!.from("projects").update({
-              confidence: Math.max(confidence, existing.confidence || 0),
-              stage, status: infraStatus,
-              source_url: existing.source_url || projectUrl,
-              last_updated: new Date().toISOString(),
-            }).eq("id", existing.id);
-            updated++;
-          } else { skipped++; }
-        } else {
-          const { data: newProject } = await supabase!.from("projects").insert({
-            slug, name, country, region, sector, stage, status: infraStatus,
-            value_usd: totalAmt, value_label: valueLabel, confidence,
-            risk_score: 38, lat, lng, description, timeline,
-            source_url: projectUrl, ai_generated: false, approved: true,
-          }).select().single();
-
-          if (newProject) {
-            await supabase!.from("evidence_sources").insert({
-              project_id: newProject.id, source: "Asian Development Bank Data Portal",
-              url: projectUrl, type: "Filing", verified: true,
-              date: new Date().toISOString().split("T")[0], title: name,
-              description: description.substring(0, 200),
-            });
-            await supabase!.from("alerts").insert({
-              project_id: newProject.id, project_name: name, severity: "low",
-              message: `ADB project ingested: ${name} (${country}) — ${valueLabel}`,
-              category: "market", source_url: projectUrl,
-            });
-            inserted++;
-          }
-        }
+        const staged = await stagePipelineProject(supabase!, {
+          sourceId: sourceRow?.id ?? null,
+          sourceKey: "adb-projects",
+          sourceName: "Asian Development Bank Data Portal",
+          discoveredBy: "adb-ingest",
+          externalId: projectId,
+          apiUrl: csvUrl,
+          name, country, region, sector, stage, status: infraStatus,
+          valueUsd: totalAmt,
+          valueLabel,
+          confidence,
+          riskScore: 38,
+          lat, lng,
+          description,
+          timeline,
+          sourceUrl: projectUrl,
+          publishedAt: approvalYear ? `${approvalYear}-01-01` : null,
+          rawPayload: row,
+          extractedClaims: { adb_project_id: projectId, source_csv: csvUrl },
+        });
+        if (staged.outcome === "candidate_created") candidatesWritten++;
+        else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+        else if (staged.outcome === "update_proposed") updatesProposed++;
+        else skipped++;
       } catch (rowErr) {
         console.error(`Error processing ADB row ${i}:`, rowErr);
         skipped++;
@@ -354,7 +352,7 @@ serve(async (req) => {
     }
 
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, fetched: processLimit, inserted, updated, skipped, source: "ADB", sourceUrl: csvUrl };
+    const result = { success: true, fetched: processLimit, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
@@ -362,7 +360,8 @@ serve(async (req) => {
     }
 
     await finishAgentRun(supabase, "adb-ingest", "completed", runStartedAt ?? new Date());
-    console.log(`ADB ingest complete: fetched=${processLimit} inserted=${inserted} updated=${updated} skipped=${skipped}`);
+    await recordAgentEvent(supabase, "adb-ingest", "completed", "ADB ingest wrote source-first candidates", taskId, result);
+    console.log(`ADB ingest complete: fetched=${processLimit} candidates=${candidatesWritten} updated_candidates=${candidatesUpdated} update_proposals=${updatesProposed} skipped=${skipped}`);
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {

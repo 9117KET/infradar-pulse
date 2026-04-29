@@ -14,7 +14,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+    let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -56,6 +58,15 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "afdb-ingest", "African Development Bank Projects Portal", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("afdb-ingest");
     taskId = lock.taskId;
+    runStartedAt = new Date();
+
+    const sourceRow = await registerPipelineSource(supabase, {
+      sourceKey: "afdb-projects",
+      name: "African Development Bank Projects Portal",
+      baseUrl: "https://projectsportal.afdb.org",
+      reliabilityScore: 86,
+      supportsApi: false,
+    });
 
     const rawContent: string[] = [];
 
@@ -181,8 +192,10 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
       return [0, 20]; // center of Africa
     }
 
-    let inserted = 0;
-    let updated = 0;
+    let candidatesWritten = 0;
+    let candidatesUpdated = 0;
+    let updatesProposed = 0;
+    let skipped = 0;
 
     for (const ep of extractedProjects) {
       try {
@@ -202,56 +215,50 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
           else valueLabel = "Value TBD";
         }
 
-        const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-        const { data: existing } = await supabase!.from("projects").select("id, confidence, source_url").eq("slug", slug).maybeSingle();
         const confidence = Number(ep.confidence) || 78;
-
-        if (existing) {
-          if (confidence > (existing.confidence || 0) || !existing.source_url) {
-            await supabase!.from("projects").update({
-              confidence: Math.max(confidence, existing.confidence || 0),
-              stage: ep.stage, status: ep.status || "Pending",
-              source_url: existing.source_url || bestUrl,
-              last_updated: new Date().toISOString(),
-            }).eq("id", existing.id);
-            updated++;
-          }
-        } else {
-          const { data: newProject } = await supabase!.from("projects").insert({
-            slug, name, country: ep.country, region: ep.region, sector: ep.sector,
-            stage: ep.stage, status: ep.status || "Pending",
-            value_usd: totalAmt, value_label: valueLabel, confidence,
-            risk_score: 45, lat, lng,
-            description: `AfDB-financed ${ep.sector} project in ${ep.country}.`,
-            timeline: "", source_url: bestUrl, ai_generated: false, approved: true,
-          }).select().single();
-
-          if (newProject) {
-            await supabase!.from("evidence_sources").insert({
-              project_id: newProject.id, source: "African Development Bank Projects Portal",
-              url: bestUrl, type: "Filing", verified: true,
-              date: new Date().toISOString().split("T")[0], title: name,
-              description: `AfDB ${ep.sector} project in ${ep.country}.`,
-            });
-            await supabase!.from("alerts").insert({
-              project_id: newProject.id, project_name: name, severity: "low",
-              message: `AfDB project ingested: ${name} (${ep.country}) — ${valueLabel}`,
-              category: "market", source_url: bestUrl,
-            });
-            inserted++;
-          }
-        }
-      } catch (projectErr) { console.error("Error processing AfDB project:", projectErr); }
+        const description = `AfDB-financed ${ep.sector} project in ${ep.country}.`;
+        const staged = await stagePipelineProject(supabase!, {
+          sourceId: sourceRow?.id ?? null,
+          sourceKey: "afdb-projects",
+          sourceName: "African Development Bank Projects Portal",
+          discoveredBy: "afdb-ingest",
+          externalId: null,
+          apiUrl: AFDB_PAGES[0].url,
+          name,
+          country: ep.country,
+          region: ep.region,
+          sector: ep.sector,
+          stage: ep.stage,
+          status: ep.status || "Pending",
+          valueUsd: totalAmt,
+          valueLabel,
+          confidence,
+          riskScore: 45,
+          lat, lng,
+          description,
+          timeline: "",
+          sourceUrl: bestUrl,
+          rawPayload: ep,
+          extractedClaims: { extraction_source: "lovable-ai-afdb-research" },
+        });
+        if (staged.outcome === "candidate_created") candidatesWritten++;
+        else if (staged.outcome === "candidate_updated") candidatesUpdated++;
+        else if (staged.outcome === "update_proposed") updatesProposed++;
+        else skipped++;
+      } catch (projectErr) { console.error("Error processing AfDB project:", projectErr); skipped++; }
     }
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
-    const result = { success: true, extracted: extractedProjects.length, inserted, updated, source: "AfDB" };
+    const result = { success: true, extracted: extractedProjects.length, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "AfDB" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+
+    await recordAgentEvent(supabase, "afdb-ingest", "completed", "AfDB ingest wrote source-first candidates", taskId, result);
+    if (runStartedAt) await finishAgentRun(supabase, "afdb-ingest", "completed", runStartedAt);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
@@ -262,6 +269,8 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
           status: "failed", error: e instanceof Error ? e.message : "Unknown error",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
+        await recordAgentEvent(supabase, "afdb-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        if (runStartedAt) await finishAgentRun(supabase, "afdb-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

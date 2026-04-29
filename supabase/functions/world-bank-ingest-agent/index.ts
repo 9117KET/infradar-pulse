@@ -205,8 +205,8 @@ serve(async (req) => {
     try { body = await req.json(); } catch { /* no body is fine */ }
 
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
-    const totalLimit: number = Math.min(Number(body.limit) || 200, 500);
-    const startOffset: number = Number(body.offset) || 0;
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 200, 1), 5000);
+    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
 
     const lock = await beginAgentTask(supabase, "world-bank-ingest", `World Bank Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("world-bank-ingest");
@@ -353,16 +353,22 @@ serve(async (req) => {
               .maybeSingle();
 
             if (existing) {
-              // Update if World Bank confidence is higher or source URL was missing
               const missingSource = !existing.source_url;
               if (confidence > (existing.confidence || 0) || missingSource) {
-                await supabase!.from("projects").update({
-                  confidence: Math.max(confidence, existing.confidence || 0),
-                  stage,
-                  status: infraStatus,
-                  source_url: existing.source_url || projectUrl,
-                  last_updated: new Date().toISOString(),
-                }).eq("id", existing.id);
+                await supabase!.from("update_proposals").insert({
+                  project_id: existing.id,
+                  proposed_by_agent: "world-bank-ingest",
+                  field_changes: {
+                    confidence: Math.max(confidence, existing.confidence || 0),
+                    stage,
+                    status: infraStatus,
+                    source_url: existing.source_url || projectUrl,
+                  },
+                  evidence_id: evidence?.id ?? null,
+                  source_url: projectUrl,
+                  confidence,
+                  impact: "World Bank source found a fresher or stronger project record.",
+                });
                 updated++;
               } else {
                 skipped++;
