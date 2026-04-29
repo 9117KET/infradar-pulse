@@ -180,7 +180,7 @@ export default function Pricing() {
                 First {pilotMaxSeats} signups get {pilotDurationDays} days of Pro access.
               </h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                Pilot users get {pilotDurationDays} days of full access with no credit card while seats are available. Card details are only requested for paid upgrades, and your first paid charge has a 14-day refund guarantee.
+                Pilot users get {pilotDurationDays} days of full access with no credit card while seats are available. Card details are only requested for paid upgrades, and paid subscription charges include a minimum 14-day refund window with no extra conditions.
               </p>
             </div>
             <div className="border-t border-primary/20 bg-background/35 p-5 sm:p-6 md:border-l md:border-t-0">
@@ -286,7 +286,7 @@ export default function Pricing() {
               ${starterPrice}
               <span className="text-sm font-normal text-muted-foreground">{starterUnit}</span>
             </p>
-            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}. 14-day refund guarantee.</p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}. Minimum 14-day refund window.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
@@ -320,7 +320,7 @@ export default function Pricing() {
               ${proPrice}
               <span className="text-sm font-normal text-muted-foreground">{proUnit}</span>
             </p>
-            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}. 14-day refund guarantee.</p>
+            <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}. Minimum 14-day refund window.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
