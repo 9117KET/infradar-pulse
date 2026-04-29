@@ -49,6 +49,10 @@ export function slugifyProjectName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+function isHttpUrl(value?: string | null) {
+  return typeof value === "string" && value.trim().startsWith("http");
+}
+
 async function sha256(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -105,11 +109,12 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
 
   const rawPayload = JSON.stringify(input.rawPayload);
   const contentHash = await sha256(`${input.sourceKey}:${input.externalId ?? input.sourceUrl}:${rawPayload}`);
+  const evidenceUrl = isHttpUrl(input.sourceUrl) ? input.sourceUrl : `pipeline://${input.sourceKey}/${contentHash}`;
   const { data: evidence, error: evidenceError } = await supabase.from("raw_evidence").upsert({
     source_id: input.sourceId ?? null,
     source_key: input.sourceKey,
-    url: input.sourceUrl,
-    canonical_url: input.sourceUrl,
+    url: evidenceUrl,
+    canonical_url: isHttpUrl(input.sourceUrl) ? input.sourceUrl : null,
     title: input.name,
     published_at: input.publishedAt ? new Date(input.publishedAt).toISOString() : null,
     content_hash: contentHash,
@@ -159,7 +164,7 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     lng: input.lng,
     description: input.description,
     timeline: input.timeline ?? "",
-    source_url: input.sourceUrl,
+    source_url: isHttpUrl(input.sourceUrl) ? input.sourceUrl : "",
     extracted_claims: { ...(input.extractedClaims ?? {}), stakeholder: input.stakeholder ?? null },
     pipeline_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
     review_status: quality.recommendation === "approve" ? "ready_for_review" : "needs_research",
