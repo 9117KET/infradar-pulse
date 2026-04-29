@@ -250,7 +250,7 @@ ${content}`);
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning },
+        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted },
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
@@ -260,7 +260,7 @@ ${content}`);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
-      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted, note: perplexityWarning }),
+      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
