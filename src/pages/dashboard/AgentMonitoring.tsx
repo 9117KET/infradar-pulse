@@ -309,6 +309,22 @@ export default function AgentMonitoring() {
     }
   }, [toast, refetchAuthAlerts]);
 
+  const syncServiceRoleKey = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-service-role-to-vault', { body: {} });
+      if (error) throw error;
+      toast({
+        title: 'Service role key synced',
+        description: `Vault updated (${(data as any)?.key_fingerprint ?? 'ok'}). Re-running health check…`,
+      });
+      await supabase.functions.invoke('agent-health-monitor', { body: {} });
+      refetchAuthAlerts();
+    } catch (e: any) {
+      toast({ title: 'Sync failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  }, [toast, refetchAuthAlerts]);</replace>
+</invoke>
+
   // Rolling-window health status from the agent_health view
   const { data: agentHealth } = useQuery({
     queryKey: ['agent-health', staffBypass],
