@@ -160,6 +160,48 @@ export type Database = {
         }
         Relationships: []
       }
+      candidate_evidence_links: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          evidence_id: string
+          quote: string | null
+          relevance_score: number
+          supports_fields: string[]
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          evidence_id: string
+          quote?: string | null
+          relevance_score?: number
+          supports_fields?: string[]
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          evidence_id?: string
+          quote?: string | null
+          relevance_score?: number
+          supports_fields?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidate_evidence_links_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "candidate_evidence_links_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "raw_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           company: string | null
@@ -196,6 +238,45 @@ export type Database = {
           status?: string
           subject?: string
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      digests: {
+        Row: {
+          created_at: string
+          id: string
+          markdown: string | null
+          payload: Json
+          read_at: string | null
+          rule_id: string | null
+          status: string
+          summary: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          markdown?: string | null
+          payload?: Json
+          read_at?: string | null
+          rule_id?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          markdown?: string | null
+          payload?: Json
+          read_at?: string | null
+          rule_id?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -657,6 +738,132 @@ export type Database = {
         }
         Relationships: []
       }
+      project_candidates: {
+        Row: {
+          confidence: number
+          country: string | null
+          created_at: string
+          description: string | null
+          discovered_by: string
+          extracted_claims: Json
+          id: string
+          lat: number | null
+          lng: number | null
+          name: string
+          normalized_name: string
+          pipeline_status: string
+          region: string | null
+          review_status: string
+          risk_score: number
+          sector: string | null
+          source_url: string | null
+          stage: string | null
+          status: string | null
+          timeline: string | null
+          updated_at: string
+          value_label: string | null
+          value_usd: number | null
+        }
+        Insert: {
+          confidence?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          discovered_by: string
+          extracted_claims?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name: string
+          normalized_name: string
+          pipeline_status?: string
+          region?: string | null
+          review_status?: string
+          risk_score?: number
+          sector?: string | null
+          source_url?: string | null
+          stage?: string | null
+          status?: string | null
+          timeline?: string | null
+          updated_at?: string
+          value_label?: string | null
+          value_usd?: number | null
+        }
+        Update: {
+          confidence?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          discovered_by?: string
+          extracted_claims?: Json
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          normalized_name?: string
+          pipeline_status?: string
+          region?: string | null
+          review_status?: string
+          risk_score?: number
+          sector?: string | null
+          source_url?: string | null
+          stage?: string | null
+          status?: string | null
+          timeline?: string | null
+          updated_at?: string
+          value_label?: string | null
+          value_usd?: number | null
+        }
+        Relationships: []
+      }
+      project_claims: {
+        Row: {
+          candidate_id: string
+          confidence: number
+          created_at: string
+          evidence_id: string | null
+          field_name: string
+          field_value: string | null
+          id: string
+          quote: string | null
+        }
+        Insert: {
+          candidate_id: string
+          confidence?: number
+          created_at?: string
+          evidence_id?: string | null
+          field_name: string
+          field_value?: string | null
+          id?: string
+          quote?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          confidence?: number
+          created_at?: string
+          evidence_id?: string | null
+          field_name?: string
+          field_value?: string | null
+          id?: string
+          quote?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_claims_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_claims_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "raw_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_contacts: {
         Row: {
           added_by: string
@@ -1005,6 +1212,62 @@ export type Database = {
         }
         Relationships: []
       }
+      quality_scores: {
+        Row: {
+          candidate_id: string
+          completeness_score: number
+          confidence_score: number
+          created_at: string
+          details: Json
+          evidence_score: number
+          flags: string[]
+          freshness_score: number
+          id: string
+          missing_fields: string[]
+          recommendation: string
+          source_score: number
+          total_score: number
+        }
+        Insert: {
+          candidate_id: string
+          completeness_score?: number
+          confidence_score?: number
+          created_at?: string
+          details?: Json
+          evidence_score?: number
+          flags?: string[]
+          freshness_score?: number
+          id?: string
+          missing_fields?: string[]
+          recommendation?: string
+          source_score?: number
+          total_score?: number
+        }
+        Update: {
+          candidate_id?: string
+          completeness_score?: number
+          confidence_score?: number
+          created_at?: string
+          details?: Json
+          evidence_score?: number
+          flags?: string[]
+          freshness_score?: number
+          id?: string
+          missing_fields?: string[]
+          recommendation?: string
+          source_score?: number
+          total_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_scores_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quota_requests: {
         Row: {
           created_at: string
@@ -1040,6 +1303,68 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      raw_evidence: {
+        Row: {
+          canonical_url: string | null
+          content_hash: string | null
+          created_at: string
+          extracted_text: string | null
+          extraction_confidence: number | null
+          fetch_status: string
+          id: string
+          kind: string
+          metadata: Json
+          published_at: string | null
+          source_id: string | null
+          source_key: string
+          summary: string | null
+          title: string | null
+          url: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          extraction_confidence?: number | null
+          fetch_status?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          published_at?: string | null
+          source_id?: string | null
+          source_key: string
+          summary?: string | null
+          title?: string | null
+          url: string
+        }
+        Update: {
+          canonical_url?: string | null
+          content_hash?: string | null
+          created_at?: string
+          extracted_text?: string | null
+          extraction_confidence?: number | null
+          fetch_status?: string
+          id?: string
+          kind?: string
+          metadata?: Json
+          published_at?: string | null
+          source_id?: string | null
+          source_key?: string
+          summary?: string | null
+          title?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_evidence_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "source_registry"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referral_codes: {
         Row: {
@@ -1193,6 +1518,51 @@ export type Database = {
           name?: string
           notify_email?: boolean
           user_id?: string
+        }
+        Relationships: []
+      }
+      source_registry: {
+        Row: {
+          base_url: string | null
+          crawl_frequency_minutes: number
+          created_at: string
+          id: string
+          kind: string
+          last_success_at: string | null
+          name: string
+          reliability_score: number
+          source_key: string
+          status: string
+          supports_api: boolean
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string | null
+          crawl_frequency_minutes?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_success_at?: string | null
+          name: string
+          reliability_score?: number
+          source_key: string
+          status?: string
+          supports_api?: boolean
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string | null
+          crawl_frequency_minutes?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          last_success_at?: string | null
+          name?: string
+          reliability_score?: number
+          source_key?: string
+          status?: string
+          supports_api?: boolean
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1386,6 +1756,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      update_proposals: {
+        Row: {
+          confidence: number
+          created_at: string
+          field_changes: Json
+          id: string
+          impact: string | null
+          project_id: string | null
+          proposed_by_agent: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_url: string | null
+          status: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          field_changes?: Json
+          id?: string
+          impact?: string | null
+          project_id?: string | null
+          proposed_by_agent: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_url?: string | null
+          status?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          field_changes?: Json
+          id?: string
+          impact?: string | null
+          project_id?: string | null
+          proposed_by_agent?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "update_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_counters: {
         Row: {
