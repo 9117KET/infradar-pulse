@@ -2190,6 +2190,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reap_stuck_research_tasks: { Args: never; Returns: number }
       rebuild_agent_config_from_tasks: { Args: never; Returns: undefined }
       record_trial_started: {
         Args: {
