@@ -767,11 +767,14 @@ export type Database = {
       }
       project_candidates: {
         Row: {
+          canonical_project_id: string | null
           confidence: number
           country: string | null
           created_at: string
           description: string | null
           discovered_by: string
+          duplicate_confidence: number | null
+          duplicate_of: string | null
           extracted_claims: Json
           id: string
           lat: number | null
@@ -792,11 +795,14 @@ export type Database = {
           value_usd: number | null
         }
         Insert: {
+          canonical_project_id?: string | null
           confidence?: number
           country?: string | null
           created_at?: string
           description?: string | null
           discovered_by: string
+          duplicate_confidence?: number | null
+          duplicate_of?: string | null
           extracted_claims?: Json
           id?: string
           lat?: number | null
@@ -817,11 +823,14 @@ export type Database = {
           value_usd?: number | null
         }
         Update: {
+          canonical_project_id?: string | null
           confidence?: number
           country?: string | null
           created_at?: string
           description?: string | null
           discovered_by?: string
+          duplicate_confidence?: number | null
+          duplicate_of?: string | null
           extracted_claims?: Json
           id?: string
           lat?: number | null
@@ -841,7 +850,22 @@ export type Database = {
           value_label?: string | null
           value_usd?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_candidates_canonical_project_id_fkey"
+            columns: ["canonical_project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_candidates_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_claims: {
         Row: {
