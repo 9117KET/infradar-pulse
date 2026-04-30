@@ -7,6 +7,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import {
+  beginAgentTask,
+  alreadyRunningResponse,
+  isAgentEnabled,
+  pausedResponse,
+  finishAgentRun,
+  recordAgentEvent,
+  failAgentTask,
+} from "../_shared/agentGate.ts";
 
 /** Match other edge functions so Supabase client preflight (OPTIONS) succeeds. */
 const corsHeaders = {
@@ -166,36 +175,35 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let body: Record<string, unknown> = {};
-    try {
-      body = await req.json();
-    } catch {
-      /* empty body */
-    }
+  if (!await isAgentEnabled(supabase, "insight-sources")) return pausedResponse("insight-sources");
 
-    const insightId = typeof body.insight_id === "string" ? body.insight_id : undefined;
-    const scope = body.scope === "all" ? "all" : "missing";
-    const dryRun = body.dry_run === true;
-    const useAi = body.use_ai !== false;
+  let body: Record<string, unknown> = {};
+  try {
+    body = await req.json();
+  } catch {
+    /* empty body */
+  }
 
-    const { data: task, error: taskErr } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "insight_sources",
-        query: insightId ? `single:${insightId}` : `scope:${scope}`,
-        status: "running",
-        requested_by: gate.userId,
-        result: { step: "loading", scope, dry_run: dryRun },
-      })
-      .select("id")
-      .single();
+  const insightId = typeof body.insight_id === "string" ? body.insight_id : undefined;
+  const scope = body.scope === "all" ? "all" : "missing";
+  const dryRun = body.dry_run === true;
+  const useAi = body.use_ai !== false;
 
-    if (taskErr) console.error("research_tasks insert:", taskErr);
+  const lock = await beginAgentTask(
+    supabase,
+    "insight-sources",
+    insightId ? `single:${insightId}` : `scope:${scope}`,
+    gate.userId,
+  );
+  if (lock.alreadyRunning) return alreadyRunningResponse("insight-sources");
+  const taskId = lock.taskId;
+  const startedAt = new Date();
 
+  try {
     const { data: rows, error: fetchErr } = await supabase
       .from("insights")
       .select("id, title, excerpt, content, source_url, sources, published")
@@ -334,7 +342,7 @@ serve(async (req) => {
       details,
     };
 
-    if (task?.id) {
+    if (taskId) {
       await supabase
         .from("research_tasks")
         .update({
@@ -342,17 +350,20 @@ serve(async (req) => {
           result: summary,
           completed_at: new Date().toISOString(),
         })
-        .eq("id", task.id);
+        .eq("id", taskId);
     }
 
+    await recordAgentEvent(supabase, "insight-sources", "completed", "Insight source backfill completed", taskId, summary);
+    await finishAgentRun(supabase, "insight-sources", "completed", startedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
-      JSON.stringify({ success: true, task_id: task?.id ?? null, ...summary }),
+      JSON.stringify({ success: true, task_id: taskId, ...summary }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("insight-sources-agent:", e);
+    await failAgentTask(supabase, "insight-sources", taskId, startedAt, e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
