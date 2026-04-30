@@ -779,6 +779,24 @@ export default function AgentMonitoring() {
                       <span className="ml-1 text-[10px] text-muted-foreground">({throughput.completed} ok, {throughput.failed} err)</span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground whitespace-nowrap">{formatDuration(config?.last_duration_ms)}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px]"
+                        disabled={!staffBypass || resettingAgent === agent.type || (!isRunningNow && stats.running === 0)}
+                        onClick={() => resetStuckAgent(agent.type, agent.name)}
+                        title="Force-clear any stuck running task for this agent"
+                      >
+                        {resettingAgent === agent.type ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <AlertCircle className="h-3 w-3 mr-1" /> Reset
+                          </>
+                        )}
+                      </Button>
+                    </td>
                   </tr>
                 );
               })}
