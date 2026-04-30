@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
@@ -28,6 +28,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    if (!await isAgentEnabled(supabase, "corporate-ma-monitor")) return pausedResponse("corporate-ma-monitor");
     const lock = await beginAgentTask(supabase, "corporate-ma-monitor", "Corporate / M&A / counterparty scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("corporate-ma-monitor");
     const taskId = lock.taskId;
