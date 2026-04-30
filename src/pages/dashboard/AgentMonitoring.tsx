@@ -629,6 +629,43 @@ export default function AgentMonitoring() {
           </AlertDescription>
         </Alert>
       )}
+      {staffReady && authAlerts && authAlerts.length > 0 && (
+        <Alert variant="destructive" className="border-destructive/50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle className="flex items-center justify-between gap-3">
+            <span>{authAlerts.length} scheduled agent{authAlerts.length === 1 ? '' : 's'} failing with HTTP 401 / unauthorized</span>
+            <Button size="sm" variant="outline" onClick={runHealthMonitor} className="h-7">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-check now
+            </Button>
+          </AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">
+              Cron is invoking these jobs but the auth header is being rejected. Most common cause: the
+              <code className="mx-1 px-1.5 py-0.5 rounded bg-background/50 font-mono text-xs">email_queue_service_role_key</code>
+              vault secret is stale. Rotate it to match the current <code className="px-1.5 py-0.5 rounded bg-background/50 font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</code> to restore the fleet.
+            </p>
+            <div className="space-y-1 mt-2">
+              {authAlerts.slice(0, 8).map(a => (
+                <div key={a.id} className="flex items-start justify-between gap-3 text-xs bg-background/40 rounded px-2 py-1.5">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-mono font-semibold">{a.job_name ?? 'unknown'}</span>
+                    <span className="text-muted-foreground"> — {a.failure_count} auth fails / {a.total_runs} runs · {timeAgo(a.detected_at)}</span>
+                    {a.sample_message && (
+                      <div className="text-muted-foreground/80 truncate mt-0.5">{a.sample_message.slice(0, 200)}</div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => resolveAuthAlert(a.id)}>
+                    Resolve
+                  </Button>
+                </div>
+              ))}
+              {authAlerts.length > 8 && (
+                <p className="text-xs text-muted-foreground">+ {authAlerts.length - 8} more</p>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <Bot className="h-6 w-6 text-primary" /> Agent Monitoring
