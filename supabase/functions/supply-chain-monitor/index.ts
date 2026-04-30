@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
@@ -25,6 +25,7 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    if (!await isAgentEnabled(supabase, "supply-chain-monitor")) return pausedResponse("supply-chain-monitor");
     const lock = await beginAgentTask(supabase, "supply-chain-monitor", "Supply chain & commodity scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("supply-chain-monitor");
     const taskId = lock.taskId;
