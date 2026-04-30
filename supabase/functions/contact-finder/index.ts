@@ -255,6 +255,7 @@ ${content}`);
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+    await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
 
     console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
 
@@ -266,6 +267,7 @@ ${content}`);
     );
   } catch (e) {
     console.error("Contact finder error:", e);
+    await failAgentTask(supabase, "contact-finder", taskId, runStartedAt, e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
