@@ -265,6 +265,7 @@ serve(async (req) => {
       const errText = await aiRes.text();
       await supabase.from("report_runs").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", reportRunId);
       await supabase.from("research_tasks").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "report-agent", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false, error: "AI report generation failed" }), { status: 500, headers: corsHeaders });
     }
 
