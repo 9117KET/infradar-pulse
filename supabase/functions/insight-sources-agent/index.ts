@@ -175,36 +175,35 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let body: Record<string, unknown> = {};
-    try {
-      body = await req.json();
-    } catch {
-      /* empty body */
-    }
+  if (!await isAgentEnabled(supabase, "insight-sources")) return pausedResponse("insight-sources");
 
-    const insightId = typeof body.insight_id === "string" ? body.insight_id : undefined;
-    const scope = body.scope === "all" ? "all" : "missing";
-    const dryRun = body.dry_run === true;
-    const useAi = body.use_ai !== false;
+  let body: Record<string, unknown> = {};
+  try {
+    body = await req.json();
+  } catch {
+    /* empty body */
+  }
 
-    const { data: task, error: taskErr } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: "insight_sources",
-        query: insightId ? `single:${insightId}` : `scope:${scope}`,
-        status: "running",
-        requested_by: gate.userId,
-        result: { step: "loading", scope, dry_run: dryRun },
-      })
-      .select("id")
-      .single();
+  const insightId = typeof body.insight_id === "string" ? body.insight_id : undefined;
+  const scope = body.scope === "all" ? "all" : "missing";
+  const dryRun = body.dry_run === true;
+  const useAi = body.use_ai !== false;
 
-    if (taskErr) console.error("research_tasks insert:", taskErr);
+  const lock = await beginAgentTask(
+    supabase,
+    "insight-sources",
+    insightId ? `single:${insightId}` : `scope:${scope}`,
+    gate.userId,
+  );
+  if (lock.alreadyRunning) return alreadyRunningResponse("insight-sources");
+  const taskId = lock.taskId;
+  const startedAt = new Date();
 
+  try {
     const { data: rows, error: fetchErr } = await supabase
       .from("insights")
       .select("id, title, excerpt, content, source_url, sources, published")
