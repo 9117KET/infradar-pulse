@@ -303,9 +303,11 @@ serve(async (req) => {
       })
       .eq("id", taskId);
 
+    await finishAgentRun(supabase, "report-agent", "completed", runStartedAt);
     return new Response(JSON.stringify({ success: true, reportRunId: reportRunId, taskId, metrics }), { headers: corsHeaders });
   } catch (e) {
     console.error("report-agent error:", e);
+    await failAgentTask(supabase, "report-agent", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
   }
 });
