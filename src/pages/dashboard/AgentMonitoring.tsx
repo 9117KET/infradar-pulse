@@ -264,6 +264,51 @@ export default function AgentMonitoring() {
     refetchInterval: !staffReady ? 30000 : false,
   });
 
+  // Open auth-failure alerts (HTTP 401 / unauthorized cron failures)
+  const { data: authAlerts, refetch: refetchAuthAlerts } = useQuery({
+    queryKey: ['agent-health-alerts-open', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('agent_health_alerts')
+        .select('id, job_name, severity, failure_count, total_runs, sample_message, detected_at, notified_at')
+        .is('resolved_at', null)
+        .eq('alert_type', 'cron_auth_failure')
+        .order('detected_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; job_name: string | null; severity: string;
+        failure_count: number; total_runs: number;
+        sample_message: string | null; detected_at: string; notified_at: string | null;
+      }>;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
+  });
+
+  const resolveAuthAlert = useCallback(async (id: string) => {
+    const { error } = await (supabase as any)
+      .from('agent_health_alerts')
+      .update({ resolved_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Could not resolve alert', description: error.message, variant: 'destructive' });
+      return;
+    }
+    refetchAuthAlerts();
+  }, [refetchAuthAlerts, toast]);
+
+  const runHealthMonitor = useCallback(async () => {
+    try {
+      const { error } = await supabase.functions.invoke('agent-health-monitor', { body: {} });
+      if (error) throw error;
+      toast({ title: 'Health check complete', description: 'Re-scanned cron history for auth failures.' });
+      refetchAuthAlerts();
+    } catch (e: any) {
+      toast({ title: 'Health check failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  }, [toast, refetchAuthAlerts]);
+
   // Rolling-window health status from the agent_health view
   const { data: agentHealth } = useQuery({
     queryKey: ['agent-health', staffBypass],
