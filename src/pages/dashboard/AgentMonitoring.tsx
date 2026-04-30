@@ -264,6 +264,51 @@ export default function AgentMonitoring() {
     refetchInterval: !staffReady ? 30000 : false,
   });
 
+  // Open auth-failure alerts (HTTP 401 / unauthorized cron failures)
+  const { data: authAlerts, refetch: refetchAuthAlerts } = useQuery({
+    queryKey: ['agent-health-alerts-open', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('agent_health_alerts')
+        .select('id, job_name, severity, failure_count, total_runs, sample_message, detected_at, notified_at')
+        .is('resolved_at', null)
+        .eq('alert_type', 'cron_auth_failure')
+        .order('detected_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: string; job_name: string | null; severity: string;
+        failure_count: number; total_runs: number;
+        sample_message: string | null; detected_at: string; notified_at: string | null;
+      }>;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
+  });
+
+  const resolveAuthAlert = useCallback(async (id: string) => {
+    const { error } = await (supabase as any)
+      .from('agent_health_alerts')
+      .update({ resolved_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Could not resolve alert', description: error.message, variant: 'destructive' });
+      return;
+    }
+    refetchAuthAlerts();
+  }, [refetchAuthAlerts, toast]);
+
+  const runHealthMonitor = useCallback(async () => {
+    try {
+      const { error } = await supabase.functions.invoke('agent-health-monitor', { body: {} });
+      if (error) throw error;
+      toast({ title: 'Health check complete', description: 'Re-scanned cron history for auth failures.' });
+      refetchAuthAlerts();
+    } catch (e: any) {
+      toast({ title: 'Health check failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  }, [toast, refetchAuthAlerts]);
+
   // Rolling-window health status from the agent_health view
   const { data: agentHealth } = useQuery({
     queryKey: ['agent-health', staffBypass],
@@ -581,6 +626,43 @@ export default function AgentMonitoring() {
           <AlertTitle>Browse all agents — trigger them on a paid plan</AlertTitle>
           <AlertDescription>
             You can inspect schedules, run histories, and live logs on any account. Manually triggering agents uses your daily AI allowance and requires a Starter or Pro subscription.
+          </AlertDescription>
+        </Alert>
+      )}
+      {staffReady && authAlerts && authAlerts.length > 0 && (
+        <Alert variant="destructive" className="border-destructive/50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle className="flex items-center justify-between gap-3">
+            <span>{authAlerts.length} scheduled agent{authAlerts.length === 1 ? '' : 's'} failing with HTTP 401 / unauthorized</span>
+            <Button size="sm" variant="outline" onClick={runHealthMonitor} className="h-7">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-check now
+            </Button>
+          </AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p className="text-sm">
+              Cron is invoking these jobs but the auth header is being rejected. Most common cause: the
+              <code className="mx-1 px-1.5 py-0.5 rounded bg-background/50 font-mono text-xs">email_queue_service_role_key</code>
+              vault secret is stale. Rotate it to match the current <code className="px-1.5 py-0.5 rounded bg-background/50 font-mono text-xs">SUPABASE_SERVICE_ROLE_KEY</code> to restore the fleet.
+            </p>
+            <div className="space-y-1 mt-2">
+              {authAlerts.slice(0, 8).map(a => (
+                <div key={a.id} className="flex items-start justify-between gap-3 text-xs bg-background/40 rounded px-2 py-1.5">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-mono font-semibold">{a.job_name ?? 'unknown'}</span>
+                    <span className="text-muted-foreground"> — {a.failure_count} auth fails / {a.total_runs} runs · {timeAgo(a.detected_at)}</span>
+                    {a.sample_message && (
+                      <div className="text-muted-foreground/80 truncate mt-0.5">{a.sample_message.slice(0, 200)}</div>
+                    )}
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => resolveAuthAlert(a.id)}>
+                    Resolve
+                  </Button>
+                </div>
+              ))}
+              {authAlerts.length > 8 && (
+                <p className="text-xs text-muted-foreground">+ {authAlerts.length - 8} more</p>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       )}
