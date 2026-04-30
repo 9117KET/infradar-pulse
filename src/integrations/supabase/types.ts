@@ -241,6 +241,33 @@ export type Database = {
         }
         Relationships: []
       }
+      dataset_snapshots: {
+        Row: {
+          created_at: string
+          dataset_key: string
+          generated_at: string
+          generated_by: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          dataset_key: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          created_at?: string
+          dataset_key?: string
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: []
+      }
       digests: {
         Row: {
           created_at: string
@@ -1454,6 +1481,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      report_runs: {
+        Row: {
+          citations: Json
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          markdown: string | null
+          parameters: Json
+          report_type: string
+          status: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          citations?: Json
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          markdown?: string | null
+          parameters?: Json
+          report_type: string
+          status?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          citations?: Json
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          markdown?: string | null
+          parameters?: Json
+          report_type?: string
+          status?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       research_tasks: {
         Row: {
