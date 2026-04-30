@@ -30,27 +30,27 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  let bodyProjectId: string | undefined;
+  if (req.method === "POST") {
+    try {
+      const j = await req.json();
+      if (typeof j?.project_id === "string" && j.project_id.trim()) bodyProjectId = j.project_id.trim();
+    } catch { /* empty body */ }
+  }
+
+  const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
+  if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
+  const taskId = lock.taskId;
+  const runStartedAt = new Date();
+
   try {
-    let bodyProjectId: string | undefined;
-    if (req.method === "POST") {
-      try {
-        const j = await req.json();
-        if (typeof j?.project_id === "string" && j.project_id.trim()) bodyProjectId = j.project_id.trim();
-      } catch {
-        /* empty body */
-      }
-    }
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
-    if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
-    const taskId = lock.taskId;
 
     const { data: existingContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
