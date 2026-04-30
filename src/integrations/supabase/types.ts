@@ -47,6 +47,51 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_health_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          details: Json
+          detected_at: string
+          failure_count: number
+          id: string
+          job_name: string | null
+          notified_at: string | null
+          resolved_at: string | null
+          sample_message: string | null
+          severity: string
+          total_runs: number
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          details?: Json
+          detected_at?: string
+          failure_count?: number
+          id?: string
+          job_name?: string | null
+          notified_at?: string | null
+          resolved_at?: string | null
+          sample_message?: string | null
+          severity?: string
+          total_runs?: number
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          details?: Json
+          detected_at?: string
+          failure_count?: number
+          id?: string
+          job_name?: string | null
+          notified_at?: string | null
+          resolved_at?: string | null
+          sample_message?: string | null
+          severity?: string
+          total_runs?: number
+        }
+        Relationships: []
+      }
       alert_rules: {
         Row: {
           created_at: string
@@ -2122,6 +2167,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      detect_agent_auth_failures: { Args: { p_hours?: number }; Returns: Json }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2129,6 +2175,20 @@ export type Database = {
       finish_agent_run: {
         Args: { p_agent_type: string; p_duration_ms?: number; p_status: string }
         Returns: undefined
+      }
+      get_agent_cron_health: {
+        Args: { p_hours?: number }
+        Returns: {
+          auth_failures: number
+          failed_runs: number
+          failure_rate_pct: number
+          job_name: string
+          last_failure_at: string
+          last_failure_message: string
+          last_run_at: string
+          suspected_auth_failure: boolean
+          total_runs: number
+        }[]
       }
       get_agent_monitoring_summary: {
         Args: { p_recent_limit?: number }
@@ -2189,6 +2249,13 @@ export type Database = {
         Args: { p_environment?: string }
         Returns: number
       }
+      list_admin_emails: {
+        Args: never
+        Returns: {
+          email: string
+          user_id: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -2220,6 +2287,10 @@ export type Database = {
         Returns: undefined
       }
       reset_stuck_agent_task: { Args: { p_agent_type: string }; Returns: Json }
+      resolve_agent_auth_alerts: {
+        Args: { p_job_name: string }
+        Returns: number
+      }
       try_consume_quota: {
         Args: {
           p_daily_cap: number
