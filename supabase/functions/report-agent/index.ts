@@ -8,7 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +90,8 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  let taskId: string | undefined;
+  let runStartedAt = new Date();
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const reportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
@@ -108,7 +110,8 @@ serve(async (req) => {
 
     const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${scopeLabel}:${days}d`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const parameters = { days, country, region, sector, stage, scope_label: scopeLabel, template: template.label };
 
@@ -262,6 +265,7 @@ serve(async (req) => {
       const errText = await aiRes.text();
       await supabase.from("report_runs").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", reportRunId);
       await supabase.from("research_tasks").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "report-agent", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false, error: "AI report generation failed" }), { status: 500, headers: corsHeaders });
     }
 
@@ -300,9 +304,11 @@ serve(async (req) => {
       })
       .eq("id", taskId);
 
+    await finishAgentRun(supabase, "report-agent", "completed", runStartedAt);
     return new Response(JSON.stringify({ success: true, reportRunId: reportRunId, taskId, metrics }), { headers: corsHeaders });
   } catch (e) {
     console.error("report-agent error:", e);
+    await failAgentTask(supabase, "report-agent", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
   }
 });

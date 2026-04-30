@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,27 +30,27 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  let bodyProjectId: string | undefined;
+  if (req.method === "POST") {
+    try {
+      const j = await req.json();
+      if (typeof j?.project_id === "string" && j.project_id.trim()) bodyProjectId = j.project_id.trim();
+    } catch { /* empty body */ }
+  }
+
+  const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
+  if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
+  const taskId = lock.taskId;
+  const runStartedAt = new Date();
+
   try {
-    let bodyProjectId: string | undefined;
-    if (req.method === "POST") {
-      try {
-        const j = await req.json();
-        if (typeof j?.project_id === "string" && j.project_id.trim()) bodyProjectId = j.project_id.trim();
-      } catch {
-        /* empty body */
-      }
-    }
-
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
-
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
-    if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
-    const taskId = lock.taskId;
 
     const { data: existingContacts } = await supabase.from("project_contacts").select("project_id");
     const contactCounts: Record<string, number> = {};
@@ -91,6 +91,7 @@ serve(async (req) => {
 
     if (!needsContacts.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No work" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -254,6 +255,7 @@ ${content}`);
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+    await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
 
     console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
 
@@ -265,6 +267,7 @@ ${content}`);
     );
   } catch (e) {
     console.error("Contact finder error:", e);
+    await failAgentTask(supabase, "contact-finder", taskId, runStartedAt, e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
