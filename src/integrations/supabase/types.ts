@@ -2305,6 +2305,10 @@ export type Database = {
           used_hour: number
         }[]
       }
+      upsert_vault_secret: {
+        Args: { p_name: string; p_secret: string }
+        Returns: Json
+      }
     }
     Enums: {
       alert_category:

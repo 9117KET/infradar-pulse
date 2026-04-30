@@ -309,6 +309,21 @@ export default function AgentMonitoring() {
     }
   }, [toast, refetchAuthAlerts]);
 
+  const syncServiceRoleKey = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-service-role-to-vault', { body: {} });
+      if (error) throw error;
+      toast({
+        title: 'Service role key synced',
+        description: `Vault updated (${(data as any)?.key_fingerprint ?? 'ok'}). Re-running health check…`,
+      });
+      await supabase.functions.invoke('agent-health-monitor', { body: {} });
+      refetchAuthAlerts();
+    } catch (e: any) {
+      toast({ title: 'Sync failed', description: e?.message ?? String(e), variant: 'destructive' });
+    }
+  }, [toast, refetchAuthAlerts]);
+
   // Rolling-window health status from the agent_health view
   const { data: agentHealth } = useQuery({
     queryKey: ['agent-health', staffBypass],
@@ -634,9 +649,14 @@ export default function AgentMonitoring() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle className="flex items-center justify-between gap-3">
             <span>{authAlerts.length} scheduled agent{authAlerts.length === 1 ? '' : 's'} failing with HTTP 401 / unauthorized</span>
-            <Button size="sm" variant="outline" onClick={runHealthMonitor} className="h-7">
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-check now
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="default" onClick={syncServiceRoleKey} className="h-7">
+                Sync key from env → vault
+              </Button>
+              <Button size="sm" variant="outline" onClick={runHealthMonitor} className="h-7">
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Re-check now
+              </Button>
+            </div>
           </AlertTitle>
           <AlertDescription className="space-y-2">
             <p className="text-sm">
