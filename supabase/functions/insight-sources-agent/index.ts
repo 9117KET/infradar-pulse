@@ -342,7 +342,7 @@ serve(async (req) => {
       details,
     };
 
-    if (task?.id) {
+    if (taskId) {
       await supabase
         .from("research_tasks")
         .update({
@@ -350,17 +350,20 @@ serve(async (req) => {
           result: summary,
           completed_at: new Date().toISOString(),
         })
-        .eq("id", task.id);
+        .eq("id", taskId);
     }
 
+    await recordAgentEvent(supabase, "insight-sources", "completed", "Insight source backfill completed", taskId, summary);
+    await finishAgentRun(supabase, "insight-sources", "completed", startedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
-      JSON.stringify({ success: true, task_id: task?.id ?? null, ...summary }),
+      JSON.stringify({ success: true, task_id: taskId, ...summary }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("insight-sources-agent:", e);
+    await failAgentTask(supabase, "insight-sources", taskId, startedAt, e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
