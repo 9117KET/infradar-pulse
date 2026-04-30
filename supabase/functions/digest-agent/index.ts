@@ -227,6 +227,15 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, digestId: inserted.id, taskId }), { headers: corsHeaders });
   } catch (e) {
     console.error("digest-agent error:", e);
+    // Best-effort: clear any in-progress digest-agent row so the lock isn't held forever.
+    try {
+      await supabase
+        .from("research_tasks")
+        .update({ status: "failed", error: e instanceof Error ? e.message.slice(0, 2000) : String(e), completed_at: new Date().toISOString() })
+        .eq("task_type", "digest-agent")
+        .eq("status", "running")
+        .eq("requested_by", gate.userId);
+    } catch { /* best-effort */ }
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: corsHeaders,
