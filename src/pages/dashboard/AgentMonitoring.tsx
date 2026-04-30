@@ -322,8 +322,7 @@ export default function AgentMonitoring() {
     } catch (e: any) {
       toast({ title: 'Sync failed', description: e?.message ?? String(e), variant: 'destructive' });
     }
-  }, [toast, refetchAuthAlerts]);</replace>
-</invoke>
+  }, [toast, refetchAuthAlerts]);
 
   // Rolling-window health status from the agent_health view
   const { data: agentHealth } = useQuery({
