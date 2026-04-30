@@ -2043,6 +2043,8 @@ export type Database = {
           last_duration_ms: number | null
           last_run_at: string | null
           last_run_status: string | null
+          recent_failure_rate_pct: number | null
+          recent_runs_24h: number | null
           success_count: number | null
           success_rate_pct: number | null
         }
