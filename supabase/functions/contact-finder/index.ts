@@ -114,7 +114,6 @@ serve(async (req) => {
     });
 
     let totalInserted = 0;
-    for (const project of needsContacts) {
     let processed = 0;
     let timedOut = false;
     for (const project of needsContacts) {
