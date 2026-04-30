@@ -115,6 +115,15 @@ serve(async (req) => {
 
     let totalInserted = 0;
     for (const project of needsContacts) {
+    let processed = 0;
+    let timedOut = false;
+    for (const project of needsContacts) {
+      if (Date.now() - startedMs > TIME_BUDGET_MS) {
+        timedOut = true;
+        console.log(`contact-finder: time budget reached after ${processed}/${needsContacts.length} projects`);
+        break;
+      }
+      processed++;
       const rawContent: string[] = [];
       const projectStakeholders = stakeholderMap[project.id] || [];
       const citationUrls: string[] = [];
