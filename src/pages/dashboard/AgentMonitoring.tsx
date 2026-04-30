@@ -49,8 +49,17 @@ const AGENTS = [
   { type: 'security-resilience', name: 'Security & Resilience', icon: Shield, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runSecurityResilience },
   { type: 'tender-award-monitor', name: 'Tender / Award', icon: Gavel, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runTenderAwardMonitor },
   { type: 'executive-briefing', name: 'Executive Briefing', icon: ScrollText, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runExecutiveBriefing },
-  { type: 'source-ingest', name: 'Source Ingest', icon: Globe, schedule: 'On demand', scheduleMinutes: 0, fn: null },
-  { type: 'user-research', name: 'User Research', icon: Search, schedule: 'On demand', scheduleMinutes: 0, fn: null },
+  { type: 'source-ingest', name: 'Source Ingest', icon: Globe, schedule: 'On demand', scheduleMinutes: 0, fn: () => {
+    const url = window.prompt('Enter the source URL to ingest (e.g. https://example.com/projects):');
+    if (!url) return Promise.resolve();
+    const source_key = window.prompt('Optional source key (leave blank to auto-detect):') || undefined;
+    return agentApi.runSourceIngest({ url, source_key });
+  } },
+  { type: 'user-research', name: 'User Research', icon: Search, schedule: 'On demand', scheduleMinutes: 0, fn: () => {
+    const query = window.prompt('Enter a research query (e.g. "Solar projects in Vietnam 2025"):');
+    if (!query) return Promise.resolve();
+    return agentApi.runUserResearch(query);
+  } },
   { type: 'insight-sources', name: 'Insight Sources', icon: Zap, schedule: 'On demand', scheduleMinutes: 0, fn: () => agentApi.runInsightSourcesAgent() },
 ];
 
