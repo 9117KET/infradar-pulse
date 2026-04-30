@@ -90,6 +90,8 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  let taskId: string | undefined;
+  let runStartedAt = new Date();
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const reportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
@@ -108,7 +110,8 @@ serve(async (req) => {
 
     const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${scopeLabel}:${days}d`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const parameters = { days, country, region, sector, stage, scope_label: scopeLabel, template: template.label };
 
