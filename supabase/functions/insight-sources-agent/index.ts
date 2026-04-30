@@ -7,6 +7,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
+import {
+  beginAgentTask,
+  alreadyRunningResponse,
+  isAgentEnabled,
+  pausedResponse,
+  finishAgentRun,
+  recordAgentEvent,
+  failAgentTask,
+} from "../_shared/agentGate.ts";
 
 /** Match other edge functions so Supabase client preflight (OPTIONS) succeeds. */
 const corsHeaders = {
