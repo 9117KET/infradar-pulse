@@ -265,18 +265,18 @@ ${content}`);
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted },
+        result: { projects_scanned: processed, projects_pending: needsContacts.length - processed, contacts_added: totalInserted, partial: timedOut },
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
     await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
 
-    console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
+    console.log(`Contact finder complete: ${processed}/${needsContacts.length} projects scanned, ${totalInserted} contacts added${timedOut ? " (partial — time budget hit)" : ""}`);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
-      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted }),
+      JSON.stringify({ success: true, projects_scanned: processed, projects_pending: needsContacts.length - processed, contacts_added: totalInserted, partial: timedOut }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
