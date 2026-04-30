@@ -86,8 +86,13 @@ serve(async (req) => {
         seen.add(p.id);
         merged.push(p);
       }
-      needsContacts = merged.filter((p) => (contactCounts[p.id] || 0) < 2).slice(0, 25);
+      needsContacts = merged.filter((p) => (contactCounts[p.id] || 0) < 2).slice(0, 5);
     }
+
+    // Hard time budget so we never hit the 150s edge-function idle timeout.
+    // Two sequential AI calls per project can take 10-20s each; budget conservatively.
+    const TIME_BUDGET_MS = 120_000;
+    const startedMs = Date.now();
 
     if (!needsContacts.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", taskId);
