@@ -2031,7 +2031,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      agent_health: {
+        Row: {
+          agent_type: string | null
+          cron_active: boolean | null
+          cron_schedule: string | null
+          cron_scheduled: boolean | null
+          enabled: boolean | null
+          failure_count: number | null
+          health_status: string | null
+          last_duration_ms: number | null
+          last_run_at: string | null
+          last_run_status: string | null
+          success_count: number | null
+          success_rate_pct: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
