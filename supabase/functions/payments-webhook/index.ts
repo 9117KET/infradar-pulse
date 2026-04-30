@@ -323,11 +323,12 @@ async function emitPastDueAlert(data: any, env: PaddleEnv) {
   try {
     const userId = await resolveUserId(data.customData, data.id, env);
     if (!userId) return;
-    const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-    const email = authUser?.user?.email ?? 'your account';
+    // Do NOT embed the user's email address in the message. The alerts table is
+    // readable by all paid subscribers and staff, so any PII here would leak
+    // across accounts. Use a generic placeholder instead.
     await supabase.from('alerts').insert({
       project_name: 'Billing',
-      message: `Your last payment failed for ${email}. Update your payment method in Settings → Billing to keep access.`,
+      message: 'Your last payment failed for your account. Update your payment method in Settings → Billing to keep access.',
       severity: 'high',
       category: 'financial',
     });
