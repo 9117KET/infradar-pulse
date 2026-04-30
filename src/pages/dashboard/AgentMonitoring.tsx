@@ -264,6 +264,22 @@ export default function AgentMonitoring() {
     refetchInterval: !staffReady ? 30000 : false,
   });
 
+  // Rolling-window health status from the agent_health view
+  const { data: agentHealth } = useQuery({
+    queryKey: ['agent-health', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('agent_health')
+        .select('agent_type, health_status, recent_runs_24h, recent_failure_rate_pct, success_rate_pct');
+      if (error) throw error;
+      const map: Record<string, { health_status: string; recent_runs_24h: number; recent_failure_rate_pct: number | null; success_rate_pct: number | null }> = {};
+      ((data ?? []) as any[]).forEach(row => { map[row.agent_type] = row; });
+      return map;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
+  });
+
   const agentConfigs = useMemo(() => {
     if (monitoringSummary?.agent_configs) {
       return monitoringSummary.agent_configs.reduce<Record<string, AgentConfigRow>>((acc, row) => {
