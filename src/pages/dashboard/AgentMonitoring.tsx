@@ -264,6 +264,22 @@ export default function AgentMonitoring() {
     refetchInterval: !staffReady ? 30000 : false,
   });
 
+  // Rolling-window health status from the agent_health view
+  const { data: agentHealth } = useQuery({
+    queryKey: ['agent-health', staffBypass],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('agent_health')
+        .select('agent_type, health_status, recent_runs_24h, recent_failure_rate_pct, success_rate_pct');
+      if (error) throw error;
+      const map: Record<string, { health_status: string; recent_runs_24h: number; recent_failure_rate_pct: number | null; success_rate_pct: number | null }> = {};
+      ((data ?? []) as any[]).forEach(row => { map[row.agent_type] = row; });
+      return map;
+    },
+    enabled: staffReady,
+    refetchInterval: staffReady ? 30000 : false,
+  });
+
   const agentConfigs = useMemo(() => {
     if (monitoringSummary?.agent_configs) {
       return monitoringSummary.agent_configs.reduce<Record<string, AgentConfigRow>>((acc, row) => {
@@ -831,11 +847,14 @@ export default function AgentMonitoring() {
           const isEnabled = agentConfigs ? (agentConfigs[agent.type]?.enabled !== false) : true;
           const isPaused = !isEnabled;
           const isToggling = togglingAgent === agent.type;
+          const health = agentHealth?.[agent.type];
+          const healthStatus = health?.health_status;
 
           return (
             <div
               key={agent.type}
-              className={`glass-panel rounded-xl p-4 space-y-2.5 transition-opacity ${isPaused ? 'opacity-50 border border-muted/30' : stale && !isRunningNow ? 'border border-amber-400/30' : ''}`}
+              className={`glass-panel rounded-xl p-4 space-y-2.5 transition-opacity ${isPaused ? 'opacity-50 border border-muted/30' : healthStatus === 'failing' ? 'border border-destructive/40' : healthStatus === 'degraded' || (stale && !isRunningNow) ? 'border border-amber-400/30' : ''}`}
+              title={health ? `24h: ${health.recent_runs_24h} runs${health.recent_failure_rate_pct != null ? `, ${health.recent_failure_rate_pct}% fail` : ''}${health.success_rate_pct != null ? ` · lifetime ${health.success_rate_pct}%` : ''}` : undefined}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -851,9 +870,15 @@ export default function AgentMonitoring() {
                   <Badge variant="outline" className="text-[9px] text-muted-foreground border-muted/40">Paused</Badge>
                 ) : isRunningNow ? (
                   <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30 animate-pulse">Running</Badge>
-                ) : stale ? (
+                ) : healthStatus === 'failing' ? (
+                  <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">Failing</Badge>
+                ) : healthStatus === 'degraded' ? (
+                  <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30">Degraded</Badge>
+                ) : healthStatus === 'stale' || stale ? (
                   <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-400/30">⚠ Stale</Badge>
-                ) : stats.lastRun?.status === 'completed' ? (
+                ) : healthStatus === 'never_ran' ? (
+                  <Badge variant="outline" className="text-[9px] text-muted-foreground">New</Badge>
+                ) : healthStatus === 'healthy' || stats.lastRun?.status === 'completed' ? (
                   <Badge variant="outline" className="text-[9px] text-emerald-400 border-emerald-400/30">Active</Badge>
                 ) : stats.lastRun?.status === 'failed' ? (
                   <Badge variant="outline" className="text-[9px] text-destructive border-destructive/30">Error</Badge>
