@@ -26,13 +26,16 @@ serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  let taskId: string | undefined;
+  let runStartedAt = new Date();
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const datasetKey = typeof body?.dataset_key === "string" ? body.dataset_key : "projects_v1";
 
     const lock = await beginAgentTask(supabase, "dataset-refresh", datasetKey, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("dataset-refresh");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const updateTask = async (patch: Record<string, unknown>) => {
       await supabase.from("research_tasks").update({ result: patch }).eq("id", taskId);
@@ -42,6 +45,7 @@ serve(async (req) => {
 
     if (datasetKey !== "projects_v1") {
       await supabase.from("research_tasks").update({ status: "failed", error: "Unknown dataset_key", completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "dataset-refresh", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false, error: "Unknown dataset_key" }), { status: 400, headers: corsHeaders });
     }
 
@@ -82,10 +86,12 @@ serve(async (req) => {
       .from("research_tasks")
       .update({ status: "completed", result: { step: "completed", snapshot_id: snap.id }, completed_at: new Date().toISOString() })
       .eq("id", taskId);
+    await finishAgentRun(supabase, "dataset-refresh", "completed", runStartedAt);
 
     return new Response(JSON.stringify({ success: true, snapshotId: snap.id, taskId }), { headers: corsHeaders });
   } catch (e) {
     console.error("dataset-refresh-agent error:", e);
+    await failAgentTask(supabase, "dataset-refresh", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
   }
 });
