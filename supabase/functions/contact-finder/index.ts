@@ -86,8 +86,13 @@ serve(async (req) => {
         seen.add(p.id);
         merged.push(p);
       }
-      needsContacts = merged.filter((p) => (contactCounts[p.id] || 0) < 2).slice(0, 25);
+      needsContacts = merged.filter((p) => (contactCounts[p.id] || 0) < 2).slice(0, 5);
     }
+
+    // Hard time budget so we never hit the 150s edge-function idle timeout.
+    // Two sequential AI calls per project can take 10-20s each; budget conservatively.
+    const TIME_BUDGET_MS = 120_000;
+    const startedMs = Date.now();
 
     if (!needsContacts.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", taskId);
@@ -110,6 +115,15 @@ serve(async (req) => {
 
     let totalInserted = 0;
     for (const project of needsContacts) {
+    let processed = 0;
+    let timedOut = false;
+    for (const project of needsContacts) {
+      if (Date.now() - startedMs > TIME_BUDGET_MS) {
+        timedOut = true;
+        console.log(`contact-finder: time budget reached after ${processed}/${needsContacts.length} projects`);
+        break;
+      }
+      processed++;
       const rawContent: string[] = [];
       const projectStakeholders = stakeholderMap[project.id] || [];
       const citationUrls: string[] = [];
@@ -251,18 +265,18 @@ ${content}`);
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: { projects_scanned: needsContacts.length, contacts_added: totalInserted },
+        result: { projects_scanned: processed, projects_pending: needsContacts.length - processed, contacts_added: totalInserted, partial: timedOut },
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
     await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
 
-    console.log(`Contact finder complete: ${needsContacts.length} projects scanned, ${totalInserted} contacts added`);
+    console.log(`Contact finder complete: ${processed}/${needsContacts.length} projects scanned, ${totalInserted} contacts added${timedOut ? " (partial — time budget hit)" : ""}`);
 
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(
-      JSON.stringify({ success: true, projects_scanned: needsContacts.length, contacts_added: totalInserted }),
+      JSON.stringify({ success: true, projects_scanned: processed, projects_pending: needsContacts.length - processed, contacts_added: totalInserted, partial: timedOut }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
