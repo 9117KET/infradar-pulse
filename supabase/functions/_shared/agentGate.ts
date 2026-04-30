@@ -169,6 +169,33 @@ export async function recordAgentEvent(
 }
 
 /**
+ * Best-effort: mark an in-progress task row as failed and update agent_config stats.
+ * Use inside top-level catch blocks so a thrown error never leaves a "running" lock behind.
+ * All failures are swallowed — never throw from cleanup.
+ */
+export async function failAgentTask(
+  supabase: SupabaseClient,
+  agentType: string,
+  taskId: string | undefined | null,
+  startedAt: Date,
+  error: unknown,
+): Promise<void> {
+  const message = error instanceof Error ? error.message : String(error ?? "Unknown error");
+  try {
+    if (taskId) {
+      await supabase
+        .from("research_tasks")
+        .update({ status: "failed", error: message.slice(0, 2000), completed_at: new Date().toISOString() })
+        .eq("id", taskId)
+        .eq("status", "running");
+    }
+  } catch { /* best-effort */ }
+  try {
+    await finishAgentRun(supabase, agentType, "failed", startedAt);
+  } catch { /* best-effort */ }
+}
+
+/**
  * Standard 200 response to return when an agent is already running.
  * Returns { success: true, skipped: true } so callers know it was intentional.
  */

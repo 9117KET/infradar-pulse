@@ -275,6 +275,32 @@ export default function AgentMonitoring() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['agent-configs'] }); queryClient.invalidateQueries({ queryKey: ['agent-monitoring-summary'] }); },
   });
 
+  const [resettingAgent, setResettingAgent] = useState<string | null>(null);
+  const resetStuckAgent = async (agentType: string, agentName: string) => {
+    if (!staffBypass) {
+      toast({ title: 'Team access required', description: 'Only staff can reset stuck agents.', variant: 'destructive' });
+      return;
+    }
+    setResettingAgent(agentType);
+    try {
+      const { data, error } = await supabase.rpc('reset_stuck_agent_task' as never, { p_agent_type: agentType } as never);
+      if (error) throw error;
+      const count = (data as { reset_count?: number } | null)?.reset_count ?? 0;
+      toast({
+        title: count > 0 ? `Reset ${agentName}` : `${agentName} had nothing to reset`,
+        description: count > 0 ? `Cleared ${count} stuck task${count === 1 ? '' : 's'}. Next scheduled run will proceed.` : 'No running tasks were found.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['agent-monitoring-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['agent-configs'] });
+      queryClient.invalidateQueries({ queryKey: ['agent-tasks'] });
+    } catch (e) {
+      toast({ title: 'Reset failed', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setResettingAgent(null);
+    }
+  };
+
+
   const toggleAgent = async (agentType: string, currentlyEnabled: boolean) => {
     if (!staffBypass) {
       toast({ title: 'Team access required', description: 'Only admin and researcher accounts can pause agents.', variant: 'destructive' });
@@ -712,6 +738,7 @@ export default function AgentMonitoring() {
                 <th className="px-4 py-3 text-right font-medium">Errors</th>
                 <th className="px-4 py-3 text-right font-medium">Throughput</th>
                 <th className="px-4 py-3 text-right font-medium">Avg duration</th>
+                <th className="px-4 py-3 text-right font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -752,6 +779,24 @@ export default function AgentMonitoring() {
                       <span className="ml-1 text-[10px] text-muted-foreground">({throughput.completed} ok, {throughput.failed} err)</span>
                     </td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground whitespace-nowrap">{formatDuration(config?.last_duration_ms)}</td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 px-2 text-[10px]"
+                        disabled={!staffBypass || resettingAgent === agent.type || (!isRunningNow && stats.running === 0)}
+                        onClick={() => resetStuckAgent(agent.type, agent.name)}
+                        title="Force-clear any stuck running task for this agent"
+                      >
+                        {resettingAgent === agent.type ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <AlertCircle className="h-3 w-3 mr-1" /> Reset
+                          </>
+                        )}
+                      </Button>
+                    </td>
                   </tr>
                 );
               })}
