@@ -738,6 +738,7 @@ export default function AgentMonitoring() {
                 <th className="px-4 py-3 text-right font-medium">Errors</th>
                 <th className="px-4 py-3 text-right font-medium">Throughput</th>
                 <th className="px-4 py-3 text-right font-medium">Avg duration</th>
+                <th className="px-4 py-3 text-right font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
