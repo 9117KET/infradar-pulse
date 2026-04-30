@@ -91,6 +91,7 @@ serve(async (req) => {
 
     if (!needsContacts.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: bodyProjectId ? "Project not found" : "No projects need contacts" }, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "contact-finder", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No work" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
