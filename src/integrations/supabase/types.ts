@@ -1687,6 +1687,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      reset_stuck_agent_task: { Args: { p_agent_type: string }; Returns: Json }
       try_consume_quota: {
         Args: {
           p_daily_cap: number
