@@ -29,8 +29,8 @@ export function Footer() {
         <span className="font-serif text-[8rem] sm:text-[12rem] font-bold tracking-widest text-white/[0.02]">INFRADARAI</span>
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="grid gap-12 md:grid-cols-4">
+      <div className="relative mx-auto max-w-7xl px-4 py-12 sm:py-16 sm:px-6 safe-bottom">
+        <div className="grid gap-10 sm:gap-12 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
           {/* Brand */}
           <div className="md:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
