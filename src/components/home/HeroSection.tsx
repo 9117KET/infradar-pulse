@@ -38,37 +38,37 @@ export function HeroSection() {
   }), [locations]);
 
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
+    <section className="relative min-h-[85svh] md:min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-16">
+      <div className="mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:grid-cols-2 lg:gap-16">
         {/* Left */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center">
-          <div className="mb-6 flex items-center gap-2">
+          <div className="mb-4 sm:mb-6 flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Global infrastructure intelligence</span>
+            <span className="text-[10px] sm:text-xs font-medium uppercase tracking-widest text-muted-foreground">Global infrastructure intelligence</span>
           </div>
 
-          <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+          <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
             VERIFIED INFRASTRUCTURE{' '}
             <em className="text-gradient-teal not-italic">INTELLIGENCE</em>{' '}
             FOR HIGH-STAKES DECISIONS
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+          <p className="mt-5 sm:mt-6 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground">
             Built for business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams who need timely market intelligence. Real-time signals across <span className="text-foreground font-medium">14 regions</span>, AI Q&amp;A, and report-quality briefs from live verified data.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/login"><Button size="lg" className="teal-glow font-sans">Get Started Free</Button></Link>
-            <a href="#demo"><Button size="lg" variant="outline" className="font-sans">Watch demo</Button></a>
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
+            <Link to="/login" className="w-full sm:w-auto"><Button size="lg" className="w-full sm:w-auto teal-glow font-sans">Get Started Free</Button></Link>
+            <a href="#demo" className="w-full sm:w-auto"><Button size="lg" variant="outline" className="w-full sm:w-auto font-sans">Watch demo</Button></a>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+          <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-muted-foreground">
             {loading ? (
               <span className="text-muted-foreground/50">Loading live data…</span>
             ) : (
@@ -89,8 +89,8 @@ export function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Right: live tracker */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="flex items-center justify-center">
+        {/* Right: live tracker — hidden on small phones to keep hero scannable */}
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="hidden sm:flex items-center justify-center">
           <HeroLiveTracker projects={trackerProjects} />
         </motion.div>
       </div>
