@@ -37,7 +37,7 @@ export function PipelineSection() {
           ))}
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
+        <div className="mt-12 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div key={i} className="glass-panel rounded-xl p-6">
               <h3 className="font-serif text-lg font-semibold mb-3">{f.title}</h3>
