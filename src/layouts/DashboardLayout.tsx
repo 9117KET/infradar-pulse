@@ -460,25 +460,27 @@ export default function DashboardLayout() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="h-12 flex items-center border-b border-border px-4">
-            <SidebarTrigger className="mr-4" />
-            <span className="text-sm font-medium hidden sm:inline">{pageTitle}</span>
-            <div className="ml-auto flex items-center gap-3">
-              <div data-tour="header-search"><ProjectSearch /></div>
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="h-12 flex items-center border-b border-border px-2 sm:px-4 safe-top">
+            <SidebarTrigger className="mr-2 sm:mr-4 touch-target" />
+            <span className="text-sm font-medium hidden sm:inline truncate">{pageTitle}</span>
+            <div className="ml-auto flex items-center gap-1 sm:gap-3">
+              <div data-tour="header-search" className="hidden sm:block"><ProjectSearch /></div>
+              <div data-tour="header-search-mobile" className="sm:hidden"><MobileProjectSearch /></div>
               <div data-tour="header-notifications"><NotificationBell /></div>
               <div data-tour="header-profile"><ProfileMenu /></div>
             </div>
           </header>
           <EmailVerificationBanner />
           <TrialEndingBanner />
-          <main className="flex-1 p-6 overflow-auto">
+          <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6 overflow-auto">
             <ErrorBoundary key={pathname}>
               <Outlet />
             </ErrorBoundary>
           </main>
         </div>
       </div>
+      <MobileBottomNav />
       {showTour && <GuidedTour onComplete={handleTourComplete} />}
       <FeedbackWidget />
     </SidebarProvider>
