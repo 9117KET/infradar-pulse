@@ -215,7 +215,7 @@ export default function Pricing() {
               aria-selected={!isYearly}
               onClick={() => setCycle('monthly')}
               className={cn(
-                'px-5 py-2 text-xs font-medium rounded-full transition-colors',
+                'px-4 sm:px-5 py-2 text-xs font-medium rounded-full transition-colors min-h-[2.25rem]',
                 !isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -226,7 +226,7 @@ export default function Pricing() {
               aria-selected={isYearly}
               onClick={() => setCycle('yearly')}
               className={cn(
-                'px-5 py-2 text-xs font-medium rounded-full transition-colors flex items-center gap-2',
+                'px-4 sm:px-5 py-2 text-xs font-medium rounded-full transition-colors flex items-center gap-1.5 sm:gap-2 min-h-[2.25rem]',
                 isYearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
@@ -246,7 +246,7 @@ export default function Pricing() {
         </div>
 
         {/* Recurring plans */}
-        <div className="grid gap-6 md:grid-cols-4 mb-12">
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 mb-12">
           {/* Free */}
           <div className="glass-panel rounded-xl p-7 border-border flex flex-col">
             <h2 className="font-serif text-lg font-bold mb-1">Free</h2>
