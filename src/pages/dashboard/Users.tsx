@@ -291,6 +291,7 @@ export default function UsersPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
