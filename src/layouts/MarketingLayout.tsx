@@ -12,7 +12,7 @@ export default function MarketingLayout() {
   const showConversionBar = pathname === '/';
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col safe-x">
       <PaymentTestModeBanner />
       <Navbar />
       <main className="flex-1 pt-16">
