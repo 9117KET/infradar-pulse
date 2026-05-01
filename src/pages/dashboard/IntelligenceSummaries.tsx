@@ -488,7 +488,7 @@ export default function IntelligenceSummaries() {
             <div className="space-y-1">
               <Label className="text-xs">Country focus</Label>
               <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All countries</SelectItem>
                   {['United Arab Emirates', 'Saudi Arabia', 'Egypt', 'Kenya', 'Nigeria', 'South Africa', 'Morocco', 'India', 'Indonesia', 'Brazil'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -507,11 +507,13 @@ export default function IntelligenceSummaries() {
       </Card>
 
       <Tabs value={filter} onValueChange={v => setFilter(v as typeof filter)}>
-        <TabsList>
-          <TabsTrigger value="all">All ({allItems.length})</TabsTrigger>
-          <TabsTrigger value="digest">Digests ({(digests as SummaryItem[]).length})</TabsTrigger>
-          <TabsTrigger value="report">Reports ({(reports as SummaryItem[]).length})</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none">
+          <TabsList className="w-max">
+            <TabsTrigger value="all">All ({allItems.length})</TabsTrigger>
+            <TabsTrigger value="digest">Digests ({(digests as SummaryItem[]).length})</TabsTrigger>
+            <TabsTrigger value="report">Reports ({(reports as SummaryItem[]).length})</TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
       <Card className="glass-panel border-border">
