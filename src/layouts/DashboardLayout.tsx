@@ -266,7 +266,7 @@ function ProjectSearch() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
-          className="h-8 w-56 rounded-lg border border-border bg-background pl-8 pr-8 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          className="h-8 w-40 sm:w-56 rounded-lg border border-border bg-background pl-8 pr-8 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
         />
         {query && (
           <button onClick={() => { setQuery(''); setFocused(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -275,7 +275,7 @@ function ProjectSearch() {
         )}
       </div>
       {showDropdown && (
-        <div className="absolute left-0 top-10 z-50 w-80 rounded-xl border border-border bg-card shadow-xl">
+        <div className="absolute left-0 top-10 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-border bg-card shadow-xl">
           {results.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-4">No projects found</p>
           ) : results.map(p => (
@@ -294,6 +294,63 @@ function ProjectSearch() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Mobile search: icon button opens a top sheet. */
+function MobileProjectSearch() {
+  const { projects } = useProjects();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const navigate = useNavigate();
+
+  const results = query.trim().length > 0
+    ? projects.filter(p => {
+        const q = query.toLowerCase();
+        return p.name.toLowerCase().includes(q) || p.country.toLowerCase().includes(q) || p.sector.toLowerCase().includes(q) || p.region.toLowerCase().includes(q);
+      }).slice(0, 12)
+    : [];
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(''); }}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Search projects">
+          <Search className="h-4 w-4" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="top" className="bg-background border-border h-[80vh]">
+        <SheetTitle className="sr-only">Search projects</SheetTitle>
+        <div className="relative mt-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            autoFocus
+            type="text"
+            placeholder="Search projects…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            className="h-11 w-full rounded-lg border border-border bg-background pl-10 pr-3 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          />
+        </div>
+        <div className="mt-3 max-h-[60vh] overflow-y-auto">
+          {query && results.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-6">No projects found</p>
+          )}
+          {results.map(p => (
+            <button
+              key={p.id}
+              onClick={() => { setQuery(''); setOpen(false); navigate(`/dashboard/projects/${p.id}`); }}
+              className="flex items-start gap-3 px-3 py-3 w-full text-left hover:bg-white/[0.03] border-b border-border/30 last:border-0 touch-target"
+            >
+              <FolderSearch className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{p.name}</p>
+                <p className="text-xs text-muted-foreground">{p.country} · {p.sector} · {p.region}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
