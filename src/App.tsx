@@ -83,6 +83,7 @@ const App = () => (
         <BrowserRouter>
           <UtmCapture />
           <AnalyticsCapture />
+          <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
@@ -159,6 +160,7 @@ const App = () => (
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
