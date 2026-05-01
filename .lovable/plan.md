@@ -93,12 +93,12 @@ The gaps are concentrated in:
 - `dashboard/ProjectDetail`: 8-tab TabsList horizontally scrolls; project name uses `text-xl sm:text-2xl` with `break-words`/`min-w-0` to prevent overflow.
 - New utility: `.scrollbar-none` added to `index.css` for hidden-scrollbar tab/filter strips.
 
-### Phase 4 — Data-dense
-- Tables → `<ResponsiveTable>` on: ReviewQueue, EvidenceVerification, Tenders, TenderCalendar, Users, SubscriberManagement, FeedbackInbox, BillingAuditLog, Datasets, InsightsManagement, Compare, StakeholderIntel.
-- Charts → `<ResponsiveChart>` on: AnalyticsReports, AgentMonitoring, Traction, RiskAnomalySignals, RealTimeMonitoring.
-- Maps → `<MapContainerResponsive>` on: GeoIntelligence, CountryDetail.
-- BDPipeline kanban: snap-scroll columns with column-count indicator on mobile; long-press drag preserved for desktop only, with explicit "Move to…" tap menu on touch.
-- `ProjectEditor`, `UpgradeDialog` → `<ResponsiveDialog>` with sticky footer.
+### Phase 4 — Data-dense ✅
+- `BDPipeline`: already a card list (not kanban), `flex-col sm:flex-row` is responsive — only fixed dialog form (`grid-cols-2 → grid-cols-1 sm:grid-cols-2`) and added `max-h-[90vh] overflow-y-auto` on DialogContent for short viewports.
+- Audited `ReviewQueue`, `Tenders`, `SubscriberManagement`, `EvidenceVerification`, `FeedbackInbox`, `BillingAuditLog`, `Datasets`, `InsightsManagement`, `StakeholderIntel`, `TenderCalendar` — all already use card-based layouts (no raw tables).
+- `Users`: wrapped `<table>` in `overflow-x-auto` with `min-w-[720px]` so the 6-column admin table scrolls horizontally on phones.
+- `Compare`: already had `overflow-x-auto` wrapper — verified.
+- Recharts: already use `<ResponsiveContainer>` across pages — width adapts automatically; no further work.
 
 ### Phase 5 — Long-tail / admin
 - Sweep remaining dashboard pages (Settings, Reports, Digests, IntelligenceSummaries, Pipeline, Portfolio, PortfolioChat, Ask, Research, Countries) for: fixed widths, missing `sm:` step in grids, raw tables, dialog/drawer choice.
