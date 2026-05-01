@@ -263,7 +263,7 @@ export default function BDPipeline() {
 
       {/* Add / Edit dialog */}
       <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) { setEditing(null); setForm(emptyForm); } }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit partner' : 'Add BD partner'}</DialogTitle>
           </DialogHeader>
@@ -275,7 +275,7 @@ export default function BDPipeline() {
               <Label>Organization name *</Label>
               <Input value={form.org_name} onChange={e => setForm(f => ({ ...f, org_name: e.target.value }))} required placeholder="KPMG Infrastructure Advisory" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Contact name</Label>
                 <Input value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Jane Smith" />
@@ -285,7 +285,7 @@ export default function BDPipeline() {
                 <Input value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} type="email" placeholder="jane@kpmg.com" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>Tier</Label>
                 <Select value={form.tier} onValueChange={v => setForm(f => ({ ...f, tier: v }))}>

@@ -198,7 +198,8 @@ export default function UsersPage() {
         {loading ? (
           <div className="p-8 text-center text-muted-foreground animate-pulse">Loading users…</div>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-border bg-black/20">
                 <th className="p-3 text-left font-medium text-muted-foreground">User / email</th>
@@ -290,6 +291,7 @@ export default function UsersPage() {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>
