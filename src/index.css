@@ -95,6 +95,9 @@
   .touch-target { min-height: 2.75rem; min-width: 2.75rem; }
   /* Prevent iOS Safari auto-zoom on focused inputs (needs ≥16px font-size) */
   .no-zoom { font-size: 16px; }
+  /* Hide scrollbars but allow scroll (used for mobile tabs/filter bars) */
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
   /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
     .motion-safe-only { animation: none !important; transition: none !important; }

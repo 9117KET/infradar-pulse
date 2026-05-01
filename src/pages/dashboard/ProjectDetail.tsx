@@ -451,8 +451,8 @@ export default function ProjectDetail() {
       <Link to="/dashboard/projects" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary"><ArrowLeft className="h-4 w-4" />Back to projects</Link>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="font-serif text-2xl font-bold">{project.name}</h1>
+        <div className="flex items-start gap-3 min-w-0">
+          <h1 className="font-serif text-xl sm:text-2xl font-bold break-words min-w-0">{project.name}</h1>
           {project.sourceUrl && (
             <a href={project.sourceUrl} target="_blank" rel="noopener" className="text-primary hover:underline">
               <Globe className="h-4 w-4" />
@@ -580,16 +580,18 @@ export default function ProjectDetail() {
 
       {/* Tabbed content */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="bg-black/20">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analysis">Analysis</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
-          <TabsTrigger value="evidence">Evidence ({project.evidence.length})</TabsTrigger>
-          <TabsTrigger value="timeline">Timeline ({project.milestones.length})</TabsTrigger>
-          <TabsTrigger value="verification">Verification ({verificationLog.length})</TabsTrigger>
-          <TabsTrigger value="changelog">Changelog {changelog.length > 0 && `(${changelog.length})`}</TabsTrigger>
-          <TabsTrigger value="risk-history">Risk History</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none">
+          <TabsList className="bg-black/20 w-max">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="contacts">Contacts ({contacts.length})</TabsTrigger>
+            <TabsTrigger value="evidence">Evidence ({project.evidence.length})</TabsTrigger>
+            <TabsTrigger value="timeline">Timeline ({project.milestones.length})</TabsTrigger>
+            <TabsTrigger value="verification">Verification ({verificationLog.length})</TabsTrigger>
+            <TabsTrigger value="changelog">Changelog {changelog.length > 0 && `(${changelog.length})`}</TabsTrigger>
+            <TabsTrigger value="risk-history">Risk History</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview */}
         <TabsContent value="overview" className="space-y-4">

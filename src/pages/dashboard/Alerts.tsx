@@ -161,24 +161,27 @@ export default function Alerts() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="font-serif text-2xl font-bold">Alerts & Intelligence</h1>
-        <div className="flex gap-2">
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <h1 className="font-serif text-xl sm:text-2xl font-bold">Alerts & Intelligence</h1>
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={handleMarkAllRead} disabled={stats.unread === 0}>
-            <CheckCheck className="h-4 w-4 mr-1.5" /> Mark all read
+            <CheckCheck className="h-4 w-4 sm:mr-1.5" /> <span className="hidden sm:inline">Mark all read</span>
           </Button>
           <Button size="sm" onClick={generateBrief} disabled={briefLoading}>
-            {briefLoading ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Brain className="h-4 w-4 mr-1.5" />}
-            Generate Intelligence Brief
+            {briefLoading ? <Loader2 className="h-4 w-4 sm:mr-1.5 animate-spin" /> : <Brain className="h-4 w-4 sm:mr-1.5" />}
+            <span className="hidden sm:inline">Generate Intelligence Brief</span>
+            <span className="sm:hidden">Brief</span>
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="feed">
-        <TabsList className="mb-2">
-          <TabsTrigger value="feed">Alert Feed</TabsTrigger>
-          <TabsTrigger value="rules">Notification Rules</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none mb-2">
+          <TabsList className="w-max">
+            <TabsTrigger value="feed">Alert Feed</TabsTrigger>
+            <TabsTrigger value="rules">Notification Rules</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="rules">
           <FeatureGate feature="alert_rules">
@@ -410,28 +413,30 @@ export default function Alerts() {
       )}
 
       {/* Category Filter Bar */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => { setSelectedCategory('all'); setPage(0); }}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-        >
-          All ({visibleAllCount})
-        </button>
-        {ALERT_CATEGORIES
-          .filter(c => staffBypass || c.value !== 'stakeholder')
-          .map(c => {
-            const count = getCategoryCount(c.value);
-            if (count === 0) return null;
-            return (
-              <button
-                key={c.value}
-                onClick={() => { setSelectedCategory(c.value); setPage(0); }}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedCategory === c.value ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-              >
-                {categoryIcon[c.value]} {c.label} ({count})
-              </button>
-            );
-          })}
+      <div className="-mx-1 px-1 overflow-x-auto scrollbar-none">
+        <div className="flex gap-1.5 w-max">
+          <button
+            onClick={() => { setSelectedCategory('all'); setPage(0); }}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${selectedCategory === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+          >
+            All ({visibleAllCount})
+          </button>
+          {ALERT_CATEGORIES
+            .filter(c => staffBypass || c.value !== 'stakeholder')
+            .map(c => {
+              const count = getCategoryCount(c.value);
+              if (count === 0) return null;
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => { setSelectedCategory(c.value); setPage(0); }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${selectedCategory === c.value ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
+                >
+                  {categoryIcon[c.value]} {c.label} ({count})
+                </button>
+              );
+            })}
+        </div>
       </div>
 
       {/* Alert List */}
@@ -441,7 +446,7 @@ export default function Alerts() {
         ) : filtered.length === 0 ? (
           <p className="text-sm text-muted-foreground py-8 text-center">No alerts in this category</p>
         ) : filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE).map(a => (
-          <div key={a.id} className={`glass-panel rounded-xl p-5 flex items-start gap-4 ${!a.read ? 'border-primary/20' : ''}`}>
+          <div key={a.id} className={`glass-panel rounded-xl p-3 sm:p-5 flex items-start gap-3 sm:gap-4 ${!a.read ? 'border-primary/20' : ''}`}>
             <AlertTriangle className={`h-5 w-5 mt-0.5 shrink-0 ${a.severity === 'critical' ? 'text-destructive' : a.severity === 'high' ? 'text-amber-500' : 'text-muted-foreground'}`} />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
