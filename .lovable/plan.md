@@ -86,11 +86,12 @@ The gaps are concentrated in:
 - `Login`, `Onboarding`, `auth/ForgotPassword`, `auth/ResetPassword`, `auth/AuthCallback`: cards `w-full max-w-md mx-auto`; inputs `text-base`; Onboarding stepper becomes vertical or compact dots `< sm`.
 - `Index`, `About`, `Services`, `Contact`, `Careers`, `Press`, `Feedback`, `Privacy`, `Terms`, `Refund`, `DataProtection`, `Snapshot`, `Explore`, `Insights`, `InsightDetail`, `NotFound`, `Unsubscribe`: padding/typography pass.
 
-### Phase 3 — Core Dashboard
-- `dashboard/Overview`: KPI grid `grid-cols-2 lg:grid-cols-4`; OverviewMap via `<MapContainerResponsive>`; charts via `<ResponsiveChart>`.
-- `dashboard/Projects`: filter bar wraps cleanly; table → `<ResponsiveTable>` (mobile cards: name, country, sector, status, risk).
-- `dashboard/Alerts`: same treatment; severity badge prominent on cards; rules tab uses `<ResponsiveDialog>`.
-- `dashboard/ProjectDetail`: tabs row horizontally scroll with hint; tab panels `grid-cols-1 lg:grid-cols-3` instead of fixed; `PublicProjectDrawer` uses bottom drawer on mobile.
+### Phase 3 — Core Dashboard ✅
+- `dashboard/Overview`: KPI grid already `grid-cols-2 sm:grid-cols-4` and split panels `lg:grid-cols-2` — verified responsive, no changes required.
+- `dashboard/Projects`: TabsList horizontally scrolls on mobile; filter bar restructured to `grid-cols-1 sm:grid-cols-2 lg:flex` (search spans full width); table hidden below `md` and replaced with mobile card list (name, country/sector, badges, value, confidence bar); pagination unified outside view-mode wrapper.
+- `dashboard/Alerts`: header buttons collapse to icon-only on mobile; TabsList and category filter pills horizontally scroll; alert cards use tighter `p-3 sm:p-5` padding.
+- `dashboard/ProjectDetail`: 8-tab TabsList horizontally scrolls; project name uses `text-xl sm:text-2xl` with `break-words`/`min-w-0` to prevent overflow.
+- New utility: `.scrollbar-none` added to `index.css` for hidden-scrollbar tab/filter strips.
 
 ### Phase 4 — Data-dense
 - Tables → `<ResponsiveTable>` on: ReviewQueue, EvidenceVerification, Tenders, TenderCalendar, Users, SubscriberManagement, FeedbackInbox, BillingAuditLog, Datasets, InsightsManagement, Compare, StakeholderIntel.

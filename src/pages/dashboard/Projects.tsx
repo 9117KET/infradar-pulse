@@ -329,11 +329,13 @@ export default function Projects() {
       </Dialog>
 
       <Tabs defaultValue={activeTab}>
-        <TabsList>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="risk">Risk Signals</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none">
+          <TabsList className="w-max">
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="risk">Risk Signals</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+        </div>
 
       {/* ── Analytics Tab ── */}
       <TabsContent value="analytics" className="space-y-6">
@@ -694,21 +696,21 @@ export default function Projects() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3">
+        <div className="relative sm:col-span-2 lg:flex-1 lg:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects or countries..." className="pl-9 bg-black/20" />
         </div>
         <Select value={stage} onValueChange={setStage}>
-          <SelectTrigger className="w-[140px] bg-black/20"><SelectValue placeholder="Stage" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[140px] bg-black/20"><SelectValue placeholder="Stage" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All stages</SelectItem>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={sector} onValueChange={setSector}>
-          <SelectTrigger className="w-[160px] bg-black/20"><SelectValue placeholder="Sector" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[160px] bg-black/20"><SelectValue placeholder="Sector" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sectors</SelectItem>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={confFilter} onValueChange={setConfFilter}>
-          <SelectTrigger className="w-[150px] bg-black/20"><SelectValue placeholder="Confidence" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[150px] bg-black/20"><SelectValue placeholder="Confidence" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All confidence</SelectItem>
             <SelectItem value="high">High (≥90%)</SelectItem>
@@ -718,9 +720,9 @@ export default function Projects() {
         </Select>
       </div>
 
-      {/* Table */}
+      {/* Table (md+) / Card list (mobile) */}
       <div className="glass-panel rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left bg-black/20">
@@ -773,18 +775,55 @@ export default function Projects() {
               ))}
             </tbody>
           </table>
-          {!loading && filtered.length > PROJECT_PAGE_SIZE && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-              <span className="text-xs text-muted-foreground">
-                {projectPage * PROJECT_PAGE_SIZE + 1}–{Math.min((projectPage + 1) * PROJECT_PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} projects
-              </span>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={projectPage === 0} onClick={() => setProjectPage(p => p - 1)}>Previous</Button>
-                <Button size="sm" variant="outline" disabled={(projectPage + 1) * PROJECT_PAGE_SIZE >= filtered.length} onClick={() => setProjectPage(p => p + 1)}>Next</Button>
+        </div>
+
+        {/* Mobile card list */}
+        <div className="md:hidden divide-y divide-border/50">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-3"><Skeleton className="h-20 w-full" /></div>
+            ))
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">No projects match your filters.</div>
+          ) : filtered.slice(projectPage * PROJECT_PAGE_SIZE, (projectPage + 1) * PROJECT_PAGE_SIZE).map(p => (
+            <div key={p.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium text-sm flex-1 min-w-0 break-words">
+                  {p.name}
+                </Link>
+                {p.dbId && (
+                  <button onClick={() => toggleTrack(p.dbId!)} className="touch-target shrink-0" aria-label={isTracked(p.dbId) ? 'Untrack' : 'Track'}>
+                    <Star className={`h-4 w-4 ${isTracked(p.dbId) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground">{p.country} · {p.sector}</div>
+              <div className="flex flex-wrap gap-1.5 items-center">
+                <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
+                <Badge variant="outline" className="text-[10px]">{p.status}</Badge>
+                <span className="text-xs font-medium ml-auto">{p.valueLabel}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 rounded bg-black/20 overflow-hidden">
+                  <div className="h-full rounded bg-primary" style={{ width: `${p.confidence}%` }} />
+                </div>
+                <span className="text-[10px] text-muted-foreground">{p.confidence}%</span>
               </div>
             </div>
-          )}
+          ))}
         </div>
+
+        {!loading && filtered.length > PROJECT_PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-border flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              {projectPage * PROJECT_PAGE_SIZE + 1}–{Math.min((projectPage + 1) * PROJECT_PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()}
+            </span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={projectPage === 0} onClick={() => setProjectPage(p => p - 1)}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={(projectPage + 1) * PROJECT_PAGE_SIZE >= filtered.length} onClick={() => setProjectPage(p => p + 1)}>Next</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Map preview */}
