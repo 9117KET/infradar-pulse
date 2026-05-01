@@ -1,70 +1,83 @@
-# LOI Letter Template - DFI Analysts (World Bank, IFC, ADB, AfDB, EBRD)
+# LOI Template — DFI Analysts (World Bank · IFC · ADB · AfDB · EBRD · AIIB · IADB)
 
-**Who to send this to:** Task Team Leaders, Project Officers, Senior Specialists at multilateral development banks
-
-**How to use:**
-1. Find the person's name from an MDB press release or project document (they are always publicly named)
-2. Fill in the [bracketed] fields
-3. Send via LinkedIn message first (builds rapport), then follow up by email if no response in 5 days
-4. Ask them to reply with the Minimum LOI text below OR sign the formal version
+> **Audience:** Task Team Leaders, Project Officers, Senior Specialists at multilateral development banks. They are publicly named on every project document, so they are the single most reachable buyer category.
+> **Strategic role:** DFIs are our **credibility & LOI engine**, not our first revenue. Use these letters to (a) gather signed LOIs for accelerator applications and (b) build the proof network that BD/EPC/lender buyers trust.
+> **Updated:** May 2026.
 
 ---
 
-## LinkedIn First Message (Step 1)
+## What we now offer that GTM v1 didn't
+
+- **7 MDBs ingesting daily**, not 5: World Bank, IFC, ADB, AfDB, EBRD, **AIIB, IADB**.
+- **Cross-MDB co-financing graph** — single view of where two or more MDBs are funding the same project / country / sector.
+- **Verified-intelligence rule** — source URL required on every project; unverified records capped at 30% confidence; human review queue with mandatory verification reason.
+- **Ask in plain English** (`/dashboard/ask`) — TTLs can ask "show all transport projects in Sahel above $50M with at least two MDB co-funders" and get instant filtered results.
+- **AI Market Report Builder** — generate country / sector / tender / portfolio briefs from live, source-linked data.
+- **Pilot access**: limited free Pro window for early users + card-free 3-day trial + 14-day refund window. (Old "free for 12 months" line is retired.)
+
+---
+
+## Subject lines
+
+**Cold:** Cross-MDB pipeline view for [WB / IFC / ADB / AfDB / EBRD / AIIB / IADB] staff
+**Warm (post-event / referred):** Following up on [event/contact] — InfraRadarAI for your [sector] portfolio
+
+---
+
+## Step 1 — LinkedIn DM (90 words)
 
 ```
 Hi [Name],
 
-I came across your name on the [World Bank/AfDB/IFC] press release for the [Project Name] in [Country/Region] - congratulations on the approval.
+Saw your name on the [WB / IFC / AfDB] press release for the [Project Name] in [Country] — congrats on approval.
 
-I'm building InfraRadar, a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, and EBRD into one AI-scored dashboard. The idea came from talking to TTLs and project officers who manage portfolios across multiple institutions - tracking co-financing opportunities and project status manually across five portals is genuinely painful.
+I'm building InfraRadarAI: a verified-intelligence platform aggregating 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) into one source-linked dashboard with plain-English search and an AI report builder. Every project carries a source URL and confidence score; unverified records are capped at 30% and reviewed by humans.
 
-I'm not pitching anything yet - we're in early access and I'm validating with a small group of domain experts. Would a 20-minute call make sense in the next 2 weeks?
+Not pitching — validating with TTLs. Worth a 20-min call in the next 2 weeks?
 
 [Your name]
 ```
 
 ---
 
-## Follow-Up Email (Step 2, if no reply to LinkedIn in 5 days)
+## Step 2 — Cold email (180 words, follows up if no LinkedIn reply in 5 days)
 
-**Subject:** InfraRadar - early access for [World Bank / AfDB / IFC] project staff
+**Subject:** InfraRadarAI — early access for [WB / IFC / AfDB / ADB / EBRD / AIIB / IADB] staff
 
 ```
 Hi [Name],
 
-I sent you a LinkedIn message last week - apologies if it got buried.
+Following up on a LinkedIn note last week — apologies if it got buried.
 
-I'm [Your Name], building InfraRadar - a platform that aggregates real-time signals from the World Bank, IFC, ADB, AfDB, and EBRD in one AI-scored dashboard with custom alerting and an on-demand research agent.
+I'm [Your Name], building InfraRadarAI (infradarai.com). It aggregates real-time project intelligence from all 7 MDBs you and your peers actually rely on: World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB. Every record has a source URL; unverified projects are capped at 30% confidence and routed through a human review queue with mandatory audit reasons.
 
-I noticed you lead [Project Name / sector portfolio] at [Organization]. The platform surfaces pre-tender signals and cross-MDB co-financing opportunities - the kind of visibility that currently requires manually checking five separate portals.
+What this means for your day:
+- One dashboard for cross-MDB co-financing and counterparty signals (no more checking 7 portals).
+- Ask in plain English: "WB + AfDB co-financed transport above $100M in West Africa, 2024-2026."
+- AI report builder: country/sector/tender briefs generated from live, source-linked data.
 
-We're offering 12 months free access to early users who provide feedback on the roadmap. Would it be useful to take a look?
+We're inviting a small group of TTLs into pilot access (free Pro window, no card). Would 20 minutes make sense?
 
 Best,
-[Your name]
-[Your email]
-[InfraRadar URL]
+[Your name] · [Your email] · infradarai.com
 ```
 
 ---
 
-## LOI Request (Step 3, after the call)
-
-After a positive conversation, ask:
+## Step 3 — LOI ask (after the call)
 
 ```
 Hi [Name],
 
-Thank you for the call - really useful to hear how you track [specific workflow they mentioned].
+Thank you for the call — really useful to hear how you currently track [specific workflow they mentioned].
 
-One thing that would help us enormously: we're applying to [Y Combinator / Techstars / a16z Speedrun] and they ask for letters of intent from domain experts who see value in the platform. It doesn't need to be formal - just a paragraph from your professional email saying you intend to use or trial InfraRadar.
+We're applying to [YC S2026 / a16z Speedrun / Techstars] and they request short letters of intent from domain experts. It's not a contract — just a paragraph from your professional email expressing intent to trial the platform.
 
-Something like:
+Suggested wording you can paste, edit or reword:
 
-"I am [Name], [Role] at [Organization]. I have reviewed InfraRadar Pulse and intend to trial the platform for monitoring our MDB project pipeline and tracking co-financing signals across [World Bank / IFC / ADB / AfDB / EBRD]. I found the cross-MDB aggregation and AI-scored alerting particularly relevant to my work. I look forward to participating in the early access program."
+> "I am [Name], [Role] at [Organization]. I have reviewed InfraRadarAI (infradarai.com) and intend to trial the platform for monitoring [my MDB portfolio / co-financing signals / cross-region pipeline activity]. The cross-MDB aggregation across all 7 banks I work with, plain-English search, and source-linked verification model are directly relevant to my work. I look forward to participating in early access."
 
-If you're comfortable with that, a reply to this email with that paragraph (or anything in your own words) would mean a great deal to us.
+A reply with that paragraph (in your own words) would mean a great deal.
 
 Thank you,
 [Your name]
@@ -72,28 +85,44 @@ Thank you,
 
 ---
 
-## Formal LOI Document (for contacts who want a template to sign)
+## Step 4 — Formal LOI (PDF-ready, for contacts who want a template to sign)
 
 ```
-LETTER OF INTENT - INFRARADAR PULSE EARLY ACCESS
+LETTER OF INTENT — INFRARADARAI EARLY ACCESS
 
 Date: [Date]
 From: [Name], [Role], [Organization]
-To: InfraRadar Pulse
+To: InfraRadarAI
 
-I, [Name], [Role] at [Organization], write to express my intent to trial InfraRadar Pulse as part of their early access program.
+I, [Name], [Role] at [Organization], express my intent to trial
+InfraRadarAI (infradarai.com) as part of its early access program.
 
-I have reviewed the InfraRadar Pulse platform and find the following capabilities directly relevant to my professional work:
-- Real-time aggregation of project intelligence from the World Bank, IFC, ADB, AfDB, and EBRD
-- AI-scored risk and confidence assessment per project
-- Custom alerting across political, financial, regulatory, and construction signals
-- Cross-MDB co-financing and co-stakeholder graph
+I have reviewed the platform and find the following capabilities directly
+relevant to my professional work:
 
-My intended use case: [describe specific workflow - e.g., "monitoring our active portfolio of 30+ infrastructure projects across East Africa for co-financing opportunities and early risk signals"].
+1. Real-time aggregation of project intelligence across all 7 MDBs I rely
+   on — World Bank, IFC, ADB, AfDB, EBRD, AIIB and IADB — in a single
+   source-linked dashboard.
 
-I have no financial interest in InfraRadar Pulse. This letter represents an expression of intent to trial the platform, not a binding commitment to purchase.
+2. Verified-intelligence model: every project carries a source URL,
+   unverified records are capped at 30% confidence, and a human review
+   queue with mandatory verification reasons protects data quality.
 
-Signed:
+3. Plain-English search ("Ask in plain English") and an AI Market Report
+   Builder that produce country, sector, tender and portfolio briefs from
+   live data.
+
+4. Cross-MDB co-financing visibility, alerting across 9 risk-signal
+   categories, contractor intelligence and delay-risk scoring.
+
+Intended use case: [one-line description of the workflow you would run on
+the platform — e.g., "monitoring co-financing opportunities and early risk
+signals across our active East Africa transport portfolio"].
+
+I have no financial interest in InfraRadarAI. This letter expresses intent
+to trial the platform; it is not a binding commitment to purchase.
+
+Signed,
 [Name]
 [Title]
 [Organization]
@@ -103,19 +132,25 @@ Signed:
 
 ---
 
-## Who to Target: Contact Mining Instructions
+## Modules to lead with for this persona
 
-World Bank TTLs are named on every press release at:
-https://www.worldbank.org/en/news/press-release
+| Module | Why it matters to a TTL |
+|---|---|
+| Cross-MDB pipeline aggregation (7 MDBs) | Replaces manual checking of 7 portals |
+| Verified-intelligence + audit trail | Aligns with MDB internal data-quality standards |
+| Ask in plain English | Lets TTL self-serve cross-portfolio questions |
+| AI Market Report Builder | Country/sector briefs without commissioning a consultant |
+| Stakeholder & contact discovery | Source-backed counterparty network |
+| Co-financing graph | Surfaces opportunities other TTLs would miss |
 
-Search: `site:worldbank.org "task team leader" 2024 OR 2025`
-Each press release names 2-3 project staff. Email format: firstinitiallastname@worldbank.org (e.g., hchahbani@worldbank.org)
+---
 
-AfDB project officers: https://www.afdb.org/en/news-and-events/press-releases
-Email format: firstinitiallastname@afdb.org
+## Contact mining (free, ethical)
 
-IFC: https://pressroom.ifc.org/
-Email format: firstinitiallastname@ifc.org
-
-ADB: TAR documents at https://www.adb.org/projects/documents list named staff
-Email format: firstinitiallastname@adb.org
+- World Bank TTLs: `site:worldbank.org "task team leader" 2025` (every press release names 2–3). Email: firstinitiallastname@worldbank.org
+- AfDB officers: `site:afdb.org "task team leader" 2025`. Email: firstinitiallastname@afdb.org
+- IFC: pressroom.ifc.org. Email: firstinitiallastname@ifc.org
+- ADB: TAR docs at adb.org/projects/documents. Email: firstinitiallastname@adb.org
+- EBRD: project summary documents at ebrd.com/projects-finder. Email: firstinitiallastname@ebrd.com
+- AIIB: aiib.org/en/news-events/news. Email: firstname.lastname@aiib.org
+- IADB: iadb.org/en/news. Email: firstinitiallastname@iadb.org

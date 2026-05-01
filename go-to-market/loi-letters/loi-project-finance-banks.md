@@ -1,112 +1,166 @@
-# LOI Letter Template - Project Finance Banks
+# LOI Template — Project Finance Banks
 
-**Who to send this to:** Infrastructure finance originators, project finance directors, and BD managers at banks active in African and MENA infrastructure (Standard Bank CIB, Absa CIB, Nedbank CIB, SocGen, Standard Chartered, Citi, HSBC)
-
-**The pitch in one sentence:** InfraRadar gives your origination desk early visibility into which MDB-backed projects are approaching financial close - the leads your analysts currently miss because they can't monitor five MDB portals simultaneously.
+> **Audience:** Project finance and infrastructure debt teams at commercial banks — Standard Bank CIB, Absa, RMB, Nedbank, SocGen, BNP Paribas, Standard Chartered, Citi, HSBC, MUFG, SMBC, Mizuho, ING, ICBC, Crédit Agricole.
+> **Strategic role:** Long sales cycle, very high LTV. Pro tier for individual analysts; **Enterprise with API + SSO** is the natural landing point.
+> **Updated:** May 2026.
 
 ---
 
-## Priority Targets
+## What we now offer that GTM v1 didn't
 
-| Name | Bank | Role | LinkedIn / Contact |
+- **7 MDB pipelines** aggregated (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) — covers the public-bank co-lending universe lenders sit alongside.
+- **Delay prediction & early warning** — leading indicators on borrower-side projects, before loans become non-performing.
+- **Contractor intelligence** — distress signals on EPC contractors active on financed assets.
+- **9 risk-signal categories** continuously monitored: Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security.
+- **Verified-intelligence rule** — source URL on every record, unverified capped at 30%, human review queue with mandatory audit reasons. Compatible with internal credit-data governance standards.
+- **AI Market Report Builder** — country / sector / borrower briefs from live, source-linked data for credit committee.
+- **Plain-English Ask** for cross-portfolio queries.
+- **Enterprise tier**: API + webhooks, SSO/SAML, white-label reports, SLA.
+
+---
+
+## Priority targets (named, reachable)
+
+| Name | Bank | Role | Channel |
 |---|---|---|---|
-| Msawenkosi Hlanti | Standard Bank CIB | Exec Head, Trade Sales | [LinkedIn](https://za.linkedin.com/in/msawenkosi-hlanti-0470524b) - GTR Africa 2026 moderator |
-| Zaid Moola | Absa CIB | CEO, CIB | zaid.moola@absa.africa |
-| [SocGen Infra Finance lead] | Société Générale | Project Finance Director | Search "Societe Generale project finance Africa" |
-| [StanChart Infra lead] | Standard Chartered | Infrastructure Finance | Search "Standard Chartered infrastructure finance Africa" |
+| Msawenkosi Hlanti | Standard Bank CIB | Exec Head, Trade Sales | [LinkedIn](https://za.linkedin.com/in/msawenkosi-hlanti-0470524b) |
+| [Absa Infra Finance Head] | Absa CIB | Head, Infra Finance | LinkedIn search |
+| [RMB Project Finance] | Rand Merchant Bank | Head, Project Finance | LinkedIn search |
+| [SocGen Africa] | SocGen CIB | Head, Africa Project Finance | LinkedIn search |
+| [Standard Chartered MENA] | StanChart | MD, Project & Export Finance | LinkedIn search |
+| [Citi Africa Infra] | Citi | Head, Infra Banking Africa | LinkedIn search |
 
 ---
 
-## LinkedIn First Message
+## Subject lines
+
+**Cold:** Early-warning signals across [Bank]'s infrastructure loan book
+**Warm:** [Asset name] flagged on three signals — sharing context
+
+---
+
+## Step 1 — LinkedIn DM (90 words)
 
 ```
 Hi [Name],
 
-I noticed [Standard Bank / Absa / SocGen] [reference something specific - sponsored GTR Africa 2026, was named PFI Infrastructure Bank of the Year, closed a specific deal].
+I'm building InfraRadarAI: verified, real-time intelligence on infrastructure projects across 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals — with delay prediction, contractor-distress signals and 9-category risk monitoring.
 
-I'm building InfraRadar - a platform that aggregates real-time project signals from all five major MDBs (World Bank, IFC, ADB, AfDB, EBRD) and scores each project for risk and financing stage readiness.
+Built so project finance desks get an early-warning view of borrower-side risk before loans go non-performing — and source new deals from the cross-MDB pipeline. Source URL on every record, unverified capped at 30%, human review queue.
 
-For an infrastructure finance origination desk, the relevant signal is: which MDB-backed projects are reaching financial close readiness, and which are showing early stress signals on existing commitments. That's exactly what InfraRadar scores and alerts on.
-
-We're in early access - free for 12 months for initial users. Worth a 20-minute call?
+Pilot access is open. Worth a 20-min walkthrough on a couple of [region] assets relevant to [Bank]?
 
 [Your name]
 ```
 
 ---
 
-## Follow-Up Email
+## Step 2 — Cold email (180 words)
 
-**Subject:** Early warning signals for MDB-backed infrastructure projects - InfraRadar
-
-```
-Hi [Name],
-
-Following up on my LinkedIn message.
-
-I'm building InfraRadar - an AI platform that monitors real-time signals from World Bank, IFC, ADB, AfDB, and EBRD project pipelines and flags projects approaching financial close or showing stress signals.
-
-For an infrastructure project finance desk, this means:
-- Origination leads: projects entering financing stage across 14 sectors in Africa and MENA, 6-18 months before they become competitive mandates
-- Early warning: risk signals (political, regulatory, construction, stakeholder) on projects where you have existing exposure
-- Co-financing visibility: when peer MDB or co-financier activity indicates a project is gaining momentum or losing it
-
-Early access is free for 12 months. Happy to show you the platform and get your input on what signals matter most to your desk.
-
-[Your name]
-[InfraRadar URL]
-```
-
----
-
-## LOI Request (after the call)
+**Subject:** Early-warning signals for [Bank]'s infrastructure loan portfolio
 
 ```
 Hi [Name],
 
-Thanks for the call - the [early warning on stressed assets / origination pipeline / co-financing signals] point was directly what I was hoping to validate with project finance professionals.
+Two specific reasons project finance desks try InfraRadarAI:
 
-One ask: we're applying to [Y Combinator / Techstars / accelerator] and they request letters of intent from domain experts who've reviewed the platform. It's just a paragraph - no legal or financial commitment.
+1. **Early warning on the existing book.** Delay prediction, contractor-distress signals, regulatory and political risk monitoring — across 9 signal categories per asset. Catch issues months before the next quarterly review.
 
-Something like:
+2. **Deal sourcing across 7 MDBs.** WB, IFC, ADB, AfDB, EBRD, AIIB, IADB pipelines aggregated. Cross-MDB co-financing surfaces deals you'd otherwise see when a sponsor formally circulates a teaser.
 
-"I am [Name], [Role] at [Bank]. I have reviewed InfraRadar Pulse and intend to trial the platform for infrastructure project pipeline monitoring and early warning signal tracking relevant to our [Africa / MENA] origination and portfolio monitoring workflows. I look forward to participating in the early access program."
+Today: 1,671 verified projects across 140 countries, 5,657 alerts, $246B+ pipeline. Verified-intelligence model — source URL on every record, unverified capped at 30% confidence, human review queue with mandatory audit reasons. Designed to be compatible with internal credit-data governance.
 
-Your own words are fine. A reply to this email with that paragraph would mean a great deal to us.
+Enterprise tier includes API + webhooks (push alerts into your internal credit systems), SSO/SAML, white-label reports and SLA. Pilot access for individual analysts is free for the initial window.
+
+25-min walkthrough on 2–3 [Bank]-relevant assets this week or next?
+
+[Your name]
+[Your email] · infradarai.com
+```
+
+---
+
+## Step 3 — LOI ask (after the call)
+
+```
+Hi [Name],
+
+Thanks for the time — useful to hear how [you currently track borrower-side risk / source African PF deals / monitor contractor exposure].
+
+We're applying to [YC / a16z / Techstars] and they ask for short LOIs from project finance professionals who've reviewed the platform. One paragraph from your professional email — no commitment.
+
+Suggested wording, edit freely:
+
+> "I am [Name], [Role] at [Bank]. I have reviewed InfraRadarAI (infradarai.com) and intend to trial the platform for early-warning monitoring on our infrastructure loan book and for sourcing across MDB-financed pipelines. The 9-category risk signal feed, delay prediction and contractor intelligence, and source-linked verified-intelligence model are directly relevant to our credit and origination workflows. I look forward to early access."
+
+A reply with that paragraph would help us a great deal.
 
 [Your name]
 ```
 
 ---
 
-## Formal LOI Document
+## Step 4 — Formal LOI (PDF-ready)
 
 ```
-LETTER OF INTENT - INFRARADAR PULSE EARLY ACCESS
+LETTER OF INTENT — INFRARADARAI EARLY ACCESS
 
 Date: [Date]
-From: [Name], [Role], [Bank Name]
-To: InfraRadar Pulse
+From: [Name], [Role], [Bank]
+To: InfraRadarAI
 
-I, [Name], [Role] at [Bank Name], write to express my intent to trial InfraRadar Pulse as part of their early access program.
+I, [Name], [Role] at [Bank], express my intent to trial InfraRadarAI
+(infradarai.com) for our project finance and infrastructure debt
+function.
 
-[Bank Name]'s infrastructure finance team [describe context - e.g., "is one of the leading project finance providers in Sub-Saharan Africa, having financed over $4B in infrastructure projects in 2025"]. Our origination and portfolio monitoring activities require real-time visibility into MDB project pipelines across [Africa / MENA].
+Capabilities directly relevant to our work:
 
-I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our infrastructure finance workflow:
-- Real-time monitoring of World Bank, IFC, ADB, AfDB, and EBRD project pipelines
-- Financing stage tracking (Planned / Tender / Awarded / Financing / Construction / Completed)
-- AI-scored risk signals across 9 categories relevant to project finance (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security)
-- Early warning alerts for stress signals on active projects
-- Cross-MDB co-financing visibility
+1. Early-warning monitoring across our infrastructure loan book — delay
+   prediction, contractor-distress signals, regulatory and political risk
+   monitoring across nine signal categories (Political, Financial,
+   Regulatory, Supply Chain, Environmental, Construction, Stakeholder,
+   Market, Security).
 
-My intended use case: [describe - e.g., "monitoring the AfDB and World Bank pipeline for infrastructure projects in East Africa reaching the financing stage, and tracking risk signals on our existing project finance portfolio"].
+2. Deal sourcing across all 7 MDB pipelines we engage with — World Bank,
+   IFC, ADB, AfDB, EBRD, AIIB, IADB — with cross-MDB co-financing
+   visibility.
 
-I have no financial interest in InfraRadar Pulse. This letter represents an expression of intent to trial the platform, not a binding commitment to purchase.
+3. Verified-intelligence model: source URL on every record, unverified
+   records capped at 30% confidence, human review queue with mandatory
+   verification reasons. Compatible with internal credit-data governance
+   standards.
 
-Signed:
+4. AI Market Report Builder for country, sector and borrower briefs.
+
+5. Enterprise capabilities for institutional deployment — API + webhooks,
+   SSO/SAML, white-label reports and SLA.
+
+Intended use case: [one line — e.g., "early-warning monitoring across
+our African and MENA infrastructure debt portfolio, with deal sourcing
+across the AfDB and World Bank pipelines"].
+
+I have no financial interest in InfraRadarAI. This letter expresses
+intent to trial; it is not a binding commitment to purchase.
+
+Signed,
 [Name]
 [Title]
-[Bank Name]
+[Bank]
 [Email]
 [Date]
 ```
+
+---
+
+## Modules to lead with for this persona
+
+| Module | Why it matters to project finance |
+|---|---|
+| 9-category risk signal feed | Maps cleanly onto credit monitoring categories |
+| Delay prediction & early warning | NPL avoidance |
+| Contractor intelligence | EPC counterparty risk |
+| Cross-MDB pipeline | Co-lending deal sourcing |
+| AI Market Report Builder | Credit-committee briefs |
+| Verified-intelligence + audit trail | Compatible with bank data governance |
+| API + webhooks (Enterprise) | Push alerts into internal credit systems |
+| SSO/SAML (Enterprise) | Enables institutional rollout |
