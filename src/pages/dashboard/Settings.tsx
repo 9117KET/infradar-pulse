@@ -157,14 +157,16 @@ export default function SettingsPage() {
       <h1 className="font-serif text-2xl font-bold">Settings</h1>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
-          <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
-          <TabsTrigger value="saved-searches"><Bookmark className="h-4 w-4 mr-1" />Saved Searches</TabsTrigger>
-          <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
-          <TabsTrigger value="account"><Shield className="h-4 w-4 mr-1" />Account</TabsTrigger>
-          {staffBypass && <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>}
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none">
+          <TabsList className="w-max">
+            <TabsTrigger value="preferences"><User className="h-4 w-4 mr-1" />Preferences</TabsTrigger>
+            <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-1" />Notifications</TabsTrigger>
+            <TabsTrigger value="saved-searches"><Bookmark className="h-4 w-4 mr-1" />Saved Searches</TabsTrigger>
+            <TabsTrigger value="billing"><CreditCard className="h-4 w-4 mr-1" />Billing</TabsTrigger>
+            <TabsTrigger value="account"><Shield className="h-4 w-4 mr-1" />Account</TabsTrigger>
+            {staffBypass && <TabsTrigger value="agents"><Bot className="h-4 w-4 mr-1" />Agents</TabsTrigger>}
+          </TabsList>
+        </div>
 
         <TabsContent value="preferences">
           <PreferencesTab />

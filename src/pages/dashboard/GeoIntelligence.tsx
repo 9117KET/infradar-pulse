@@ -174,14 +174,14 @@ export default function GeoIntelligence() {
             </div>
           )}
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Regions</SelectItem>
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={sectorFilter} onValueChange={setSectorFilter}>
-            <SelectTrigger className="w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Sectors</SelectItem>
               {sectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -237,7 +237,7 @@ export default function GeoIntelligence() {
       })()}
 
       {/* Stats bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="glass-panel rounded-lg p-3 text-center">
           <div className="text-lg font-bold">{filtered.length}</div>
           <div className="text-[10px] text-muted-foreground">Projects</div>
