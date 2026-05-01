@@ -103,7 +103,6 @@
   @media (max-width: 480px) {
     .leaflet-popup-content { max-width: 240px !important; }
   }
-}
   .teal-glow {
     box-shadow: 0 0 40px rgba(107, 216, 203, 0.12);
   }
