@@ -116,14 +116,14 @@ export function FeedbackWidget() {
 
   return (
     <>
-      {/* Floating trigger */}
+      {/* Floating trigger — sits above the mobile bottom-nav (h≈56px + safe-area) */}
       {!open && (
-        <div className="fixed bottom-4 right-4 z-40 flex items-end gap-2">
+        <div className="fixed right-4 z-40 flex items-end gap-2 bottom-[calc(1rem+env(safe-area-inset-bottom))] md:bottom-4 mb-16 md:mb-0">
           {collapsed ? (
             <button
               type="button"
               onClick={() => toggleCollapse(false)}
-              className="h-10 w-10 rounded-full border border-border/60 bg-card/80 backdrop-blur shadow-lg hover:bg-card transition flex items-center justify-center text-muted-foreground hover:text-foreground"
+              className="h-11 w-11 rounded-full border border-border/60 bg-card/80 backdrop-blur shadow-lg hover:bg-card transition flex items-center justify-center text-muted-foreground hover:text-foreground touch-target"
               aria-label="Show feedback button"
             >
               <MessageSquarePlus className="h-4 w-4" />
@@ -133,7 +133,7 @@ export function FeedbackWidget() {
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition"
+                className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition min-h-[2.25rem]"
               >
                 <MessageSquarePlus className="h-4 w-4 text-primary" />
                 <span className="hidden sm:inline">Feedback</span>
@@ -154,7 +154,7 @@ export function FeedbackWidget() {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-4 right-4 z-50 w-[min(92vw,380px)] rounded-xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div className="fixed right-4 z-50 w-[min(92vw,380px)] rounded-xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom-4 fade-in duration-200 bottom-[calc(1rem+env(safe-area-inset-bottom))] md:bottom-4 mb-16 md:mb-0 max-h-[calc(100dvh-6rem)] overflow-y-auto">
           <div className="flex items-center justify-between border-b border-border/40 px-4 py-3">
             <div>
               <div className="font-serif text-base font-semibold">Send feedback</div>
