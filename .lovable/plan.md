@@ -100,8 +100,14 @@ The gaps are concentrated in:
 - `Compare`: already had `overflow-x-auto` wrapper — verified.
 - Recharts: already use `<ResponsiveContainer>` across pages — width adapts automatically; no further work.
 
-### Phase 5 — Long-tail / admin
-- Sweep remaining dashboard pages (Settings, Reports, Digests, IntelligenceSummaries, Pipeline, Portfolio, PortfolioChat, Ask, Research, Countries) for: fixed widths, missing `sm:` step in grids, raw tables, dialog/drawer choice.
+### Phase 5 — Long-tail / admin ✅
+- `Settings`, `Research`, `IntelligenceSummaries`: TabsLists wrapped in horizontal scroll containers (`-mx-1 overflow-x-auto scrollbar-none` + `w-max`).
+- `Pipeline`: kanban grid scales `1 → 2 → 3 → 6` columns instead of jumping `3 → 6`.
+- `Research`: search form stacks vertically on mobile (`flex-col sm:flex-row`).
+- `GeoIntelligence`: filter Selects become full-width on mobile; stats bar `grid-cols-4 → grid-cols-2 sm:grid-cols-4`.
+- `IntelligenceSummaries`, `AnalyticsReports`: country/region Selects become full-width on mobile; AnalyticsReports header actions wrap.
+- `AgentMonitoring`: agent table given `min-w-[760px]` so the existing `overflow-x-auto` wrapper actually scrolls horizontally.
+- Other long-tail pages (Reports, Digests, Portfolio, PortfolioChat, Ask, Countries, CountryDetail) audited — already use mobile-friendly grids.
 
 ### Phase 6 — Performance + a11y
 - Lazy-load heavy routes via `React.lazy` (AgentMonitoring, AnalyticsReports, GeoIntelligence, BDPipeline, Compare, Traction).
