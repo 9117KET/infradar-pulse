@@ -383,18 +383,20 @@ export default function Research() {
       </div>
 
       <Tabs value={mode} onValueChange={(v) => { setMode(v as 'search' | 'briefing'); setActiveTaskId(null); }}>
-        <TabsList className="mb-2">
-          <TabsTrigger value="search" className="flex items-center gap-2">
-            <Search className="h-4 w-4" /> Infrastructure Search
-          </TabsTrigger>
-          <TabsTrigger value="briefing" className="flex items-center gap-2">
-            <Briefcase className="h-4 w-4" /> Company Intelligence
-          </TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none mb-2">
+          <TabsList className="w-max">
+            <TabsTrigger value="search" className="flex items-center gap-2">
+              <Search className="h-4 w-4" /> Infrastructure Search
+            </TabsTrigger>
+            <TabsTrigger value="briefing" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" /> Company Intelligence
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Infrastructure Search form */}
         <TabsContent value="search" className="mt-0">
-          <form onSubmit={handleSubmit} className="flex gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
