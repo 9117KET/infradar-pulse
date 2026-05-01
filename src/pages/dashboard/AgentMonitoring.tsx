@@ -855,7 +855,7 @@ export default function AgentMonitoring() {
           <p className="text-xs text-muted-foreground">Throughput is based on recent runs in the last 24 hours</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[760px]">
             <thead className="bg-background/50 text-xs text-muted-foreground">
               <tr className="border-b border-border">
                 <th className="px-5 py-3 text-left font-medium">Agent</th>

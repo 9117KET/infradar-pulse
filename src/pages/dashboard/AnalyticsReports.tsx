@@ -141,9 +141,9 @@ export default function AnalyticsReports() {
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-primary" /> Analytics & Reports
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Regions</SelectItem>
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
