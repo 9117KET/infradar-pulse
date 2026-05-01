@@ -101,6 +101,20 @@
   /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
     .motion-safe-only { animation: none !important; transition: none !important; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+  /* Prevent horizontal page scroll on mobile from any rogue overflow */
+  html, body { overscroll-behavior-x: none; }
+  /* Always allow pinch-to-zoom (a11y), even when we use no-zoom on inputs */
+  @media (pointer: coarse) {
+    button, a, [role="button"], input[type="checkbox"], input[type="radio"] {
+      min-height: 36px;
+    }
   }
   /* Mobile-friendly Leaflet popup width */
   @media (max-width: 480px) {
