@@ -329,11 +329,13 @@ export default function Projects() {
       </Dialog>
 
       <Tabs defaultValue={activeTab}>
-        <TabsList>
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="risk">Risk Signals</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-        </TabsList>
+        <div className="-mx-1 overflow-x-auto scrollbar-none">
+          <TabsList className="w-max">
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="risk">Risk Signals</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+        </div>
 
       {/* ── Analytics Tab ── */}
       <TabsContent value="analytics" className="space-y-6">
@@ -694,21 +696,21 @@ export default function Projects() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 sm:gap-3">
+        <div className="relative sm:col-span-2 lg:flex-1 lg:min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects or countries..." className="pl-9 bg-black/20" />
         </div>
         <Select value={stage} onValueChange={setStage}>
-          <SelectTrigger className="w-[140px] bg-black/20"><SelectValue placeholder="Stage" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[140px] bg-black/20"><SelectValue placeholder="Stage" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All stages</SelectItem>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={sector} onValueChange={setSector}>
-          <SelectTrigger className="w-[160px] bg-black/20"><SelectValue placeholder="Sector" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[160px] bg-black/20"><SelectValue placeholder="Sector" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sectors</SelectItem>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={confFilter} onValueChange={setConfFilter}>
-          <SelectTrigger className="w-[150px] bg-black/20"><SelectValue placeholder="Confidence" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[150px] bg-black/20"><SelectValue placeholder="Confidence" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All confidence</SelectItem>
             <SelectItem value="high">High (≥90%)</SelectItem>
@@ -718,9 +720,9 @@ export default function Projects() {
         </Select>
       </div>
 
-      {/* Table */}
+      {/* Table (md+) / Card list (mobile) */}
       <div className="glass-panel rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto hidden md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left bg-black/20">
