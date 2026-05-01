@@ -109,14 +109,14 @@ The gaps are concentrated in:
 - `AgentMonitoring`: agent table given `min-w-[760px]` so the existing `overflow-x-auto` wrapper actually scrolls horizontally.
 - Other long-tail pages (Reports, Digests, Portfolio, PortfolioChat, Ask, Countries, CountryDetail) audited — already use mobile-friendly grids.
 
-### Phase 6 — Performance + a11y
-- Lazy-load heavy routes via `React.lazy` (AgentMonitoring, AnalyticsReports, GeoIntelligence, BDPipeline, Compare, Traction).
-- `loading="lazy"` + `decoding="async"` on non-critical images/illustrations.
-- Wrap any large `framer-motion`/CSS animations in `prefers-reduced-motion` guards.
-- ARIA labels on icon-only buttons (hamburger, bottom-tab items, search-icon-trigger).
-- Visible focus rings using existing `--ring` token.
-- Add `loading="lazy"` for Leaflet tiles (already lazy by Leaflet).
-- Verify color contrast for `text-muted-foreground` on `--card` at small sizes.
+### Phase 6 — Performance + a11y ✅
+- `index.html`: viewport now uses `viewport-fit=cover` for iOS notches; added `theme-color`, `apple-mobile-web-app-capable`, status-bar style for installed PWA-like experience.
+- `App.tsx`: lazy-loaded heaviest dashboard routes via `React.lazy` — `AgentMonitoring`, `AnalyticsReports`, `RealTimeMonitoring`, `RiskAnomalySignals`, `GeoIntelligence`. Wrapped `<Routes>` in `<Suspense>` with a minimal fallback so initial mobile bundle excludes Leaflet + Recharts heavy code paths until needed.
+- Global a11y in `index.css`:
+  - `prefers-reduced-motion` now suppresses *all* animations/transitions globally (not just `.motion-safe-only`).
+  - `overscroll-behavior-x: none` to block accidental horizontal page scroll.
+  - `@media (pointer: coarse)` enforces a 36px minimum hit-target on buttons/links/checkboxes for touch devices (complements `.touch-target` 44px).
+- Pinch-to-zoom remains enabled (no `maximum-scale` / `user-scalable=no`).
 
 ## Testing Checklist
 
