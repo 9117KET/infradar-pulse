@@ -21,6 +21,8 @@ import { EmailVerificationBanner } from '@/components/EmailVerificationBanner';
 import { TrialEndingBanner } from '@/components/billing/TrialEndingBanner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { FeedbackWidget } from '@/components/feedback/FeedbackWidget';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 
 import type { AppRole } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
