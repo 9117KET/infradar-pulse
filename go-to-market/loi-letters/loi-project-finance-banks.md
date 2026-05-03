@@ -2,7 +2,7 @@
 
 **Who to send this to:** Infrastructure finance originators, project finance directors, and BD managers at banks active in African and MENA infrastructure (Standard Bank CIB, Absa CIB, Nedbank CIB, SocGen, Standard Chartered, Citi, HSBC)
 
-**The pitch in one sentence:** InfraRadar gives your origination desk early visibility into which MDB-backed projects are approaching financial close - the leads your analysts currently miss because they can't monitor five MDB portals simultaneously.
+**The pitch in one sentence:** InfraRadar gives your origination desk early visibility into which MDB-backed projects are approaching financial close - the leads your analysts currently miss because they can't monitor seven MDB portals simultaneously.
 
 ---
 
@@ -24,7 +24,7 @@ Hi [Name],
 
 I noticed [Standard Bank / Absa / SocGen] [reference something specific - sponsored GTR Africa 2026, was named PFI Infrastructure Bank of the Year, closed a specific deal].
 
-I'm building InfraRadar - a platform that aggregates real-time project signals from all five major MDBs (World Bank, IFC, ADB, AfDB, EBRD) and scores each project for risk and financing stage readiness.
+I'm building InfraRadar - a platform that aggregates real-time project signals from all seven major MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) and scores each project for risk and financing stage readiness.
 
 For an infrastructure finance origination desk, the relevant signal is: which MDB-backed projects are reaching financial close readiness, and which are showing early stress signals on existing commitments. That's exactly what InfraRadar scores and alerts on.
 
@@ -44,7 +44,7 @@ Hi [Name],
 
 Following up on my LinkedIn message.
 
-I'm building InfraRadar - an AI platform that monitors real-time signals from World Bank, IFC, ADB, AfDB, and EBRD project pipelines and flags projects approaching financial close or showing stress signals.
+I'm building InfraRadar - an AI platform that monitors real-time signals from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines and flags projects approaching financial close or showing stress signals.
 
 For an infrastructure project finance desk, this means:
 - Origination leads: projects entering financing stage across 14 sectors in Africa and MENA, 6-18 months before they become competitive mandates
@@ -93,7 +93,7 @@ I, [Name], [Role] at [Bank Name], write to express my intent to trial InfraRadar
 [Bank Name]'s infrastructure finance team [describe context - e.g., "is one of the leading project finance providers in Sub-Saharan Africa, having financed over $4B in infrastructure projects in 2025"]. Our origination and portfolio monitoring activities require real-time visibility into MDB project pipelines across [Africa / MENA].
 
 I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our infrastructure finance workflow:
-- Real-time monitoring of World Bank, IFC, ADB, AfDB, and EBRD project pipelines
+- Real-time monitoring of World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines
 - Financing stage tracking (Planned / Tender / Awarded / Financing / Construction / Completed)
 - AI-scored risk signals across 9 categories relevant to project finance (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security)
 - Early warning alerts for stress signals on active projects

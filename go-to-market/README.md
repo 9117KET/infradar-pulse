@@ -1,15 +1,14 @@
 # InfraRadar Pulse - Go-To-Market Hub
 
 > Central navigation for all accelerator applications, LOI outreach, and GTM materials.
-> Last updated: April 2026
+> Last updated: May 2026
 
 ---
 
-## IMMEDIATE ACTIONS (Deadlines This Week)
+## IMMEDIATE ACTIONS (Open Deadlines)
 
 | Action | Deadline | Link |
 |---|---|---|
-| Apply - Entrepreneur First London | **May 1, 2026** | [Apply](https://apply.joinef.com/) · [Our answers](applications/ENTREPRENEUR-FIRST.md) |
 | Apply - Y Combinator S2026 | **May 4, 2026** | [Apply](https://www.ycombinator.com/apply/) · [Our answers](applications/YC-S2026.md) |
 | Apply - a16z Speedrun SR007 | **May 17, 2026** | [Apply](https://speedrun.a16z.com/apply) · [Our answers](applications/A16Z-SPEEDRUN.md) |
 | Apply - Visa Africa Fintech Accelerator | **May 17, 2026** | [Apply](https://opportunitydesk.org/2026/04/14/visa-africa-fintech-accelerator-program-2026-cohort-6/) · [Our answers](applications/VISA-AFRICA-FINTECH.md) |
@@ -49,7 +48,7 @@ Mine 20+ more DFI names free:
 
 | File | Program | Deadline | Apply Link |
 |---|---|---|---|
-| [ENTREPRENEUR-FIRST.md](applications/ENTREPRENEUR-FIRST.md) | Entrepreneur First London | May 1, 2026 | [apply.joinef.com](https://apply.joinef.com/) |
+| [ENTREPRENEUR-FIRST.md](applications/archive/ENTREPRENEUR-FIRST.md) | Entrepreneur First London | May 1, 2026 (ARCHIVED) | [apply.joinef.com](https://apply.joinef.com/) |
 | [YC-S2026.md](applications/YC-S2026.md) | Y Combinator Summer 2026 | May 4, 2026 | [ycombinator.com/apply](https://www.ycombinator.com/apply/) |
 | [A16Z-SPEEDRUN.md](applications/A16Z-SPEEDRUN.md) | a16z Speedrun SR007 | May 17, 2026 | [speedrun.a16z.com/apply](https://speedrun.a16z.com/apply) |
 | [VISA-AFRICA-FINTECH.md](applications/VISA-AFRICA-FINTECH.md) | Visa Africa Fintech Accelerator | May 17, 2026 | [See application](https://opportunitydesk.org/2026/04/14/visa-africa-fintech-accelerator-program-2026-cohort-6/) |
@@ -73,16 +72,16 @@ Mine 20+ more DFI names free:
 ## Standard Pitch (copy-paste across all applications)
 
 **One-liner (140 chars):**
-InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - 5 MDBs, 14 regions, 40+ agents.
+InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - 7 MDBs, 14 regions, 50+ agents.
 
 **Problem:**
 Infrastructure investors, EPC contractors, and project finance teams pay $3,000-$200,000/year for quarterly analyst-written PDF reports from MEED, GlobalData, and Wood Mackenzie. The underlying data is public and free - incumbents just hire humans to read it.
 
 **Solution:**
-40+ AI agents aggregate and score real-time project data from 5 MDBs. Self-service SaaS at $199/month.
+50+ AI agents aggregate and score real-time project data from 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB). Self-service SaaS at $199/month.
 
 **Traction:**
-Platform live on Vercel + Supabase. 5 MDB integrations running. 40+ agents operational. Payments live. Pre-revenue - seeking first enterprise pilots.
+Platform live on Vercel + Supabase. 7 MDB integrations running. 50+ agents operational. 30 dashboard pages shipped. Payments live via Paddle. Pre-revenue - seeking first enterprise pilots.
 
 **Market:**
 MEED alone: $50M+/year at $5-15k/seat. GlobalData infrastructure: $200M+/year. Total infrastructure data market: $2-4B globally.

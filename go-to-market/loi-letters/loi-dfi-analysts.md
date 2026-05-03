@@ -17,7 +17,7 @@ Hi [Name],
 
 I came across your name on the [World Bank/AfDB/IFC] press release for the [Project Name] in [Country/Region] - congratulations on the approval.
 
-I'm building InfraRadar, a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, and EBRD into one AI-scored dashboard. The idea came from talking to TTLs and project officers who manage portfolios across multiple institutions - tracking co-financing opportunities and project status manually across five portals is genuinely painful.
+I'm building InfraRadar, a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB into one AI-scored dashboard. The idea came from talking to TTLs and project officers who manage portfolios across multiple institutions - tracking co-financing opportunities and project status manually across seven portals is genuinely painful.
 
 I'm not pitching anything yet - we're in early access and I'm validating with a small group of domain experts. Would a 20-minute call make sense in the next 2 weeks?
 
@@ -35,9 +35,9 @@ Hi [Name],
 
 I sent you a LinkedIn message last week - apologies if it got buried.
 
-I'm [Your Name], building InfraRadar - a platform that aggregates real-time signals from the World Bank, IFC, ADB, AfDB, and EBRD in one AI-scored dashboard with custom alerting and an on-demand research agent.
+I'm [Your Name], building InfraRadar - a platform that aggregates real-time signals from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB in one AI-scored dashboard with custom alerting and an on-demand research agent.
 
-I noticed you lead [Project Name / sector portfolio] at [Organization]. The platform surfaces pre-tender signals and cross-MDB co-financing opportunities - the kind of visibility that currently requires manually checking five separate portals.
+I noticed you lead [Project Name / sector portfolio] at [Organization]. The platform surfaces pre-tender signals and cross-MDB co-financing opportunities - the kind of visibility that currently requires manually checking seven separate portals.
 
 We're offering 12 months free access to early users who provide feedback on the roadmap. Would it be useful to take a look?
 
@@ -84,7 +84,7 @@ To: InfraRadar Pulse
 I, [Name], [Role] at [Organization], write to express my intent to trial InfraRadar Pulse as part of their early access program.
 
 I have reviewed the InfraRadar Pulse platform and find the following capabilities directly relevant to my professional work:
-- Real-time aggregation of project intelligence from the World Bank, IFC, ADB, AfDB, and EBRD
+- Real-time aggregation of project intelligence from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB
 - AI-scored risk and confidence assessment per project
 - Custom alerting across political, financial, regulatory, and construction signals
 - Cross-MDB co-financing and co-stakeholder graph

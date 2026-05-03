@@ -26,7 +26,7 @@ InfraRadar Pulse
 [Your live URL]
 
 ### Elevator pitch (50 words)
-InfraRadar replaces $200,000/year infrastructure intelligence reports with real-time AI agents at $199/month. We aggregate data from 5 multilateral development banks, score 40+ risk signals per project, and deliver alerts and research to infrastructure investors, EPC contractors, and project finance teams across 14 global regions.
+InfraRadar replaces $200,000/year infrastructure intelligence reports with real-time AI agents at $199/month. We aggregate data from 7 multilateral development banks, run 50+ AI agents per project, and deliver alerts and research to infrastructure investors, EPC contractors, and project finance teams across 14 global regions.
 
 ---
 
@@ -34,7 +34,7 @@ InfraRadar replaces $200,000/year infrastructure intelligence reports with real-
 
 Infrastructure investors, EPC contractors, and project finance banks need real-time intelligence on the world's largest infrastructure projects. Today they pay $3,000-$200,000/year to companies like MEED, GlobalData, and Wood Mackenzie for quarterly PDF reports that are slow, static, generic, and priced beyond the reach of most market participants.
 
-The gap in the market: the MDBs (World Bank, IFC, ADB, AfDB, EBRD) publish all project data publicly - but it is unstructured, scattered across five portals, and requires human analysts to read and synthesize. Incumbents hire these analysts. We deploy AI agents.
+The gap in the market: the MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) publish all project data publicly - but it is unstructured, scattered across seven portals, and requires human analysts to read and synthesize. Incumbents hire these analysts. We deploy AI agents.
 
 This is not a niche market: MEED alone generates $50M+/year at $5-15k/seat. GlobalData's infrastructure segment exceeds $200M/year. The buyers have established budgets and real pain. They are just waiting for a tool that meets them where they are.
 
@@ -42,7 +42,7 @@ This is not a niche market: MEED alone generates $50M+/year at $5-15k/seat. Glob
 
 ### What is your solution?
 
-InfraRadar aggregates real-time data from the World Bank, IFC, ADB, AfDB, and EBRD daily. Our 40+ AI agents process each project to extract details, score risk, verify evidence, and monitor for signals across 9 categories. Users access this through a SaaS dashboard with:
+InfraRadar aggregates real-time data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB daily. Our 50+ AI agents process each project to extract details, score risk, verify evidence, and monitor for signals across 9 categories. Users access this through a SaaS dashboard with:
 
 - Custom alerting rules (e.g., "alert me when any East Africa energy project moves to At Risk")
 - On-demand AI research agent ("find all hydropower projects above $100M in East Africa in financing stage")
@@ -72,18 +72,19 @@ Primary beachhead: DFI analysts and smaller infrastructure PE funds who need the
 ### What is your revenue model?
 
 - Free: public project discovery
+- Trial: 3-day no-card trial (full platform)
 - Starter: $29/month
 - Pro: $199/month (full platform)
 - Enterprise: custom contracts
-- Founders Lifetime: $1,499 one-time (100 seats)
+- Lifetime: $1,499 one-time (100 seats)
 
 ---
 
 ### What is your current traction?
 
-Stage: Pre-revenue, April 2026.
+Stage: Pre-revenue, May 2026.
 
-Platform is live on Vercel + Supabase. 5 MDB integrations operational. 40+ AI agents running. Payments live via Paddle. All core features shipped. Seeking first 3 enterprise pilot customers.
+Platform is live on Vercel + Supabase. 7 MDB integrations operational (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB). 50+ AI agents running. 30 dashboard pages shipped including tender intelligence, stakeholder intel, portfolio chat, and risk signals. Payments live via Paddle. Seeking first enterprise pilot customers.
 
 Named prospect list: 35+ senior infrastructure fund managers from Infrastructure Investor Global Summit 2026 (Berlin). DFI Task Team Leaders publicly identifiable and reachable from MDB press releases.
 
@@ -114,6 +115,6 @@ By the end of the 13-week Techstars program (end of November 2026):
 1. **3 paying enterprise pilot customers** - at least one in each of our top three personas (DFI analyst, infrastructure PE fund, EPC BD team)
 2. **200 monthly active users** on the free tier - our survival metric
 3. **LOIs from 5+ named organizations** suitable for Series A fundraising materials
-4. **15 new procurement sources** integrated beyond the current 5 MDBs
+4. **New procurement sources** integrated beyond the current 7 MDBs (IsDB, KfW, JICA, NDB, national portals)
 5. **First iteration of delay prediction model** - proprietary scoring trained on historical MDB project completion data
 6. **Pitch-ready for $1-2M seed round** at Demo Day

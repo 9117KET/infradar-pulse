@@ -25,7 +25,7 @@ Hi [Name],
 
 I noticed [L&T / Vinci / Bechtel] has been [winning / bidding on / active in] [specific project or region - reference something specific to their company].
 
-I'm building InfraRadar - a platform that surfaces pre-tender signals from World Bank, IFC, ADB, AfDB, and EBRD project pipelines, typically 6-18 months before public RFP issuance. AI-scored projects with risk and confidence ratings, custom alerting by sector and region, and an on-demand research agent for deep project intelligence.
+I'm building InfraRadar - a platform that surfaces pre-tender signals from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines, typically 6-18 months before public RFP issuance. AI-scored projects with risk and confidence ratings, custom alerting by sector and region, and an on-demand research agent for deep project intelligence.
 
 Given [Company]'s footprint in [MENA / East Africa], the [AfDB power transmission / World Bank transport / EBRD energy] pipeline might be the most relevant piece.
 
@@ -45,11 +45,11 @@ Hi [Name],
 
 Following up on my LinkedIn message.
 
-I'm building InfraRadar - an AI platform that aggregates tender pipelines from the World Bank, IFC, ADB, AfDB, and EBRD and surfaces pre-tender signals 6-18 months before RFP issuance.
+I'm building InfraRadar - an AI platform that aggregates tender pipelines from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB and surfaces pre-tender signals 6-18 months before RFP issuance.
 
 For an EPC BD team focused on [Africa / MENA], this means: early visibility on which AfDB and World Bank projects are entering procurement stage, which sectors are getting funded, and which countries have active pipelines - before competitors who wait for the MEED alert.
 
-We currently track 5 MDB sources, 14 regions, 14 sectors. Coverage of IsDB, AIIB, and KfW is on the Q3 2026 roadmap.
+We currently track 7 MDB sources, 14 regions, 14 sectors. Coverage of IsDB, AIIB, and KfW is on the Q3 2026 roadmap.
 
 Early access is free for 12 months in exchange for user feedback on the tender tracking features specifically. Would it make sense to take a look?
 
@@ -93,7 +93,7 @@ I, [Name], [Role] at [Company Name], write to express my intent to trial InfraRa
 [Company Name] is active in infrastructure project delivery across [describe regions - e.g., MENA and Sub-Saharan Africa], with current and recent projects including [reference 1-2 public projects if comfortable]. Our business development team monitors the MDB project pipeline to identify and position for upcoming tender opportunities.
 
 I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our BD process:
-- Pre-tender signal detection from World Bank, IFC, ADB, AfDB, and EBRD pipelines (6-18 months before public RFP)
+- Pre-tender signal detection from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB pipelines (6-18 months before public RFP)
 - AI-scored project risk and confidence assessment
 - Sector and regional filtering with custom alerting
 - Stakeholder intelligence extraction (contracting authority contacts, co-financiers)

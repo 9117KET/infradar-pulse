@@ -1,7 +1,7 @@
 # InfraRadar Pulse - Accelerator Program Tracker
 
 > Master tracker for all accelerator programs. Update status column as applications progress.
-> Last updated: April 2026
+> Last updated: May 2026
 
 ---
 
@@ -10,9 +10,10 @@
 | Program | Deadline | Status | Link |
 |---|---|---|---|
 | Y Combinator S2026 | **May 4, 2026** | [ ] Not started | [Apply](https://www.ycombinator.com/apply/) |
-| Entrepreneur First London | **May 1, 2026** | [ ] Not started | [Apply](https://apply.joinef.com/) |
 | a16z Speedrun SR007 | **May 17, 2026** | [ ] Not started | [Apply](https://speedrun.a16z.com/apply) |
 | Visa Africa Fintech Accelerator | **May 17, 2026** | [ ] Not started | [Apply](https://opportunitydesk.org/2026/04/14/visa-africa-fintech-accelerator-program-2026-cohort-6/) |
+
+> Entrepreneur First London (May 1, 2026) - deadline passed. Archived at [applications/archive/ENTREPRENEUR-FIRST.md](applications/archive/ENTREPRENEUR-FIRST.md).
 
 ---
 
@@ -72,23 +73,24 @@ All filled-out application documents are in `go-to-market/applications/`:
 ## Standard Pitch Elements (reuse across all applications)
 
 ### One-line description (140 chars)
-> InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - covering 5 MDBs, 14 regions, 40+ signals.
+> InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - covering 7 MDBs, 14 regions, 50+ agents.
 
 ### Problem statement
 Infrastructure investors, EPC contractors, and project finance teams need real-time intelligence on $2T+ in MDB-financed projects globally. Today they pay $3,000-$200,000/year to incumbents like MEED, GlobalData, and Wood Mackenzie for quarterly PDF reports written by human analysts. These reports are slow, static, generic, and priced out of reach for most market participants.
 
 ### Solution
-InfraRadar aggregates real-time project data from 5 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD), runs 40+ AI agents to score, alert, and research each project, and delivers personalized intelligence at $199/month. The platform includes AI-powered alerting across 9 risk categories, an on-demand AI research agent, confidence scoring, evidence verification, and portfolio-level monitoring.
+InfraRadar aggregates real-time project data from 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB), runs 50+ AI agents to score, alert, and research each project, and delivers personalized intelligence at $199/month. The platform includes AI-powered alerting across 9 risk categories, on-demand AI research agent, confidence scoring, evidence verification, portfolio-level monitoring, tender intelligence, stakeholder intelligence, and portfolio chat (30 dashboard pages total).
 
 ### Market size
 The addressable market is infrastructure intelligence and project data: MEED alone generates $50M+/year at $5-15k/seat. GlobalData's infrastructure segment exceeds $200M/year. Total addressable market for infrastructure data and intelligence is estimated at $2-4B globally. InfraRadar enters at the mass-market segment currently unserved by incumbents (teams who need intelligence but cannot justify $50k+/year).
 
 ### Traction
 - Platform live and deployed (Vercel + Supabase)
-- 5 MDB data sources integrated and running
-- 40+ AI agents operational
-- Payments live via Paddle
-- Stage: Pre-revenue, seeking first 3 enterprise pilot customers
+- 7 MDB data sources integrated and running (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB)
+- 50+ AI agents operational
+- 30 dashboard pages shipped
+- Payments live via Paddle (6 tiers including 3-day no-card trial and Lifetime plan)
+- Stage: Pre-revenue, seeking first enterprise pilot customers
 
 ### Why now
 Two drivers: (1) GPT-4-class models make real-time document extraction, scoring, and alerting tractable at a fraction of the cost of analyst headcount. (2) Global infrastructure spending is at an all-time high - the World Bank alone committed $117B in 2024 - creating massive demand for pipeline intelligence tools.
@@ -98,16 +100,17 @@ Two drivers: (1) GPT-4-class models make real-time document extraction, scoring,
 
 ### Revenue model
 - Free tier: public project discovery
+- Trial: 3-day no-card trial (full platform evaluation)
 - Starter: $29/month (individual analysts, core features)
 - Pro: $199/month (full platform including AI research agent and custom alerting)
 - Enterprise: custom contracts (white-label reports, API access, dedicated support)
-- Founders Lifetime: $1,499 one-time (limited to 100 seats)
+- Lifetime: $1,499 one-time (limited to 100 seats)
 
 ### Competition and differentiation
 | Incumbent | Price | InfraRadar advantage |
 |---|---|---|
 | MEED | $5-15k/yr | 100x cheaper, real-time vs quarterly, AI-native |
-| GlobalData | $10-50k/yr | 50x cheaper, MDB integration they lack |
+| GlobalData | $10-50k/yr | 50x cheaper, 7-MDB integration they lack |
 | Wood Mackenzie | $50-200k/yr | 1000x cheaper, project-level vs market-level |
 | Refinitiv | $20-100k/yr | Operational intelligence vs financial instruments |
 

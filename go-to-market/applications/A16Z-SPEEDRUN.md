@@ -46,15 +46,15 @@ The result: professionals making multi-billion-dollar infrastructure decisions a
 
 InfraRadar is an AI-native platform that replaces these tools. We:
 
-1. **Aggregate** real-time project data from 5 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD) - institutions that collectively pipeline $500B+ annually in infrastructure projects globally
+1. **Aggregate** real-time project data from 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) - institutions that collectively pipeline $500B+ annually in infrastructure projects globally
 
-2. **Process** with 40+ specialized AI agents that ingest, score, alert on, and research each project across 9 risk categories, 14 sectors, and 14 regions
+2. **Process** with 50+ specialized AI agents that ingest, score, alert on, and research each project across 9 risk categories, 14 sectors, and 14 regions
 
-3. **Deliver** via a self-service SaaS dashboard with: custom alerting, on-demand AI research agent, confidence scoring, evidence verification, portfolio monitoring, and AI-generated intelligence digests
+3. **Deliver** via a self-service SaaS dashboard with: custom alerting, on-demand AI research agent, confidence scoring, evidence verification, portfolio monitoring, AI-generated intelligence digests, stakeholder intelligence, risk & anomaly signals, tender intelligence, portfolio chat, and country-level geospatial analysis (30 dashboard pages total)
 
 The platform surfaces pre-tender signals 6-18 months before public RFP issuance - the window that determines whether an EPC contractor can position a winning bid or whether an infrastructure fund sources a deal before it becomes competitive.
 
-**Current state:** Platform is live and deployed. 5 MDB integrations running. 40+ agents operational. Payments live via Paddle. Pre-revenue; seeking first enterprise pilots.
+**Current state:** Platform is live and deployed. 7 MDB integrations running. 50+ agents operational. Payments live via Paddle. Pre-revenue; seeking first enterprise pilots.
 
 ---
 
@@ -62,9 +62,9 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 
 Three structural advantages that cannot be easily replicated:
 
-**1. The data is public and ignored.** All five MDBs publish complete project documentation for free under open data mandates. Every project appraisal document, environmental assessment, and stakeholder report is public. Incumbents pay human analysts to read this. We deploy agents. Our marginal cost of increasing coverage is near zero; incumbents' marginal cost is another analyst hire at $80-150k/year.
+**1. The data is public and ignored.** All seven MDBs publish complete project documentation for free under open data mandates. Every project appraisal document, environmental assessment, and stakeholder report is public. Incumbents pay human analysts to read this. We deploy agents. Our marginal cost of increasing coverage is near zero; incumbents' marginal cost is another analyst hire at $80-150k/year.
 
-**2. Cross-MDB intelligence is defensible.** No incumbent aggregates across all five MDBs. A World Bank tracker misses the AfDB co-financing signal in the same country. An IFC equity monitor misses the ADB technical assistance grant that precedes project approval. Our cross-MDB co-financing and co-stakeholder graph is a network-effects moat that compounds with every project we add.
+**2. Cross-MDB intelligence is defensible.** No incumbent aggregates across all seven MDBs. A World Bank tracker misses the AfDB co-financing signal in the same country. An IFC equity monitor misses the ADB technical assistance grant that precedes project approval. Our cross-MDB co-financing and co-stakeholder graph is a network-effects moat that compounds with every project we add.
 
 **3. The interaction model incumbents sell is wrong.** DFI analysts and EPC BD managers are among the world's most sophisticated professionals. They want to query their specific portfolio on demand, not receive a PDF someone else curated. The self-service AI research agent - "find all hydropower projects above $100M in East Africa in financing stage" - is fundamentally a different product that incumbents cannot retrofit without breaking their analyst-led model.
 
@@ -90,14 +90,14 @@ Three structural advantages that cannot be easily replicated:
 
 ### What is your current traction/revenue?
 
-**Stage:** Pre-revenue, April 2026
+**Stage:** Pre-revenue, May 2026
 
 **Product:**
 - Platform live on Vercel + Supabase (not a mockup)
-- 5 MDB integrations operational
-- 40+ AI agents running
-- Full SaaS dashboard with all core features shipped
-- Payments live via Paddle
+- 7 MDB integrations operational (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB)
+- 50+ AI agents running
+- 30 dashboard pages including tender intel, stakeholder intel, portfolio chat, risk signals, and geo maps
+- Payments live via Paddle (6 tiers including 3-day no-card trial and Lifetime plan)
 
 **Market validation:**
 - Named prospect list of 35+ senior infrastructure fund managers from Infrastructure Investor Global Summit 2026 (Berlin)
@@ -114,11 +114,11 @@ The $500K upfront enables three parallel tracks:
 
 **Track 1 - GTM ($200K):** Two enterprise account executives targeting EPC BD teams and infrastructure PE funds. Conference attendance at Infrastructure Investor Forum (London, September 2026), SuperReturn Africa (Cape Town, December 2026), and MEED MENA Construction Summit (Dubai, November 2026). Direct pipeline into the named prospect list we have already built.
 
-**Track 2 - Data expansion ($150K):** Add 15 new procurement sources beyond the current 5 MDBs: IsDB, AIIB, KfW, JICA, NDB, Etimad (Saudi), PPIP (Philippines), UNGM, and national portals. Each new source expands addressable intelligence and defensibility.
+**Track 2 - Data expansion ($150K):** Add procurement sources beyond the current 7 MDBs: IsDB, KfW, JICA, NDB, Etimad (Saudi), PPIP (Philippines), UNGM, and national portals. Each new source expands addressable intelligence and defensibility.
 
-**Track 3 - AI infrastructure ($150K):** Migrate AI inference to Azure OpenAI / Google Vertex to reduce per-query cost, build the delay prediction model (proprietary scoring trained on historical MDB project completion data), and add satellite construction verification using ESA Sentinel-2 imagery.
+**Track 3 - AI infrastructure ($150K):** Build the delay prediction model (proprietary scoring trained on historical MDB project completion data), add satellite construction verification using ESA Sentinel-2 imagery, and scale our 50+ agent infrastructure for 100x project volume growth.
 
-The $5M in credits from Speedrun would directly accelerate Track 3 - our OpenAI/Perplexity API costs at scale are the primary operating constraint before Series A.
+The $5M in credits from Speedrun would directly accelerate Track 3 - scaling AI inference across a 100x larger project database and funding GPU compute for the delay prediction and satellite verification models are our primary infrastructure costs before Series A.
 
 ---
 
@@ -126,7 +126,7 @@ The $5M in credits from Speedrun would directly accelerate Track 3 - our OpenAI/
 
 Three reasons beyond the capital:
 
-1. **The credits solve our immediate constraint.** At 40+ agents running continuously against a growing project database, AI API costs are our largest variable expense. The $5M+ in AI/cloud credits from Speedrun partners (directly with OpenAI and others) removes this constraint for 18+ months.
+1. **The credits solve our scaling constraint.** At 50+ agents running continuously against a growing project database, scaling AI inference for 100x more projects is our primary infrastructure cost before Series A. The $5M+ in AI/cloud credits from Speedrun partners removes this constraint and funds our delay prediction model and satellite verification layer for 18+ months.
 
 2. **The a16z network reaches our buyers.** a16z LPs and portfolio companies include infrastructure-adjacent funds, financial institutions, and enterprise software buyers who are precisely our target market. Distribution from portfolio introductions is worth more than the capital at this stage.
 

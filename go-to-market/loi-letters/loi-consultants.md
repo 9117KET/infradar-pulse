@@ -2,7 +2,7 @@
 
 **Who to send this to:** Infrastructure advisory directors and partners at Zutari, KPMG, Arup, McKinsey GII, PwC, Deloitte, and boutique infrastructure advisory firms
 
-**The pitch in one sentence:** InfraRadar replaces the days your researchers spend aggregating MDB pipeline data for client analyses - 5 MDBs, 14 sectors, 14 regions, AI-scored, on-demand.
+**The pitch in one sentence:** InfraRadar replaces the days your researchers spend aggregating MDB pipeline data for client analyses - 7 MDBs, 14 sectors, 14 regions, AI-scored, on-demand.
 
 ---
 
@@ -24,7 +24,7 @@ Hi [Name],
 
 I noticed your work on [specific project / publication / conference talk] - particularly [specific detail that shows you actually read it].
 
-I'm building InfraRadar - a platform that aggregates real-time infrastructure project data from the World Bank, IFC, ADB, AfDB, and EBRD and makes it queryable with AI. For an advisory firm like [Zutari / KPMG / Arup], the most relevant piece is probably the market entry and pipeline analysis module: instead of your researchers manually aggregating MDB project data, they can query in natural language and get AI-scored results with source attribution.
+I'm building InfraRadar - a platform that aggregates real-time infrastructure project data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB and makes it queryable with AI. For an advisory firm like [Zutari / KPMG / Arup], the most relevant piece is probably the market entry and pipeline analysis module: instead of your researchers manually aggregating MDB project data, they can query in natural language and get AI-scored results with source attribution.
 
 We're in early access - free for 12 months for initial users. Worth a 20-minute call?
 
@@ -42,7 +42,7 @@ Hi [Name],
 
 Following up on my message.
 
-I'm building InfraRadar - an AI platform that aggregates infrastructure project data from 5 MDBs (World Bank, IFC, ADB, AfDB, EBRD) across 14 regions and 14 sectors, queryable in natural language.
+I'm building InfraRadar - an AI platform that aggregates infrastructure project data from 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) across 14 regions and 14 sectors, queryable in natural language.
 
 For an infrastructure advisory team, this replaces the data aggregation phase of client deliverables: instead of a researcher spending 2-3 days pulling World Bank and AfDB pipeline data for a market entry analysis, they ask InfraRadar "show me all transport infrastructure projects above $100M in East Africa approved in the last 18 months" and get AI-scored, source-attributed results in minutes.
 
@@ -72,7 +72,7 @@ One ask: we're applying to [Y Combinator / Techstars] and they want letters of i
 
 Something like:
 
-"I am [Name], [Role] at [Firm]. I have reviewed InfraRadar Pulse and intend to trial the platform to support our infrastructure advisory work, specifically for [market entry analyses / pipeline monitoring / client deliverables requiring MDB project data]. The AI-powered aggregation of World Bank, IFC, ADB, AfDB, and EBRD data and the natural language research agent are directly relevant to our workflow. I look forward to participating in the early access program."
+"I am [Name], [Role] at [Firm]. I have reviewed InfraRadar Pulse and intend to trial the platform to support our infrastructure advisory work, specifically for [market entry analyses / pipeline monitoring / client deliverables requiring MDB project data]. The AI-powered aggregation of World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB data and the natural language research agent are directly relevant to our workflow. I look forward to participating in the early access program."
 
 Your own words are fine. A reply to this email with that paragraph would be very helpful.
 
