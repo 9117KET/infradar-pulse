@@ -26,7 +26,7 @@ InfraRadar Pulse
 [Your live URL]
 
 ### Company description
-InfraRadar is an AI-powered infrastructure intelligence platform that tracks real-time project data from the World Bank, IFC, ADB, AfDB, and EBRD - delivering early-stage signals on Africa's $500B+ infrastructure pipeline to investors, banks, and contractors.
+InfraRadar is an AI-powered infrastructure intelligence platform that tracks real-time project data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB - delivering early-stage signals on Africa's $500B+ infrastructure pipeline to investors, banks, and contractors.
 
 ### What problem does your startup solve?
 
@@ -34,13 +34,13 @@ Africa has the world's fastest-growing infrastructure pipeline. The World Bank c
 
 Yet the intelligence market serving African infrastructure is dominated by expensive, slow, analyst-driven platforms charging $3,000-$200,000/year for quarterly PDF reports. The professionals who need this intelligence - DFI analysts at AfDB and World Bank, project finance teams at Standard Bank and Absa, EPC contractors bidding on AfDB-financed projects, infrastructure PE funds like AIIM and Actis - either pay these prices or go without.
 
-InfraRadar solves this by aggregating real-time project signals from all five major MDBs active in Africa, scoring them with 40+ AI agents, and delivering actionable intelligence at $199/month. We give African infrastructure market participants the same quality of intelligence previously accessible only to the largest global institutions.
+InfraRadar solves this by aggregating real-time project signals from all seven major MDBs - including AfDB, World Bank, IFC, ADB, EBRD, AIIB, and IDB - scoring them with 50+ AI agents, and delivering actionable intelligence at $199/month. We give African infrastructure market participants the same quality of intelligence previously accessible only to the largest global institutions.
 
 ---
 
 ### How does your solution work?
 
-InfraRadar ingests project data from World Bank, IFC, ADB, AfDB, and EBRD daily. Each project is processed by a pipeline of 40+ AI agents that:
+InfraRadar ingests project data from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB daily. Each project is processed by a pipeline of 50+ AI agents that:
 
 - Extract project details, funding structure, milestones, and stakeholder contacts
 - Score projects across 9 risk categories (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security)
@@ -73,10 +73,11 @@ Primary targets on the African continent:
 
 Subscription SaaS:
 - Free: public project discovery (no payment required)
+- Trial: 3-day no-card trial for full platform evaluation
 - Starter: $29/month - individual professionals
 - Pro: $199/month - full platform including AI research agent
 - Enterprise: custom contracts - teams, API access, white-label reports
-- Founders Lifetime: $1,499 one-time (100 seats, limited offer)
+- Lifetime: $1,499 one-time (100 seats, limited offer)
 
 Current stage: Pre-revenue. Platform is live and deployed. Seeking first paying enterprise pilots.
 
@@ -84,7 +85,7 @@ Current stage: Pre-revenue. Platform is live and deployed. Seeking first paying 
 
 ### What is your connection to the African fintech/financial ecosystem?
 
-InfraRadar sits at the intersection of infrastructure data and African financial markets. Our five MDB data sources - including AfDB specifically - provide the intelligence layer that underlies Africa's largest capital flows. The project finance banks (Standard Bank, Absa, Standard Chartered) and infrastructure PE funds (AIIM, Actis) who are our target users are exactly Visa's financial ecosystem partners in Africa.
+InfraRadar sits at the intersection of infrastructure data and African financial markets. Our seven MDB data sources - including AfDB specifically - provide the intelligence layer that underlies Africa's largest capital flows. The project finance banks (Standard Bank, Absa, Standard Chartered) and infrastructure PE funds (AIIM, Actis) who are our target users are exactly Visa's financial ecosystem partners in Africa.
 
 Infrastructure projects generate cross-border payments, contractor procurement chains, and financing flows that touch Visa's ecosystem directly. An EPC contractor winning a World Bank-financed project in Ethiopia proceeds to make dozens of cross-border equipment and logistics payments. Better pipeline intelligence means more funded, executed projects - and more payment volume.
 
@@ -110,4 +111,4 @@ Pre-revenue, April 2026. Platform is fully built and deployed. Two founders. See
 
 3. **Demo Day investor access** - Plug and Play and Visa-aligned VCs at Demo Day are the right investor profile for a B2B data platform with African market focus.
 
-4. **Credit and perks** - The $200k+ in vendor perks offsets AI API costs and supports our ability to operate the 40+ agent pipeline at scale during the pre-revenue phase.
+4. **Credit and perks** - The $200k+ in vendor perks offsets infrastructure costs and supports our ability to operate the 50+ agent pipeline at scale during the pre-revenue phase.

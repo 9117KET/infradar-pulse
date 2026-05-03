@@ -35,11 +35,10 @@ Enterprise AI / Financial Data Intelligence / Infrastructure Analytics
 
 ### What AI/ML technologies does your company use?
 
-InfraRadar runs 40+ AI agents that process infrastructure project data from 5 multilateral development banks. Our AI stack includes:
+InfraRadar runs 50+ AI agents that process infrastructure project data from 7 multilateral development banks. Our AI stack includes:
 
-- **Large language models (OpenAI GPT-4o-mini):** Used for project document extraction, risk scoring, stakeholder contact identification, natural language search translation, and AI-generated intelligence briefs
-- **Perplexity API:** Used for real-time web search within our AI research agent (on-demand deep research on specific projects)
-- **Firecrawl:** Web scraping for evidence verification across satellite, news, registry, and partner sources
+- **Large language models (Lovable AI Gateway, Gemini-based):** Used for project document extraction, risk scoring, stakeholder contact identification, natural language search translation, and AI-generated intelligence briefs. All inference is routed through a single managed gateway - no separate API keys required, near-zero marginal cost per query.
+- **Integrated research pipeline:** Web search and evidence verification consolidated into the same gateway, eliminating external Perplexity/Firecrawl dependencies and reducing per-query cost significantly.
 - **Custom scoring models:** Rule-based composite risk scoring across 9 signal categories (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security)
 
 Near-term ML roadmap (requiring GPU compute):
@@ -49,22 +48,22 @@ Near-term ML roadmap (requiring GPU compute):
 
 ### How many AI models/agents does your platform run?
 
-40+ continuously running agents covering:
-- 8 data ingestion agents (one per MDB source + redundancy)
-- 14 analysis and scoring agents (risk scoring, confidence scoring, stakeholder extraction, funding tracking)
-- 4 alerting agents (political, financial, regulatory, construction signals)
-- 4 intelligence generation agents (digests, reports, briefings)
-- 10+ research and verification agents (on-demand AI research, evidence verification, sentiment analysis, ESG monitoring, supply chain monitoring, corporate M&A monitoring)
+50+ continuously running agents covering:
+- 7 data ingestion agents (one per MDB source: World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB)
+- 12+ intelligence and monitoring agents (risk scoring, confidence scoring, stakeholder intel, market intel, regulatory monitoring, ESG, supply chain, corporate M&A, security resilience)
+- 5 report and research agents (digest generation, research agent, executive briefing, report generation)
+- 6+ user-facing intelligence agents (portfolio chat, natural language search, insight generation, contact finder)
+- Specialized processors (entity dedup, funding tracking, tender award monitoring, update checker)
 
 ### Describe your company (200 words)
 
-InfraRadar Pulse is an AI-native infrastructure intelligence platform. We aggregate real-time project data from the world's five largest multilateral development banks - the World Bank, IFC, ADB, AfDB, and EBRD - which collectively finance $500B+ in infrastructure projects annually across 14 global regions.
+InfraRadar Pulse is an AI-native infrastructure intelligence platform. We aggregate real-time project data from 7 multilateral development banks - the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB - which collectively finance $500B+ in infrastructure projects annually across 14 global regions.
 
-Our 40+ AI agents ingest, score, and monitor each project daily, delivering personalized alerts, research, and intelligence to infrastructure investors, EPC contractors, and project finance teams. We cover 14 infrastructure sectors (energy, transport, water, telecoms, social, industrial, and more) and surface pre-tender signals up to 18 months before public RFP issuance.
+Our 50+ AI agents ingest, score, and monitor each project daily, delivering personalized alerts, research, and intelligence to infrastructure investors, EPC contractors, and project finance teams. We cover 14 infrastructure sectors (energy, transport, water, telecoms, social, industrial, and more) and surface pre-tender signals up to 18 months before public RFP issuance across 30 dashboard pages.
 
 The platform replaces incumbent intelligence services like MEED, GlobalData, and Wood Mackenzie - which charge $3,000-$200,000/year for quarterly analyst-written PDF reports. InfraRadar delivers real-time, AI-native intelligence at $199/month.
 
-Current stage: Pre-revenue, April 2026. Platform is live and deployed on Vercel + Supabase. First enterprise pilots being secured. NVIDIA Inception membership would accelerate our delay prediction model development and satellite verification layer - both requiring GPU compute at a scale beyond our current API-based architecture.
+Current stage: Pre-revenue, May 2026. Platform is live and deployed on Vercel + Supabase. First enterprise pilots being secured. NVIDIA Inception membership would accelerate our delay prediction model development and satellite verification layer - both requiring GPU compute at a scale beyond our current API-based architecture.
 
 ### Number of employees with developer background
 [Fill: 1 or 2 depending on team]

@@ -45,7 +45,15 @@
       "Bash(npm show *)",
       "Bash(node -e \"const v = require\\('/c/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse/node_modules/vite/package.json'\\); process.exit\\(v.version.startsWith\\('6'\\) ? 0 : 1\\);\")",
       "Bash(node *)",
-      "Bash(python3 *)"
+      "Bash(python3 *)",
+      "Bash(supabase --version)",
+      "Bash(where supabase *)",
+      "Bash(timeout 30 node_modules/.bin/supabase secrets list --project-ref yofglpxqpouqqhkidlkx)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(node_modules/.bin/supabase login *)",
+      "Bash(find *)",
+      "Bash(git restore *)",
+      "Bash(git pull *)"
     ]
   }
 }

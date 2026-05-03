@@ -24,7 +24,7 @@ Hi [Name],
 
 I noticed [AIIM / Actis / your fund] [reference something specific - closed PRIF II, made first MENA investment, spoke at SuperReturn Africa].
 
-I'm building InfraRadar - a platform that aggregates real-time deal signals from the World Bank, IFC, ADB, AfDB, and EBRD pipelines. The idea: surface bankable infrastructure deals in [Africa / MENA] 6-18 months before they become competitive, with AI-scored risk and confidence ratings on each project.
+I'm building InfraRadar - a platform that aggregates real-time deal signals from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB pipelines. The idea: surface bankable infrastructure deals in [Africa / MENA] 6-18 months before they become competitive, with AI-scored risk and confidence ratings on each project.
 
 Right now it costs nothing to look at - we're in early access. Given [Fund]'s focus on [Africa / MENA infrastructure], I suspect the AfDB and World Bank pipeline visibility would be the most useful piece.
 
@@ -44,7 +44,7 @@ Hi [Name],
 
 Following up on my LinkedIn message.
 
-I'm building InfraRadar - an AI platform that aggregates real-time signals from 5 MDB pipelines (World Bank, IFC, ADB, AfDB, EBRD) and surfaces infrastructure deals 6-18 months before public tender. AI-scored risk (0-100), confidence (0-100), cross-MDB co-financing graph, and custom alerting by sector/region.
+I'm building InfraRadar - an AI platform that aggregates real-time signals from 7 MDB pipelines (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) and surfaces infrastructure deals 6-18 months before public tender. AI-scored risk (0-100), confidence (0-100), cross-MDB co-financing graph, and custom alerting by sector/region.
 
 The platform currently covers 14 regions and 14 infrastructure sectors. For a fund like [AIIM / Actis], the East Africa energy and transport pipelines are particularly active right now - AfDB's Mission 300 alone is creating $300B+ in pipeline.
 
@@ -91,7 +91,7 @@ I, [Name], [Role] at [Fund Name], write to express my intent to trial InfraRadar
 [Fund Name] manages infrastructure investments across [describe focus - e.g., Sub-Saharan Africa and MENA] with [AUM / number of portfolio companies / active deployment context]. Our investment process requires continuous monitoring of MDB project pipelines for deal sourcing, co-investment opportunities, and portfolio risk signals.
 
 I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our investment workflow:
-- Real-time aggregation of project pipeline from World Bank, IFC, ADB, AfDB, and EBRD
+- Real-time aggregation of project pipeline from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB
 - AI-scored risk and confidence assessment per project
 - Pre-tender signal detection up to 18 months before public RFP
 - Cross-MDB co-financing graph and stakeholder intelligence
