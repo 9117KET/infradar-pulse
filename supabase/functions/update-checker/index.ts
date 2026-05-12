@@ -42,8 +42,14 @@ serve(async (req) => {
 
     let updatedCount = 0;
     let alertsCreated = 0;
+    const WALL_CLOCK_BUDGET_MS = 110_000;
+    const BATCH_SIZE = 8;
 
-    for (const project of projects.slice(0, 50)) {
+    for (const project of projects.slice(0, BATCH_SIZE)) {
+      if (Date.now() - runStartedAt.getTime() > WALL_CLOCK_BUDGET_MS) {
+        console.log("update-checker: wall-clock budget reached, stopping early");
+        break;
+      }
       // Confidence decay
       const daysSinceUpdate = Math.floor((Date.now() - new Date(project.last_updated).getTime()) / (1000 * 60 * 60 * 24));
       const weeksSinceUpdate = Math.floor(daysSinceUpdate / 7);
@@ -160,7 +166,7 @@ Analyze if there are meaningful changes. Return JSON with:
       }
     }
 
-    const result = { success: true, projects_checked: Math.min(projects.length, 50), updated: updatedCount, alerts_created: alertsCreated };
+    const result = { success: true, projects_checked: Math.min(projects.length, 8), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
     await recordAgentEvent(supabase, "update-check", "completed", "Update proposals created for reviewer approval", taskId, result);
     await finishAgentRun(supabase, "update-check", "completed", runStartedAt);
