@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 import { calculateIntelligenceQuality } from "../_shared/intelligenceQuality.ts";
 
 const corsHeaders = {
