@@ -65,22 +65,17 @@ export function useAlerts() {
       setLoading(true);
 
       try {
-        const [{ count: totalCount }, { count: unreadCount }, { count: criticalCount }, ...categoryCounts] = await Promise.all([
-          supabase.from('alerts').select('id', { count: 'exact', head: true }),
-          supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('read', false),
-          supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('severity', 'critical'),
-          ...ALERT_CATEGORIES.map(c => supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('category', c.value)),
-        ]);
-
         let rows: AlertRow[] = [];
+        let totalCount: number | null = null;
         if (rowCap > 0) {
-          const { data, error } = await supabase
+          const { data, error, count } = await supabase
             .from('alerts')
-            .select('*')
+            .select('*', { count: 'exact' })
             .order('created_at', { ascending: false })
             .limit(rowCap);
           if (error) throw error;
           rows = data ?? [];
+          totalCount = count;
         } else {
           let from = 0;
           for (let i = 0; i < MAX_UNCAPPED_ALERT_PAGES; i++) {
@@ -100,16 +95,18 @@ export function useAlerts() {
         if (!mounted) return;
 
         const byCategory: Record<string, number> = {};
-        ALERT_CATEGORIES.forEach((c, index) => {
-          byCategory[c.value] = categoryCounts[index]?.count ?? 0;
+        ALERT_CATEGORIES.forEach((c) => {
+          byCategory[c.value] = rows.filter((a) => a.category === c.value).length;
         });
         const mostActiveCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]?.[0] || 'market';
+        const unreadCount = rows.filter((a) => !a.read).length;
+        const criticalCount = rows.filter((a) => a.severity === 'critical').length;
 
         setTotalAvailable(totalCount ?? rows.length);
         setStats({
           total: totalCount ?? rows.length,
-          unread: unreadCount ?? rows.filter((a) => !a.read).length,
-          critical: criticalCount ?? rows.filter((a) => a.severity === 'critical').length,
+          unread: unreadCount,
+          critical: criticalCount,
           byCategory,
           mostActiveCategory,
         });
