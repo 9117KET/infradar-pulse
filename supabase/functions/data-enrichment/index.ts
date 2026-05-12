@@ -121,6 +121,10 @@ serve(async (req) => {
     let qualityScoresWritten = 0;
 
     for (const project of toEnrich) {
+      if (Date.now() - runStartedAt.getTime() > WALL_CLOCK_BUDGET_MS) {
+        console.log("data-enrichment: wall-clock budget reached, stopping early");
+        break;
+      }
       try {
         const missingFields: string[] = [];
         const missingSourceUrl = !project.source_url || project.source_url === '' || project.source_url === '#';
