@@ -104,7 +104,8 @@ serve(async (req) => {
       return { ...p, gapScore: gaps, hasContacts: !!contactCounts[p.id], hasEvidence: !!evidenceCounts[p.id] };
     });
 
-    const toEnrich = scoredProjects.filter(p => p.gapScore > 2).sort((a, b) => b.gapScore - a.gapScore).slice(0, 15);
+    const toEnrich = scoredProjects.filter(p => p.gapScore > 2).sort((a, b) => b.gapScore - a.gapScore).slice(0, 6);
+    const WALL_CLOCK_BUDGET_MS = 110_000;
 
     if (!toEnrich.length) {
       const result = { success: true, message: "All projects have good data coverage", enriched: 0 };
