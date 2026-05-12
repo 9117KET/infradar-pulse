@@ -166,7 +166,7 @@ Analyze if there are meaningful changes. Return JSON with:
       }
     }
 
-    const result = { success: true, projects_checked: Math.min(projects.length, 50), updated: updatedCount, alerts_created: alertsCreated };
+    const result = { success: true, projects_checked: Math.min(projects.length, 8), updated: updatedCount, alerts_created: alertsCreated };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
     await recordAgentEvent(supabase, "update-check", "completed", "Update proposals created for reviewer approval", taskId, result);
     await finishAgentRun(supabase, "update-check", "completed", runStartedAt);
