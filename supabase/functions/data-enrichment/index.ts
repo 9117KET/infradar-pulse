@@ -42,6 +42,8 @@ serve(async (req) => {
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  if (!await isAgentEnabled(supabase, "data-enrichment")) return pausedResponse("data-enrichment");
+
   const lock = await beginAgentTask(supabase, "data-enrichment", "Scanning projects for missing data and enriching gaps", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("data-enrichment");
   const taskId = lock.taskId;
