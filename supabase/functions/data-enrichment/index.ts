@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 import { calculateIntelligenceQuality } from "../_shared/intelligenceQuality.ts";
 
 const corsHeaders = {
@@ -41,6 +41,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Supabase not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  if (!await isAgentEnabled(supabase, "data-enrichment")) return pausedResponse("data-enrichment");
 
   const lock = await beginAgentTask(supabase, "data-enrichment", "Scanning projects for missing data and enriching gaps", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("data-enrichment");
@@ -102,7 +104,8 @@ serve(async (req) => {
       return { ...p, gapScore: gaps, hasContacts: !!contactCounts[p.id], hasEvidence: !!evidenceCounts[p.id] };
     });
 
-    const toEnrich = scoredProjects.filter(p => p.gapScore > 2).sort((a, b) => b.gapScore - a.gapScore).slice(0, 15);
+    const toEnrich = scoredProjects.filter(p => p.gapScore > 2).sort((a, b) => b.gapScore - a.gapScore).slice(0, 6);
+    const WALL_CLOCK_BUDGET_MS = 110_000;
 
     if (!toEnrich.length) {
       const result = { success: true, message: "All projects have good data coverage", enriched: 0 };
@@ -118,6 +121,10 @@ serve(async (req) => {
     let qualityScoresWritten = 0;
 
     for (const project of toEnrich) {
+      if (Date.now() - runStartedAt.getTime() > WALL_CLOCK_BUDGET_MS) {
+        console.log("data-enrichment: wall-clock budget reached, stopping early");
+        break;
+      }
       try {
         const missingFields: string[] = [];
         const missingSourceUrl = !project.source_url || project.source_url === '' || project.source_url === '#';
