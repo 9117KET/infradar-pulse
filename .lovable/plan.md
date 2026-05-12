@@ -1,98 +1,65 @@
-# Phase 1 — Delta Report
+## Audit results
 
-Comparing current platform reality (FEATURES.md, FEATURE_CATALOG.md, PLATFORM_VISION, AGENT_ARCHITECTURE, USER_GUIDE, STRATEGIC_FEATURES, INDUSTRY_AND_PLATFORM_KNOWLEDGE, Pricing.tsx, CapabilitiesSection, PersonasSection, UseCaseSection, MEED research, ZERO_TO_ONE) against current `/go-to-market/*` copy.
+I checked all 30+ scheduled agents (`research_tasks`, `agent_config`, function code, monitoring helpers). Most agents are healthy and completing on Lovable AI as designed. Three real problems plus some monitoring noise:
 
----
+### 1. Scheduled cron has been silent for 9 days (highest-impact bug)
 
-## 1. What is NEW on the platform since GTM docs were written
+- Most recent row in `research_tasks` is **2026-05-03 09:07** — today is 2026-05-12.
+- Every agent's `agent_config.last_run_at` is also stuck around May 3.
+- This matches the known failure mode in `mem://architecture/agent-cron-auth`: pg_cron calls edge functions using the service-role JWT stored in `vault.secrets('email_queue_service_role_key')`. When that vault secret falls out of sync with the current `SUPABASE_SERVICE_ROLE_KEY`, every cron-driven HTTP call returns 401 and no `research_tasks` rows are ever created.
+- The `agent-health-monitor` function exists to detect exactly this and email admins, but `agent_health_alerts` is empty — meaning the monitor itself is also not being invoked by cron (same root cause).
 
-Confirmed shipped in repo, absent or under-represented in GTM copy:
+Fix: re-sync the vault secret by invoking the existing `sync-service-role-to-vault` edge function with admin auth, then verify `cron.job_run_details` start producing succeeded rows again. After that, `agent-health-monitor` will start writing/clearing alerts on its own. No code change needed for the resync itself; if the function or its admin trigger is missing pieces I'll add them.
 
-- **7 MDB ingest agents live** (not 5): World Bank, IFC, ADB, AfDB, EBRD, **AIIB, IADB**. GTM still says "5 MDBs".
-- **10 named home-page modules** (CapabilitiesSection.tsx) including: Satellite verification, Delay prediction & early warning, Contractor intelligence, Procurement monitoring (20+ sources), AI market reports, Ask in plain English (NL search live).
-- **Natural-Language Project Search** (`/dashboard/ask` + `nl-search` edge fn) — shipped. GTM treats as roadmap/research-agent.
-- **AI Market Report Builder** (country/sector/tender/portfolio scoped) — shipped via `report-agent`.
-- **Intelligence Summaries hub** (consolidates Digests + Reports).
-- **Portfolio Chat** over tracked projects.
-- **Tenders & Awards page** (live, alerts-backed).
-- **Country Intelligence list + Country Detail dashboards**.
-- **Project Comparison page** (`/dashboard/compare`).
-- **Human-in-the-Loop Review Queue** with mandatory verification reason audit trail.
-- **On-Demand Research Hub** (multi-agent pipeline triggered by NL queries, researcher+).
-- **Engagement Hub** (leads, 4 engagement paths).
-- **Project Watchlist / Portfolio** with notes.
-- **Alert Rules CRUD** UI; Alert Intelligence classification + 30-day trend analytics.
-- **Stakeholder & Contact Discovery** (categorised contacts, click-to-contact).
-- **Geo Intelligence** dashboard (native Leaflet, region overlays).
-- **Agent Monitoring** with pause/resume + per-agent task tracker.
-- **Interactive Onboarding** — 6-step role-specific tour.
-- **3-tier RBAC** (User / Researcher / Admin) via `user_roles` + `has_role`.
-- **9 risk signal categories** explicitly tracked (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security).
-- **Lovable AI–first agent stack** (no required Perplexity/OpenAI/Firecrawl spend) — material credibility/cost story.
-- **Pilot access counter** (first N signups get N days Pro, no card) — live on pricing page.
-- **Founders Lifetime $1,499** — limited 100 seats, live on pricing.
-- **Card-free 3-day trial** — live.
-- **Paddle live checkout** with monthly/yearly toggle and 14-day refund window.
+### 2. `update-checker` and `data-enrichment` exceed the edge function wall clock
 
-## 2. What has CHANGED (positioning, pricing, personas, modules)
+- Both are currently auto-reaped after 30 min on every run (`research_tasks.error = '[auto-reaped: stuck running >30m]'`).
+- `update-checker` loops 50 projects × 2 sequential AI calls each (research + extraction).
+- `data-enrichment` loops 15 projects × 2 sequential AI calls each, and is also missing the `isAgentEnabled` gate that every other agent has.
+- Edge functions in Supabase have a hard ~150s wall-clock; the loops cannot finish, so the function is killed mid-iteration before it can write `status='completed'`.
 
-- **Pricing & tiers** (Pricing.tsx is source of truth):
-  - Free $0 — 2 AI queries/day, 3 insight reads, 1 export/day (≤25 rows).
-  - **Starter $29/mo** ($278/yr ≈ $23.20/mo) — 20 AI queries/day, 50 insight reads, 20 exports (≤1,000 rows), AI digest emails, alert rules, **portfolio chat**, saved searches.
-  - **Pro $199/mo** ($1,910/yr ≈ $159.20/mo) — 100 AI queries, 200 insights, 100 exports (≤10,000 rows), tearsheet PDFs, country/sector/tender/portfolio report PDFs, **delay risk scores, early-warning alerts, contractor intel, permit & regulatory tracker**.
-  - **Enterprise** — custom; unlimited; API + webhooks; SSO/SAML; white-label; SLA.
-  - **Founders Lifetime $1,499** one-time, capped at 100 seats.
-  - GTM docs currently imply only Free / Starter / Pro / Enterprise without surfacing Starter price ($29) or Lifetime offer; YC doc has correct numbers but missing Lifetime & pilot mechanic.
-  - GTM docs say "free for 12 months for early users" in LOI letters — **this no longer matches the live offer** (current mechanic = pilot N-day free Pro + card-free 3-day trial + 14-day refund). Needs alignment.
-- **Persona list expanded** to 9 (PersonasSection): BD, EPC, infra consultants, DFI analysts, project finance, project managers, owners/developers, procurement & tender teams, infra organizations. GTM docs centre on 6.
-- **Geographic scope** moved from "MENA + East Africa beachhead" framing toward **explicit global / 14 regions** (matches memory + hero copy). MENA/Africa is now a proof beachhead, not the headline.
-- **Verified-intelligence** is now a positioning pillar: source URL required, unverified capped at 30% confidence, mandatory verification reason audit trail, human review queue. None of this appears in current LOI letters.
-- **Cost moat narrative**: Lovable AI–first agent architecture means near-zero marginal LLM cost — strengthens the "100x cheaper, sustainable" angle vs incumbents.
-- **Competitor framing on site is now anonymized categories** (regional publisher, global market research, energy/commodity research house, project finance terminal, MENA/Africa intel, tender aggregator) — GTM docs still name MEED / GlobalData / Wood Mackenzie directly. We can keep names internal but mirror the 6-category framing in public LOIs.
+Fix:
+- Reduce per-run batch size: `update-checker` 50 → 8 projects, `data-enrichment` 15 → 6 projects (cron runs hourly so coverage is preserved within a day).
+- Add `isAgentEnabled('data-enrichment')` + `pausedResponse` at the top of `data-enrichment` for parity with the rest.
+- In both, wrap the per-project body in a wall-clock check (`if (Date.now() - runStartedAt > 110_000) break`) so they always exit cleanly and call `finishAgentRun(..., 'completed')` instead of being reaped.
 
-## 3. What is OBSOLETE in current GTM copy and must be removed/rewritten
+### 3. Stale duplicate rows in `agent_config`
 
-- "**5 MDBs**" → replace with **7 MDB sources** (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB).
-- "**40+ AI agents**" — repo shows ~30 named edge functions in active families; safer claim is **30+ specialised agents across 7 families** (discovery/ingest, enrichment/verification, market & risk monitoring, reporting & user-facing AI). Flag as `[VERIFY count]` if precision matters.
-- "**Free 12 months for early users**" in LOI letters → replace with current pilot mechanic (limited-seat free Pro window + card-free trial + 14-day refund).
-- README "Last updated: April 2026" — refresh to **May 2026** and update "Immediate Actions" (EF London May 1 deadline is **today**; needs same-day or remove).
-- "**Coverage of IsDB, AIIB, KfW on Q3 2026 roadmap**" in EPC LOI → AIIB is **already shipped**; rewrite to (KfW, IsDB, JICA, NDB) on roadmap.
-- Standard Pitch in README: "GPT-4-class models" → 2026 framing should reference **GPT-5 / Gemini 3-class**.
-- "**$2T in MDB-financed infrastructure**" — uncited; use **WB committed $117B in 2024** and **AfDB Mission 300 ($300B by 2030)** as defensible anchors.
-- LOI letters all reference "AI research agent" generically — should now name the live surfaces: **Ask in plain English**, **Portfolio Chat**, **AI Market Report Builder**, **Intelligence Summaries**.
-- LOI EPC template positions vs MEED only ($30k) — broaden to 6 incumbent categories already on Pricing page.
-- YC application cites "40+ agents", "5 MDBs", "9 signal categories" — keep 9 signals (correct), update agent count + MDB count.
-- Persona ordering in YC doc puts DFI #1; current commercial reality (and pricing-page persona block) puts **BD/EPC/consultants** as primary buyers because they have budget + faster purchase cycles. DFIs are best for **LOI/credibility**, not first revenue. Need to split LOI-target priority from revenue-target priority in the messaging.
-- "Bechtel/Fluor/Vinci" name list in LOI should add named African/MENA priority targets already in LOI-TARGETS (L&T PT&D, CCC, Samsung C&T, POSCO, Bouygues).
-- Application files all say "Pre-revenue. Seeking first 3 enterprise pilots." — confirm whether pilot-counter usage has changed this; if any pilots converted, update. `[VERIFY]`.
+`agent_config` has both the old function-style key and the new task-type key for several agents:
 
-## 4. Contradictions between current product and current pitch
+| stale row (last run) | live row |
+|---|---|
+| `risk-scorer` (Apr 28) | `risk-scoring` |
+| `update-checker` (Apr 30) | `update-check` |
+| `research-agent` (Apr 30) | `discovery` |
+| `insight-sources-agent` (Apr 30) | `insight-sources` |
+| `world-bank-ingest-agent` (if present) | `world-bank-ingest` |
 
-| # | Current pitch says | Product reality says | Action |
-|---|---|---|---|
-| 1 | "5 MDBs" | 7 MDB ingest agents shipped | Update to 7. |
-| 2 | "40+ agents" | ~30 edge functions in agent families | Use "30+ specialised agents" or `[VERIFY]` exact count. |
-| 3 | "Free for 12 months early access" | Pilot N-day Pro + 3-day card-free trial + 14-day refund window | Rewrite trial offer language. |
-| 4 | "AI research agent" only | Ask, Portfolio Chat, Report Builder, Intelligence Summaries all live | Name the actual surfaces. |
-| 5 | "MENA + East Africa beachhead" headline | Site/marketing now explicitly global, 14 regions | Reframe MENA/Africa as proof, not scope. |
-| 6 | "GPT-4-class models" | 2026 era; site uses Lovable AI gateway with Gemini 3 / GPT-5 family | Update "why now". |
-| 7 | "AIIB on roadmap" | AIIB ingest agent shipped | Move to shipped list. |
-| 8 | DFI analysts as #1 buyer | Pricing tiers + Onboarding optimised for BD/EPC/consultants | Separate LOI-priority (DFI) from revenue-priority (BD/EPC/consultants). |
-| 9 | "Pre-revenue" | Live Paddle checkout + lifetime sales possible | `[VERIFY]` whether any paid conversions exist before re-asserting "pre-revenue". |
-| 10 | LOI letters omit verified-intelligence story | Verification queue, mandatory reasons, source URL required, 30% cap on unverified are central differentiators | Inject into all LOI templates. |
+`rebuild_agent_config_from_tasks()` only inserts/updates from `research_tasks.task_type`, so the stale rows never go away and inflate the failure counts that show on `/dashboard/agents`.
 
-## 5. Items I will flag rather than invent
+Fix: one-shot migration that deletes the stale `agent_type` rows, then call `rebuild_agent_config_from_tasks()` so the dashboard reflects the real (good) success/failure history.
 
-- Exact live agent count (`[VERIFY count from agent_config table]`).
-- Whether any paid conversions / first revenue exist (`[VERIFY revenue]`).
-- Number of projects, alerts and verified records currently in DB for a defensible "platform stats" line (`[VERIFY public-stats RPC numbers]`).
-- Specific named conferences in May–Sep 2026 (cross-check `docs/TRACTION_MARKETING.md` conference calendar before locking).
-- Any new/expired accelerator deadlines beyond the seven already tracked.
+### 4. Two ingest agents are paused and need a deliberate decision
 
-## 6. Proposed scope for Phases 2–4 (no writing yet)
+- `aiib-ingest` — `enabled=false`, never run. The function itself parses an official AIIB JS bootstrap and looks fine; just needs to be enabled (or explicitly left off if we don't want AIIB right now).
+- `adb-ingest` — `enabled=false` after repeated "Could not locate ADB CSV dataset" failures. ADB changed its CSV endpoint. Either find the new CSV and update `directUrls` in `adb-ingest-agent`, or leave it disabled.
 
-If you approve this delta, Phase 2 will produce a single canonical `go-to-market/MESSAGING.md` aligned to the corrections above (7 MDBs, Lovable-AI cost moat, verified-intelligence pillar, named live surfaces, current pricing incl. Lifetime + pilot, 2026 "why now"). Phases 3 and 4 will then cascade those facts through the 5 LOI templates, 8 accelerator apps, LOI-TARGETS, README, and the four new files (PERSONA-PLAYBOOKS, PROOF-PACK, OBJECTION-HANDLING, OUTBOUND-SEQUENCES).
+I'll flip `aiib-ingest` on. For `adb-ingest` I'd rather confirm with you before chasing the ADB endpoint change (it's not breaking anything in the disabled state).
 
----
+### What I will NOT touch
 
-**Approve to proceed to Phase 2 (MESSAGING.md), or tell me which of these deltas to drop / soften / strengthen first.**
+- The historical "high failure count" agents (`regulatory-monitor`, `stakeholder-intel`, `supply-chain-monitor`, `corporate-ma-monitor`, etc.) — their old failures are pre-Apr-28 Perplexity-quota errors. They have all been completing successfully on Lovable AI since the migration. Once item 3 cleans up `agent_config`, the dashboard will look honest.
+- Any of the working monitoring functions (`tender-award-monitor`, `security-resilience`, `esg-social-monitor`, `funding-tracker`, `market-intel`, `sentiment-analyzer`, `alert-intelligence`, `executive-briefing`, etc.) — code is correct.
+
+## Plan of work
+
+1. Resync service-role JWT into vault so cron can auth again, and verify a fresh `research_tasks` row appears within one cron tick.
+2. Code changes:
+   - `supabase/functions/update-checker/index.ts`: batch 50→8 + wall-clock break.
+   - `supabase/functions/data-enrichment/index.ts`: batch 15→6 + wall-clock break + add `isAgentEnabled`/`pausedResponse`.
+3. Migration: delete stale `agent_config` rows listed above, then `SELECT public.rebuild_agent_config_from_tasks();`. Also `UPDATE agent_config SET enabled=true WHERE agent_type='aiib-ingest';`.
+4. Verify on `/dashboard/agents`: no duplicate rows, `update-check` and `data-enrichment` complete cleanly, AIIB starts producing rows on next cron tick.
+
+## Question before I implement
+
+For `adb-ingest` (currently disabled because ADB moved their CSV): want me to (a) leave it off, or (b) spend a step finding the new ADB sovereign-operations CSV URL and re-enabling it?
