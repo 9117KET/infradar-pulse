@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Seo } from '@/components/Seo';
 
 type FeedbackType = 'bug' | 'idea' | 'praise' | 'other';
 

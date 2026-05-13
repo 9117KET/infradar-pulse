@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { CapabilitiesSection } from '@/components/home/CapabilitiesSection';
 import { PersonasSection } from '@/components/home/PersonasSection';
 import { UseCaseSection } from '@/components/home/UseCaseSection';
+import { Seo } from '@/components/Seo';
 
 const MODULES = [
   { icon: Activity, title: 'Real-time project monitoring', desc: 'Continuous tracking of infrastructure project milestones, delays, and status changes. Confidence-scored updates from 20+ verified sources.' },
@@ -17,6 +18,11 @@ const MODULES = [
 export default function Services() {
   return (
     <>
+      <Seo
+        title="Services & Platform Modules | InfradarAI"
+        description="Real-time monitoring, satellite verification, multi-source validation, geospatial intelligence and AI-powered market reports for infrastructure teams."
+        path="/services"
+      />
       <div className="py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <h1 className="font-serif text-4xl font-bold mb-4">Services</h1>
