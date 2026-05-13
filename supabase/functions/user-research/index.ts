@@ -198,7 +198,7 @@ serve(async (req) => {
     if (taskErr) {
       console.error("Failed to create research task:", taskErr);
       return new Response(
-        JSON.stringify({ error: `Failed to create research task: ${taskErr.message}` }),
+        JSON.stringify({ error: "Could not create research task. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -251,7 +251,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("user-research error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
