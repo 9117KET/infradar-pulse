@@ -6,6 +6,7 @@ import { useInsights } from '@/hooks/use-insights';
 import { usePublicProjectStats } from '@/hooks/use-public-project-stats';
 import { format } from 'date-fns';
 import { Clock, ArrowRight, Activity, Globe2, Layers } from 'lucide-react';
+import { Seo } from '@/components/Seo';
 
 function formatPipelineValue(usd: number): string {
   if (usd >= 1e12) return `$${(usd / 1e12).toFixed(2)}T`;
@@ -43,6 +44,11 @@ export default function Insights() {
 
   return (
     <div className="py-20">
+      <Seo
+        title="Infrastructure Insights & Analysis | InfradarAI"
+        description="Long-form research, market analysis, and verified perspectives on global infrastructure projects across 14 regions. Updated weekly."
+        path="/insights"
+      />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-4">Insights</h1>
         <p className="text-muted-foreground max-w-2xl mb-10">

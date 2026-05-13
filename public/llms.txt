@@ -1,0 +1,26 @@
+# InfradarAI
+
+> Verified global infrastructure intelligence. AI-assisted, human-verified signals on high-value infrastructure projects across 14 global regions, with confidence-scored sources and citations.
+
+InfradarAI tracks infrastructure projects (energy, transport, water, digital, urban development, mining, oil & gas, and more) across MENA, Africa, Asia, Latin America and beyond. We combine multilateral development bank feeds (World Bank, IFC, ADB, AfDB, EBRD, IADB, AIIB), satellite verification, news monitoring and human review into a single confidence-scored pipeline.
+
+## Pages
+
+- [Home](/): Verified infrastructure intelligence for high-stakes decisions.
+- [Explore](/explore): Browse verified projects across 14 regions, filter by sector, country and risk.
+- [Insights](/insights): Long-form research and analysis on global infrastructure pipelines.
+- [Snapshot](/snapshot): Public weekly snapshot of the verified pipeline.
+- [Services](/services): Real-time monitoring, satellite verification, multi-source validation, geospatial intelligence and AI-powered market reports.
+- [Pricing](/pricing): Free tier, Starter from $29/mo, team and lifetime plans.
+- [About](/about): Mission, vision, and how we turn fragmented signals into decision-ready data.
+- [Contact](/contact): Talk to sales or request pilot access.
+
+## Optional
+
+- [Careers](/careers): How to reach us if you'd like to work at InfradarAI.
+- [Press](/press): Press inquiries and brand assets.
+- [Feedback](/feedback): Report bugs, request features or share praise.
+- [Terms of Service](/terms): Platform terms.
+- [Privacy Notice](/privacy): How we handle personal data.
+- [Refund Policy](/refund): 14-day refund window via Paddle.
+- [Data Protection](/data-protection): Encryption, access control and data residency.

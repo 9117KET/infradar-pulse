@@ -1,6 +1,13 @@
+import { Seo } from '@/components/Seo';
+
 export default function Terms() {
   return (
     <div className="py-20">
+      <Seo
+        title="Terms of Service | InfradarAI"
+        description="The terms of service governing use of the InfradarAI platform, operated by Kinlo and Glen, with Paddle as Merchant of Record."
+        path="/terms"
+      />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Terms of Service</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">

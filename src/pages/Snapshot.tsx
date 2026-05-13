@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { ArrowRight, TrendingUp, AlertTriangle, Globe } from 'lucide-react';
+import { Seo } from '@/components/Seo';
 
 interface Project {
   id: string;
@@ -76,6 +77,11 @@ export default function Snapshot() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Seo
+        title="Weekly Infrastructure Snapshot | InfradarAI"
+        description="A weekly public snapshot of high-value infrastructure projects, regional pipelines and risk signals from the InfradarAI verified database."
+        path="/snapshot"
+      />
       {/* Header */}
       <header className="border-b border-border">
         <div className="mx-auto max-w-3xl px-4 py-4 flex items-center justify-between">
