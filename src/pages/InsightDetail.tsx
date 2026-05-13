@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, User, Calendar, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Seo } from '@/components/Seo';
 
 export default function InsightDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -120,6 +121,35 @@ export default function InsightDetail() {
 
   return (
     <div className="py-20">
+      <Seo
+        title={`${insight.title} | InfradarAI`}
+        description={insight.excerpt?.slice(0, 158) || `${insight.title} — verified infrastructure analysis from InfradarAI.`}
+        path={`/insights/${insight.slug}`}
+        type="article"
+        image={insight.cover_image_url || undefined}
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: insight.title,
+            description: insight.excerpt,
+            author: { '@type': 'Person', name: insight.author },
+            datePublished: insight.created_at,
+            dateModified: insight.updated_at || insight.created_at,
+            mainEntityOfPage: `https://infradarai.com/insights/${insight.slug}`,
+            ...(insight.cover_image_url ? { image: insight.cover_image_url } : {}),
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://infradarai.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Insights', item: 'https://infradarai.com/insights' },
+              { '@type': 'ListItem', position: 3, name: insight.title, item: `https://infradarai.com/insights/${insight.slug}` },
+            ],
+          },
+        ]}
+      />
       <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} reason="insight" />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Link to="/insights" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8">
