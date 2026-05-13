@@ -195,8 +195,11 @@ serve(async (req) => {
 
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 500, 1), 5000);
+    // Per-invocation cap kept small to stay under edge-runtime CPU limit (~2s).
+    // Larger backfills should paginate via repeated calls with `offset`.
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 75, 1), 200);
     const startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    const background: boolean = body.background !== false; // default to background processing
 
     const lock = await beginAgentTask(supabase, "aiib-ingest", `AIIB official data file - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
