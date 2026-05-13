@@ -29,19 +29,17 @@ export async function requireStaffOrRespond(req: Request): Promise<
       headers: corsJson,
     });
   }
-  // Allow the real service-role JWT used by scheduled invocations. Compare the
-  // bearer token to the configured secret before trusting its role claim; never
-  // authorize based on an unsigned client-decodable payload alone.
+  // Allow the real service-role key used by scheduled (pg_cron) invocations.
+  // The bearer must equal the configured SUPABASE_SERVICE_ROLE_KEY exactly.
+  // That equality IS the security boundary — Supabase issues this key in two
+  // formats: a signed JWT (legacy) and an opaque `sb_secret_...` string (new
+  // signing-keys system). Both are valid; do not require a JWT shape here, or
+  // cron-driven agent runs silently 401 forever after a project rotates keys.
   const rawAuth = req.headers.get("Authorization") ?? "";
   const bearerToken = rawAuth.startsWith("Bearer ") ? rawAuth.slice(7) : "";
-  if (bearerToken === serviceKey) {
-    try {
-      const payload = JSON.parse(atob(bearerToken.split(".")[1]));
-      if (payload?.role === "service_role") {
-        const supabaseAdmin = createClient(supabaseUrl, serviceKey);
-        return { userId: null, supabaseAdmin };
-      }
-    } catch { /* not decodeable - fall through to normal auth */ }
+  if (bearerToken && bearerToken === serviceKey) {
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+    return { userId: null, supabaseAdmin };
   }
 
   const user = await getUserFromBearer(req, supabaseUrl, anonKey);
