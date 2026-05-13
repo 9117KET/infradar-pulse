@@ -1,6 +1,13 @@
+import { Seo } from '@/components/Seo';
+
 export default function DataProtection() {
   return (
     <div className="py-20">
+      <Seo
+        title="Data Protection | InfradarAI"
+        description="How InfradarAI protects customer data: TLS 1.3 in transit, AES-256 at rest, role-based access controls and regional data residency for enterprise."
+        path="/data-protection"
+      />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Data Protection</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">

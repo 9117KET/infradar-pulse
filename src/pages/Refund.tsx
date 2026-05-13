@@ -1,6 +1,13 @@
+import { Seo } from '@/components/Seo';
+
 export default function Refund() {
   return (
     <div className="py-20">
+      <Seo
+        title="Refund Policy | InfradarAI"
+        description="14-day refund window for InfradarAI subscriptions. How to request a refund through Paddle, cancellation rules and statutory consumer rights."
+        path="/refund"
+      />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Refund Policy</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
