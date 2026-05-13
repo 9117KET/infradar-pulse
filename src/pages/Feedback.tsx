@@ -74,6 +74,11 @@ export default function FeedbackPage() {
 
   return (
     <div className="py-16 sm:py-20">
+      <Seo
+        title="Feedback | InfradarAI"
+        description="Share bugs, feature ideas, missing data or praise with the InfradarAI team. Every message is read by the team."
+        path="/feedback"
+      />
       <div className="mx-auto max-w-2xl px-4 sm:px-6">
         <header className="mb-10 text-center">
           <h1 className="font-serif text-4xl sm:text-5xl font-bold mb-3">Tell us what you think</h1>
