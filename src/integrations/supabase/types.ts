@@ -2168,6 +2168,10 @@ export type Database = {
         Returns: boolean
       }
       detect_agent_auth_failures: { Args: { p_hours?: number }; Returns: Json }
+      detect_silent_agent_stoppage: {
+        Args: { p_hours?: number }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2188,6 +2192,22 @@ export type Database = {
           last_run_at: string
           suspected_auth_failure: boolean
           total_runs: number
+        }[]
+      }
+      get_agent_http_health: {
+        Args: { p_hours?: number }
+        Returns: {
+          auth_failures: number
+          failed_calls: number
+          failure_rate_pct: number
+          job_name: string
+          last_call_at: string
+          last_error_msg: string
+          last_failure_at: string
+          last_status_code: number
+          server_errors: number
+          suspected_auth_failure: boolean
+          total_calls: number
         }[]
       }
       get_agent_monitoring_summary: {
