@@ -84,8 +84,9 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: corsHeaders },
     );
   } catch (e) {
+    console.error("checkout-precheck error:", e);
     return new Response(
-      JSON.stringify({ error: (e as Error).message }),
+      JSON.stringify({ error: "An internal error occurred. Please try again." }),
       { status: 500, headers: corsHeaders },
     );
   }
