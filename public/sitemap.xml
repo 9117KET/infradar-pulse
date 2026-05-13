@@ -13,12 +13,17 @@
   <url>
     <loc>https://infradarai.com/explore</loc>
     <changefreq>daily</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://infradarai.com/insights</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/services</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://infradarai.com/pricing</loc>
@@ -31,14 +36,14 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://infradarai.com/services</loc>
+    <loc>https://infradarai.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://infradarai.com/contact</loc>
+    <loc>https://infradarai.com/careers</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://infradarai.com/press</loc>
@@ -46,8 +51,76 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://infradarai.com/careers</loc>
+    <loc>https://infradarai.com/feedback</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/refund</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/data-protection</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/satellite-verification-due-diligence</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/mena-vs-east-africa-trajectories</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/beyond-the-giga-project-the-rise-of-institutional-de-risking-in-mena-and-africa</loc>
+    <lastmod>2026-03-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/early-warning-delay-prediction</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/the-400-billion-infrastructure-pivot-ai-energy-and-the-new-geopolitical-tax</loc>
+    <lastmod>2026-03-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/the-great-infrastructure-pivot-from-speculative-wonders-to-industrial-reality</loc>
+    <lastmod>2026-03-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/the-great-mena-decoupling-scaling-giga-projects-vs-asset-delivery</loc>
+    <lastmod>2026-03-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/insights/executive-briefing-infrastructure-pipeline-investment-outlook-for-mena-and-afric</loc>
+    <lastmod>2026-03-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 </urlset>
