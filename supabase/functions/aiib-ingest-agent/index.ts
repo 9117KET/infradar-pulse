@@ -199,7 +199,6 @@ serve(async (req) => {
     // Larger backfills should paginate via repeated calls with `offset`.
     const totalLimit: number = Math.min(Math.max(Number(body.limit) || 75, 1), 200);
     const startOffset: number = Math.max(Number(body.offset) || 0, 0);
-    const background: boolean = body.background !== false; // default to background processing
 
     const lock = await beginAgentTask(supabase, "aiib-ingest", `AIIB official data file - limit:${totalLimit}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
