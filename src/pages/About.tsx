@@ -1,29 +1,19 @@
 import { Link } from 'react-router-dom';
-import { useEffect } from 'react';
 import { Globe2, Radar, ShieldCheck, Sparkles, Compass, Users } from 'lucide-react';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 import { ProblemSection } from '@/components/home/ProblemSection';
 import { PipelineSection } from '@/components/home/PipelineSection';
+import { Seo } from '@/components/Seo';
 
 export default function About() {
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = 'About INFRADARAI | Verified Infrastructure Intelligence';
-    const meta = document.querySelector('meta[name="description"]');
-    const prevDesc = meta?.getAttribute('content') ?? '';
-    meta?.setAttribute(
-      'content',
-      'INFRADARAI is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data.',
-    );
-    return () => {
-      document.title = prevTitle;
-      if (prevDesc) meta?.setAttribute('content', prevDesc);
-    };
-  }, []);
-
   return (
     <>
+      <Seo
+        title="About INFRADARAI | Verified Infrastructure Intelligence"
+        description="INFRADARAI is the verified intelligence layer for global infrastructure. Learn about our mission, vision, values, and how we turn fragmented signals into decision-ready data."
+        path="/about"
+      />
     <div className="py-16 sm:py-20">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* Hero */}

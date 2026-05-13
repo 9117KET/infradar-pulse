@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import { PublicProjectDrawer } from '@/components/home/PublicProjectDrawer';
 import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
+import { Seo } from '@/components/Seo';
 
 const PREVIEW_LIMIT = 20;
 
@@ -88,6 +89,11 @@ export default function Explore() {
 
   return (
     <div className="min-h-screen">
+      <Seo
+        title="Explore Global Infrastructure Projects | InfradarAI"
+        description="Browse verified infrastructure projects across 14 global regions. Filter by sector, country and risk score to find live opportunities."
+        path="/explore"
+      />
       {/* Header */}
       <section className="relative py-16 border-b border-border/30">
         <div className="pointer-events-none absolute inset-0" style={{

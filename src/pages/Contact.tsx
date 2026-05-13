@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Seo } from '@/components/Seo';
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100, 'Name is too long'),
@@ -146,6 +147,11 @@ export default function Contact() {
 
   return (
     <section className="relative py-24">
+      <Seo
+        title="Contact InfradarAI | Talk to Our Intelligence Team"
+        description="Get in touch with the InfradarAI team for sales, partnerships, pilot access, or product questions about verified global infrastructure intelligence."
+        path="/contact"
+      />
       <div className="mx-auto max-w-5xl px-4 sm:px-6">
         <div className="text-center mb-12">
           <h1 className="font-serif text-4xl font-bold mb-4">Get in touch</h1>
