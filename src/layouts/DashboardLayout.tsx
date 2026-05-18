@@ -76,6 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
       { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
+      { title: 'Agent Health', url: '/dashboard/agent-health', icon: Bot, tourId: 'nav-agent-health' },
     ],
   },
   {
