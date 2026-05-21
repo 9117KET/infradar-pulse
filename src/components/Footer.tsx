@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 const PRODUCT_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Explore', href: '/explore' },
+  { label: 'Try Ask AI', href: '/ask-demo' },
   { label: 'Snapshot', href: '/snapshot' },
   { label: 'Insights', href: '/insights' },
   { label: 'Services', href: '/services' },
