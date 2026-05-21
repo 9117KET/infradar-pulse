@@ -16,6 +16,7 @@ export type FeatureKey =
   | 'tender_calendar'
   | 'compare_projects'
   | 'pipeline_view'
+  | 'intelligence_summaries'
   // Pro+
   | 'risk_signals'
   | 'realtime_monitoring'
@@ -40,6 +41,7 @@ export const FEATURE_MIN_PLAN: Record<FeatureKey, PlanKey> = {
   tender_calendar: 'starter',
   compare_projects: 'starter',
   pipeline_view: 'starter',
+  intelligence_summaries: 'starter',
   // Pro (and above)
   risk_signals: 'pro',
   realtime_monitoring: 'pro',
@@ -72,6 +74,10 @@ export const FEATURE_LABELS: Record<FeatureKey, { name: string; description: str
   pipeline_view: {
     name: 'Pipeline view',
     description: 'Kanban view of every project across all lifecycle stages.',
+  },
+  intelligence_summaries: {
+    name: 'AI digests and reports',
+    description: 'AI-generated market digests, sector summaries, and exportable PDF reports.',
   },
   risk_signals: {
     name: 'Risk & anomaly signals',

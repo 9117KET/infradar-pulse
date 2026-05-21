@@ -116,14 +116,12 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/ask" element={<Ask />} />
               <Route path="/dashboard/research" element={<RoleGuard requiredRole="researcher"><Research /></RoleGuard>} />
-              <Route path="/dashboard/digests" element={<RoleGuard requiredRole="researcher"><Digests /></RoleGuard>} />
               <Route path="/dashboard/datasets" element={<RoleGuard requiredRole="admin"><Datasets /></RoleGuard>} />
-              <Route path="/dashboard/reports" element={<RoleGuard requiredRole="researcher"><Reports /></RoleGuard>} />
               <Route path="/dashboard/projects" element={<Projects />} />
               <Route path="/dashboard/projects/new" element={<RoleGuard requiredRole="researcher"><ProjectEditor /></RoleGuard>} />
               <Route path="/dashboard/projects/:id/edit" element={<RoleGuard requiredRole="researcher"><ProjectEditor /></RoleGuard>} />
               <Route path="/dashboard/projects/:id" element={<ProjectDetail />} />
-              <Route path="/dashboard/analytics-reports" element={<AnalyticsReports />} />
+              <Route path="/dashboard/analytics-reports" element={<FeatureGate feature="intelligence_summaries"><AnalyticsReports /></FeatureGate>} />
               <Route path="/dashboard/alerts" element={<Alerts />} />
               <Route path="/dashboard/users" element={<RoleGuard requiredRole="admin"><UsersPage /></RoleGuard>} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
@@ -138,7 +136,7 @@ const App = () => (
               <Route path="/dashboard/agent-health" element={<RoleGuard requiredRole="researcher"><AgentHealth /></RoleGuard>} />
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
-              <Route path="/dashboard/intelligence-summaries" element={<RoleGuard requiredRole="researcher"><IntelligenceSummaries /></RoleGuard>} />
+              <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />
               <Route path="/dashboard/tenders" element={<FeatureGate feature="tender_intelligence"><Tenders /></FeatureGate>} />
               <Route path="/dashboard/countries" element={<FeatureGate feature="country_intelligence"><Countries /></FeatureGate>} />
               <Route path="/dashboard/countries/:country" element={<FeatureGate feature="country_intelligence"><CountryDetail /></FeatureGate>} />
@@ -152,7 +150,6 @@ const App = () => (
               <Route path="/dashboard/bd-pipeline" element={<RoleGuard requiredRole="admin"><BDPipeline /></RoleGuard>} />
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
-              <Route path="/dashboard/analytics-reports" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
               <Route path="/dashboard/reports" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
               <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
