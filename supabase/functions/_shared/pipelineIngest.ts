@@ -140,6 +140,19 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     lastUpdated: new Date().toISOString(),
   });
 
+  // Fast-path: skip insert entirely if this name+country was previously rejected.
+  // The DB trigger trg_suppress_rejected_candidates is the durable enforcement,
+  // but checking here saves a write and keeps the queue clean.
+  const { data: rejected } = await supabase
+    .from("candidate_rejection_signatures")
+    .select("id, reason")
+    .eq("normalized_name", normalizedName)
+    .eq("country", input.country ?? "")
+    .maybeSingle();
+  if (rejected?.id) {
+    return { skipped: true, reason: "previously_rejected", signature_id: rejected.id } as any;
+  }
+
   const { data: existingCandidate } = await supabase
     .from("project_candidates")
     .select("id, confidence")
