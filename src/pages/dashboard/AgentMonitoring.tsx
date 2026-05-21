@@ -300,8 +300,7 @@ export default function AgentMonitoring() {
 
   const runHealthMonitor = useCallback(async () => {
     try {
-      const { error } = await supabase.functions.invoke('agent-health-monitor', { body: {} });
-      if (error) throw error;
+      await agentApi.runAgentHealthMonitor();
       toast({ title: 'Health check complete', description: 'Re-scanned cron history for auth failures.' });
       refetchAuthAlerts();
     } catch (e: any) {
@@ -311,13 +310,12 @@ export default function AgentMonitoring() {
 
   const syncServiceRoleKey = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('sync-service-role-to-vault', { body: {} });
-      if (error) throw error;
+      const data = await agentApi.runSyncServiceRoleToVault();
       toast({
         title: 'Service role key synced',
         description: `Vault updated (${(data as any)?.key_fingerprint ?? 'ok'}). Re-running health check…`,
       });
-      await supabase.functions.invoke('agent-health-monitor', { body: {} });
+      await agentApi.runAgentHealthMonitor();
       refetchAuthAlerts();
     } catch (e: any) {
       toast({ title: 'Sync failed', description: e?.message ?? String(e), variant: 'destructive' });

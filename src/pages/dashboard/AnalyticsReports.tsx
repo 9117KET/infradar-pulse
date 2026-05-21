@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { BarChart3, FileText, Loader2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { agentApi } from '@/lib/api/agents';
 import { trackUsage } from '@/lib/billing/trackUsage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlements } from '@/hooks/useEntitlements';
@@ -110,10 +111,9 @@ export default function AnalyticsReports() {
     }
     setGeneratingReport(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-insight', {
-        body: { topic: `Executive briefing: Infrastructure pipeline summary for ${regionFilter === 'all' ? 'all 14 global regions' : regionFilter} covering ${filtered.length} active projects, key risk factors, and investment outlook.` },
+      const data = await agentApi.runGenerateInsight({
+        topic: `Executive briefing: Infrastructure pipeline summary for ${regionFilter === 'all' ? 'all 14 global regions' : regionFilter} covering ${filtered.length} active projects, key risk factors, and investment outlook.`,
       });
-      if (error) throw error;
       if (data?.error) throw new Error(data.error);
       toast.success('Executive report generated! Check Insights to review and publish.');
     } catch (e: any) {

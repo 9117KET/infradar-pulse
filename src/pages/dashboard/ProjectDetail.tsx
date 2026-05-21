@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star, Bot, Loader2, Activity, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star, Bot, Loader2, Activity, Download, Clock } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import jsPDF from 'jspdf';
 import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -463,6 +464,12 @@ export default function ProjectDetail() {
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
+          {project.lastUpdated && (
+            <Badge variant="outline" className="text-muted-foreground gap-1 font-normal" title={`Last data update: ${project.lastUpdated}`}>
+              <Clock className="h-3 w-3" />
+              {formatDistanceToNow(new Date(project.lastUpdated), { addSuffix: true })}
+            </Badge>
+          )}
           {/* Track/bookmark button (all roles) */}
           {project.dbId && (
             <Button size="sm" variant="outline" onClick={() => toggleTrack(project.dbId!)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>

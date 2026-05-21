@@ -80,4 +80,8 @@ export const agentApi = {
   runSecurityResilience: () => invokeAgent('security-resilience'),
   runTenderAwardMonitor: () => invokeAgent('tender-award-monitor'),
   runExecutiveBriefing: () => invokeAgent('executive-briefing'),
+  runGenerateInsight: (opts?: { topic?: string }) => invokeAgentWithBody('generate-insight', { ...(opts ?? {}) }),
+  runAgentHealthMonitor: () => invokeAgentWithBody('agent-health-monitor', {}),
+  runSyncServiceRoleToVault: () => invokeAgentWithBody('sync-service-role-to-vault', {}),
+  runAlertIntelligenceAgent: () => invokeAgent('alert-intelligence'),
 };
