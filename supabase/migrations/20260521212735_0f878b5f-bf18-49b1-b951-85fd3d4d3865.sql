@@ -1,0 +1,1 @@
+UPDATE public.agent_config SET failure_count = 0, updated_at = now() WHERE failure_count > 0 AND last_run_status = 'completed';
