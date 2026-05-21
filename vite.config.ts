@@ -12,9 +12,6 @@ export default defineConfig({
     },
   },
   plugins: [react()],
-  optimizeDeps: {
-    exclude: ['exceljs'],
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
