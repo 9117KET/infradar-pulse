@@ -1,162 +1,98 @@
+# Phase 1 — Delta Report
 
-# Mobile Responsive Refactor — InfraDar AI
+Comparing current platform reality (FEATURES.md, FEATURE_CATALOG.md, PLATFORM_VISION, AGENT_ARCHITECTURE, USER_GUIDE, STRATEGIC_FEATURES, INDUSTRY_AND_PLATFORM_KNOWLEDGE, Pricing.tsx, CapabilitiesSection, PersonasSection, UseCaseSection, MEED research, ZERO_TO_ONE) against current `/go-to-market/*` copy.
 
-Frontend-only initiative to make every page feel native-quality from 320px phones up to 1920px+ monitors. No backend, RLS, edge function, route, or business-logic changes. Brand identity (dark teal/cyan, glassmorphism, Playfair headings) preserved at every breakpoint.
+---
 
-## Current State (Audit Summary)
+## 1. What is NEW on the platform since GTM docs were written
 
-The app already has partial responsive groundwork:
-- `useIsMobile()` hook (768px breakpoint) exists.
-- Marketing `Navbar` already collapses to a `Sheet` below `md`.
-- Shadcn `Sidebar` natively swaps to a mobile sheet via `useIsMobile`.
-- Many pages use `grid md:grid-cols-*`, some use `ResponsiveContainer` for charts.
+Confirmed shipped in repo, absent or under-represented in GTM copy:
 
-The gaps are concentrated in:
-- `DashboardLayout` header (fixed-width search `w-56`, no mobile-tuned spacing, `main` always `p-6`, no safe-area padding, no bottom-tab bar).
-- Data-dense dashboard pages (raw `<Table>` overflow, fixed Leaflet heights, kanban not stacking).
-- Dialogs that should become drawers on mobile (ProjectEditor, UpgradeDialog, FeedbackWidget).
-- Marketing hero/typography that uses fixed large text without lower-breakpoint variants.
-- Forms with inputs <16px (causes iOS zoom-on-focus).
+- **7 MDB ingest agents live** (not 5): World Bank, IFC, ADB, AfDB, EBRD, **AIIB, IADB**. GTM still says "5 MDBs".
+- **10 named home-page modules** (CapabilitiesSection.tsx) including: Satellite verification, Delay prediction & early warning, Contractor intelligence, Procurement monitoring (20+ sources), AI market reports, Ask in plain English (NL search live).
+- **Natural-Language Project Search** (`/dashboard/ask` + `nl-search` edge fn) — shipped. GTM treats as roadmap/research-agent.
+- **AI Market Report Builder** (country/sector/tender/portfolio scoped) — shipped via `report-agent`.
+- **Intelligence Summaries hub** (consolidates Digests + Reports).
+- **Portfolio Chat** over tracked projects.
+- **Tenders & Awards page** (live, alerts-backed).
+- **Country Intelligence list + Country Detail dashboards**.
+- **Project Comparison page** (`/dashboard/compare`).
+- **Human-in-the-Loop Review Queue** with mandatory verification reason audit trail.
+- **On-Demand Research Hub** (multi-agent pipeline triggered by NL queries, researcher+).
+- **Engagement Hub** (leads, 4 engagement paths).
+- **Project Watchlist / Portfolio** with notes.
+- **Alert Rules CRUD** UI; Alert Intelligence classification + 30-day trend analytics.
+- **Stakeholder & Contact Discovery** (categorised contacts, click-to-contact).
+- **Geo Intelligence** dashboard (native Leaflet, region overlays).
+- **Agent Monitoring** with pause/resume + per-agent task tracker.
+- **Interactive Onboarding** — 6-step role-specific tour.
+- **3-tier RBAC** (User / Researcher / Admin) via `user_roles` + `has_role`.
+- **9 risk signal categories** explicitly tracked (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security).
+- **Lovable AI–first agent stack** (no required Perplexity/OpenAI/Firecrawl spend) — material credibility/cost story.
+- **Pilot access counter** (first N signups get N days Pro, no card) — live on pricing page.
+- **Founders Lifetime $1,499** — limited 100 seats, live on pricing.
+- **Card-free 3-day trial** — live.
+- **Paddle live checkout** with monthly/yearly toggle and 14-day refund window.
 
-## Audit Snapshot
+## 2. What has CHANGED (positioning, pricing, personas, modules)
 
-| Area | Status | Primary issues |
-|---|---|---|
-| `MarketingLayout` | ⚠️ partial | ConversionBar overlaps content on small viewports; no safe-area inset |
-| `Navbar` (marketing) | ✅ good | Sheet exists; verify CTA reachability + 44px taps |
-| `Footer` | ⚠️ partial | Multi-column collapses, but link spacing tight on 320px |
-| `DashboardLayout` header | ❌ broken | Fixed `w-56` search, page title hidden, dense icons cramped <360px |
-| `DashboardLayout` sidebar | ⚠️ partial | Shadcn handles mobile sheet, but no trigger placement on tiny screens |
-| `Dashboard` `<main>` | ⚠️ partial | Fixed `p-6` everywhere; should be `p-3 sm:p-4 lg:p-6` |
-| `home/HeroSection` + map | ⚠️ partial | Hero map height too tall on phones; copy text overflows at 320px |
-| `home/PipelineSection`, `Capabilities`, `UseCase`, `Personas` | ⚠️ partial | Some grids skip `sm:` step (jump 1→3 cols) |
-| `Pricing` | ⚠️ partial | 3-tier cards stack but pricing toggle clipped on 360px |
-| `Login`, `Onboarding`, `auth/*` | ⚠️ partial | Cards use fixed widths; Onboarding stepper horizontal-scrolls |
-| `dashboard/Overview` | ⚠️ partial | KPI grid OK, OverviewMap fixed height, charts not all responsive |
-| `dashboard/Projects` | ❌ broken | Table overflows; filters bar wraps awkwardly |
-| `dashboard/Alerts` | ❌ broken | Wide table; severity column truncates |
-| `dashboard/ProjectDetail` | ❌ broken | Tabs row scrolls but content panels assume desktop columns |
-| `dashboard/ProjectEditor` | ❌ broken | Dialog form too tall on phones; submit button off-screen |
-| `dashboard/BDPipeline` | ❌ broken | Kanban columns horizontal-scroll without hint |
-| `dashboard/AgentMonitoring`, `AnalyticsReports`, `Traction` | ⚠️ partial | Charts mostly responsive; some legends overflow |
-| `dashboard/GeoIntelligence`, `CountryDetail` | ❌ broken | Map fills viewport but controls overlap on touch |
-| `dashboard/Tenders`, `Users`, `SubscriberManagement`, `ReviewQueue`, `EvidenceVerification`, `FeedbackInbox`, `BillingAuditLog` | ❌ broken | Raw tables; need card fallback |
-| `dashboard/Ask`, `PortfolioChat`, `Research`, `Reports`, `Digests`, `IntelligenceSummaries`, `InsightsManagement`, `Datasets`, `Pipeline`, `Portfolio`, `Compare`, `RealTimeMonitoring`, `RiskAnomalySignals`, `StakeholderIntel`, `TenderCalendar`, `Settings`, `Countries` | ⚠️ partial | Mostly card layouts; tighten padding, fix occasional fixed widths |
-| Dialogs/Drawers | ⚠️ partial | `Dialog` used where `Drawer` would be better on mobile |
-| Charts (Recharts) | ⚠️ partial | Most wrapped; tick density too high on phones |
-| Leaflet maps | ❌ broken | Fixed heights; popups too wide; touch gestures not tuned |
-| Tables | ❌ broken | No card fallback pattern |
+- **Pricing & tiers** (Pricing.tsx is source of truth):
+  - Free $0 — 2 AI queries/day, 3 insight reads, 1 export/day (≤25 rows).
+  - **Starter $29/mo** ($278/yr ≈ $23.20/mo) — 20 AI queries/day, 50 insight reads, 20 exports (≤1,000 rows), AI digest emails, alert rules, **portfolio chat**, saved searches.
+  - **Pro $199/mo** ($1,910/yr ≈ $159.20/mo) — 100 AI queries, 200 insights, 100 exports (≤10,000 rows), tearsheet PDFs, country/sector/tender/portfolio report PDFs, **delay risk scores, early-warning alerts, contractor intel, permit & regulatory tracker**.
+  - **Enterprise** — custom; unlimited; API + webhooks; SSO/SAML; white-label; SLA.
+  - **Founders Lifetime $1,499** one-time, capped at 100 seats.
+  - GTM docs currently imply only Free / Starter / Pro / Enterprise without surfacing Starter price ($29) or Lifetime offer; YC doc has correct numbers but missing Lifetime & pilot mechanic.
+  - GTM docs say "free for 12 months for early users" in LOI letters — **this no longer matches the live offer** (current mechanic = pilot N-day free Pro + card-free 3-day trial + 14-day refund). Needs alignment.
+- **Persona list expanded** to 9 (PersonasSection): BD, EPC, infra consultants, DFI analysts, project finance, project managers, owners/developers, procurement & tender teams, infra organizations. GTM docs centre on 6.
+- **Geographic scope** moved from "MENA + East Africa beachhead" framing toward **explicit global / 14 regions** (matches memory + hero copy). MENA/Africa is now a proof beachhead, not the headline.
+- **Verified-intelligence** is now a positioning pillar: source URL required, unverified capped at 30% confidence, mandatory verification reason audit trail, human review queue. None of this appears in current LOI letters.
+- **Cost moat narrative**: Lovable AI–first agent architecture means near-zero marginal LLM cost — strengthens the "100x cheaper, sustainable" angle vs incumbents.
+- **Competitor framing on site is now anonymized categories** (regional publisher, global market research, energy/commodity research house, project finance terminal, MENA/Africa intel, tender aggregator) — GTM docs still name MEED / GlobalData / Wood Mackenzie directly. We can keep names internal but mirror the 6-category framing in public LOIs.
 
-## Prioritized Fix List
+## 3. What is OBSOLETE in current GTM copy and must be removed/rewritten
 
-- **P0 — Unusable on mobile:** Projects table, Alerts table, ProjectDetail tabs, ProjectEditor dialog, BDPipeline kanban, Leaflet maps (Overview/Geo/Country), DashboardLayout header search.
-- **P1 — High-traffic degraded:** Marketing Index/Hero, Pricing, Login, Onboarding, Dashboard Overview, ConversionBar overlap, Sidebar trigger placement.
-- **P2 — Power-user surfaces:** AnalyticsReports, AgentMonitoring, Traction, Reports, Research, Ask, PortfolioChat, Stakeholder/Tender/Country pages.
-- **P3 — Admin/staff:** Users, SubscriberManagement, ReviewQueue, EvidenceVerification, FeedbackInbox, BillingAuditLog, Datasets, InsightsManagement.
+- "**5 MDBs**" → replace with **7 MDB sources** (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB).
+- "**40+ AI agents**" — repo shows ~30 named edge functions in active families; safer claim is **30+ specialised agents across 7 families** (discovery/ingest, enrichment/verification, market & risk monitoring, reporting & user-facing AI). Flag as `[VERIFY count]` if precision matters.
+- "**Free 12 months for early users**" in LOI letters → replace with current pilot mechanic (limited-seat free Pro window + card-free trial + 14-day refund).
+- README "Last updated: April 2026" — refresh to **May 2026** and update "Immediate Actions" (EF London May 1 deadline is **today**; needs same-day or remove).
+- "**Coverage of IsDB, AIIB, KfW on Q3 2026 roadmap**" in EPC LOI → AIIB is **already shipped**; rewrite to (KfW, IsDB, JICA, NDB) on roadmap.
+- Standard Pitch in README: "GPT-4-class models" → 2026 framing should reference **GPT-5 / Gemini 3-class**.
+- "**$2T in MDB-financed infrastructure**" — uncited; use **WB committed $117B in 2024** and **AfDB Mission 300 ($300B by 2030)** as defensible anchors.
+- LOI letters all reference "AI research agent" generically — should now name the live surfaces: **Ask in plain English**, **Portfolio Chat**, **AI Market Report Builder**, **Intelligence Summaries**.
+- LOI EPC template positions vs MEED only ($30k) — broaden to 6 incumbent categories already on Pricing page.
+- YC application cites "40+ agents", "5 MDBs", "9 signal categories" — keep 9 signals (correct), update agent count + MDB count.
+- Persona ordering in YC doc puts DFI #1; current commercial reality (and pricing-page persona block) puts **BD/EPC/consultants** as primary buyers because they have budget + faster purchase cycles. DFIs are best for **LOI/credibility**, not first revenue. Need to split LOI-target priority from revenue-target priority in the messaging.
+- "Bechtel/Fluor/Vinci" name list in LOI should add named African/MENA priority targets already in LOI-TARGETS (L&T PT&D, CCC, Samsung C&T, POSCO, Bouygues).
+- Application files all say "Pre-revenue. Seeking first 3 enterprise pilots." — confirm whether pilot-counter usage has changed this; if any pilots converted, update. `[VERIFY]`.
 
-## Reusable Patterns To Introduce
+## 4. Contradictions between current product and current pitch
 
-1. `useBreakpoint()` hook — extends `use-mobile.tsx` to expose `sm/md/lg/xl/2xl` booleans + current key.
-2. `<ResponsiveTable>` — wraps shadcn `Table`; below `md` renders a `<div>` of stacked cards using a `columns` config (label, value, primary?, hidden?).
-3. `<MobileBottomNav>` — fixed bottom bar with 5 entries (Overview, Projects, Alerts, Ask, Settings). Visible only `< md`. Uses `env(safe-area-inset-bottom)`.
-4. `<ResponsiveDialog>` — picks `Drawer` (vaul, full-height) on mobile, `Dialog` on desktop. Sticky footer slot for submit buttons.
-5. `<ResponsiveChart>` — wraps `ResponsiveContainer`; auto-reduces `XAxis tick interval`, hides legend on `< sm`.
-6. `<MapContainerResponsive>` — sets `h-[55vh] sm:h-[65vh] lg:h-[75vh]`, enables `tap`, disables `scrollWheelZoom` on touch, themes popups via existing CSS.
-7. CSS utilities in `index.css`: `.safe-top`, `.safe-bottom`, `.safe-x` using `env(safe-area-inset-*)`; `.touch-target` (`min-h-11 min-w-11`); `.no-zoom` (`text-base` enforces 16px on inputs).
-8. Container-query example on KPI cards (`@container` in Tailwind via `@tailwindcss/container-queries` already supported by Tailwind v3 arbitrary variants `[@container(min-width:...)]:`).
+| # | Current pitch says | Product reality says | Action |
+|---|---|---|---|
+| 1 | "5 MDBs" | 7 MDB ingest agents shipped | Update to 7. |
+| 2 | "40+ agents" | ~30 edge functions in agent families | Use "30+ specialised agents" or `[VERIFY]` exact count. |
+| 3 | "Free for 12 months early access" | Pilot N-day Pro + 3-day card-free trial + 14-day refund window | Rewrite trial offer language. |
+| 4 | "AI research agent" only | Ask, Portfolio Chat, Report Builder, Intelligence Summaries all live | Name the actual surfaces. |
+| 5 | "MENA + East Africa beachhead" headline | Site/marketing now explicitly global, 14 regions | Reframe MENA/Africa as proof, not scope. |
+| 6 | "GPT-4-class models" | 2026 era; site uses Lovable AI gateway with Gemini 3 / GPT-5 family | Update "why now". |
+| 7 | "AIIB on roadmap" | AIIB ingest agent shipped | Move to shipped list. |
+| 8 | DFI analysts as #1 buyer | Pricing tiers + Onboarding optimised for BD/EPC/consultants | Separate LOI-priority (DFI) from revenue-priority (BD/EPC/consultants). |
+| 9 | "Pre-revenue" | Live Paddle checkout + lifetime sales possible | `[VERIFY]` whether any paid conversions exist before re-asserting "pre-revenue". |
+| 10 | LOI letters omit verified-intelligence story | Verification queue, mandatory reasons, source URL required, 30% cap on unverified are central differentiators | Inject into all LOI templates. |
 
-## Phased Rollout
+## 5. Items I will flag rather than invent
 
-### Phase 1 — Layouts + Navigation
-- Add `useBreakpoint`, safe-area utilities, `.touch-target`, `.no-zoom` to `index.css`.
-- `DashboardLayout`:
-  - Header: collapse `ProjectSearch` to an icon-button that opens a full-width `Sheet` below `md`; show page title only `sm:` and up; tighten icon spacing.
-  - `<main>`: `p-3 sm:p-4 lg:p-6` and `pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6` to clear bottom nav.
-  - Add `<MobileBottomNav>` rendered only `< md`.
-  - Move `SidebarTrigger` to a persistent position; ensure hamburger always reachable.
-- `MarketingLayout`: add safe-area padding; ensure `ConversionBar` doesn't cover footer CTA on phones (slide-down on scroll already exists — verify).
-- `Navbar`: audit Sheet contents for 44px taps; ensure CTA buttons stack full-width inside the sheet.
-- `Footer`: tighten link grid to `grid-cols-2 sm:grid-cols-3 md:grid-cols-4`.
-- `FeedbackWidget`: convert to `<Drawer>` on mobile.
+- Exact live agent count (`[VERIFY count from agent_config table]`).
+- Whether any paid conversions / first revenue exist (`[VERIFY revenue]`).
+- Number of projects, alerts and verified records currently in DB for a defensible "platform stats" line (`[VERIFY public-stats RPC numbers]`).
+- Specific named conferences in May–Sep 2026 (cross-check `docs/TRACTION_MARKETING.md` conference calendar before locking).
+- Any new/expired accelerator deadlines beyond the seven already tracked.
 
-### Phase 2 — Marketing + Auth
-- `home/HeroSection` + `HeroMap` + `HeroLiveTracker`: responsive heading scale `text-4xl sm:text-5xl md:text-6xl lg:text-7xl`, fluid hero map height, stack CTA full-width on mobile.
-- `home/*` sections: normalize grids to `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`; tighten section padding `py-12 md:py-20 lg:py-28`.
-- `Pricing`: make billing-cycle toggle wrap; cards `grid-cols-1 md:grid-cols-2 xl:grid-cols-3`; ensure Most-Popular ribbon fits 320px.
-- `Login`, `Onboarding`, `auth/ForgotPassword`, `auth/ResetPassword`, `auth/AuthCallback`: cards `w-full max-w-md mx-auto`; inputs `text-base`; Onboarding stepper becomes vertical or compact dots `< sm`.
-- `Index`, `About`, `Services`, `Contact`, `Careers`, `Press`, `Feedback`, `Privacy`, `Terms`, `Refund`, `DataProtection`, `Snapshot`, `Explore`, `Insights`, `InsightDetail`, `NotFound`, `Unsubscribe`: padding/typography pass.
+## 6. Proposed scope for Phases 2–4 (no writing yet)
 
-### Phase 3 — Core Dashboard ✅
-- `dashboard/Overview`: KPI grid already `grid-cols-2 sm:grid-cols-4` and split panels `lg:grid-cols-2` — verified responsive, no changes required.
-- `dashboard/Projects`: TabsList horizontally scrolls on mobile; filter bar restructured to `grid-cols-1 sm:grid-cols-2 lg:flex` (search spans full width); table hidden below `md` and replaced with mobile card list (name, country/sector, badges, value, confidence bar); pagination unified outside view-mode wrapper.
-- `dashboard/Alerts`: header buttons collapse to icon-only on mobile; TabsList and category filter pills horizontally scroll; alert cards use tighter `p-3 sm:p-5` padding.
-- `dashboard/ProjectDetail`: 8-tab TabsList horizontally scrolls; project name uses `text-xl sm:text-2xl` with `break-words`/`min-w-0` to prevent overflow.
-- New utility: `.scrollbar-none` added to `index.css` for hidden-scrollbar tab/filter strips.
+If you approve this delta, Phase 2 will produce a single canonical `go-to-market/MESSAGING.md` aligned to the corrections above (7 MDBs, Lovable-AI cost moat, verified-intelligence pillar, named live surfaces, current pricing incl. Lifetime + pilot, 2026 "why now"). Phases 3 and 4 will then cascade those facts through the 5 LOI templates, 8 accelerator apps, LOI-TARGETS, README, and the four new files (PERSONA-PLAYBOOKS, PROOF-PACK, OBJECTION-HANDLING, OUTBOUND-SEQUENCES).
 
-### Phase 4 — Data-dense ✅
-- `BDPipeline`: already a card list (not kanban), `flex-col sm:flex-row` is responsive — only fixed dialog form (`grid-cols-2 → grid-cols-1 sm:grid-cols-2`) and added `max-h-[90vh] overflow-y-auto` on DialogContent for short viewports.
-- Audited `ReviewQueue`, `Tenders`, `SubscriberManagement`, `EvidenceVerification`, `FeedbackInbox`, `BillingAuditLog`, `Datasets`, `InsightsManagement`, `StakeholderIntel`, `TenderCalendar` — all already use card-based layouts (no raw tables).
-- `Users`: wrapped `<table>` in `overflow-x-auto` with `min-w-[720px]` so the 6-column admin table scrolls horizontally on phones.
-- `Compare`: already had `overflow-x-auto` wrapper — verified.
-- Recharts: already use `<ResponsiveContainer>` across pages — width adapts automatically; no further work.
+---
 
-### Phase 5 — Long-tail / admin ✅
-- `Settings`, `Research`, `IntelligenceSummaries`: TabsLists wrapped in horizontal scroll containers (`-mx-1 overflow-x-auto scrollbar-none` + `w-max`).
-- `Pipeline`: kanban grid scales `1 → 2 → 3 → 6` columns instead of jumping `3 → 6`.
-- `Research`: search form stacks vertically on mobile (`flex-col sm:flex-row`).
-- `GeoIntelligence`: filter Selects become full-width on mobile; stats bar `grid-cols-4 → grid-cols-2 sm:grid-cols-4`.
-- `IntelligenceSummaries`, `AnalyticsReports`: country/region Selects become full-width on mobile; AnalyticsReports header actions wrap.
-- `AgentMonitoring`: agent table given `min-w-[760px]` so the existing `overflow-x-auto` wrapper actually scrolls horizontally.
-- Other long-tail pages (Reports, Digests, Portfolio, PortfolioChat, Ask, Countries, CountryDetail) audited — already use mobile-friendly grids.
-
-### Phase 6 — Performance + a11y ✅
-- `index.html`: viewport now uses `viewport-fit=cover` for iOS notches; added `theme-color`, `apple-mobile-web-app-capable`, status-bar style for installed PWA-like experience.
-- `App.tsx`: lazy-loaded heaviest dashboard routes via `React.lazy` — `AgentMonitoring`, `AnalyticsReports`, `RealTimeMonitoring`, `RiskAnomalySignals`, `GeoIntelligence`. Wrapped `<Routes>` in `<Suspense>` with a minimal fallback so initial mobile bundle excludes Leaflet + Recharts heavy code paths until needed.
-- Global a11y in `index.css`:
-  - `prefers-reduced-motion` now suppresses *all* animations/transitions globally (not just `.motion-safe-only`).
-  - `overscroll-behavior-x: none` to block accidental horizontal page scroll.
-  - `@media (pointer: coarse)` enforces a 36px minimum hit-target on buttons/links/checkboxes for touch devices (complements `.touch-target` 44px).
-- Pinch-to-zoom remains enabled (no `maximum-scale` / `user-scalable=no`).
-
-## Testing Checklist
-
-- DevTools viewports: 320, 360, 375, 390, 414, 480, 640, 768, 820, 1024, 1280, 1536, 1920.
-- Touch emulation on for 320–820 widths.
-- Real devices: iPhone SE (3rd gen), iPhone 15, Pixel 7, iPad Mini, iPad Pro.
-- Browsers: Safari iOS 17+, Chrome Android, Chrome/Edge/Firefox/Safari desktop.
-- Per page: no horizontal scroll, all CTAs reachable, all dialogs scrollable with footer visible, all tables readable, maps gesturable, charts legible.
-- Lighthouse mobile pass per top-10 routes (target ≥ 85 perf, ≥ 95 a11y).
-- Vitest unit tests for `useBreakpoint`, `<ResponsiveTable>`, `<ResponsiveDialog>`.
-
-## Technical Notes
-
-- Tailwind already configured; no new deps. Container-query support uses arbitrary variants `[@container(min-width:24rem)]:` plus `@container` class — no plugin install (graceful degrade if unsupported, just not applied).
-- `vaul` `Drawer` already in shadcn (`src/components/ui/drawer.tsx`).
-- Leaflet popup theme already in `index.css` — extend with mobile width clamp.
-- Recharts `ResponsiveContainer` already in use; we'll standardize via `<ResponsiveChart>` wrapper.
-- Sidebar mobile sheet is provided by shadcn — no replacement needed; only header trigger placement and bottom nav are added.
-- `useIsMobile` (768px) is kept; `useBreakpoint` adds finer granularity without removing it.
-- All new utilities use HSL semantic tokens; no hardcoded colors.
-
-## Risks & Out-of-Scope
-
-- Risk: Converting `Dialog`→`Drawer` may change focus-trap behavior; covered by `<ResponsiveDialog>` wrapper using existing Radix/vaul primitives.
-- Risk: Mapping libraries differ in touch behavior; we'll keep Leaflet but tune `tap`, `tapTolerance`, `dragging` per breakpoint.
-- Risk: Long-press drag in BDPipeline may regress on touch; mitigate with explicit "Move" menu.
-- Out-of-scope: backend, RLS, edge functions, schema changes, new UI libraries, replacing Leaflet/Recharts, native wrapper (Capacitor/PWA installability — could be a future phase).
-- Out-of-scope: full design overhaul; we keep current visual language intact.
-
-## Estimated Effort
-
-| Phase | Scope | Est. |
-|---|---|---|
-| 1 | Layouts + nav + utilities | 1 day |
-| 2 | Marketing + auth | 1 day |
-| 3 | Core dashboard 4 pages | 1 day |
-| 4 | Tables/charts/maps/dialogs sweep | 2 days |
-| 5 | Long-tail dashboard | 1 day |
-| 6 | Perf + a11y + tests | 1 day |
-
-Total: ~7 working days of agent time, executed phase-by-phase with verification between phases.
-
-Approve this plan and Phase 1 will be executed first; subsequent phases will be confirmed before each kicks off.
+**Approve to proceed to Phase 2 (MESSAGING.md), or tell me which of these deltas to drop / soften / strengthen first.**
