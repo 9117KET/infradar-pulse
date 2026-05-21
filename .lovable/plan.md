@@ -1,65 +1,52 @@
-## Audit results
+## What this delivers
 
-I checked all 30+ scheduled agents (`research_tasks`, `agent_config`, function code, monitoring helpers). Most agents are healthy and completing on Lovable AI as designed. Three real problems plus some monitoring noise:
+Three connected queue-transition rules so the Pipeline Candidates queue stops leaking work back to researchers.
 
-### 1. Scheduled cron has been silent for 9 days (highest-impact bug)
+### 1. Approved → Project with full evidence trail
+`promote_project_candidate` already exists and copies evidence_sources, project_claims, stakeholders, and writes review_actions + project_verification_log. We will:
+- Verify and harden the function (idempotent on re-approval, slug collision safe — already done).
+- Add a sanity guarantee: the new project gets at least one row in `evidence_sources` derived from `candidate_evidence_links`; if zero links exist, the function raises so a candidate with no evidence cannot be approved.
+- The client already calls this RPC from ReviewQueue → no change needed there.
 
-- Most recent row in `research_tasks` is **2026-05-03 09:07** — today is 2026-05-12.
-- Every agent's `agent_config.last_run_at` is also stuck around May 3.
-- This matches the known failure mode in `mem://architecture/agent-cron-auth`: pg_cron calls edge functions using the service-role JWT stored in `vault.secrets('email_queue_service_role_key')`. When that vault secret falls out of sync with the current `SUPABASE_SERVICE_ROLE_KEY`, every cron-driven HTTP call returns 401 and no `research_tasks` rows are ever created.
-- The `agent-health-monitor` function exists to detect exactly this and email admins, but `agent_health_alerts` is empty — meaning the monitor itself is also not being invoked by cron (same root cause).
+### 2. Rejected → Deduplicated, won't reappear
+Today, rejecting a candidate only flips its status; the next agent run can re-insert the same name+country pair and it lands back in the queue.
 
-Fix: re-sync the vault secret by invoking the existing `sync-service-role-to-vault` edge function with admin auth, then verify `cron.job_run_details` start producing succeeded rows again. After that, `agent-health-monitor` will start writing/clearing alerts on its own. No code change needed for the resync itself; if the function or its admin trigger is missing pieces I'll add them.
+New piece: `candidate_rejection_signatures` table keyed on `(normalized_name, country)` with `reason`, `rejected_by`, `rejected_at`, `source_url_pattern`.
 
-### 2. `update-checker` and `data-enrichment` exceed the edge function wall clock
+- New RPC `reject_project_candidate(p_id, p_reason)` — staff-only. Flips status, inserts review_actions row, upserts a signature.
+- New trigger `trg_suppress_rejected_candidates` on `project_candidates` (BEFORE INSERT OR UPDATE) — if a matching signature exists, force `review_status = 'rejected'`, `pipeline_status = 'rejected'`, append a note to `extracted_claims` indicating auto-suppression. This means even if the ingest path forgets to check, the database enforces it.
+- `pipelineIngest.ts` gets a fast-path: before the insert/update, query signatures; if matched, skip the candidate insert entirely (still keeps the raw_evidence row for audit). Reduces noise and saves writes.
+- ReviewQueue's `candidateAction` for `rejected` switches from a direct UPDATE to calling the new RPC.
 
-- Both are currently auto-reaped after 30 min on every run (`research_tasks.error = '[auto-reaped: stuck running >30m]'`).
-- `update-checker` loops 50 projects × 2 sequential AI calls each (research + extraction).
-- `data-enrichment` loops 15 projects × 2 sequential AI calls each, and is also missing the `isAgentEnabled` gate that every other agent has.
-- Edge functions in Supabase have a hard ~150s wall-clock; the loops cannot finish, so the function is killed mid-iteration before it can write `status='completed'`.
+### 3. Researcher digest when queue backs up
+New edge function `review-queue-digest` + daily cron at 08:00 UTC.
 
-Fix:
-- Reduce per-run batch size: `update-checker` 50 → 8 projects, `data-enrichment` 15 → 6 projects (cron runs hourly so coverage is preserved within a day).
-- Add `isAgentEnabled('data-enrichment')` + `pausedResponse` at the top of `data-enrichment` for parity with the rest.
-- In both, wrap the per-project body in a wall-clock check (`if (Date.now() - runStartedAt > 110_000) break`) so they always exit cleanly and call `finishAgentRun(..., 'completed')` instead of being reaped.
+- Queries: count of `ready_for_review` candidates, oldest 10 (with age in days), breakdown by sector and country, count of pending update_proposals.
+- Triggers email only when backlog ≥ 25 OR oldest item ≥ 5 days old.
+- Recipients = admins + researchers (new RPC `list_staff_emails` returning both roles).
+- Reuses the queued-email pattern (`enqueue_email` → `transactional_emails`) with idempotency_key scoped to date so we never double-send.
+- Service-role bearer guard like agent-health-monitor.
 
-### 3. Stale duplicate rows in `agent_config`
+## Files
 
-`agent_config` has both the old function-style key and the new task-type key for several agents:
+**Migration** (one file):
+- `candidate_rejection_signatures` table + RLS (staff read/write).
+- `reject_project_candidate(uuid, text)` RPC.
+- `_suppress_rejected_candidates()` trigger function + trigger.
+- Hardening clause in `promote_project_candidate`: raise if no evidence links.
+- `list_staff_emails()` RPC (admin + researcher).
 
-| stale row (last run) | live row |
-|---|---|
-| `risk-scorer` (Apr 28) | `risk-scoring` |
-| `update-checker` (Apr 30) | `update-check` |
-| `research-agent` (Apr 30) | `discovery` |
-| `insight-sources-agent` (Apr 30) | `insight-sources` |
-| `world-bank-ingest-agent` (if present) | `world-bank-ingest` |
+**Edge function (new):** `supabase/functions/review-queue-digest/index.ts`
 
-`rebuild_agent_config_from_tasks()` only inserts/updates from `research_tasks.task_type`, so the stale rows never go away and inflate the failure counts that show on `/dashboard/agents`.
+**Cron schedule (via supabase insert tool, not migration — contains URL + key):** daily 08:00 UTC invoking the new function.
 
-Fix: one-shot migration that deletes the stale `agent_type` rows, then call `rebuild_agent_config_from_tasks()` so the dashboard reflects the real (good) success/failure history.
+**Code edits:**
+- `supabase/functions/_shared/pipelineIngest.ts` — pre-check signatures, skip if matched.
+- `src/pages/dashboard/ReviewQueue.tsx` — reject path calls `reject_project_candidate` RPC.
 
-### 4. Two ingest agents are paused and need a deliberate decision
+## Why these specific choices
 
-- `aiib-ingest` — `enabled=false`, never run. The function itself parses an official AIIB JS bootstrap and looks fine; just needs to be enabled (or explicitly left off if we don't want AIIB right now).
-- `adb-ingest` — `enabled=false` after repeated "Could not locate ADB CSV dataset" failures. ADB changed its CSV endpoint. Either find the new CSV and update `directUrls` in `adb-ingest-agent`, or leave it disabled.
-
-I'll flip `aiib-ingest` on. For `adb-ingest` I'd rather confirm with you before chasing the ADB endpoint change (it's not breaking anything in the disabled state).
-
-### What I will NOT touch
-
-- The historical "high failure count" agents (`regulatory-monitor`, `stakeholder-intel`, `supply-chain-monitor`, `corporate-ma-monitor`, etc.) — their old failures are pre-Apr-28 Perplexity-quota errors. They have all been completing successfully on Lovable AI since the migration. Once item 3 cleans up `agent_config`, the dashboard will look honest.
-- Any of the working monitoring functions (`tender-award-monitor`, `security-resilience`, `esg-social-monitor`, `funding-tracker`, `market-intel`, `sentiment-analyzer`, `alert-intelligence`, `executive-briefing`, etc.) — code is correct.
-
-## Plan of work
-
-1. Resync service-role JWT into vault so cron can auth again, and verify a fresh `research_tasks` row appears within one cron tick.
-2. Code changes:
-   - `supabase/functions/update-checker/index.ts`: batch 50→8 + wall-clock break.
-   - `supabase/functions/data-enrichment/index.ts`: batch 15→6 + wall-clock break + add `isAgentEnabled`/`pausedResponse`.
-3. Migration: delete stale `agent_config` rows listed above, then `SELECT public.rebuild_agent_config_from_tasks();`. Also `UPDATE agent_config SET enabled=true WHERE agent_type='aiib-ingest';`.
-4. Verify on `/dashboard/agents`: no duplicate rows, `update-check` and `data-enrichment` complete cleanly, AIIB starts producing rows on next cron tick.
-
-## Question before I implement
-
-For `adb-ingest` (currently disabled because ADB moved their CSV): want me to (a) leave it off, or (b) spend a step finding the new ADB sovereign-operations CSV URL and re-enabling it?
+- DB-level trigger is the durable enforcement layer; the edge-function pre-check is the perf optimisation. Both together = belt + braces.
+- `(normalized_name, country)` is the same key the pipeline already uses for upsert, so signatures align with how duplicates are detected upstream.
+- Digest goes out only when there is real backlog; otherwise silent — researchers won't tune it out.
+- All three pieces are independent and shippable, but they reinforce each other: rejections don't loop, approvals carry their receipts, and the inbox metric stays visible.
