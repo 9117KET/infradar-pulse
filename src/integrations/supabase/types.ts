@@ -1632,6 +1632,64 @@ export type Database = {
         }
         Relationships: []
       }
+      review_actions: {
+        Row: {
+          action: string
+          candidate_id: string | null
+          created_at: string
+          id: string
+          item_type: string
+          performed_by: string | null
+          project_id: string | null
+          reason: string
+          update_proposal_id: string | null
+        }
+        Insert: {
+          action: string
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          item_type: string
+          performed_by?: string | null
+          project_id?: string | null
+          reason?: string
+          update_proposal_id?: string | null
+        }
+        Update: {
+          action?: string
+          candidate_id?: string | null
+          created_at?: string
+          id?: string
+          item_type?: string
+          performed_by?: string | null
+          project_id?: string | null
+          reason?: string
+          update_proposal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_actions_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_actions_update_proposal_id_fkey"
+            columns: ["update_proposal_id"]
+            isOneToOne: false
+            referencedRelation: "update_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_searches: {
         Row: {
           created_at: string
@@ -2098,6 +2156,22 @@ export type Database = {
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
+      _coerce_region: {
+        Args: { p: string }
+        Returns: Database["public"]["Enums"]["project_region"]
+      }
+      _coerce_sector: {
+        Args: { p: string }
+        Returns: Database["public"]["Enums"]["project_sector"]
+      }
+      _coerce_stage: {
+        Args: { p: string }
+        Returns: Database["public"]["Enums"]["project_stage"]
+      }
+      _coerce_status: {
+        Args: { p: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
       admin_grant_pilot_access: {
         Args: { p_email?: string; p_environment?: string; p_user_id: string }
         Returns: Json
@@ -2120,6 +2194,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      apply_update_proposal: {
+        Args: { p_reason?: string; p_update_proposal_id: string }
+        Returns: string
       }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
@@ -2168,6 +2246,10 @@ export type Database = {
         Returns: boolean
       }
       detect_agent_auth_failures: { Args: { p_hours?: number }; Returns: Json }
+      detect_silent_agent_stoppage: {
+        Args: { p_hours?: number }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -2188,6 +2270,22 @@ export type Database = {
           last_run_at: string
           suspected_auth_failure: boolean
           total_runs: number
+        }[]
+      }
+      get_agent_http_health: {
+        Args: { p_hours?: number }
+        Returns: {
+          auth_failures: number
+          failed_calls: number
+          failure_rate_pct: number
+          job_name: string
+          last_call_at: string
+          last_error_msg: string
+          last_failure_at: string
+          last_status_code: number
+          server_errors: number
+          suspected_auth_failure: boolean
+          total_calls: number
         }[]
       }
       get_agent_monitoring_summary: {
@@ -2266,6 +2364,10 @@ export type Database = {
         Returns: number
       }
       normalize_email: { Args: { p_email: string }; Returns: string }
+      promote_project_candidate: {
+        Args: { p_candidate_id: string; p_reason?: string }
+        Returns: string
+      }
       prune_old_usage_counters: { Args: never; Returns: undefined }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
