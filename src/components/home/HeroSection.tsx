@@ -65,7 +65,7 @@ export function HeroSection() {
 
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
             <Link to="/login" className="w-full sm:w-auto"><Button size="lg" className="w-full sm:w-auto teal-glow font-sans">Get Started Free</Button></Link>
-            <a href="#demo" className="w-full sm:w-auto"><Button size="lg" variant="outline" className="w-full sm:w-auto font-sans">Watch demo</Button></a>
+            <Link to="/ask-demo" className="w-full sm:w-auto"><Button size="lg" variant="outline" className="w-full sm:w-auto font-sans">Try Ask AI free →</Button></Link>
           </div>
 
           <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-muted-foreground">

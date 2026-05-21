@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import MarketingLayout from "@/layouts/MarketingLayout";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import Index from "./pages/Index";
+import AskDemo from "./pages/AskDemo";
 import NotFound from "./pages/NotFound";
 import Insights from "./pages/Insights";
 import Services from "./pages/Services";
@@ -88,6 +89,7 @@ const App = () => (
           <Routes>
             <Route element={<MarketingLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/ask-demo" element={<AskDemo />} />
               <Route path="/snapshot" element={<Snapshot />} />
               <Route path="/explore" element={<Explore />} />
               <Route path="/insights" element={<Insights />} />
