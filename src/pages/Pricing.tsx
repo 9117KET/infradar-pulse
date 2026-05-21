@@ -161,6 +161,18 @@ export default function Pricing() {
         title="Pricing | InfradarAI Plans for Infrastructure Intelligence"
         description="Transparent pricing for InfradarAI. Free tier, Starter from $29/mo, team and lifetime plans for verified global infrastructure intelligence."
         path="/pricing"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: 'InfradarAI Infrastructure Intelligence Platform',
+          description: 'AI-assisted, human-verified global infrastructure intelligence. Track high-value projects across 14 global regions with confidence-scored signals.',
+          brand: { '@type': 'Organization', name: 'InfradarAI' },
+          offers: [
+            { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '2 AI queries/day, 3 insight reads, public project data' },
+            { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '20 AI queries/day, alert rules, CSV/Excel exports, portfolio chat' },
+            { '@type': 'Offer', name: 'Pro', price: '99', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, risk signals, real-time monitoring, stakeholder intel, AI report PDFs' },
+          ],
+        }}
       />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-10">
@@ -266,17 +278,16 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Portfolio tracking</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Basic alerts</li>
             </ul>
-            <Button variant="outline" asChild className="w-full">
-              <Link to="/login">Get started</Link>
-            </Button>
             <Button
-              variant="ghost"
-              className="w-full mt-2"
+              className="w-full teal-glow"
               onClick={() => void beginTrial()}
               disabled={trialLoading}
             >
               {trialLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-              Start 3-day trial
+              Start 3-day trial - no card
+            </Button>
+            <Button variant="ghost" asChild className="w-full mt-2 text-muted-foreground">
+              <Link to="/login">Or sign up free</Link>
             </Button>
           </div>
 

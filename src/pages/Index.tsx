@@ -17,6 +17,14 @@ const Index = () => (
       title="InfradarAI | Verified Global Infrastructure Intelligence"
       description="Track high-value infrastructure projects across 14 global regions with AI-assisted, human-verified signals. Confidence-scored intelligence in hours, not weeks."
       path="/"
+      jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'InfradarAI',
+        url: 'https://infradarai.com',
+        description: 'AI-assisted, human-verified global infrastructure intelligence platform tracking high-value projects across 14 global regions.',
+        sameAs: [],
+      }}
     />
     <HeroSection />
     <TrustStrip />
