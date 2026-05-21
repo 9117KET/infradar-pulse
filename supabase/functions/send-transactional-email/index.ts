@@ -40,6 +40,19 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Restrict to service-role callers. All legitimate invokers (pg_cron jobs,
+  // demo-followup-scheduler, other edge functions) already use the service
+  // role key. Blocking user JWTs prevents email-abuse / phishing from our
+  // verified sender domain.
+  const rawAuth = req.headers.get('Authorization') ?? ''
+  const bearerToken = rawAuth.startsWith('Bearer ') ? rawAuth.slice(7) : ''
+  if (bearerToken !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 

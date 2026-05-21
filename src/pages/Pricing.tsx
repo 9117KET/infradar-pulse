@@ -9,6 +9,7 @@ import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
 import { getPaddleEnvironment, isLiveCheckoutEnabled } from '@/lib/paddle';
 import { cn } from '@/lib/utils';
+import { Seo } from '@/components/Seo';
 
 // Competitor names are intentionally anonymized to keep the comparison
 // category-based and avoid singling out any specific vendor. The blurred
@@ -156,6 +157,11 @@ export default function Pricing() {
 
   return (
     <div className="py-20">
+      <Seo
+        title="Pricing | InfradarAI Plans for Infrastructure Intelligence"
+        description="Transparent pricing for InfradarAI. Free tier, Starter from $29/mo, team and lifetime plans for verified global infrastructure intelligence."
+        path="/pricing"
+      />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-10">
           <div className="mb-4 text-xs font-semibold uppercase tracking-widest text-primary">Pricing</div>

@@ -4,7 +4,7 @@
  * exporters.
  */
 import jsPDF from 'jspdf';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { getExportRowCap, PlanKey } from './limits';
 
 export type CapResult<T> = {
@@ -51,32 +51,33 @@ export function buildCsvHeaderComment(label: string, truncated: CapResult<unknow
  * The first row contains the watermark label so it is visible in any viewer.
  * A hidden "License" sheet also carries the full label for audit purposes.
  */
-export function downloadXlsx(
+export async function downloadXlsx(
   filename: string,
   headers: string[],
   rows: (string | number | null | undefined)[][],
   watermarkLabel: string,
   cap: CapResult<unknown>,
-): void {
-  const wb = XLSX.utils.book_new();
+): Promise<void> {
+  const wb = new ExcelJS.Workbook();
 
   // Main data sheet - watermark preamble rows first, then headers + data.
-  const preamble: (string | number)[][] = [[watermarkLabel]];
+  const ws = wb.addWorksheet('Projects');
+  ws.addRow([watermarkLabel]);
   if (cap.truncated) {
-    preamble.push([`Showing ${cap.cap} of ${cap.total} rows. Upgrade for higher export caps.`]);
+    ws.addRow([`Showing ${cap.cap} of ${cap.total} rows. Upgrade for higher export caps.`]);
   }
-  const ws = XLSX.utils.aoa_to_sheet([...preamble, headers, ...rows]);
-  XLSX.utils.book_append_sheet(wb, ws, 'Projects');
+  ws.addRow(headers);
+  for (const row of rows) {
+    ws.addRow(row.map((v) => (v === null || v === undefined ? '' : v)));
+  }
 
   // License audit sheet.
-  const licenseWs = XLSX.utils.aoa_to_sheet([
-    ['License'],
-    [watermarkLabel],
-    ['This file is licensed to the subscriber above. Redistribution is prohibited.'],
-  ]);
-  XLSX.utils.book_append_sheet(wb, licenseWs, 'License');
+  const licenseWs = wb.addWorksheet('License');
+  licenseWs.addRow(['License']);
+  licenseWs.addRow([watermarkLabel]);
+  licenseWs.addRow(['This file is licensed to the subscriber above. Redistribution is prohibited.']);
 
-  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

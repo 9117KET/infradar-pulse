@@ -228,7 +228,7 @@ export default function Projects() {
     const watermark = buildWatermarkLabel(user?.email);
     const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
     const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
-    downloadXlsx('infradar_projects.xlsx', headers, rows, watermark, capped);
+    await downloadXlsx('infradar_projects.xlsx', headers, rows, watermark, capped);
     const result = await trackUsage('export_csv');
     if (!result.ok) {
       if (result.emailUnverified) {

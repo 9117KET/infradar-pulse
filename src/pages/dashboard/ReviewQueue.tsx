@@ -189,6 +189,13 @@ export default function ReviewQueue() {
     },
   });
 
+  const showErr = (e: unknown, title: string) =>
+    toast({
+      title,
+      description: e instanceof Error ? e.message : String(e),
+      variant: 'destructive',
+    });
+
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('projects').update({ approved: true }).eq('id', id);
@@ -199,6 +206,7 @@ export default function ReviewQueue() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Project approved', description: 'It will now appear on the dashboard and globe.' });
     },
+    onError: (e) => showErr(e, 'Approve failed'),
   });
 
   const rejectMutation = useMutation({
@@ -210,6 +218,7 @@ export default function ReviewQueue() {
       queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
       toast({ title: 'Project rejected and removed' });
     },
+    onError: (e) => showErr(e, 'Reject failed'),
   });
 
   const candidateAction = useMutation({
@@ -223,9 +232,15 @@ export default function ReviewQueue() {
         return;
       }
       const nextStatus = action === 'rejected' ? 'rejected' : 'needs_research';
-      const { error } = await (supabase as any).from('project_candidates').update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await (supabase as any)
+        .from('project_candidates')
+        .update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() })
+        .eq('id', id);
       if (error) throw error;
-      await (supabase as any).from('review_actions').insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
+      const { error: logErr } = await (supabase as any)
+        .from('review_actions')
+        .insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
+      if (logErr) console.warn('review_actions insert failed', logErr);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
@@ -233,6 +248,7 @@ export default function ReviewQueue() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Candidate updated' });
     },
+    onError: (e) => showErr(e, 'Candidate action failed'),
   });
 
   const updateAction = useMutation({
@@ -245,15 +261,22 @@ export default function ReviewQueue() {
         if (error) throw error;
         return;
       }
-      const { error } = await (supabase as any).from('update_proposals').update({ status: action, reviewed_at: new Date().toISOString() }).eq('id', id);
+      const { error } = await (supabase as any)
+        .from('update_proposals')
+        .update({ status: action, reviewed_at: new Date().toISOString() })
+        .eq('id', id);
       if (error) throw error;
-      await (supabase as any).from('review_actions').insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
+      const { error: logErr } = await (supabase as any)
+        .from('review_actions')
+        .insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
+      if (logErr) console.warn('review_actions insert failed', logErr);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['update-proposals-review'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast({ title: 'Update proposal reviewed' });
     },
+    onError: (e) => showErr(e, 'Update action failed'),
   });
 
   const hasSource = (project: any) => project.source_url && project.source_url.trim() !== '' && project.source_url !== '#';

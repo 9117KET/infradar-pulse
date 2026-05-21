@@ -1,6 +1,13 @@
+import { Seo } from '@/components/Seo';
+
 export default function Privacy() {
   return (
     <div className="py-20">
+      <Seo
+        title="Privacy Notice | InfradarAI"
+        description="How InfradarAI collects, uses and protects personal information across the platform, marketing site, and customer communications."
+        path="/privacy"
+      />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Privacy Notice</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
