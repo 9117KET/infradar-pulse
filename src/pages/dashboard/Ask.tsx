@@ -62,7 +62,7 @@ function statusBadge(s: string) {
 
 export default function Ask() {
   const { toast } = useToast();
-  const { canUseAi, plan, refresh } = useEntitlements();
+  const { canUseAi, plan, refresh, usage, limits, staffBypass } = useEntitlements();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<NlSearchResponse | null>(null);
@@ -106,6 +106,28 @@ export default function Ask() {
           <span className="text-foreground font-medium capitalize">{plan}</span> plan.
         </p>
       </div>
+
+      {/* Usage counter */}
+      {!staffBypass && limits.aiPerDay < 9999 && (
+        <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            <span className={`font-medium ${(usage.ai_generation ?? 0) >= limits.aiPerDay ? 'text-destructive' : 'text-foreground'}`}>
+              {usage.ai_generation ?? 0}
+            </span>
+            {' '}of{' '}
+            <span className="font-medium text-foreground">{limits.aiPerDay}</span>
+            {' '}AI queries used today
+          </span>
+          {!canUseAi && (
+            <button
+              onClick={() => setUpgradeOpen(true)}
+              className="text-primary hover:underline"
+            >
+              Upgrade for more →
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Search input */}
       <Card className="p-4 glass-panel mb-6">

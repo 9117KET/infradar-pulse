@@ -195,12 +195,30 @@ export default function DashboardOverview() {
     return { overall, fields };
   }, [projects]);
 
-  const confidenceTrend = useMemo(() => {
-    const months = ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
-    const offsets = [1, 0, 1, -1, 0, 1];
-    const base = avgConfidence || 80;
-    return months.map((month, i) => ({ month, value: Math.max(50, base - (5 - i) * 1.2 + offsets[i]) | 0 }));
-  }, [avgConfidence]);
+  const { data: weeklyNewProjects = [] } = useQuery({
+    queryKey: ['weekly-new-projects'],
+    queryFn: async () => {
+      const weeks: { week: string; count: number }[] = [];
+      const now = new Date();
+      for (let i = 5; i >= 0; i--) {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - i * 7 - now.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
+        const { count } = await supabase
+          .from('projects')
+          .select('id', { count: 'exact', head: true })
+          .eq('approved', true)
+          .gte('created_at', weekStart.toISOString())
+          .lt('created_at', weekEnd.toISOString());
+        const label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        weeks.push({ week: label, count: count || 0 });
+      }
+      return weeks;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const marketKPIs = useMemo(() => [
     { label: 'Projects (platform)', value: allProjects.length, icon: Activity, color: 'text-primary', bg: 'bg-primary/10' },
@@ -392,7 +410,7 @@ export default function DashboardOverview() {
           </Link>
 
           {/* Portfolio updates */}
-          <Link to="/dashboard/portfolio" className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
+          <Link to={trackedProjects.length === 0 ? '/dashboard/projects' : '/dashboard/portfolio'} className="glass-panel rounded-xl p-4 hover:border-primary/30 transition-colors group">
             <div className="flex items-start justify-between mb-3">
               <div className={`inline-flex p-1.5 rounded-lg ${portfolioUpdateCount > 0 ? 'bg-amber-400/10' : 'bg-muted'}`}>
                 <Star className={`h-4 w-4 ${portfolioUpdateCount > 0 ? 'text-amber-400' : 'text-muted-foreground'}`} />
@@ -401,13 +419,19 @@ export default function DashboardOverview() {
                 <span className="text-[10px] text-muted-foreground">{trackedProjects.length} tracked</span>
               )}
             </div>
-            {trackedLoading ? <Skeleton className="h-7 w-12 mb-1" /> : (
+            {trackedLoading ? <Skeleton className="h-7 w-12 mb-1" /> : trackedProjects.length === 0 ? (
+              <div className="text-sm font-medium text-muted-foreground">No projects tracked yet</div>
+            ) : (
               <div className={`text-2xl font-serif font-bold ${portfolioUpdateCount > 0 ? 'text-amber-400' : ''}`}>
                 {portfolioUpdateCount}
               </div>
             )}
-            <div className="text-xs text-muted-foreground mt-0.5">Portfolio updates in last 7 days</div>
-            <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">View portfolio →</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {trackedProjects.length === 0 ? 'Track your first project →' : 'Portfolio updates in last 7 days'}
+            </div>
+            <div className="text-[10px] text-primary mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {trackedProjects.length === 0 ? 'Browse projects →' : 'View portfolio →'}
+            </div>
           </Link>
 
           {/* Tender events */}
@@ -449,23 +473,23 @@ export default function DashboardOverview() {
       {/* Mini Map */}
       {!projectsLoading && <OverviewMap projects={projects} />}
 
-      {/* Confidence trend */}
+      {/* New projects added (real data) */}
       <div className="glass-panel rounded-xl p-5">
-        <h3 className="font-serif text-lg font-semibold mb-1">Confidence trend (your coverage)</h3>
-        <p className="text-xs text-muted-foreground mb-3">Illustrative — historical time-series not yet available</p>
+        <h3 className="font-serif text-lg font-semibold mb-1">New projects added (last 6 weeks)</h3>
+        <p className="text-xs text-muted-foreground mb-3">Verified projects approved to the platform by week</p>
         <ResponsiveContainer width="100%" height={200}>
-          <AreaChart data={confidenceTrend}>
+          <AreaChart data={weeklyNewProjects}>
             <defs>
-              <linearGradient id="confGrad" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="newProjGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(170 55% 63%)" stopOpacity={0.4} />
                 <stop offset="95%" stopColor="hsl(170 55% 63%)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(210 10% 18%)" />
-            <XAxis dataKey="month" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis domain={[50, 100]} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="week" tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fill: 'hsl(210 8% 55%)', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12, color: 'hsl(180 10% 92%)' }} />
-            <Area type="monotone" dataKey="value" stroke="hsl(170 55% 63%)" fill="url(#confGrad)" strokeWidth={2} />
+            <Area type="monotone" dataKey="count" name="Projects added" stroke="hsl(170 55% 63%)" fill="url(#newProjGrad)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
