@@ -1,0 +1,36 @@
+name: Cron heartbeat check
+
+# Runs every 30 minutes - INDEPENDENT of pg_cron.
+# If all Supabase scheduled agents go silent (e.g. stale vault key),
+# this workflow detects it and triggers an email alert via the
+# cron-heartbeat-check Edge Function.
+#
+# Required repository secrets:
+#   SUPABASE_URL              - e.g. https://xxxxx.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY - service role key (not anon key)
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping cron-heartbeat-check Edge Function
+        run: |
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/cron-heartbeat-check")
+
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response: $(cat /tmp/response.json)"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Heartbeat check returned HTTP $HTTP_STATUS"
+            exit 1
+          fi

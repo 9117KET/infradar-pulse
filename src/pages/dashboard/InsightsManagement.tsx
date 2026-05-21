@@ -173,10 +173,7 @@ export default function InsightsManagement() {
     }
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-insight', {
-        body: { topic: topic.trim() || undefined },
-      });
-      if (error) throw error;
+      const data = await agentApi.runGenerateInsight({ topic: topic.trim() || undefined });
       if (data?.error) throw new Error(data.error);
       toast.success('Insight generated! Review it below and publish when ready.');
       queryClient.invalidateQueries({ queryKey: ['insights'] });

@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
+import { agentApi } from '@/lib/api/agents';
 import {
   AlertTriangle, Brain, CheckCheck, ChevronDown, ChevronUp,
   Shield, TrendingUp, BarChart3, Loader2, ExternalLink,
@@ -135,8 +136,7 @@ export default function Alerts() {
   const generateBrief = async () => {
     setBriefLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('alert-intelligence');
-      if (error) throw new Error(error.message);
+      const data = await agentApi.runAlertIntelligenceAgent();
       if (data?.brief) {
         setBrief(data.brief);
         setBriefOpen(true);
