@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,26 +6,34 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
 import { checkDisposableEmail, DISPOSABLE_EMAIL_MESSAGE } from '@/lib/disposable-email';
 import { getStoredReferralCode } from '@/lib/utm';
 import { trackEvent } from '@/lib/analytics';
+import { ShieldCheck, Sparkles, Globe } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pilotSeatsLeft, setPilotSeatsLeft] = useState<number | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
-  // Read referral code from URL if present (e.g. ?ref=ABC123)
   const refCode = new URLSearchParams(location.search).get('ref')?.toUpperCase() ?? getStoredReferralCode();
 
   useEffect(() => {
     if (user?.email_confirmed_at) navigate('/dashboard', { replace: true });
   }, [user, navigate]);
+
+  useEffect(() => {
+    (supabase.rpc as any)('get_public_pilot_access_counter', {}).then(
+      ({ data }: { data: { remaining_seats?: number } | null }) => {
+        if (data?.remaining_seats != null) setPilotSeatsLeft(data.remaining_seats);
+      },
+    );
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,10 +110,33 @@ export default function Login() {
       }}
     >
       <div className="glass-panel rounded-xl p-8 w-full max-w-sm teal-glow">
-        <div className="flex items-center gap-2 justify-center mb-6">
+        <div className="flex items-center gap-2 justify-center mb-4">
           <InfradarLogo size={32} />
           <span className="font-serif text-lg font-semibold tracking-wide">INFRADARAI</span>
         </div>
+
+        {/* Value strip - visible on sign-up, subtle on sign-in */}
+        {isSignUp && (
+          <div className="mb-5 space-y-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Globe className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>1,600+ verified projects across 14 global regions</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>AI Q&A from $29/mo - ask anything about the pipeline</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>
+                {pilotSeatsLeft != null
+                  ? `${pilotSeatsLeft} pilot seats left - 30 days Pro, no card required`
+                  : '30-day Pro pilot available, no card required'}
+              </span>
+            </div>
+          </div>
+        )}
+
         <p className="text-sm text-muted-foreground text-center mb-6">
           {isSignUp ? 'Create your account' : 'Sign in to the intelligence platform'}
         </p>
