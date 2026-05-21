@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
-import { Sparkles, Loader2, Clock } from 'lucide-react';
+import { Sparkles, Loader2, Clock, Globe } from 'lucide-react';
+import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,7 +64,9 @@ export function UpgradeDialog({
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { toast } = useToast();
   const { plan } = useEntitlements();
+  const { locations } = usePublicProjectLocations();
   const { title, description } = COPY[reason] ?? COPY.default;
+  const projectCount = locations.length;
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [requestReason, setRequestReason] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
@@ -162,6 +165,16 @@ export function UpgradeDialog({
             {title}
           </DialogTitle>
           <DialogDescription className="text-left leading-relaxed">{description}</DialogDescription>
+          {projectCount > 0 && (
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+              <span>
+                Trusted by infra teams tracking{' '}
+                <span className="text-foreground font-medium">{projectCount.toLocaleString()}</span>
+                {' '}verified projects across 14 regions
+              </span>
+            </div>
+          )}
         </DialogHeader>
 
         {showRequestForm && (
