@@ -231,10 +231,19 @@ export default function ReviewQueue() {
         if (error) throw error;
         return;
       }
-      const nextStatus = action === 'rejected' ? 'rejected' : 'needs_research';
+      if (action === 'rejected') {
+        // Use RPC so a rejection signature is recorded and the candidate
+        // can never re-appear in the queue via future agent runs.
+        const { error } = await (supabase as any).rpc('reject_project_candidate', {
+          p_candidate_id: id,
+          p_reason: 'Rejected from verification workbench',
+        });
+        if (error) throw error;
+        return;
+      }
       const { error } = await (supabase as any)
         .from('project_candidates')
-        .update({ review_status: nextStatus, pipeline_status: nextStatus, updated_at: new Date().toISOString() })
+        .update({ review_status: 'needs_research', pipeline_status: 'needs_research', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
       const { error: logErr } = await (supabase as any)

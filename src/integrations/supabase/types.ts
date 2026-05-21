@@ -2366,7 +2366,7 @@ export type Database = {
       normalize_email: { Args: { p_email: string }; Returns: string }
       promote_project_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
-        Returns: string
+        Returns: Json
       }
       prune_old_usage_counters: { Args: never; Returns: undefined }
       read_email_batch: {
