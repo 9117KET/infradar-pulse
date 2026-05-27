@@ -68,7 +68,7 @@ export function SectorSnapshotSection() {
       }} />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">Live data</div>
+        
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <h2 className="font-serif text-3xl font-bold sm:text-4xl">
