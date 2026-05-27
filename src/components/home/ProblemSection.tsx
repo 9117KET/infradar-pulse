@@ -45,7 +45,7 @@ export function ProblemSection() {
         </div>
 
         <div className="mt-10 glass-panel rounded-xl p-6 max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">What incumbents get wrong</p>
+          
           <ul className="grid sm:grid-cols-2 gap-2">
             {FLAWS.map(f => (
               <li key={f} className="text-sm text-muted-foreground flex items-start gap-2">

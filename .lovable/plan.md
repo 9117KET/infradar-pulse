@@ -1,52 +1,39 @@
-## What this delivers
+## Remove uppercase eyebrow labels ("AI dev patterns") from page headers
 
-Three connected queue-transition rules so the Pipeline Candidates queue stops leaking work back to researchers.
+Remove the small `uppercase tracking-widest` eyebrow labels that sit above page headings on public and dashboard pages. These read as placeholder/dev-pattern text.
 
-### 1. Approved → Project with full evidence trail
-`promote_project_candidate` already exists and copies evidence_sources, project_claims, stakeholders, and writes review_actions + project_verification_log. We will:
-- Verify and harden the function (idempotent on re-approval, slug collision safe — already done).
-- Add a sanity guarantee: the new project gets at least one row in `evidence_sources` derived from `candidate_evidence_links`; if zero links exist, the function raises so a candidate with no evidence cannot be approved.
-- The client already calls this RPC from ReviewQueue → no change needed there.
+### Files to edit
 
-### 2. Rejected → Deduplicated, won't reappear
-Today, rejecting a candidate only flips its status; the next agent run can re-insert the same name+country pair and it lands back in the queue.
+1. **`src/components/home/HeroSection.tsx`** (line ~48-54)
+   - Remove the live-dot + `Global infrastructure intelligence` label above the h1.
+   - Keep the heading, subtext, CTA buttons and live stats row unchanged.
 
-New piece: `candidate_rejection_signatures` table keyed on `(normalized_name, country)` with `reason`, `rejected_by`, `rejected_at`, `source_url_pattern`.
+2. **`src/pages/Explore.tsx`** (line ~108)
+   - Remove `Live dataset preview` eyebrow label above the h1.
+   - Keep the heading, description, live stats, filters and table unchanged.
 
-- New RPC `reject_project_candidate(p_id, p_reason)` — staff-only. Flips status, inserts review_actions row, upserts a signature.
-- New trigger `trg_suppress_rejected_candidates` on `project_candidates` (BEFORE INSERT OR UPDATE) — if a matching signature exists, force `review_status = 'rejected'`, `pipeline_status = 'rejected'`, append a note to `extracted_claims` indicating auto-suppression. This means even if the ingest path forgets to check, the database enforces it.
-- `pipelineIngest.ts` gets a fast-path: before the insert/update, query signatures; if matched, skip the candidate insert entirely (still keeps the raw_evidence row for audit). Reduces noise and saves writes.
-- ReviewQueue's `candidateAction` for `rejected` switches from a direct UPDATE to calling the new RPC.
+3. **`src/pages/AskDemo.tsx`** (line ~108)
+   - Remove `Live AI demo` eyebrow label above the h1.
+   - Keep the heading, description and demo form unchanged.
 
-### 3. Researcher digest when queue backs up
-New edge function `review-queue-digest` + daily cron at 08:00 UTC.
+4. **`src/components/home/SectorSnapshotSection.tsx`** (line ~71)
+   - Remove `Live data` eyebrow label above the h2.
+   - Keep the chart, table and "Browse all projects" CTA unchanged.
 
-- Queries: count of `ready_for_review` candidates, oldest 10 (with age in days), breakdown by sector and country, count of pending update_proposals.
-- Triggers email only when backlog ≥ 25 OR oldest item ≥ 5 days old.
-- Recipients = admins + researchers (new RPC `list_staff_emails` returning both roles).
-- Reuses the queued-email pattern (`enqueue_email` → `transactional_emails`) with idempotency_key scoped to date so we never double-send.
-- Service-role bearer guard like agent-health-monitor.
+5. **`src/components/home/ProblemSection.tsx`** (line ~48)
+   - Remove `What incumbents get wrong` eyebrow label above the flaws list.
+   - Keep the stats grid and list content unchanged.
 
-## Files
+6. **`src/pages/Pricing.tsx`** (line ~179)
+   - Remove `Pricing` eyebrow label above the h1.
+   - Keep the "Pilot access now open" pill and everything below unchanged.
 
-**Migration** (one file):
-- `candidate_rejection_signatures` table + RLS (staff read/write).
-- `reject_project_candidate(uuid, text)` RPC.
-- `_suppress_rejected_candidates()` trigger function + trigger.
-- Hardening clause in `promote_project_candidate`: raise if no evidence links.
-- `list_staff_emails()` RPC (admin + researcher).
+7. **`src/pages/dashboard/Ask.tsx`** (line ~99)
+   - Remove `AI-powered search` eyebrow label above the h1.
+   - Keep the "Try one of these" and "How I understood your question" functional labels unchanged.
 
-**Edge function (new):** `supabase/functions/review-queue-digest/index.ts`
-
-**Cron schedule (via supabase insert tool, not migration — contains URL + key):** daily 08:00 UTC invoking the new function.
-
-**Code edits:**
-- `supabase/functions/_shared/pipelineIngest.ts` — pre-check signatures, skip if matched.
-- `src/pages/dashboard/ReviewQueue.tsx` — reject path calls `reject_project_candidate` RPC.
-
-## Why these specific choices
-
-- DB-level trigger is the durable enforcement layer; the edge-function pre-check is the perf optimisation. Both together = belt + braces.
-- `(normalized_name, country)` is the same key the pipeline already uses for upsert, so signatures align with how duplicates are detected upstream.
-- Digest goes out only when there is real backlog; otherwise silent — researchers won't tune it out.
-- All three pieces are independent and shippable, but they reinforce each other: rejections don't loop, approvals carry their receipts, and the inbox metric stays visible.
+### What stays
+- Dashboard section labels (e.g., "Top regions by project count", "Quality flags", "Emerging Patterns") — these are functional data headers, not page eyebrow labels.
+- Footer column headers ("Product", "Legal", "Get Started").
+- Widget labels inside `HeroLiveTracker` ("Sector Breakdown", "Live Feed", etc.).
+- Dynamic labels in `UseCaseSection` and `CapabilitiesSection` that describe the card content.
