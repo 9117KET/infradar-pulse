@@ -105,9 +105,6 @@ export default function Explore() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
-              Live dataset preview
-            </div>
             <h1 className="font-serif text-3xl font-bold sm:text-4xl mb-4">
               Explore the global infrastructure pipeline
             </h1>

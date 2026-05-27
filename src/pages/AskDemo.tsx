@@ -105,9 +105,6 @@ export default function AskDemo() {
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="mb-3 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Live AI demo
-          </div>
           <h1 className="font-serif text-4xl font-bold mb-4">Ask InfradarAI</h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Ask anything about our database of 1,600+ verified global infrastructure projects in plain English.

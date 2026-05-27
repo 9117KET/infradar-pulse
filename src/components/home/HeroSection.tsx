@@ -45,13 +45,6 @@ export function HeroSection() {
       <div className="mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:grid-cols-2 lg:gap-16">
         {/* Left */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center">
-          <div className="mb-4 sm:mb-6 flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-            </span>
-            <span className="text-[10px] sm:text-xs font-medium uppercase tracking-widest text-muted-foreground">Global infrastructure intelligence</span>
-          </div>
 
           <h1 className="font-serif text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
             VERIFIED INFRASTRUCTURE{' '}
