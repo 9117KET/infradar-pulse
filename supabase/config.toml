@@ -20,3 +20,10 @@ verify_jwt = false
 
 [functions.handle-email-suppression]
 verify_jwt = false
+
+[functions.link-validator]
+verify_jwt = true
+
+[functions.source-cleanup]
+verify_jwt = true
+
