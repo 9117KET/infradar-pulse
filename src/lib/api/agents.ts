@@ -84,4 +84,8 @@ export const agentApi = {
   runAgentHealthMonitor: () => invokeAgentWithBody('agent-health-monitor', {}),
   runSyncServiceRoleToVault: () => invokeAgentWithBody('sync-service-role-to-vault', {}),
   runAlertIntelligenceAgent: () => invokeAgent('alert-intelligence'),
+  runLinkValidator: (opts?: { mode?: 'incremental' | 'full'; batch?: number; concurrency?: number }) =>
+    invokeAgentWithBody('link-validator', { ...(opts ?? {}) }),
+  runSourceCleanup: (opts?: { dry_run?: boolean }) =>
+    invokeAgentWithBody('source-cleanup', { dry_run: opts?.dry_run ?? true }),
 };
