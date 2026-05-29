@@ -96,7 +96,7 @@ export default function SourceHealth() {
 
   return (
     <div className="p-6 space-y-6">
-      <Seo title="Source Health · InfraRadarAI" description="Validate and clean up broken source URLs across evidence, projects, contacts and insights." />
+      <Seo title="Source Health · InfraRadarAI" description="Validate and clean up broken source URLs across evidence, projects, contacts and insights." path="/dashboard/source-health" />
       <div>
         <h1 className="text-3xl font-serif">Source Health</h1>
         <p className="text-muted-foreground mt-1">Validate every source URL surfaced by agents. Quarantine and remove broken citations.</p>
