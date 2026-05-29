@@ -41,6 +41,7 @@ import SettingsPage from "./pages/dashboard/Settings";
 import { RoleGuard } from "./components/RoleGuard";
 import { FeatureGate } from "./components/billing/FeatureGate";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
+import SourceHealth from "./pages/dashboard/SourceHealth";
 import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
