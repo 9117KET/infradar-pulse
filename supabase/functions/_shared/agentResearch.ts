@@ -1,4 +1,9 @@
-import { runResearchPrompt } from "./webResearch.ts";
+/**
+ * Agent research helper. Routes through researchRouter so we get REAL
+ * citations from Perplexity / Firecrawl instead of an empty array.
+ */
+
+import { research } from "./researchRouter.ts";
 
 type AgentResearchOk = { ok: true; text: string; citations: string[] };
 type AgentResearchFail = { ok: false; error: string; status?: number };
@@ -10,13 +15,16 @@ export async function fetchAgentResearch(params: {
   userPrompt: string;
   searchRecencyFilter?: "day" | "week" | "month" | "year";
 }): Promise<AgentResearchOk | AgentResearchFail> {
-  // Compatibility wrapper: despite the historical import path, MVP agents now route
-  // research through Lovable AI only. External Perplexity/Firecrawl credits must
-  // not be required for scheduled agents to complete.
-  const aiText = await runResearchPrompt({
-    systemRole: params.systemPrompt,
-    query: `${params.userPrompt}\n\nFocus recency: ${params.searchRecencyFilter ?? "month"}.`,
+  const r = await research({
+    systemPrompt: params.systemPrompt,
+    userPrompt: params.userPrompt,
+    mode: "monitoring",
+    recency: params.searchRecencyFilter,
   });
-  if (aiText) return { ok: true, text: aiText, citations: [] };
-  return { ok: false, error: `Lovable AI research failed for ${params.agentName}` };
+  if (!r.text) {
+    return { ok: false, error: `All providers failed for ${params.agentName}` };
+  }
+  // When degraded (Lovable AI fallback) we intentionally return empty
+  // citations so callers do not persist any source URLs.
+  return { ok: true, text: r.text, citations: r.citations };
 }
