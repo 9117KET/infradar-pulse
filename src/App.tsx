@@ -129,6 +129,7 @@ const App = () => (
               <Route path="/dashboard/users" element={<RoleGuard requiredRole="admin"><UsersPage /></RoleGuard>} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<RoleGuard requiredRole="researcher"><ReviewQueue /></RoleGuard>} />
+              <Route path="/dashboard/source-health" element={<RoleGuard requiredRole="researcher"><SourceHealth /></RoleGuard>} />
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
               <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
