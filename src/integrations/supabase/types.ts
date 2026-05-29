@@ -1717,6 +1717,33 @@ export type Database = {
         }
         Relationships: []
       }
+      source_link_checks: {
+        Row: {
+          checked_at: string
+          error: string | null
+          first_seen_at: string
+          http_code: number | null
+          status: string
+          url: string
+        }
+        Insert: {
+          checked_at?: string
+          error?: string | null
+          first_seen_at?: string
+          http_code?: number | null
+          status: string
+          url: string
+        }
+        Update: {
+          checked_at?: string
+          error?: string | null
+          first_seen_at?: string
+          http_code?: number | null
+          status?: string
+          url?: string
+        }
+        Relationships: []
+      }
       source_registry: {
         Row: {
           base_url: string | null
@@ -2233,6 +2260,7 @@ export type Database = {
         Returns: Json
       }
       claim_referral_signup: { Args: { p_code: string }; Returns: boolean }
+      cleanup_broken_sources: { Args: { dry_run?: boolean }; Returns: Json }
       consume_quota: {
         Args: {
           p_daily_cap: number
