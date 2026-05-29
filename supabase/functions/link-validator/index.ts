@@ -141,7 +141,20 @@ serve(async (req) => {
 
   toCheck = toCheck.slice(0, batch);
 
-  // 3. Run checks with bounded concurrency
+  // 3. Snapshot prior statuses so we can detect newly-broken URLs
+  const priorStatus = new Map<string, string>();
+  for (let s = 0; s < toCheck.length; s += 1000) {
+    const slice = toCheck.slice(s, s + 1000);
+    const { data: prior } = await admin
+      .from("source_link_checks")
+      .select("url, status")
+      .in("url", slice);
+    for (const r of prior ?? []) {
+      priorStatus.set((r as { url: string }).url, (r as { status: string }).status);
+    }
+  }
+
+  // 4. Run checks with bounded concurrency
   let okCount = 0, brokenCount = 0, invalidCount = 0;
   const rows: Array<{ url: string; status: string; http_code: number | null; error: string | null; checked_at: string }> = [];
 
@@ -168,17 +181,132 @@ serve(async (req) => {
   }
   await Promise.all(Array.from({ length: concurrency }, worker));
 
-  // 4. Upsert in chunks of 500
+  // 5. Upsert in chunks of 500
   for (let s = 0; s < rows.length; s += 500) {
     const slice = rows.slice(s, s + 500);
     await admin.from("source_link_checks").upsert(slice, { onConflict: "url" });
   }
 
-  // 5. Summary counts across the whole table
+  // 6. Newly-broken URLs (previously absent or "ok")
+  const newlyBroken = rows.filter(
+    (r) => r.status === "broken" && (priorStatus.get(r.url) ?? "ok") !== "broken",
+  );
+
+  // 7. Summary counts across the whole table
   const { count: totalBroken } = await admin
     .from("source_link_checks")
     .select("*", { count: "exact", head: true })
     .eq("status", "broken");
+
+  // 8. Notify (dashboard alert + email admins) when newly-broken exceeds threshold
+  const threshold = Math.max(1, parseInt(Deno.env.get("LINK_VALIDATOR_ALERT_THRESHOLD") ?? "5", 10));
+  let alerted = false;
+  let emailedAdmins = 0;
+  if (newlyBroken.length >= threshold) {
+    // Dedupe: skip if an unresolved newly_broken_sources alert already exists in last 24h
+    const dedupeCutoff = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: recent } = await admin
+      .from("agent_health_alerts")
+      .select("id")
+      .eq("alert_type", "newly_broken_sources")
+      .gte("detected_at", dedupeCutoff)
+      .is("resolved_at", null)
+      .limit(1);
+
+    if (!recent || recent.length === 0) {
+      const sampleUrls = newlyBroken.slice(0, 10).map((r) => ({ url: r.url, http_code: r.http_code, error: r.error }));
+      const { data: alertRow } = await admin
+        .from("agent_health_alerts")
+        .insert({
+          alert_type: "newly_broken_sources",
+          severity: newlyBroken.length >= threshold * 4 ? "critical" : "high",
+          job_name: "weekly-link-validator",
+          failure_count: newlyBroken.length,
+          total_runs: toCheck.length,
+          sample_message: `${newlyBroken.length} source URLs newly broken (threshold ${threshold}). Sample: ${newlyBroken.slice(0, 3).map((r) => r.url).join(", ")}`,
+          details: {
+            mode,
+            checked: toCheck.length,
+            newly_broken: newlyBroken.length,
+            total_broken_in_db: totalBroken ?? null,
+            threshold,
+            sample_urls: sampleUrls,
+          },
+        })
+        .select("id")
+        .single();
+      alerted = true;
+
+      try {
+        const { data: admins } = await admin.rpc("list_admin_emails");
+        const recipients = ((admins ?? []) as { email: string }[]).map((a) => a.email).filter(Boolean);
+        const SITE_NAME = "InfraDarAI";
+        const FROM_DOMAIN = "infradarai.com";
+        const SENDER_DOMAIN = "notify.infradarai.com";
+        const APP_URL = "https://infradarai.com";
+        const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        const sampleRows = sampleUrls.map((s) => `
+          <tr>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;font-family:monospace;font-size:12px;"><a href="${esc(s.url)}" style="color:#0f172a;">${esc(s.url.slice(0, 80))}</a></td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;color:#b91c1c;">${s.http_code ?? "—"}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#475569;font-size:12px;">${esc((s.error ?? "").slice(0, 160))}</td>
+          </tr>`).join("");
+        const html = `<!doctype html><html><body style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#f8fafc;padding:24px;color:#0f172a;">
+          <div style="max-width:680px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e2e8f0;overflow:hidden;">
+            <div style="background:#dc2626;color:#fff;padding:16px 20px;">
+              <div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.85;">Source Health Alert</div>
+              <div style="font-size:20px;font-weight:600;margin-top:4px;">${newlyBroken.length} source URLs newly broken</div>
+            </div>
+            <div style="padding:20px;">
+              <p style="margin:0 0 12px 0;">The weekly link validator found <strong>${newlyBroken.length}</strong> source URLs that were previously reachable (or new) and are now broken. This exceeds the alert threshold of <strong>${threshold}</strong>.</p>
+              <p style="margin:0 0 12px 0;color:#475569;">Checked ${toCheck.length} URLs in this run · ${totalBroken ?? 0} total broken in DB.</p>
+              <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                <thead><tr style="background:#f8fafc;">
+                  <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;color:#64748b;">URL</th>
+                  <th style="padding:8px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:#64748b;">HTTP</th>
+                  <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;color:#64748b;">Error</th>
+                </tr></thead>
+                <tbody>${sampleRows}</tbody>
+              </table>
+              <p style="margin:16px 0 0 0;"><a href="${APP_URL}/dashboard/source-health" style="display:inline-block;background:#0f172a;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;font-weight:600;">Open Source Health</a></p>
+            </div>
+            <div style="padding:12px 20px;background:#f8fafc;color:#64748b;font-size:12px;border-top:1px solid #e2e8f0;">
+              Sent automatically by link-validator. You are receiving this because you are an admin on ${SITE_NAME}.
+            </div>
+          </div></body></html>`;
+        const text = `Source Health Alert — ${newlyBroken.length} URLs newly broken (threshold ${threshold}).\n\n${sampleUrls.map((s) => `- ${s.url} [${s.http_code ?? "—"}] ${s.error ?? ""}`).join("\n")}\n\nOpen: ${APP_URL}/dashboard/source-health`;
+
+        for (const to of recipients) {
+          const { error: enqErr } = await admin.rpc("enqueue_email", {
+            queue_name: "transactional_emails",
+            payload: {
+              message_id: crypto.randomUUID(),
+              to,
+              from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
+              sender_domain: SENDER_DOMAIN,
+              subject: `[${SITE_NAME}] ${newlyBroken.length} source URLs newly broken`,
+              html,
+              text,
+              purpose: "transactional",
+              label: "source_health_alert",
+              idempotency_key: `source-health-${new Date().toISOString().slice(0, 10)}-${to}`,
+              queued_at: new Date().toISOString(),
+            },
+          });
+          if (!enqErr) emailedAdmins++;
+        }
+
+        if (alertRow?.id) {
+          await admin
+            .from("agent_health_alerts")
+            .update({ notified_at: new Date().toISOString() })
+            .eq("id", alertRow.id);
+        }
+      } catch (e) {
+        console.error("[link-validator] notification error", e);
+      }
+    }
+  }
 
   return new Response(
     JSON.stringify({
@@ -188,7 +316,11 @@ serve(async (req) => {
       ok: okCount,
       broken: brokenCount,
       invalid: invalidCount,
+      newly_broken: newlyBroken.length,
       total_broken_in_db: totalBroken ?? null,
+      alert_raised: alerted,
+      emailed_admins: emailedAdmins,
+      threshold,
     }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
