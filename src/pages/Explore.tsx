@@ -99,7 +99,7 @@ export default function Explore() {
         <div className="pointer-events-none absolute inset-0" style={{
           background: 'radial-gradient(ellipse 70% 60% at 50% 0%, rgba(107,216,203,0.07) 0%, transparent 70%)',
         }} />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="section-fluid">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,7 +138,7 @@ export default function Explore() {
 
       {/* Filters + Table */}
       <section className="py-10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="section-fluid">
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-6">
             <div className="relative flex-1 min-w-48">

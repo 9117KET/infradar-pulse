@@ -29,13 +29,13 @@ const Index = () => (
     <HeroSection />
     <TrustStrip />
     <ProblemSection />
-    <CapabilitiesSection />
     <DemoSection />
+    <CapabilitiesSection />
     <CoverageSection />
-    <SectorSnapshotSection />
-    <PipelineSection />
     <PersonasSection />
     <UseCaseSection />
+    <SectorSnapshotSection />
+    <PipelineSection />
     <EngagementSection />
   </>
 );

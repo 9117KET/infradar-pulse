@@ -38,11 +38,11 @@ export function HeroSection() {
   }), [locations]);
 
   return (
-    <section className="relative min-h-[85svh] md:min-h-[90vh] flex items-center overflow-visible" style={{ overflow: 'visible' }}>
+    <section className="relative min-h-screen flex overflow-visible" style={{ overflow: 'visible' }}>
       {/* Radial teal gradient */}
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 50% at 20% 50%, rgba(107,216,203,0.08) 0%, transparent 70%)' }} />
 
-      <div className="mx-auto grid max-w-7xl gap-10 sm:gap-12 px-4 py-12 sm:py-16 lg:py-20 sm:px-6 lg:grid-cols-2 lg:gap-16">
+      <div className="section-fluid grid gap-10 sm:gap-12 pt-4 sm:pt-6 lg:pt-8 pb-16 sm:pb-20 lg:pb-24 lg:grid-cols-2 lg:gap-16">
         {/* Left */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }} className="flex flex-col justify-center">
 

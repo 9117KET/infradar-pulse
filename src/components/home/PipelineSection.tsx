@@ -19,8 +19,8 @@ const FEATURES = [
 
 export function PipelineSection() {
   return (
-    <section className="relative py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section className="relative py-24 border-t border-border/20">
+      <div className="section-fluid">
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">From signals to decisions</h2>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">

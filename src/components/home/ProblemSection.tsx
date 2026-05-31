@@ -18,8 +18,8 @@ const FLAWS = [
 
 export function ProblemSection() {
   return (
-    <section id="problem" className="relative py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section id="problem" className="relative py-24 bg-card border-t border-border/20">
+      <div className="section-fluid">
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">
           Infrastructure intelligence is broken
         </h2>

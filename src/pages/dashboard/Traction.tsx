@@ -184,7 +184,7 @@ export default function Traction() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="section-fluid py-6 space-y-6">
       <div>
         <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
           <TrendingUp className="h-6 w-6 text-primary" />

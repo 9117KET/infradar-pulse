@@ -26,9 +26,9 @@ export function CoverageSection() {
   return (
     <section className="relative py-24 border-t border-border/40">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 50% 40% at 20% 60%, rgba(107,216,203,0.05) 0%, transparent 65%)' }} />
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 className="font-serif text-3xl font-bold sm:text-4xl text-foreground mb-4">Coverage</h2>
-        <p className="max-w-2xl text-muted-foreground leading-relaxed mb-12">
+      <div className="relative section-fluid">
+        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">Coverage</h2>
+        <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed mb-12">
           Project types we track across the pipeline. Each category maps to structured sector tags in the platform.
         </p>
 

@@ -47,7 +47,7 @@ export function TrialEndingBanner() {
 
   return (
     <div className="border-b border-primary/30 bg-primary/10 px-4 py-2.5">
-      <div className="mx-auto max-w-7xl flex items-center gap-3 text-xs">
+      <div className="section-fluid flex items-center gap-3 text-xs">
         <Clock className="h-4 w-4 text-primary shrink-0" />
         <div className="flex-1 min-w-0">
           <span className="text-foreground font-medium">
