@@ -15,10 +15,10 @@ const PERSONAS = [
 
 export function PersonasSection() {
   return (
-    <section id="personas" className="relative py-24">
+    <section id="personas" className="relative py-24 bg-card/40 border-t border-border/20">
       <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 80%, rgba(107,216,203,0.05) 0%, transparent 70%)' }} />
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-        <h2 className="font-serif text-3xl font-bold sm:text-4xl">Built for the teams that shape infrastructure markets</h2>
+      <div className="relative section-fluid">
+        <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">Built for the teams that shape infrastructure markets</h2>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PERSONAS.map((p, i) => (

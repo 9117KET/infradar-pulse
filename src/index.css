@@ -81,6 +81,19 @@
 }
 
 @layer utilities {
+  /* Fluid container: fills ~90% of any viewport width.
+     clamp: min 1rem | grows at 5vw | caps at 8rem (128px) per side.
+     At 1440px → 72px each side (fills 1296px).
+     At 2560px → 128px each side (fills 2304px = 90%).
+     At 3840px → 128px each side (fills 3584px = 93%). */
+  .section-fluid {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: clamp(1rem, 5vw, 8rem);
+    padding-right: clamp(1rem, 5vw, 8rem);
+  }
+
   .glass-panel {
     @apply bg-black/30 border border-white/10 backdrop-blur-sm;
   }

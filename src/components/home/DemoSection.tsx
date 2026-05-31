@@ -38,8 +38,8 @@ export function DemoSection() {
   }, [filtered]);
 
   return (
-    <section id="demo" className="relative py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section id="demo" className="relative py-24 bg-card/40 border-t border-border/20">
+      <div className="section-fluid">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
             <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">See the signal pipeline in action</h2>

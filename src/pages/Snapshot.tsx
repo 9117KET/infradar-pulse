@@ -105,7 +105,7 @@ export default function Snapshot() {
           <h1 className="font-serif text-3xl font-bold sm:text-4xl leading-tight">
             {stats
               ? `${fmt(stats.pipeline_value_usd)} in tracked infrastructure pipeline across ${stats.regions_covered} regions`
-              : 'Global infrastructure intelligence, updated daily'}
+              : 'Verified project pipeline, updated continuously'}
           </h1>
           {stats && (
             <p className="text-muted-foreground text-sm">

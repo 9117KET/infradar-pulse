@@ -176,7 +176,8 @@ export default function Pricing() {
       />
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="text-center mb-10">
-          
+
+
           <h1 className="font-serif text-4xl font-bold mb-4">
             Intelligence that pays for itself
           </h1>

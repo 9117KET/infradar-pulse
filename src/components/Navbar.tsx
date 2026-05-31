@@ -38,7 +38,7 @@ export function Navbar() {
           : 'bg-transparent border-b border-transparent'
       )}
     >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+      <nav className="section-fluid flex items-center justify-between py-3">
         <Link to="/" className="flex items-center gap-2.5">
           <InfradarLogo size={28} />
           <span className="font-serif text-lg font-semibold tracking-wide text-foreground">INFRADARAI</span>

@@ -61,20 +61,21 @@ export function SectorSnapshotSection() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-80px' }}
       transition={{ duration: 0.6 }}
-      className="relative py-24"
+      className="relative py-24 bg-card border-t border-border/20"
     >
       <div className="pointer-events-none absolute inset-0" style={{
         background: 'radial-gradient(ellipse 60% 50% at 80% 50%, rgba(107,216,203,0.05) 0%, transparent 70%)',
       }} />
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
-        
+
+
+      <div className="section-fluid">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
           <div>
-            <h2 className="font-serif text-3xl font-bold sm:text-4xl">
+            <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">
               Where the global pipeline sits right now
             </h2>
-            <p className="mt-3 max-w-xl text-muted-foreground leading-relaxed">
+            <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
               Project distribution across {sectorData.length} sectors, live from the database.
             </p>
           </div>

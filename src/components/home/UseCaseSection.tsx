@@ -70,8 +70,8 @@ const CASES = [
 
 export function UseCaseSection() {
   return (
-    <section id="work" className="relative py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+    <section id="work" className="relative py-24 border-t border-border/20">
+      <div className="section-fluid">
         <h2 className="font-serif text-3xl font-bold sm:text-4xl max-w-2xl">How infrastructure teams use InfradarAI</h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
           From business development teams and infrastructure consultants building market maps to EPC contractors, project managers, development finance analysts, project finance professionals, owners, developers, and procurement teams monitoring tenders, delivery, portfolios, and risk - one platform, multiple workflows.

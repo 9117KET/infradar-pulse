@@ -49,7 +49,7 @@ export default function Insights() {
         description="Long-form research, market analysis, and verified perspectives on global infrastructure projects across 14 regions. Updated weekly."
         path="/insights"
       />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+      <div className="section-fluid">
         <h1 className="font-serif text-4xl font-bold mb-4">Insights</h1>
         <p className="text-muted-foreground max-w-2xl mb-10">
           Research, analysis, and perspectives on infrastructure intelligence worldwide. Below is a live snapshot of projects
