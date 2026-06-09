@@ -1,12 +1,12 @@
 import { motion } from 'framer-motion';
-import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText, HardHat, TrendingDown, Search, Sparkles } from 'lucide-react';
+import { Activity, ShieldCheck, Globe, AlertTriangle, FileText, HardHat, TrendingDown, Search, Sparkles } from 'lucide-react';
 
 const MODULES = [
   { icon: Activity, title: 'Real-time project monitoring', desc: 'Live tracking of project milestones, delays, and status changes across your portfolio.' },
-  { icon: Satellite, title: 'Satellite verification', desc: 'Independent construction progress confirmation via satellite imagery analysis - ground truth no analyst can fake.', wide: true },
+  { icon: ShieldCheck, title: 'Multi-source verification', desc: 'Cross-reference satellite imagery labels, filings, news, registries, and partner data to build a multi-dimensional evidence base for every project.', wide: true },
   { icon: ShieldCheck, title: 'Multi-source validation', desc: 'Cross-reference filings, news, registries, and partner data to eliminate false signals.' },
   { icon: Globe, title: 'Geospatial intelligence', desc: 'Map-based situational awareness with location-enriched project and risk overlays.' },
-  { icon: TrendingDown, title: 'Delay prediction and early warning', desc: 'AI-powered signals 6-9 months ahead: contractor health, permit timelines, political calendars, and funding gaps combined into a single project health score.' },
+  { icon: TrendingDown, title: 'Delay prediction and early warning', desc: 'Composite project health score combining risk, confidence decay, funding gaps, and recent alerts — surface projects trending toward delay before it hits your timeline.' },
   { icon: HardHat, title: 'Contractor intelligence', desc: 'Track which firms win bids globally. Get alerts when contractors on your portfolio show financial distress before it becomes a project crisis.' },
   { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, permit denials, and political risk indicators across 9 signal categories.' },
   { icon: Search, title: 'Procurement monitoring (20+ sources)', desc: 'Tenders from multilateral banks, national procurement portals, and UN agencies - surface opportunities before competitors find them.', wide: true },
