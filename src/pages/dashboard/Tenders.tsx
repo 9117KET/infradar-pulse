@@ -80,6 +80,27 @@ export default function Tenders() {
   const { data: events = [], isLoading, refetch } = useQuery({
     queryKey: ['tender-events'],
     queryFn: async () => {
+      // Read from the structured tender_events table; fall back to parsing alerts if empty
+      const { data: teData, error: teError } = await (supabase as any)
+        .from('tender_events')
+        .select('id, project_id, project_name, event_type, severity, summary, source_url, country, award_value_usd, contractor_name, deadline, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (!teError && teData?.length) {
+        return (teData as any[]).map((row: any): TenderEvent => ({
+          id: row.id,
+          eventType: row.event_type,
+          projectName: row.project_name || 'Unknown project',
+          projectId: row.project_id ?? null,
+          severity: row.severity,
+          summary: row.summary,
+          sourceUrl: row.source_url ?? null,
+          created_at: row.created_at,
+        }));
+      }
+
+      // Fallback: parse legacy alerts (before migration backfill ran)
       const { data, error } = await supabase
         .from('alerts')
         .select('id, project_id, project_name, message, severity, source_url, created_at')
@@ -107,11 +128,31 @@ export default function Tenders() {
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
+      const since = monthStart.toISOString();
+
+      // Try structured table first
+      const { data: teData } = await (supabase as any)
+        .from('tender_events')
+        .select('event_type')
+        .gte('created_at', since);
+
+      if (teData?.length) {
+        const rows = teData as Array<{ event_type: string }>;
+        return {
+          total: rows.length,
+          award: rows.filter(r => r.event_type === 'award').length,
+          dispute: rows.filter(r => r.event_type === 'dispute').length,
+          arbitration: rows.filter(r => r.event_type === 'arbitration').length,
+          cancellation: rows.filter(r => r.event_type === 'cancellation').length,
+        };
+      }
+
+      // Legacy fallback
       const base = () => supabase
         .from('alerts')
         .select('id', { count: 'exact', head: true })
         .eq('category', 'construction')
-        .gte('created_at', monthStart.toISOString());
+        .gte('created_at', since);
 
       const [total, award, dispute, arbitration, cancellation] = await Promise.all([
         base().ilike('message', 'Contract: %'),

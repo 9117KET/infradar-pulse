@@ -110,14 +110,31 @@ serve(async (req) => {
         ev.related_project_name && p.name.toLowerCase().includes(String(ev.related_project_name).toLowerCase().slice(0, 10))
       );
       const dispute = ev.type === "dispute" || ev.type === "arbitration";
-      await supabase.from("alerts").insert({
+      const severity = dispute ? "high" : ((ev.severity as "critical" | "high" | "medium" | "low") || "medium");
+      const projectName = match?.name || `${ev.country || "Project"} tender`;
+
+      // Write the legacy alert for backward compat
+      const { data: alertRow } = await supabase.from("alerts").insert({
         project_id: match?.id || null,
-        project_name: match?.name || `${ev.country || "Project"} tender`,
-        severity: dispute ? "high" : ((ev.severity as "critical" | "high" | "medium" | "low") || "medium"),
+        project_name: projectName,
+        severity,
         message: `Contract: ${ev.type} — ${ev.summary}`,
         category: "construction",
         source_url: ev.source_url || null,
+      }).select("id").single();
+
+      // Write to structured tender_events table
+      await supabase.from("tender_events").insert({
+        project_id: match?.id || null,
+        project_name: projectName,
+        country: ev.country || match?.country || null,
+        event_type: ev.type,
+        severity,
+        summary: ev.summary,
+        source_url: ev.source_url || null,
+        source_alert_id: alertRow?.id || null,
       });
+
       alertsCreated++;
     }
 
