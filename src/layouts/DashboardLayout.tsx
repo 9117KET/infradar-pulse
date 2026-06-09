@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -58,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
       { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
       { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
       { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
+      { title: 'Contractor Intel', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
     ],
   },
   {
