@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
@@ -31,6 +31,7 @@ const AGENTS = [
   { type: 'aiib-ingest', name: 'AIIB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: agentApi.runAiibIngest },
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
+  { type: 'health-scoring', name: 'Health Score', icon: Heart, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runHealthScoreAgent },
   { type: 'stakeholder-intel', name: 'Stakeholder Intel', icon: Users, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runStakeholderIntel },
   { type: 'funding-tracker', name: 'Funding Tracker', icon: DollarSign, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runFundingTracker },
   { type: 'regulatory-monitor', name: 'Regulatory Monitor', icon: Scale, schedule: 'Every 3 hours', scheduleMinutes: 180, fn: agentApi.runRegulatoryMonitor },

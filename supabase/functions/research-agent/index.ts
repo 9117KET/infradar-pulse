@@ -135,9 +135,10 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
-  // Hoist taskId and supabase so the outer catch can update task status on crash
+  // Hoist taskId, supabase, and runStartedAt so the outer catch can update task status on crash
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt: Date | null = null;
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -151,7 +152,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "discovery", "Full pipeline run", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("discovery");
     taskId = lock.taskId;
-    const runStartedAt = new Date();
+    runStartedAt = new Date();
     await setTaskStep(supabase, taskId, "Searching");
 
     const rawContent: string[] = [];

@@ -177,7 +177,7 @@ export default function Contact() {
             <MessageSquare className="h-8 w-8 text-primary mx-auto" />
             <h3 className="font-serif font-semibold">Book a demo</h3>
             <p className="text-sm text-muted-foreground">See the platform in action with our team</p>
-            <Link to="/#engage">
+            <Link to="/#connect">
               <Button size="sm" className="w-full teal-glow">Request demo</Button>
             </Link>
           </div>
