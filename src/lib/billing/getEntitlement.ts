@@ -18,7 +18,13 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
   if (!user) return null;
   const environment = getPaddleEnvironment();
 
-  const [{ data: staffRoles }, { data: sub }, { data: lifetime }, { data: pilot }, { data: trial }] = await Promise.all([
+  const [
+    { data: staffRoles, error: staffError },
+    { data: sub },
+    { data: lifetime },
+    { data: pilot },
+    { data: trial },
+  ] = await Promise.all([
     // Fetch only admin/researcher rows — avoids maybeSingle() error when user has multiple role rows.
     supabase.from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'researcher']),
     supabase
@@ -40,7 +46,7 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .from('pilot_access_grants')
       .select('id')
       .eq('user_id', user.id)
-      .eq('environment', 'live')
+      .eq('environment', environment)
       .eq('status', 'active')
       .gt('ends_at', new Date().toISOString())
       .maybeSingle(),
@@ -53,6 +59,9 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .gt('ends_at', new Date().toISOString())
       .maybeSingle(),
   ]);
+
+  // If we can't determine staff status, fail closed rather than silently downgrading an admin.
+  if (staffError) return null;
 
   const bypass = (staffRoles?.length ?? 0) > 0;
   if (bypass) {

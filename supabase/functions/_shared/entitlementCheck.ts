@@ -204,9 +204,10 @@ async function tryConsume(
 export async function consumeAiQuota(
   supabaseAdmin: SupabaseClient,
   userId: string,
-  environment: "sandbox" | "live" = "live"
+  environment: "sandbox" | "live" = "live",
+  prefetchedEnt?: { plan: PlanKey; limits: PlanLimit; bypass: boolean }
 ): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
-  const ent = await getEntitlementForUser(supabaseAdmin, userId, environment);
+  const ent = prefetchedEnt ?? await getEntitlementForUser(supabaseAdmin, userId, environment);
   if (ent.bypass) return { ok: true };
   return tryConsume(
     supabaseAdmin,

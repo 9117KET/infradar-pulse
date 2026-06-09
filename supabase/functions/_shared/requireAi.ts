@@ -122,8 +122,9 @@ export async function requirePlanAndAiOrRespond(
     );
   }
 
-  // Atomic quota gate + consumption (staff bypass is handled inside consumeAiQuota).
-  const gate = await consumeAiQuota(supabaseAdmin, user.id, environment);
+  // Atomic quota gate + consumption. Pass the already-fetched entitlement to avoid
+  // a second getEntitlementForUser call (which would fire up to 4 extra DB queries).
+  const gate = await consumeAiQuota(supabaseAdmin, user.id, environment, ent);
   if (gate.ok === false) {
     return new Response(
       JSON.stringify({ error: gate.message, code: "ENTITLEMENT", reason: gate.reason }),

@@ -37,15 +37,25 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [actionInFlight, setActionInFlight] = useState<Set<string>>(new Set());
+  const [lifetimeConfirmRevokeId, setLifetimeConfirmRevokeId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data: profiles, error: profilesError } = await supabase.from('profiles').select('*');
-    const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
-    const { data: emailRows, error: emailError } = await (supabase.rpc as any)('admin_list_user_emails');
-    const { data: pilotRows } = await (supabase as any).from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live');
-    const { data: lifetimeRows } = await (supabase as any).from('lifetime_grants').select('user_id, seat_number, grant_source').eq('environment', 'live');
+    const [
+      { data: profiles, error: profilesError },
+      { data: rolesRows, error: rolesError },
+      { data: emailRows, error: emailError },
+      { data: pilotRows },
+      { data: lifetimeRows },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*'),
+      supabase.from('user_roles').select('*'),
+      (supabase.rpc as any)('admin_list_user_emails'),
+      (supabase as any).from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live'),
+      (supabase as any).from('lifetime_grants').select('user_id, seat_number, grant_source').eq('environment', 'live'),
+    ]);
 
     if (profilesError) {
       toast({
@@ -181,38 +191,50 @@ export default function UsersPage() {
   };
 
   const grantLifetimeAccess = async (user: UserRow) => {
-    const { data, error } = await (supabase.rpc as any)('admin_grant_lifetime_access', {
-      p_user_id: user.id,
-      p_environment: 'live',
-    });
-    if (error) {
-      toast({ title: 'Could not grant lifetime access', description: error.message, variant: 'destructive' });
-      return;
-    }
-    if (data?.granted) {
-      const seatLabel = data.seat_number ? `Seat ${data.seat_number}` : 'No seat number (sold out)';
-      const reasonLabel = data.reason === 'existing' ? 'already had lifetime access' : 'lifetime access granted';
-      toast({ title: 'Lifetime access granted', description: `${seatLabel} — ${reasonLabel}.` });
-      fetchUsers();
-    } else {
-      toast({ title: 'Could not grant lifetime access', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    if (actionInFlight.has(user.id)) return;
+    setActionInFlight(prev => new Set([...prev, user.id]));
+    try {
+      const { data, error } = await (supabase.rpc as any)('admin_grant_lifetime_access', {
+        p_user_id: user.id,
+        p_environment: 'live',
+      });
+      if (error) {
+        toast({ title: 'Could not grant lifetime access', description: error.message, variant: 'destructive' });
+        return;
+      }
+      if (data?.granted) {
+        const seatLabel = data.seat_number ? `Seat ${data.seat_number}` : 'No seat number (sold out)';
+        const reasonLabel = data.reason === 'existing' ? 'already had lifetime access' : 'lifetime access granted';
+        toast({ title: 'Lifetime access granted', description: `${seatLabel} — ${reasonLabel}.` });
+        fetchUsers();
+      } else {
+        toast({ title: 'Could not grant lifetime access', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+      }
+    } finally {
+      setActionInFlight(prev => { const s = new Set(prev); s.delete(user.id); return s; });
     }
   };
 
   const revokeLifetimeAccess = async (user: UserRow) => {
-    const { data, error } = await (supabase.rpc as any)('admin_revoke_lifetime_access', {
-      p_user_id: user.id,
-      p_environment: 'live',
-    });
-    if (error) {
-      toast({ title: 'Could not revoke lifetime access', description: error.message, variant: 'destructive' });
-      return;
-    }
-    if (data?.revoked) {
-      toast({ title: 'Lifetime access revoked', description: `Seat ${data.seat_number ?? '—'} removed.` });
-      fetchUsers();
-    } else {
-      toast({ title: 'No lifetime grant found', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    if (actionInFlight.has(user.id)) return;
+    setActionInFlight(prev => new Set([...prev, user.id]));
+    try {
+      const { data, error } = await (supabase.rpc as any)('admin_revoke_lifetime_access', {
+        p_user_id: user.id,
+        p_environment: 'live',
+      });
+      if (error) {
+        toast({ title: 'Could not revoke lifetime access', description: error.message, variant: 'destructive' });
+        return;
+      }
+      if (data?.revoked) {
+        toast({ title: 'Lifetime access revoked', description: `Seat ${data.seat_number ?? '—'} removed.` });
+        fetchUsers();
+      } else {
+        toast({ title: 'No lifetime grant found', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+      }
+    } finally {
+      setActionInFlight(prev => { const s = new Set(prev); s.delete(user.id); return s; });
     }
   };
 
@@ -338,12 +360,31 @@ export default function UsersPage() {
                           <Crown className="mr-1 h-3 w-3" />
                           {u.lifetimeSeat ? `Seat ${u.lifetimeSeat}` : 'No seat'} · {u.lifetimeGrantSource}
                         </Badge>
-                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => revokeLifetimeAccess(u)}>
-                          Revoke
-                        </Button>
+                        {lifetimeConfirmRevokeId === u.id ? (
+                          <>
+                            <span className="text-xs text-destructive">Revoke?</span>
+                            <Button size="sm" variant="destructive" className="h-7 text-xs"
+                              disabled={actionInFlight.has(u.id)}
+                              onClick={() => { setLifetimeConfirmRevokeId(null); revokeLifetimeAccess(u); }}>
+                              Confirm
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 text-xs"
+                              onClick={() => setLifetimeConfirmRevokeId(null)}>
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-8 text-xs"
+                            disabled={actionInFlight.has(u.id)}
+                            onClick={() => setLifetimeConfirmRevokeId(u.id)}>
+                            Revoke
+                          </Button>
+                        )}
                       </div>
                     ) : (
-                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantLifetimeAccess(u)}>
+                      <Button size="sm" variant="outline" className="h-8 text-xs"
+                        disabled={actionInFlight.has(u.id)}
+                        onClick={() => grantLifetimeAccess(u)}>
                         <Crown className="mr-1 h-3 w-3" /> Grant
                       </Button>
                     )}
