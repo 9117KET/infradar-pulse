@@ -18,8 +18,9 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
   if (!user) return null;
   const environment = getPaddleEnvironment();
 
-  const [{ data: roleRow }, { data: sub }, { data: lifetime }, { data: trial }] = await Promise.all([
-    supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle(),
+  const [{ data: staffRoles }, { data: sub }, { data: lifetime }, { data: pilot }, { data: trial }] = await Promise.all([
+    // Fetch only admin/researcher rows — avoids maybeSingle() error when user has multiple role rows.
+    supabase.from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'researcher']),
     supabase
       .from('subscriptions')
       .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end')
@@ -36,6 +37,14 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .eq('environment', environment)
       .maybeSingle(),
     (supabase as any)
+      .from('pilot_access_grants')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('environment', 'live')
+      .eq('status', 'active')
+      .gt('ends_at', new Date().toISOString())
+      .maybeSingle(),
+    (supabase as any)
       .from('no_card_trial_grants')
       .select('id')
       .eq('user_id', user.id)
@@ -45,12 +54,15 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .maybeSingle(),
   ]);
 
-  const bypass = roleRow?.role === 'admin' || roleRow?.role === 'researcher';
+  const bypass = (staffRoles?.length ?? 0) > 0;
   if (bypass) {
     return { plan: 'enterprise', limits: PLAN_LIMITS.enterprise, staffBypass: true };
   }
   if (lifetime) {
     return { plan: 'lifetime', limits: PLAN_LIMITS.lifetime, staffBypass: false };
+  }
+  if (pilot) {
+    return { plan: 'enterprise', limits: PLAN_LIMITS.enterprise, staffBypass: false };
   }
   if (trial) {
     return { plan: 'trialing', limits: PLAN_LIMITS.trialing, staffBypass: false };
