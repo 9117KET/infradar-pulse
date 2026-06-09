@@ -6,7 +6,7 @@
  * Staff (admin/researcher) and lifetime grant holders bypass all gates via
  * `useEntitlements().staffBypass` / `plan === 'lifetime'`.
  */
-import type { PlanKey } from './limits';
+import { PLAN_RANK, planMeetsMinimum, type PlanKey } from './limits';
 
 export type FeatureKey =
   // Starter+
@@ -23,15 +23,6 @@ export type FeatureKey =
   | 'tender_intelligence'
   | 'stakeholder_intel'
   | 'country_intelligence';
-
-const PLAN_RANK: Record<PlanKey, number> = {
-  free: 0,
-  trialing: 1,
-  starter: 2,
-  lifetime: 3,
-  pro: 3,
-  enterprise: 4,
-};
 
 export const FEATURE_MIN_PLAN: Record<FeatureKey, PlanKey> = {
   // Starter (and above)
@@ -101,15 +92,11 @@ export const FEATURE_LABELS: Record<FeatureKey, { name: string; description: str
   },
 };
 
-export function planMeetsRequirement(plan: PlanKey, required: PlanKey): boolean {
-  return PLAN_RANK[plan] >= PLAN_RANK[required];
-}
-
 export function canAccessFeature(
   plan: PlanKey,
   feature: FeatureKey,
   staffBypass: boolean,
 ): boolean {
   if (staffBypass) return true;
-  return planMeetsRequirement(plan, FEATURE_MIN_PLAN[feature]);
+  return planMeetsMinimum(plan, FEATURE_MIN_PLAN[feature]);
 }

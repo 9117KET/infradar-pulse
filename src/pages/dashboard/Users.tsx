@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { AlertTriangle, Gift, MailCheck, Shield, UserPlus } from 'lucide-react';
+import { AlertTriangle, Crown, Gift, MailCheck, Shield, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import type { AppRole } from '@/contexts/AuthContext';
@@ -21,6 +21,8 @@ interface UserRow {
   pilotEndsAt: string | null;
   pilotSeat: number | null;
   pilotStatus: string | null;
+  lifetimeSeat: number | null;
+  lifetimeGrantSource: string | null;
   updated_at: string | null;
 }
 
@@ -43,6 +45,7 @@ export default function UsersPage() {
     const { data: rolesRows, error: rolesError } = await supabase.from('user_roles').select('*');
     const { data: emailRows, error: emailError } = await (supabase.rpc as any)('admin_list_user_emails');
     const { data: pilotRows } = await (supabase as any).from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live');
+    const { data: lifetimeRows } = await (supabase as any).from('lifetime_grants').select('user_id, seat_number, grant_source').eq('environment', 'live');
 
     if (profilesError) {
       toast({
@@ -78,6 +81,10 @@ export default function UsersPage() {
       const isActive = grant.status === 'active' && new Date(grant.ends_at).getTime() > Date.now();
       if (isActive || !existing) pilotMap.set(grant.user_id, { ends_at: grant.ends_at, seat_number: grant.seat_number, status: grant.status });
     }
+    const lifetimeMap = new Map<string, { seat_number: number | null; grant_source: string }>();
+    for (const grant of lifetimeRows ?? []) {
+      lifetimeMap.set(grant.user_id, { seat_number: grant.seat_number, grant_source: grant.grant_source });
+    }
     const emailMap = new Map<string, { email: string; email_confirmed_at: string | null }>(
       ((emailRows ?? []) as Array<{ user_id: string; email: string; email_confirmed_at: string | null }>).map((r) => [r.user_id, r]),
     );
@@ -105,6 +112,8 @@ export default function UsersPage() {
         pilotEndsAt: pilotMap.get(p.id)?.ends_at ?? null,
         pilotSeat: pilotMap.get(p.id)?.seat_number ?? null,
         pilotStatus: pilotMap.get(p.id)?.status ?? null,
+        lifetimeSeat: lifetimeMap.get(p.id)?.seat_number ?? null,
+        lifetimeGrantSource: lifetimeMap.get(p.id)?.grant_source ?? null,
         updated_at: p.updated_at,
       };
     });
@@ -171,6 +180,42 @@ export default function UsersPage() {
     }
   };
 
+  const grantLifetimeAccess = async (user: UserRow) => {
+    const { data, error } = await (supabase.rpc as any)('admin_grant_lifetime_access', {
+      p_user_id: user.id,
+      p_environment: 'live',
+    });
+    if (error) {
+      toast({ title: 'Could not grant lifetime access', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.granted) {
+      const seatLabel = data.seat_number ? `Seat ${data.seat_number}` : 'No seat number (sold out)';
+      const reasonLabel = data.reason === 'existing' ? 'already had lifetime access' : 'lifetime access granted';
+      toast({ title: 'Lifetime access granted', description: `${seatLabel} — ${reasonLabel}.` });
+      fetchUsers();
+    } else {
+      toast({ title: 'Could not grant lifetime access', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    }
+  };
+
+  const revokeLifetimeAccess = async (user: UserRow) => {
+    const { data, error } = await (supabase.rpc as any)('admin_revoke_lifetime_access', {
+      p_user_id: user.id,
+      p_environment: 'live',
+    });
+    if (error) {
+      toast({ title: 'Could not revoke lifetime access', description: error.message, variant: 'destructive' });
+      return;
+    }
+    if (data?.revoked) {
+      toast({ title: 'Lifetime access revoked', description: `Seat ${data.seat_number ?? '—'} removed.` });
+      fetchUsers();
+    } else {
+      toast({ title: 'No lifetime grant found', description: `Reason: ${data?.reason ?? 'unknown'}`, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center justify-between">
@@ -207,6 +252,7 @@ export default function UsersPage() {
                 <th className="p-3 text-left font-medium text-muted-foreground">Current Role</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Change Role</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Pilot Access</th>
+                <th className="p-3 text-left font-medium text-muted-foreground">Lifetime Access</th>
                 <th className="p-3 text-left font-medium text-muted-foreground">Last Updated</th>
               </tr>
             </thead>
@@ -281,13 +327,34 @@ export default function UsersPage() {
                       </Button>
                     )}
                   </td>
+                  <td className="p-3">
+                    {u.role === 'admin' || u.role === 'researcher' ? (
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                        Included via role
+                      </Badge>
+                    ) : u.lifetimeGrantSource !== null ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-500">
+                          <Crown className="mr-1 h-3 w-3" />
+                          {u.lifetimeSeat ? `Seat ${u.lifetimeSeat}` : 'No seat'} · {u.lifetimeGrantSource}
+                        </Badge>
+                        <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => revokeLifetimeAccess(u)}>
+                          Revoke
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => grantLifetimeAccess(u)}>
+                        <Crown className="mr-1 h-3 w-3" /> Grant
+                      </Button>
+                    )}
+                  </td>
                   <td className="p-3 text-xs text-muted-foreground">
                     {u.updated_at ? new Date(u.updated_at).toLocaleDateString() : '-'}
                   </td>
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No users found</td></tr>
+                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No users found</td></tr>
               )}
             </tbody>
           </table>
