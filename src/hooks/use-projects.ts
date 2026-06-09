@@ -27,6 +27,9 @@ export interface DbProject {
   approved: boolean;
   created_by?: string | null;
   research_saved_by?: string | null;
+  health_score?: number | null;
+  delay_probability?: number | null;
+  health_signals?: Record<string, unknown> | null;
 }
 
 export type ProjectFilters = { regions?: string[]; sectors?: string[]; stages?: string[] };
@@ -68,6 +71,9 @@ function dbToProject(
     dbId: p.id,
     createdByUserId: p.created_by ?? null,
     researchSavedByUserId: p.research_saved_by ?? null,
+    healthScore: p.health_score ?? null,
+    delayProbability: p.delay_probability ?? null,
+    healthSignals: p.health_signals ?? null,
   };
 }
 

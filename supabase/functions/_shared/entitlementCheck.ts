@@ -62,13 +62,14 @@ export async function hasStaffBypass(
   supabaseAdmin: SupabaseClient,
   userId: string
 ): Promise<boolean> {
+  // maybeSingle() errors when multiple rows exist (every user has at least a 'user' row),
+  // so select all roles and check membership instead.
   const { data } = await supabaseAdmin
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
-    .maybeSingle();
-  const role = data?.role;
-  return role === "admin" || role === "researcher";
+    .in("role", ["admin", "researcher"]);
+  return (data?.length ?? 0) > 0;
 }
 
 export async function getEntitlementForUser(

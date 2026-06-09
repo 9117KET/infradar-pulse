@@ -87,6 +87,12 @@ export interface Project {
   createdByUserId?: string | null;
   /** Set when saved from Research → review queue */
   researchSavedByUserId?: string | null;
+  /** 0-100 composite health score; null if not yet scored */
+  healthScore?: number | null;
+  /** 0.0-1.0 probability of significant delay */
+  delayProbability?: number | null;
+  /** Signal breakdown from the health-score agent */
+  healthSignals?: Record<string, unknown> | null;
 }
 
 
