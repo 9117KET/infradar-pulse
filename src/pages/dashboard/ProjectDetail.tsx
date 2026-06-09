@@ -787,7 +787,7 @@ export default function ProjectDetail() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Select value={evType} onValueChange={setEvType}>
                     <SelectTrigger className="bg-black/20"><SelectValue /></SelectTrigger>
-                    <SelectContent>{EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                    <SelectContent>{EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t === 'Satellite' ? 'Multi-Source' : t}</SelectItem>)}</SelectContent>
                   </Select>
                   <Input value={evDate} onChange={e => setEvDate(e.target.value)} placeholder="Date" className="bg-black/20" />
                   <Input value={evDesc} onChange={e => setEvDesc(e.target.value)} placeholder="Description" className="bg-black/20" />
@@ -801,7 +801,7 @@ export default function ProjectDetail() {
               {project.evidence.map(e => (
                 <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Badge variant="outline" className="text-[10px] shrink-0">{e.type}</Badge>
+                    <Badge variant="outline" className="text-[10px] shrink-0">{e.type === 'Satellite' ? 'Multi-Source' : e.type}</Badge>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium truncate">{e.source}</span>

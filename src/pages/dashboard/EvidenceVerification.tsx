@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, CheckCircle2, AlertTriangle, Satellite } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -128,7 +128,7 @@ export default function EvidenceVerification() {
             <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              {EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t === 'Satellite' ? 'Multi-Source' : t}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -159,7 +159,7 @@ export default function EvidenceVerification() {
         </Card>
         <Card className="glass-panel border-border">
           <CardHeader className="pb-2">
-            <div className="text-xs text-muted-foreground flex items-center gap-1"><Satellite className="h-3 w-3 text-primary" />Sat. Verified</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-1"><Layers className="h-3 w-3 text-primary" />Multi-Source</div>
             <CardTitle className="text-2xl text-primary">{satVerified}</CardTitle>
           </CardHeader>
         </Card>
@@ -196,7 +196,7 @@ export default function EvidenceVerification() {
               {typeDistribution.map(t => (
                 <div key={t.name} className="flex items-center gap-1.5 text-xs">
                   <div className="h-2.5 w-2.5 rounded-full" style={{ background: t.fill }} />
-                  <span className="text-muted-foreground">{t.name}</span>
+                  <span className="text-muted-foreground">{t.name === 'Satellite' ? 'Multi-Source' : t.name}</span>
                   <span className="font-medium">{t.value}</span>
                 </div>
               ))}
@@ -233,7 +233,9 @@ export default function EvidenceVerification() {
             <div className="grid gap-0.5" style={{ gridTemplateColumns: `200px repeat(${EVIDENCE_TYPES.length}, 1fr)` }}>
               <div className="text-xs text-muted-foreground font-medium p-2">Project</div>
               {EVIDENCE_TYPES.map(t => (
-                <div key={t} className="text-xs text-muted-foreground font-medium p-2 text-center">{t}</div>
+                <div key={t} className="text-xs text-muted-foreground font-medium p-2 text-center">
+                  {t === 'Satellite' ? 'Multi-Src' : t}
+                </div>
               ))}
               {filtered.slice(0, 20).map(p => (
                 <>
@@ -283,7 +285,7 @@ export default function EvidenceVerification() {
                   <TableHead>Country</TableHead>
                   <TableHead>Sources</TableHead>
                   <TableHead>Coverage</TableHead>
-                  <TableHead>Sat. Status</TableHead>
+                  <TableHead>Multi-Source</TableHead>
                   <TableHead>Verified</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Confidence</TableHead>
@@ -300,7 +302,7 @@ export default function EvidenceVerification() {
                       <div className="flex gap-0.5 flex-wrap">
                         {EVIDENCE_TYPES.map(t => (
                           <Badge key={t} variant="outline" className={`text-[9px] ${p.typesPresent.has(t) ? 'border-primary/30 text-primary' : 'border-border text-muted-foreground/40'}`}>
-                            {t}
+                            {t === 'Satellite' ? 'Multi' : t}
                           </Badge>
                         ))}
                       </div>
