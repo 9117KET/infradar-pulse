@@ -32,6 +32,7 @@ const AGENTS = [
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
   { type: 'health-scoring', name: 'Health Score', icon: Heart, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runHealthScoreAgent },
+  { type: 'contractor-intel', name: 'Contractor Intel', icon: HardHat, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runContractorIntelAgent },
   { type: 'stakeholder-intel', name: 'Stakeholder Intel', icon: Users, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runStakeholderIntel },
   { type: 'funding-tracker', name: 'Funding Tracker', icon: DollarSign, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runFundingTracker },
   { type: 'regulatory-monitor', name: 'Regulatory Monitor', icon: Scale, schedule: 'Every 3 hours', scheduleMinutes: 180, fn: agentApi.runRegulatoryMonitor },

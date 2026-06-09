@@ -28,6 +28,7 @@ export const agentApi = {
   runUpdateChecker: () => invokeAgent('update-checker'),
   runRiskScorer: () => invokeAgent('risk-scorer'),
   runHealthScoreAgent: () => invokeAgent('health-score-agent'),
+  runContractorIntelAgent: () => invokeAgent('contractor-intel-agent'),
   runStakeholderIntel: () => invokeAgent('stakeholder-intel'),
   runFundingTracker: () => invokeAgent('funding-tracker'),
   runRegulatoryMonitor: () => invokeAgent('regulatory-monitor'),

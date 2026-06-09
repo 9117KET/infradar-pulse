@@ -66,6 +66,7 @@ import Pipeline from "./pages/dashboard/Pipeline";
 import TenderCalendar from "./pages/dashboard/TenderCalendar";
 import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
+import Contractors from "./pages/dashboard/Contractors";
 import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
 import Traction from "./pages/dashboard/Traction";
 import BDPipeline from "./pages/dashboard/BDPipeline";
@@ -149,6 +150,7 @@ const App = () => (
               <Route path="/dashboard/calendar" element={<FeatureGate feature="tender_calendar"><TenderCalendar /></FeatureGate>} />
               <Route path="/dashboard/chat" element={<FeatureGate feature="portfolio_chat"><PortfolioChat /></FeatureGate>} />
               <Route path="/dashboard/stakeholders" element={<FeatureGate feature="stakeholder_intel"><StakeholderIntel /></FeatureGate>} />
+              <Route path="/dashboard/contractors" element={<FeatureGate feature="stakeholder_intel"><Contractors /></FeatureGate>} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               <Route path="/dashboard/traction" element={<RoleGuard requiredRole="admin"><Traction /></RoleGuard>} />
               <Route path="/dashboard/bd-pipeline" element={<RoleGuard requiredRole="admin"><BDPipeline /></RoleGuard>} />
