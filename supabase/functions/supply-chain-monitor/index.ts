@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse, failAgentTask } from "../_shared/agentGate.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
@@ -17,19 +17,23 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "supply-chain-monitor")) return pausedResponse("supply-chain-monitor");
     const lock = await beginAgentTask(supabase, "supply-chain-monitor", "Supply chain & commodity scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("supply-chain-monitor");
-    const taskId = lock.taskId;
-    const runStartedAt = new Date();
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     await setTaskStep(supabase, taskId, "Searching");
     const research = await fetchAgentResearch({
@@ -86,14 +90,17 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "report_supply_chain" } },
     });
 
-    let risks: any[] = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) risks = JSON.parse(tc.function.arguments).risks || [];
-      } catch (e) { console.error("Parse error:", e); }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let risks: any[] = [];
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) risks = JSON.parse(tc.function.arguments).risks || [];
+    } catch (e) { console.error("Parse error:", e); }
 
     const activeRisks = risks.filter(r => r.disruption_type && r.disruption_type !== "none" && r.affected_sectors?.length);
 
@@ -104,11 +111,16 @@ serve(async (req) => {
       message: `Supply chain: ${r.commodity} ${r.disruption_type.replace(/_/g, " ")}: ${r.summary}`,
       category: "supply_chain",
       source_url: r.source_url || null,
+      origin: "ai_agent",
     }));
     if (alertRows.length) await supabase.from("alerts").insert(alertRows);
 
+    // Only sourced risks may move live project risk scores — unverified AI
+    // commentary stays alert-only.
     const projectUpdates: Array<{ id: string; risk_score: number }> = [];
     for (const r of activeRisks) {
+      const hasSource = typeof r.source_url === "string" && r.source_url.startsWith("http");
+      if (!hasSource) continue;
       const affected = projects?.filter(p => r.affected_sectors.includes(p.sector)) || [];
       const riskBump = r.severity === "critical" ? 20 : r.severity === "high" ? 12 : 5;
       for (const p of affected.slice(0, 10)) {
@@ -118,7 +130,7 @@ serve(async (req) => {
     const now = new Date().toISOString();
     await Promise.all(
       projectUpdates.map(({ id, risk_score }) =>
-        supabase.from("projects").update({ risk_score, last_updated: now }).eq("id", id)
+        supabase!.from("projects").update({ risk_score, last_updated: now }).eq("id", id)
       )
     );
 
@@ -134,6 +146,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, risks: risks.length, updatedProjects, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Supply chain monitor error:", e);
+    if (supabase) await failAgentTask(supabase, "supply-chain-monitor", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

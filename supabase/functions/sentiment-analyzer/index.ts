@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +18,7 @@ serve(async (req) => {
 
   let taskId: string | null = null;
   let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
 
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -31,6 +32,7 @@ serve(async (req) => {
     const lock = await beginAgentTask(supabase, "sentiment-analyzer", "Sentiment & media analysis", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("sentiment-analyzer");
     taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const { data: projects } = await supabase.from("projects").select("id, name, country").eq("approved", true).limit(15);
 
@@ -54,6 +56,7 @@ ${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
 
     if (!rawContent.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No news found" }, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "sentiment-analyzer", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No news to analyze" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -94,19 +97,25 @@ ${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
         tool_choice: { type: "function", function: { name: "report_sentiment" } },
     });
 
-    let analyses: any[] = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) analyses = JSON.parse(tc.function.arguments).analyses || [];
-      } catch (e) { console.error("Parse error:", e); }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let analyses: any[] = [];
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) analyses = JSON.parse(tc.function.arguments).analyses || [];
+    } catch (e) { console.error("Parse error:", e); }
 
     let alertsCreated = 0;
     for (const a of analyses) {
       if (a.sentiment === "negative" || a.sentiment === "very_negative") {
-        const match = projects?.find(p => p.name.toLowerCase().includes(a.project_name?.toLowerCase() || ""));
+        // Require a meaningful project name: includes("") matches the first project.
+        const matchName = (a.project_name || "").toLowerCase().trim();
+        const match = matchName.length >= 4 ? projects?.find(p => p.name.toLowerCase().includes(matchName)) : undefined;
+        const hasSource = typeof a.source_url === "string" && a.source_url.startsWith("http");
         await supabase.from("alerts").insert({
           project_id: match?.id || null,
           project_name: a.project_name,
@@ -114,11 +123,13 @@ ${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
           message: `Negative sentiment: ${a.project_name}: ${a.summary}`,
           category: "political",
           source_url: a.source_url || null,
+          origin: "ai_agent",
         });
         alertsCreated++;
 
-        // Bump risk score for projects with negative sentiment
-        if (match) {
+        // Bump risk score only for sourced findings — unverified AI sentiment
+        // must not move live risk scores.
+        if (match && hasSource) {
           const { data: current } = await supabase.from("projects").select("risk_score").eq("id", match.id).single();
           if (current) {
             const newRisk = Math.min(100, (current.risk_score || 50) + (a.sentiment === "very_negative" ? 15 : 8));
@@ -130,20 +141,13 @@ ${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
 
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { analyses: analyses.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
 
+    await finishAgentRun(supabase, "sentiment-analyzer", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify({ success: true, analyses: analyses.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Sentiment analyzer error:", e);
-    if (taskId && supabase) {
-      try {
-        await supabase.from("research_tasks").update({
-          status: "failed",
-          error: e instanceof Error ? e.message : "Unknown error",
-          completed_at: new Date().toISOString(),
-        }).eq("id", taskId);
-      } catch { /* best-effort */ }
-    }
+    if (supabase) await failAgentTask(supabase, "sentiment-analyzer", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, isAgentEnabled, pausedResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,17 +34,23 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    if (!await isAgentEnabled(supabase, "alert-intelligence")) return pausedResponse("alert-intelligence");
     const lock = await beginAgentTask(supabase, "alert-intelligence", "Alert pattern analysis & intelligence brief", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("alert-intelligence");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     // Fetch alerts from the last 30 days
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -52,6 +58,7 @@ serve(async (req) => {
 
     if (!alerts?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { message: "No recent alerts to analyze" }, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "alert-intelligence", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, brief: null, message: "No recent alerts" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -136,26 +143,29 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "generate_intelligence_brief" } },
     });
 
-    let brief: any = null;
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) brief = JSON.parse(tc.function.arguments);
-      } catch (e) { console.error("Parse error:", e); }
-    } else {
-      const errText = await aiRes.text();
-      console.error("AI gateway error:", aiRes.status, errText);
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI brief generation failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let brief: any = null;
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) brief = JSON.parse(tc.function.arguments);
+    } catch (e) { console.error("Parse error:", e); }
+
+    if (!brief) throw new Error("AI returned no parseable intelligence brief");
 
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed",
-        result: brief ? { brief, alert_count: alerts.length, categories: Object.keys(byCategory).length } : { error: "Failed to generate brief" },
+        result: { brief, alert_count: alerts.length, categories: Object.keys(byCategory).length },
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
 
+    await finishAgentRun(supabase, "alert-intelligence", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify({ success: true, brief, alert_count: alerts.length }), {
@@ -163,6 +173,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("Alert intelligence error:", e);
+    if (supabase) await failAgentTask(supabase, "alert-intelligence", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

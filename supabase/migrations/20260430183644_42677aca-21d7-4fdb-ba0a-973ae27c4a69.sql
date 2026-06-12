@@ -15,16 +15,19 @@ CREATE TABLE IF NOT EXISTS public.report_runs (
 CREATE INDEX IF NOT EXISTS idx_report_runs_user ON public.report_runs(user_id, created_at DESC);
 ALTER TABLE public.report_runs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own report runs" ON public.report_runs;
 CREATE POLICY "Users read own report runs" ON public.report_runs
   FOR SELECT TO authenticated
   USING (user_id = auth.uid()
          OR public.has_role(auth.uid(),'admin'::public.app_role)
          OR public.has_role(auth.uid(),'researcher'::public.app_role));
+DROP POLICY IF EXISTS "Users insert own report runs" ON public.report_runs;
 CREATE POLICY "Users insert own report runs" ON public.report_runs
   FOR INSERT TO authenticated
   WITH CHECK (user_id = auth.uid()
               OR public.has_role(auth.uid(),'admin'::public.app_role)
               OR public.has_role(auth.uid(),'researcher'::public.app_role));
+DROP POLICY IF EXISTS "Users update own report runs" ON public.report_runs;
 CREATE POLICY "Users update own report runs" ON public.report_runs
   FOR UPDATE TO authenticated
   USING (user_id = auth.uid()
@@ -43,9 +46,14 @@ CREATE TABLE IF NOT EXISTS public.dataset_snapshots (
   generated_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Replay safety: 20260330140000 creates dataset_snapshots without created_at,
+-- so the CREATE TABLE IF NOT EXISTS above is skipped on fresh replays.
+ALTER TABLE public.dataset_snapshots
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
 CREATE INDEX IF NOT EXISTS idx_dataset_snapshots_key ON public.dataset_snapshots(dataset_key, created_at DESC);
 ALTER TABLE public.dataset_snapshots ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Staff can manage dataset_snapshots" ON public.dataset_snapshots;
 CREATE POLICY "Staff can manage dataset_snapshots" ON public.dataset_snapshots
   FOR ALL TO authenticated
   USING (public.has_role(auth.uid(),'admin'::public.app_role) OR public.has_role(auth.uid(),'researcher'::public.app_role))

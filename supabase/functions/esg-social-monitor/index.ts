@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse, failAgentTask } from "../_shared/agentGate.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
@@ -21,18 +21,22 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "esg-social-monitor")) return pausedResponse("esg-social-monitor");
     const lock = await beginAgentTask(supabase, "esg-social-monitor", "ESG / social license scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("esg-social-monitor");
-    const taskId = lock.taskId;
-    const runStartedAt = new Date();
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const { data: projects } = await supabase
       .from("projects")
@@ -95,14 +99,17 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "report_esg" } },
     });
 
-    let findings: Array<Record<string, string>> = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) findings = JSON.parse(tc.function.arguments).findings || [];
-      } catch { /* ignore */ }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let findings: Array<Record<string, string>> = [];
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) findings = JSON.parse(tc.function.arguments).findings || [];
+    } catch { /* ignore */ }
 
     let alertsCreated = 0;
     for (const f of findings) {
@@ -116,6 +123,7 @@ serve(async (req) => {
         message: `ESG / social: ${f.type} — ${f.summary}`,
         category: "environmental",
         source_url: f.source_url || null,
+        origin: "ai_agent",
       });
       alertsCreated++;
     }
@@ -134,6 +142,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("esg-social-monitor error:", e);
+    if (supabase) await failAgentTask(supabase, "esg-social-monitor", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -32,3 +32,6 @@ supabase/.temp/
 
 # Private research & notes (never commit)
 private/
+
+# Playwright output
+test-results/

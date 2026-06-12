@@ -8,7 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -108,6 +108,7 @@ serve(async (req) => {
     const scopeParts = [country, region, sector, stage].filter(Boolean);
     const scopeLabel = scopeParts.length ? scopeParts.join(" · ") : "Global infrastructure coverage";
 
+    if (!await isAgentEnabled(supabase, "report-agent")) return pausedResponse("report-agent");
     const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${scopeLabel}:${days}d`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
     taskId = lock.taskId;

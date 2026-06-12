@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,6 +45,7 @@ serve(async (req) => {
     } catch { /* empty body */ }
   }
 
+  if (!await isAgentEnabled(supabase, "contact-finder")) return pausedResponse("contact-finder");
   const lock = await beginAgentTask(supabase, "contact-finder", bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Auto contact & contractor discovery", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("contact-finder");
   const taskId = lock.taskId;

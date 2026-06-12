@@ -48,7 +48,7 @@ export async function runResearchPrompt(prompt: ResearchPrompt): Promise<string 
           {
             role: "system",
             content:
-              `${prompt.systemRole}\n\nYou are summarising the most likely current state of the world for an internal intelligence brief. Be specific, cite plausible figures, name concrete entities, and produce 2-4 paragraphs of dense analyst commentary. Don't hedge with "I cannot browse the web" — give your best informed analysis.`,
+              `${prompt.systemRole}\n\nYou are writing an internal intelligence brief WITHOUT live web access. Only report entities, projects, figures, and events you are confident are real from your training data. Never invent project names, dollar amounts, dates, URLs, or attribute specific claims to sources you cannot verify. Where you are uncertain, say so explicitly (e.g. "unconfirmed", "as of my last knowledge"). If you have no reliable information on the topic, reply with exactly: NO_RELIABLE_INFORMATION. Produce 2-4 paragraphs of analyst commentary grounded only in what you actually know.`,
           },
           { role: "user", content: prompt.query },
         ],
@@ -63,6 +63,8 @@ export async function runResearchPrompt(prompt: ResearchPrompt): Promise<string 
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     if (typeof content !== "string" || !content.trim()) return null;
+    // Model signalled it has nothing trustworthy — treat as no data, not as research.
+    if (content.includes("NO_RELIABLE_INFORMATION")) return null;
     return content;
   } catch (e) {
     console.error("webResearch: fetch error", e);

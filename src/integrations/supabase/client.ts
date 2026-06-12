@@ -2,8 +2,10 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://yofglpxqpouqqhkidlkx.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZmdscHhxcG91cXFoa2lkbGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzkxMzQsImV4cCI6MjA5MDIxNTEzNH0.JfmCeVQoHTB1fzL3GteHEteyGb1ZGdYOc5j76WB9W3M";
+// Env-first so local stacks (.env.development.local) can override; the
+// hardcoded hosted values remain the fallback for Lovable deployments.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://yofglpxqpouqqhkidlkx.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZmdscHhxcG91cXFoa2lkbGt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzkxMzQsImV4cCI6MjA5MDIxNTEzNH0.JfmCeVQoHTB1fzL3GteHEteyGb1ZGdYOc5j76WB9W3M";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";

@@ -7,7 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +32,7 @@ serve(async (req) => {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const datasetKey = typeof body?.dataset_key === "string" ? body.dataset_key : "projects_v1";
 
+    if (!await isAgentEnabled(supabase, "dataset-refresh")) return pausedResponse("dataset-refresh");
     const lock = await beginAgentTask(supabase, "dataset-refresh", datasetKey, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("dataset-refresh");
     taskId = lock.taskId;

@@ -59,6 +59,9 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN RETURN 'Pending'::public.project_status;
 END $$;
 
+-- Replay safety: 20260429213000 defines this with a different return type, so
+-- CREATE OR REPLACE alone fails on fresh replays.
+DROP FUNCTION IF EXISTS public.promote_project_candidate(uuid, text);
 CREATE OR REPLACE FUNCTION public.promote_project_candidate(
   p_candidate_id uuid,
   p_reason       text DEFAULT 'Promoted from review queue'
@@ -141,6 +144,8 @@ END $$;
 
 GRANT EXECUTE ON FUNCTION public.promote_project_candidate(uuid, text) TO authenticated;
 
+-- Replay safety: 20260429213000 defines this with a different return type.
+DROP FUNCTION IF EXISTS public.apply_update_proposal(uuid, text);
 CREATE OR REPLACE FUNCTION public.apply_update_proposal(
   p_update_proposal_id uuid,
   p_reason             text DEFAULT 'Update applied from review queue'

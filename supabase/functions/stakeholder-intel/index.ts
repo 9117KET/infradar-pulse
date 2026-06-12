@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse, failAgentTask } from "../_shared/agentGate.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 
 const corsHeaders = {
@@ -17,19 +17,23 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     if (!await isAgentEnabled(supabase, "stakeholder-intel")) return pausedResponse("stakeholder-intel");
     const lock = await beginAgentTask(supabase, "stakeholder-intel", "Stakeholder intelligence scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("stakeholder-intel");
-    const taskId = lock.taskId;
-    const runStartedAt = new Date();
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const { data: projects } = await supabase
       .from("projects")
@@ -97,21 +101,26 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "report_stakeholder_intel" } },
     });
 
-    let findings: any[] = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (toolCall?.function?.arguments) {
-          findings = JSON.parse(toolCall.function.arguments).findings || [];
-        }
-      } catch (e) { console.error("Parse error:", e); }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let findings: any[] = [];
+    const aiData = await aiRes.json();
+    try {
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (toolCall?.function?.arguments) {
+        findings = JSON.parse(toolCall.function.arguments).findings || [];
+      }
+    } catch (e) { console.error("Parse error:", e); }
 
     const alertRows = findings
       .filter(f => f.risk_flag && f.risk_flag !== "none")
       .map(f => {
-        const matchedProject = projects.find(p => p.name.toLowerCase().includes(f.related_project_name?.toLowerCase() || ""));
+        // Require a meaningful project name: includes("") matches the first project.
+        const matchName = (f.related_project_name || "").toLowerCase().trim();
+        const matchedProject = matchName.length >= 4 ? projects.find(p => p.name.toLowerCase().includes(matchName)) : undefined;
         return {
           project_id: matchedProject?.id || null,
           project_name: f.related_project_name || f.stakeholder_name,
@@ -119,6 +128,7 @@ serve(async (req) => {
           message: `Stakeholder alert: ${f.stakeholder_name}: ${f.summary}`,
           category: "stakeholder",
           source_url: f.source_url || null,
+          origin: "ai_agent",
         };
       });
     if (alertRows.length) await supabase.from("alerts").insert(alertRows);
@@ -133,6 +143,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, findings: findings.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Stakeholder intel error:", e);
+    if (supabase) await failAgentTask(supabase, "stakeholder-intel", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
