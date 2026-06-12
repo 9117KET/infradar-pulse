@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, isAgentEnabled, pausedResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,17 +17,23 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    if (!await isAgentEnabled(supabase, "funding-tracker")) return pausedResponse("funding-tracker");
     const lock = await beginAgentTask(supabase, "funding-tracker", "Development bank funding scan", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("funding-tracker");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const rawContent: string[] = [];
 
@@ -43,6 +49,7 @@ serve(async (req) => {
 
     if (!rawContent.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: "No data sources", completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "funding-tracker", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -87,20 +94,28 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "report_funding" } },
     });
 
-    let updates: any[] = [];
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) updates = JSON.parse(tc.function.arguments).updates || [];
-      } catch (e) { console.error("Parse error:", e); }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let updates: any[] = [];
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) updates = JSON.parse(tc.function.arguments).updates || [];
+    } catch (e) { console.error("Parse error:", e); }
 
     let alertsCreated = 0;
     for (const u of updates) {
-      // Try to match and update existing project values
-      const match = projects?.find(p => p.name.toLowerCase().includes(u.project_name?.toLowerCase() || ""));
-      if (match && u.amount_usd && u.amount_usd > (match.value_usd || 0)) {
+      // Require a meaningful project name before matching: an empty string would
+      // match the first project in the list via includes("").
+      const matchName = (u.project_name || "").toLowerCase().trim();
+      const match = matchName.length >= 4 ? projects?.find(p => p.name.toLowerCase().includes(matchName)) : undefined;
+
+      // Only mutate live project values when the finding carries a source URL —
+      // AI research without provenance must not overwrite verified data.
+      if (match && u.amount_usd && u.amount_usd > (match.value_usd || 0) && typeof u.source_url === "string" && u.source_url.startsWith("http")) {
         await supabase.from("projects").update({ value_usd: u.amount_usd, value_label: u.amount_label || match.value_label, last_updated: new Date().toISOString() }).eq("id", match.id);
         await supabase.from("project_updates").insert({ project_id: match.id, field_changed: "value_usd", old_value: String(match.value_usd), new_value: String(u.amount_usd), source: u.funding_source || "Funding Tracker" });
       }
@@ -113,6 +128,7 @@ serve(async (req) => {
           message: `Financial alert: ${u.project_name}: ${u.summary}`,
           category: "financial",
           source_url: u.source_url || null,
+          origin: "ai_agent",
         });
         alertsCreated++;
       }
@@ -120,11 +136,13 @@ serve(async (req) => {
 
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", result: { updates: updates.length, alerts: alertsCreated }, completed_at: new Date().toISOString() }).eq("id", taskId);
 
+    await finishAgentRun(supabase, "funding-tracker", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify({ success: true, updates: updates.length, alerts: alertsCreated }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Funding tracker error:", e);
+    if (supabase) await failAgentTask(supabase, "funding-tracker", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

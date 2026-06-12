@@ -16,8 +16,11 @@ DECLARE
   auth_hdr JSONB;
 BEGIN
   IF svc_key IS NULL OR svc_key = '' THEN
-    RAISE EXCEPTION
-      'app.service_role_key is not set. Run: ALTER DATABASE postgres SET app.service_role_key = ''<your key>'';';
+    -- Local stacks (supabase db reset) have no app.service_role_key and don't
+    -- need hosted cron jobs. Skip instead of failing so local resets work.
+    RAISE NOTICE
+      'app.service_role_key is not set - skipping cron job scheduling. On hosted, run: ALTER DATABASE postgres SET app.service_role_key = ''<your key>''; then re-run this script.';
+    RETURN;
   END IF;
 
   auth_hdr := jsonb_build_object(

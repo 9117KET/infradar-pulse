@@ -4,7 +4,7 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { runResearchPrompt } from "../_shared/webResearch.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +28,7 @@ serve(async (req) => {
   const lock = await beginAgentTask(supabase, "risk-scoring", "Scoring risk for approved projects using geopolitical context", gate.userId);
   if (lock.alreadyRunning) return alreadyRunningResponse("risk-scoring");
   const taskId = lock.taskId;
+  const runStartedAt = new Date();
 
   try {
     const { data: projects } = await supabase.from("projects").select("*")
@@ -35,6 +36,7 @@ serve(async (req) => {
       .order("last_updated", { ascending: true });
     if (!projects?.length) {
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result: { message: "No projects to score" } }).eq("id", taskId);
+      await finishAgentRun(supabase, "risk-scoring", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, message: "No projects to score" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -51,6 +53,7 @@ serve(async (req) => {
     if (!geoContext) {
       const result = { success: true, message: "No risk context available", scored: 0 };
       if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
+      await finishAgentRun(supabase, "risk-scoring", "completed", runStartedAt);
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -128,6 +131,7 @@ serve(async (req) => {
               message: score.alert || `Risk score changed from ${oldRisk} to ${newRisk}`,
               category: "security",
               source_url: null,
+              origin: "ai_agent",
             });
           }
         }
@@ -137,6 +141,7 @@ serve(async (req) => {
     const result = { success: true, projects_analyzed: Math.min(projects.length, 50), scored };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
 
+    await finishAgentRun(supabase, "risk-scoring", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
 
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -144,6 +149,7 @@ serve(async (req) => {
     console.error("Risk scorer error:", e);
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     if (taskId) await supabase.from("research_tasks").update({ status: "failed", completed_at: new Date().toISOString(), error: errMsg }).eq("id", taskId);
+    await finishAgentRun(supabase, "risk-scoring", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: errMsg }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

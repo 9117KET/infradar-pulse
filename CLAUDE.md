@@ -14,7 +14,7 @@ All Edge Functions import from `supabase/functions/_shared/`. The key modules:
 |---|---|
 | `agentGate.ts` | `isAgentEnabled(supabase, agentType)` - check `agent_config` table before running; return `pausedResponse()` if false |
 | `auth.ts` | `getUserFromBearer(req, url, anonKey)` - extract and validate the Supabase JWT from `Authorization: Bearer` |
-| `entitlementCheck.ts` | `assertAiAllowed`, `assertExportAllowed`, `assertInsightReadAllowed`, `incrementUsage` - enforce daily usage caps per plan |
+| `entitlementCheck.ts` | `consumeAiQuota`, `consumeExportQuota`, `consumeInsightReadQuota` - atomically check AND consume quota (daily + hourly) via the `try_consume_quota` RPC. The old `assertAiAllowed`/`incrementUsage` pair is legacy (racey) - do not use in new code |
 | `billing.ts` | `PLAN_LIMITS`, `PlanKey`, `resolvePlanKeyFromPriceId` - source of truth for server-side limits |
 | `requireStaff.ts` / `requireAi.ts` | Auth guards that return early with 401/403 for non-staff or unconfigured AI |
 | `llm.ts` | `chatCompletions(body)` - wraps Lovable AI Gateway `/chat/completions`; reads auto-provisioned `LOVABLE_API_KEY` and optional `LLM_MODEL`/`LOVABLE_AI_MODEL` |
@@ -26,13 +26,16 @@ All Edge Functions import from `supabase/functions/_shared/`. The key modules:
 
 ```ts
 // 1. Handle CORS preflight
-// 2. Build supabaseAdmin client (service role key)
-// 3. isAgentEnabled check → pausedResponse()
-// 4. getUserFromBearer (if user-facing)
-// 5. assertAiAllowed / assertExportAllowed (if consuming quota)
-// 6. Business logic
-// 7. incrementUsage on success
+// 2. Auth gate: requireAiEntitlementOrRespond (user AI features - atomically
+//    consumes quota) or requireStaffOrRespond (batch/intel agents)
+// 3. Build supabaseAdmin client (service role key)
+// 4. isAgentEnabled check → pausedResponse()
+// 5. beginAgentTask concurrency lock → alreadyRunningResponse()
+// 6. Business logic (AI-generated alerts must set origin: "ai_agent")
+// 7. finishAgentRun("completed") on success
+// 8. catch: failAgentTask(...) so the lock is released and the failure recorded
 ```
+Quota is consumed inside `requireAiEntitlementOrRespond` - `recordAiUsage` is a deprecated no-op kept for old call sites.
 
 ## Client-Side Agent Invocation
 

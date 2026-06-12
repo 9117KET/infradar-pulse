@@ -1,4 +1,21 @@
 
+-- Replay safety: the legacy Stripe-era subscriptions table (20260329200000)
+-- lacks paddle columns. Drop it so the Paddle schema below can be created on
+-- fresh local replays. No-op on databases where this migration already ran.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'subscriptions'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'subscriptions'
+      AND column_name = 'paddle_subscription_id'
+  ) THEN
+    DROP TABLE public.subscriptions CASCADE;
+  END IF;
+END $$;
+
 -- Create subscriptions table per Paddle schema
 CREATE TABLE IF NOT EXISTS public.subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

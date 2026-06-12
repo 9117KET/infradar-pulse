@@ -6,7 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse } from "../_shared/agentGate.ts";
+import { beginAgentTask, alreadyRunningResponse, isAgentEnabled, pausedResponse, finishAgentRun, failAgentTask } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,16 +20,22 @@ serve(async (req) => {
   const gate = await requireStaffOrRespond(req);
   if (gate instanceof Response) return gate;
 
+  let taskId: string | null = null;
+  let supabase: ReturnType<typeof createClient> | null = null;
+  let runStartedAt = new Date();
+
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    if (!await isAgentEnabled(supabase, "executive-briefing")) return pausedResponse("executive-briefing");
     const lock = await beginAgentTask(supabase, "executive-briefing", "Executive intelligence brief", gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("executive-briefing");
-    const taskId = lock.taskId;
+    taskId = lock.taskId;
+    runStartedAt = new Date();
 
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     const [{ data: alerts }, { data: projects }] = await Promise.all([
@@ -45,6 +51,7 @@ serve(async (req) => {
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
       }
+      await finishAgentRun(supabase, "executive-briefing", "completed", runStartedAt);
       await recordAiUsage(gate.supabaseAdmin, gate.userId);
       return new Response(JSON.stringify({ success: true, brief: null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -82,14 +89,19 @@ serve(async (req) => {
         tool_choice: { type: "function", function: { name: "executive_brief" } },
     });
 
-    let brief: { title?: string; markdown?: string; priority_regions?: string[]; risk_themes?: string[] } = {};
-    if (aiRes.ok) {
-      const aiData = await aiRes.json();
-      try {
-        const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-        if (tc?.function?.arguments) brief = JSON.parse(tc.function.arguments);
-      } catch { /* ignore */ }
+    if (!aiRes.ok) {
+      const errText = await aiRes.text().catch(() => "");
+      throw new Error(`AI brief generation failed: ${aiRes.status} ${errText.slice(0, 300)}`);
     }
+
+    let brief: { title?: string; markdown?: string; priority_regions?: string[]; risk_themes?: string[] } = {};
+    const aiData = await aiRes.json();
+    try {
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (tc?.function?.arguments) brief = JSON.parse(tc.function.arguments);
+    } catch { /* ignore */ }
+
+    if (!brief.markdown) throw new Error("AI returned no parseable executive brief");
 
     if (taskId) {
       await supabase.from("research_tasks").update({
@@ -103,12 +115,14 @@ serve(async (req) => {
         completed_at: new Date().toISOString(),
       }).eq("id", taskId);
     }
+    await finishAgentRun(supabase, "executive-briefing", "completed", runStartedAt);
     await recordAiUsage(gate.supabaseAdmin, gate.userId);
     return new Response(JSON.stringify({ success: true, ...brief }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("executive-briefing error:", e);
+    if (supabase) await failAgentTask(supabase, "executive-briefing", taskId, runStartedAt, e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

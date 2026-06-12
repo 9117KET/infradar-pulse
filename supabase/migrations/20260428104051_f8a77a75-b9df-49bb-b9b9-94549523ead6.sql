@@ -63,6 +63,27 @@ CREATE TABLE IF NOT EXISTS public.referral_events (
   CONSTRAINT referral_events_no_self_referral CHECK (referrer_id <> referred_id)
 );
 
+-- Replay safety: 20260427220000 creates a narrower referral_events, so the
+-- CREATE TABLE IF NOT EXISTS above is skipped on fresh replays. Backfill the
+-- columns and constraints this migration depends on.
+ALTER TABLE public.referral_events
+  ADD COLUMN IF NOT EXISTS conversion_environment text,
+  ADD COLUMN IF NOT EXISTS conversion_plan_key text,
+  ADD COLUMN IF NOT EXISTS conversion_price_id text,
+  ADD COLUMN IF NOT EXISTS conversion_subscription_id text,
+  ADD COLUMN IF NOT EXISTS converted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS reward_status text NOT NULL DEFAULT 'pending';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'referral_events_one_per_referred') THEN
+    ALTER TABLE public.referral_events ADD CONSTRAINT referral_events_one_per_referred UNIQUE (referred_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'referral_events_no_self_referral') THEN
+    ALTER TABLE public.referral_events ADD CONSTRAINT referral_events_no_self_referral CHECK (referrer_id <> referred_id);
+  END IF;
+END $$;
+
 ALTER TABLE public.referral_events ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users read related referral events" ON public.referral_events;
