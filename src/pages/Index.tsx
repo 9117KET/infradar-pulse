@@ -1,5 +1,5 @@
 import { HeroSection } from '@/components/home/HeroSection';
-import { TrustStrip } from '@/components/home/TrustStrip';
+// import { TrustStrip } from '@/components/home/TrustStrip'; // hidden — see below
 import { ProblemSection } from '@/components/home/ProblemSection';
 import { CapabilitiesSection } from '@/components/home/CapabilitiesSection';
 import { DemoSection } from '@/components/home/DemoSection';
@@ -27,7 +27,8 @@ const Index = () => (
       }}
     />
     <HeroSection />
-    <TrustStrip />
+    {/* Trust strip (approved projects · global coverage · tracked pipeline · …) hidden to reduce clutter. Restore if needed. */}
+    {/* <TrustStrip /> */}
     <ProblemSection />
     <DemoSection />
     <CapabilitiesSection />
