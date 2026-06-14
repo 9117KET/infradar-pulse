@@ -65,7 +65,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
 
   useEffect(() => {
     if (featured.length <= 1) return;
-    const id = setInterval(() => setIndex(i => (i + 1) % featured.length), 5500);
+    const id = setInterval(() => setIndex(i => (i + 1) % featured.length), 9000);
     return () => clearInterval(id);
   }, [featured.length]);
 
@@ -106,7 +106,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
               className="px-6 pt-4 pb-5"
             >
               {/* Sector · stage */}
