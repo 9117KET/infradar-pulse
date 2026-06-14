@@ -73,16 +73,16 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
   const total = projects.length;
 
   return (
-    <div className="relative w-full max-w-sm mx-auto">
+    <div className="relative w-full max-w-lg mx-auto">
       {/* Soft ambient glow — single, subtle */}
       <div
-        className="absolute -inset-8 rounded-[2rem] opacity-20 blur-3xl pointer-events-none"
+        className="absolute -inset-10 rounded-[2.5rem] opacity-20 blur-3xl pointer-events-none"
         style={{ background: 'radial-gradient(ellipse at center, hsl(var(--primary) / 0.45), transparent 70%)' }}
       />
 
       <div className="relative rounded-2xl border border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl">
         {/* Eyebrow */}
-        <div className="flex items-center justify-between px-6 pt-5">
+        <div className="flex items-center justify-between px-8 pt-6">
           <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-primary/90">
             Verified intelligence
           </span>
@@ -93,7 +93,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
 
         {!p ? (
           // Calm skeleton while live data loads
-          <div className="px-6 py-10 space-y-4 animate-pulse">
+          <div className="px-8 py-12 space-y-4 animate-pulse">
             <div className="h-3 w-24 rounded bg-muted/40" />
             <div className="h-7 w-3/4 rounded bg-muted/40" />
             <div className="h-3 w-32 rounded bg-muted/30" />
@@ -107,7 +107,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.6, ease: 'easeInOut' }}
-              className="px-6 pt-4 pb-5"
+              className="px-8 pt-5 pb-7"
             >
               {/* Sector · stage */}
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -122,22 +122,22 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
               </div>
 
               {/* Name */}
-              <h3 className="mt-2 font-serif text-2xl font-semibold leading-snug text-foreground">
+              <h3 className="mt-3 font-serif text-3xl font-semibold leading-tight text-foreground">
                 {p.name}
               </h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {p.country}{p.region ? ` · ${p.region}` : ''}
               </p>
 
               {/* Metrics */}
-              <div className="mt-5 grid grid-cols-2 gap-4">
+              <div className="mt-7 grid grid-cols-2 gap-6">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Pipeline value</p>
-                  <p className="mt-0.5 text-xl font-semibold font-mono tabular-nums text-foreground">{p.valueLabel || '—'}</p>
+                  <p className="mt-0.5 text-2xl font-semibold font-mono tabular-nums text-foreground">{p.valueLabel || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70">Risk</p>
-                  <p className={`mt-0.5 text-xl font-semibold font-mono tabular-nums ${riskTone(p.riskScore)}`}>
+                  <p className={`mt-0.5 text-2xl font-semibold font-mono tabular-nums ${riskTone(p.riskScore)}`}>
                     {p.riskScore}<span className="text-xs font-normal text-muted-foreground"> · {riskLabel(p.riskScore)}</span>
                   </p>
                   <div className="mt-1.5 h-1 w-full rounded-full bg-muted/40 overflow-hidden">
@@ -147,7 +147,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
               </div>
 
               {/* Verification line */}
-              <div className="mt-5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div className="mt-7 flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Check className="h-3.5 w-3.5 text-emerald-400" />
                 <span>Verified · cross-checked against primary sources</span>
               </div>
@@ -156,7 +156,7 @@ export function HeroSignalCard({ projects }: { projects: SignalProject[] }) {
         )}
 
         {/* Footer: rotation dots + explore */}
-        <div className="flex items-center justify-between border-t border-border/30 px-6 py-3">
+        <div className="flex items-center justify-between border-t border-border/30 px-8 py-4">
           <div className="flex items-center gap-1.5">
             {featured.map((f, i) => (
               <button
