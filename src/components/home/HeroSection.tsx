@@ -52,9 +52,11 @@ export function HeroSection() {
             FOR HIGH-STAKES DECISIONS
           </h1>
 
+          {/* Sub-headline hidden to reduce reading — show, don't tell. Restore if needed.
           <p className="mt-5 sm:mt-6 max-w-xl text-sm sm:text-base lg:text-lg leading-relaxed text-muted-foreground">
             Built for business development teams, EPC contractors, project managers, infrastructure consultants, development finance analysts, project finance professionals, owners, developers, and procurement teams who need timely market intelligence. Real-time signals across <span className="text-foreground font-medium">14 regions</span>, AI Q&amp;A, and report-quality briefs from live verified data.
           </p>
+          */}
 
           <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row flex-wrap gap-3">
             <Link to="/login" className="w-full sm:w-auto"><Button size="lg" className="w-full sm:w-auto teal-glow font-sans">Get Started Free</Button></Link>
