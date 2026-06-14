@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { agentApi } from '@/lib/api/agents';
 import { toast } from 'sonner';
-import { Layers, RefreshCw, ChevronDown, ChevronUp, ExternalLink, FileText, Mail, Download, BarChart3, Sparkles } from 'lucide-react';
+import { Layers, RefreshCw, ChevronDown, ChevronUp, ExternalLink, FileText, Mail, Download, BarChart3, Sparkles, Share2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import jsPDF from 'jspdf';
@@ -202,6 +202,23 @@ function SummaryCard({ item, onMarkRead, markReadPending, onExportPdf, canExport
 }) {
   const [expanded, setExpanded] = useState(!item.read || item.type === 'report');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  // Publish this report as a read-only public link and copy it to the clipboard.
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const { data: token, error } = await (supabase.rpc as any)('create_report_share', { p_report_run_id: item.id });
+      if (error || !token) throw error ?? new Error('No token returned');
+      const url = `${window.location.origin}/r/${token}`;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      toast.success('Public link copied', { description: 'Anyone with this link can view the report (read-only).' });
+    } catch (e) {
+      toast.error('Could not create share link', { description: e instanceof Error ? e.message : 'Please try again.' });
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const sections = item.payload?.sections ?? [];
   const digestCitations = item.payload?.citations ?? [];
@@ -236,6 +253,9 @@ function SummaryCard({ item, onMarkRead, markReadPending, onExportPdf, canExport
           {item.type === 'report' && item.markdown && (
             <>
               <Button size="sm" variant="outline" onClick={() => setDialogOpen(true)} className="h-7 text-xs">View</Button>
+              <Button size="sm" variant="outline" onClick={handleShare} disabled={sharing} className="h-7 text-xs" title="Create a read-only public link to this report">
+                <Share2 className="h-3 w-3 mr-1" /> {sharing ? 'Sharing…' : 'Share'}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => onExportPdf?.(item)} className="h-7 text-xs" title={!canExportPdf ? 'PDF export requires a paid report export plan' : undefined}>
                 <Download className="h-3 w-3 mr-1" /> PDF{!canExportPdf && <span className="ml-1 text-[9px] text-primary">PRO</span>}
               </Button>

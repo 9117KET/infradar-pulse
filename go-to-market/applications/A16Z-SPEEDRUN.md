@@ -47,17 +47,6 @@ Professionals making multi-billion-dollar infrastructure decisions are operating
 
 InfraRadarAI is the AI-native, verified-intelligence replacement.
 
-<<<<<<< HEAD
-1. **Aggregate** real-time project data from 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) - institutions that collectively pipeline $500B+ annually in infrastructure projects globally
-
-2. **Process** with 50+ specialized AI agents that ingest, score, alert on, and research each project across 9 risk categories, 14 sectors, and 14 regions
-
-3. **Deliver** via a self-service SaaS dashboard with: custom alerting, on-demand AI research agent, confidence scoring, evidence verification, portfolio monitoring, AI-generated intelligence digests, stakeholder intelligence, risk & anomaly signals, tender intelligence, portfolio chat, and country-level geospatial analysis (30 dashboard pages total)
-
-The platform surfaces pre-tender signals 6-18 months before public RFP issuance - the window that determines whether an EPC contractor can position a winning bid or whether an infrastructure fund sources a deal before it becomes competitive.
-
-**Current state:** Platform is live and deployed. 7 MDB integrations running. 50+ agents operational. Payments live via Paddle. Pre-revenue; seeking first enterprise pilots.
-=======
 1. **Aggregate.** 30+ specialised agents continuously ingest 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals, regulatory feeds, contractor filings and tender awards.
 
 2. **Verify.** Every record is source-linked. Unverified projects are capped at 30% confidence and routed through a human-in-the-loop review queue with mandatory verification reasons and a full audit trail.
@@ -65,7 +54,6 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 3. **Deliver.** 10 live product modules: real-time monitoring, satellite verification, multi-source validation, geospatial intelligence, delay prediction & early warning, contractor intelligence, 9-category risk signals, procurement monitoring, AI market report builder (country/sector/tender/portfolio), and Ask in plain English (NL search live now).
 
 **Current state (May 2026):** Live platform at infradarai.com. 1,671 verified projects across 140 countries, 5,657 classified alerts, $246B+ pipeline indexed `[VERIFY against public-stats RPC at submission]`. Paddle billing live across Free / Starter $29 / Pro $199 / Enterprise + Founders Lifetime $1,499 (capped at 100 seats). Card-free trial running.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -73,15 +61,9 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 
 **1. The data is public and ignored.** All 7 MDBs publish complete project documentation under open-data mandates. Incumbents pay analysts $80–150K/yr to read it; we deploy agents on the Lovable AI gateway with near-zero marginal inference cost. Their gross margin is structurally tied to headcount; ours scales sub-linearly with coverage.
 
-<<<<<<< HEAD
-**1. The data is public and ignored.** All seven MDBs publish complete project documentation for free under open data mandates. Every project appraisal document, environmental assessment, and stakeholder report is public. Incumbents pay human analysts to read this. We deploy agents. Our marginal cost of increasing coverage is near zero; incumbents' marginal cost is another analyst hire at $80-150k/year.
-
-**2. Cross-MDB intelligence is defensible.** No incumbent aggregates across all seven MDBs. A World Bank tracker misses the AfDB co-financing signal in the same country. An IFC equity monitor misses the ADB technical assistance grant that precedes project approval. Our cross-MDB co-financing and co-stakeholder graph is a network-effects moat that compounds with every project we add.
-=======
 **2. Cross-MDB + verified evidence is defensible.** No incumbent aggregates across all 7 MDBs and 20+ procurement portals with source-linked confidence scoring. The cross-source co-financing graph compounds with every project, every alert, every verified contact.
 
 **3. The interaction model is fundamentally different.** DFI analysts and EPC BD managers want to query their portfolio in plain English on demand, not receive a PDF someone else curated. "Ask in plain English", portfolio chat and the AI report builder are products incumbents cannot retrofit without breaking their analyst-led P&L.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 **4. AI-first cost moat.** We run on the Lovable AI gateway (Gemini 3 / GPT-5 class) without per-query Perplexity or Firecrawl bills. Marginal cost per query is a fraction of a competitor building on direct OpenAI + scraping vendors. This is what lets us sell Pro at $199/mo profitably.
 
@@ -107,16 +89,6 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 
 ### What is your current traction?
 
-<<<<<<< HEAD
-**Stage:** Pre-revenue, May 2026
-
-**Product:**
-- Platform live on Vercel + Supabase (not a mockup)
-- 7 MDB integrations operational (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB)
-- 50+ AI agents running
-- 30 dashboard pages including tender intel, stakeholder intel, portfolio chat, risk signals, and geo maps
-- Payments live via Paddle (6 tiers including 3-day no-card trial and Lifetime plan)
-=======
 **Stage:** Live platform, paid plans live, early-revenue `[VERIFY paid conversions before submission — update wording if any pilots have converted]`.
 
 **Product**
@@ -129,7 +101,6 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 - 10 home-page modules live including satellite verification, delay prediction, contractor intel and NL search.
 - Paddle billing live across Free / $29 / $199 / Enterprise / $1,499 Founders Lifetime.
 - Card-free 3-day trial; 14-day refund window.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 **Market validation**
 - Active outbound to named DFI Task Team Leaders publicly identifiable in MDB project documents (50–100 reachable contacts from 2024–2026 press releases).
@@ -144,17 +115,9 @@ The platform surfaces pre-tender signals 6-18 months before public RFP issuance 
 
 **Track 2 — Source expansion ($150K).** Add KfW, IsDB, JICA, NDB and 10+ national procurement portals (Etimad/Saudi, PPIP/Philippines, UNGM, EU TED). Each new source compounds the cross-source graph.
 
-<<<<<<< HEAD
-**Track 2 - Data expansion ($150K):** Add procurement sources beyond the current 7 MDBs: IsDB, KfW, JICA, NDB, Etimad (Saudi), PPIP (Philippines), UNGM, and national portals. Each new source expands addressable intelligence and defensibility.
-
-**Track 3 - AI infrastructure ($150K):** Build the delay prediction model (proprietary scoring trained on historical MDB project completion data), add satellite construction verification using ESA Sentinel-2 imagery, and scale our 50+ agent infrastructure for 100x project volume growth.
-
-The $5M in credits from Speedrun would directly accelerate Track 3 - scaling AI inference across a 100x larger project database and funding GPU compute for the delay prediction and satellite verification models are our primary infrastructure costs before Series A.
-=======
 **Track 3 — Proprietary models ($150K).** Train the delay prediction model on historical MDB completion data; expand satellite verification (Sentinel-2) beyond pilot; ship Document Intelligence layer for scanned regional MDB PDFs.
 
 The $5M+ in credits primarily backstops Track 3 — GPU/inference for proprietary model training.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -162,10 +125,6 @@ The $5M+ in credits primarily backstops Track 3 — GPU/inference for proprietar
 
 1. **Thesis fit is exact.** SR007 is designed for AI-native B2B replacing expensive human-analyst workflows at a fraction of cost. That is literally our pitch.
 
-<<<<<<< HEAD
-1. **The credits solve our scaling constraint.** At 50+ agents running continuously against a growing project database, scaling AI inference for 100x more projects is our primary infrastructure cost before Series A. The $5M+ in AI/cloud credits from Speedrun partners removes this constraint and funds our delay prediction model and satellite verification layer for 18+ months.
-=======
 2. **The network reaches our buyers.** a16z LPs and portfolio companies include infrastructure-adjacent funds, financial institutions and enterprise software buyers — directly our ICP.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 3. **Credits compound the cost moat.** We already operate at near-zero marginal LLM cost via Lovable AI; $5M of additional credits extends the moat through Series A and funds proprietary GPU training.

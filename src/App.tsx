@@ -31,6 +31,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import AuthCallback from "./pages/auth/AuthCallback";
 import Onboarding from "./pages/Onboarding";
+import SharedReport from "./pages/SharedReport";
 import DashboardOverview from "./pages/dashboard/Overview";
 import Projects from "./pages/dashboard/Projects";
 import ProjectDetail from "./pages/dashboard/ProjectDetail";
@@ -116,6 +117,8 @@ const App = () => (
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/onboarding" element={<Onboarding />} />
+            {/* Public read-only shared report (no auth) */}
+            <Route path="/r/:token" element={<SharedReport />} />
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<DashboardOverview />} />
               <Route path="/dashboard/ask" element={<Ask />} />

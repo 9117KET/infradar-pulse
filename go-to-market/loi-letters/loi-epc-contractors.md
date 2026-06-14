@@ -54,11 +54,7 @@ Hi [Name],
 
 Saw [Company] won [or bid on] [specific project / region]. I'm building InfraRadarAI: pre-tender signals from 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals, surfaced 6–18 months before public RFP. Adds contractor intel on competitors, delay-risk scores and satellite verification of progress on active sites.
 
-<<<<<<< HEAD
-I'm building InfraRadar - a platform that surfaces pre-tender signals from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines, typically 6-18 months before public RFP issuance. AI-scored projects with risk and confidence ratings, custom alerting by sector and region, and an on-demand research agent for deep project intelligence.
-=======
 Built for BD teams replacing the $30K MEED subscription with a live workflow at $199/mo. Pilot access (free Pro window, no card) is open.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Worth a quick call?
 
@@ -76,19 +72,11 @@ Hi [Name],
 
 Following up on a LinkedIn note.
 
-<<<<<<< HEAD
-I'm building InfraRadar - an AI platform that aggregates tender pipelines from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB and surfaces pre-tender signals 6-18 months before RFP issuance.
-=======
 InfraRadarAI (infradarai.com) is what BD teams use instead of a $30K MEED subscription. Three things specific to your desk:
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 1. **Pre-tender signals 6–18 months before RFP** across 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals. Today: 1,671 verified projects, $246B+ pipeline indexed, 5,657 classified alerts.
 
-<<<<<<< HEAD
-We currently track 7 MDB sources, 14 regions, 14 sectors. Coverage of IsDB, AIIB, and KfW is on the Q3 2026 roadmap.
-=======
 2. **Contractor intelligence** — competitor win-rate, financial-distress flags on consortia partners, sub-contractor stability. Stop discovering a partner's distress at the kick-off meeting.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 3. **Delay-risk scoring** + satellite verification on projects you're bidding into — so you bid the schedule that's actually deliverable.
 
@@ -136,18 +124,9 @@ express my intent to trial InfraRadarAI (infradarai.com) for our BD desk.
 
 Capabilities directly relevant to our work:
 
-<<<<<<< HEAD
-I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our BD process:
-- Pre-tender signal detection from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB pipelines (6-18 months before public RFP)
-- AI-scored project risk and confidence assessment
-- Sector and regional filtering with custom alerting
-- Stakeholder intelligence extraction (contracting authority contacts, co-financiers)
-- Tender calendar with upcoming bid deadline tracking
-=======
 1. Pre-tender signal aggregation across 7 MDB pipelines (World Bank, IFC,
    ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals, with 6–18
    month lead times before public RFP issuance.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 2. Contractor intelligence — competitor win-rate tracking and
    financial-distress signals on consortia partners and sub-contractors.

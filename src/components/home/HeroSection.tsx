@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { HeroLiveTracker } from '@/components/home/HeroLiveTracker';
+import { HeroSignalCard } from '@/components/home/HeroSignalCard';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 
 function formatPipelineValue(total: number): string {
@@ -82,9 +82,9 @@ export function HeroSection() {
           </div>
         </motion.div>
 
-        {/* Right: live tracker — hidden on small phones to keep hero scannable */}
+        {/* Right: editorial signal card — hidden on small phones to keep hero scannable */}
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="hidden sm:flex items-center justify-center">
-          <HeroLiveTracker projects={trackerProjects} />
+          <HeroSignalCard projects={trackerProjects} />
         </motion.div>
       </div>
     </section>
