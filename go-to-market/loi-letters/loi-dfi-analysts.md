@@ -31,11 +31,7 @@ Hi [Name],
 
 Saw your name on the [WB / IFC / AfDB] press release for the [Project Name] in [Country] — congrats on approval.
 
-<<<<<<< HEAD
-I'm building InfraRadar, a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB into one AI-scored dashboard. The idea came from talking to TTLs and project officers who manage portfolios across multiple institutions - tracking co-financing opportunities and project status manually across seven portals is genuinely painful.
-=======
 I'm building InfraRadarAI: a verified-intelligence platform aggregating 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) into one source-linked dashboard with plain-English search and an AI report builder. Every project carries a source URL and confidence score; unverified records are capped at 30% and reviewed by humans.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Not pitching — validating with TTLs. Worth a 20-min call in the next 2 weeks?
 
@@ -53,18 +49,12 @@ Hi [Name],
 
 Following up on a LinkedIn note last week — apologies if it got buried.
 
-<<<<<<< HEAD
-I'm [Your Name], building InfraRadar - a platform that aggregates real-time signals from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB in one AI-scored dashboard with custom alerting and an on-demand research agent.
-
-I noticed you lead [Project Name / sector portfolio] at [Organization]. The platform surfaces pre-tender signals and cross-MDB co-financing opportunities - the kind of visibility that currently requires manually checking seven separate portals.
-=======
 I'm [Your Name], building InfraRadarAI (infradarai.com). It aggregates real-time project intelligence from all 7 MDBs you and your peers actually rely on: World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB. Every record has a source URL; unverified projects are capped at 30% confidence and routed through a human review queue with mandatory audit reasons.
 
 What this means for your day:
 - One dashboard for cross-MDB co-financing and counterparty signals (no more checking 7 portals).
 - Ask in plain English: "WB + AfDB co-financed transport above $100M in West Africa, 2024-2026."
 - AI report builder: country/sector/tender briefs generated from live, source-linked data.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 We're inviting a small group of TTLs into pilot access (free Pro window, no card). Would 20 minutes make sense?
 
@@ -107,16 +97,8 @@ To: InfraRadarAI
 I, [Name], [Role] at [Organization], express my intent to trial
 InfraRadarAI (infradarai.com) as part of its early access program.
 
-<<<<<<< HEAD
-I have reviewed the InfraRadar Pulse platform and find the following capabilities directly relevant to my professional work:
-- Real-time aggregation of project intelligence from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB
-- AI-scored risk and confidence assessment per project
-- Custom alerting across political, financial, regulatory, and construction signals
-- Cross-MDB co-financing and co-stakeholder graph
-=======
 I have reviewed the platform and find the following capabilities directly
 relevant to my professional work:
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 1. Real-time aggregation of project intelligence across all 7 MDBs I rely
    on — World Bank, IFC, ADB, AfDB, EBRD, AIIB and IADB — in a single

@@ -1,14 +1,8 @@
 # LOI Template — Infrastructure Consultants & Advisors
 
-<<<<<<< HEAD
-**Who to send this to:** Infrastructure advisory directors and partners at Zutari, KPMG, Arup, McKinsey GII, PwC, Deloitte, and boutique infrastructure advisory firms
-
-**The pitch in one sentence:** InfraRadar replaces the days your researchers spend aggregating MDB pipeline data for client analyses - 7 MDBs, 14 sectors, 14 regions, AI-scored, on-demand.
-=======
 > **Audience:** Partners, Directors and Senior Managers at infrastructure advisory and consulting firms — Zutari, Arup, Mott MacDonald, AECOM, KPMG (Infrastructure & Capital Projects), PwC, EY, Deloitte, McKinsey GII, Boston Consulting Group, Castalia, IMC Worldwide, Hatch.
 > **Strategic role:** Distribution multiplier — every partner uses the platform on multiple client engagements. Excellent fit for **Pro tier seats × team** and Enterprise white-label.
 > **Updated:** May 2026.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -51,11 +45,7 @@ Hi [Name],
 
 I'm building InfraRadarAI: a verified-intelligence platform for infrastructure advisors. It aggregates 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB), 20+ procurement portals, and 9 risk-signal categories — and turns it into country, sector and tender briefs via an AI Market Report Builder.
 
-<<<<<<< HEAD
-I'm building InfraRadar - a platform that aggregates real-time infrastructure project data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB and makes it queryable with AI. For an advisory firm like [Zutari / KPMG / Arup], the most relevant piece is probably the market entry and pipeline analysis module: instead of your researchers manually aggregating MDB project data, they can query in natural language and get AI-scored results with source attribution.
-=======
 Built so an associate can produce a defensible, source-linked country brief in 15 minutes, not 2 weeks. Plain-English Ask, Portfolio Chat, white-label exports on Enterprise.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Pilot access (free Pro window, no card) is open. Worth a 20-min call?
 
@@ -73,11 +63,7 @@ Hi [Name],
 
 InfraRadarAI replaces a chunk of the desk research your team currently bills as analyst hours.
 
-<<<<<<< HEAD
-I'm building InfraRadar - an AI platform that aggregates infrastructure project data from 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) across 14 regions and 14 sectors, queryable in natural language.
-=======
 Three things specifically built for advisory work:
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 1. **AI Market Report Builder.** Country, sector, tender and portfolio briefs generated from live, source-linked data — every claim has a source URL and confidence score. An associate can produce a defensible 10-page brief in minutes.
 
@@ -106,11 +92,7 @@ We're applying to [YC / a16z / Techstars] and they ask for short LOIs from advis
 
 Suggested wording, edit freely:
 
-<<<<<<< HEAD
-"I am [Name], [Role] at [Firm]. I have reviewed InfraRadar Pulse and intend to trial the platform to support our infrastructure advisory work, specifically for [market entry analyses / pipeline monitoring / client deliverables requiring MDB project data]. The AI-powered aggregation of World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB data and the natural language research agent are directly relevant to our workflow. I look forward to participating in the early access program."
-=======
 > "I am [Name], [Role] at [Firm]. I have reviewed InfraRadarAI (infradarai.com) and intend to trial the platform to support our infrastructure advisory work — generating country, sector and tender briefs, monitoring pipelines across the 7 MDBs we engage with, and accelerating desk research on client mandates. The AI Market Report Builder, plain-English search and source-linked verification model are directly relevant to our advisory deliverables. I look forward to early access."
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 A reply with that paragraph would help us a great deal.
 

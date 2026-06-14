@@ -1,14 +1,8 @@
 # LOI Template — Project Finance Banks
 
-<<<<<<< HEAD
-**Who to send this to:** Infrastructure finance originators, project finance directors, and BD managers at banks active in African and MENA infrastructure (Standard Bank CIB, Absa CIB, Nedbank CIB, SocGen, Standard Chartered, Citi, HSBC)
-
-**The pitch in one sentence:** InfraRadar gives your origination desk early visibility into which MDB-backed projects are approaching financial close - the leads your analysts currently miss because they can't monitor seven MDB portals simultaneously.
-=======
 > **Audience:** Project finance and infrastructure debt teams at commercial banks — Standard Bank CIB, Absa, RMB, Nedbank, SocGen, BNP Paribas, Standard Chartered, Citi, HSBC, MUFG, SMBC, Mizuho, ING, ICBC, Crédit Agricole.
 > **Strategic role:** Long sales cycle, very high LTV. Pro tier for individual analysts; **Enterprise with API + SSO** is the natural landing point.
 > **Updated:** May 2026.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -52,11 +46,7 @@ Hi [Name],
 
 I'm building InfraRadarAI: verified, real-time intelligence on infrastructure projects across 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals — with delay prediction, contractor-distress signals and 9-category risk monitoring.
 
-<<<<<<< HEAD
-I'm building InfraRadar - a platform that aggregates real-time project signals from all seven major MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) and scores each project for risk and financing stage readiness.
-=======
 Built so project finance desks get an early-warning view of borrower-side risk before loans go non-performing — and source new deals from the cross-MDB pipeline. Source URL on every record, unverified capped at 30%, human review queue.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Pilot access is open. Worth a 20-min walkthrough on a couple of [region] assets relevant to [Bank]?
 
@@ -74,11 +64,7 @@ Hi [Name],
 
 Two specific reasons project finance desks try InfraRadarAI:
 
-<<<<<<< HEAD
-I'm building InfraRadar - an AI platform that monitors real-time signals from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines and flags projects approaching financial close or showing stress signals.
-=======
 1. **Early warning on the existing book.** Delay prediction, contractor-distress signals, regulatory and political risk monitoring — across 9 signal categories per asset. Catch issues months before the next quarterly review.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 2. **Deal sourcing across 7 MDBs.** WB, IFC, ADB, AfDB, EBRD, AIIB, IADB pipelines aggregated. Cross-MDB co-financing surfaces deals you'd otherwise see when a sponsor formally circulates a teaser.
 
@@ -129,20 +115,11 @@ function.
 
 Capabilities directly relevant to our work:
 
-<<<<<<< HEAD
-I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our infrastructure finance workflow:
-- Real-time monitoring of World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB project pipelines
-- Financing stage tracking (Planned / Tender / Awarded / Financing / Construction / Completed)
-- AI-scored risk signals across 9 categories relevant to project finance (Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security)
-- Early warning alerts for stress signals on active projects
-- Cross-MDB co-financing visibility
-=======
 1. Early-warning monitoring across our infrastructure loan book — delay
    prediction, contractor-distress signals, regulatory and political risk
    monitoring across nine signal categories (Political, Financial,
    Regulatory, Supply Chain, Environmental, Construction, Stakeholder,
    Market, Security).
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 2. Deal sourcing across all 7 MDB pipelines we engage with — World Bank,
    IFC, ADB, AfDB, EBRD, AIIB, IADB — with cross-MDB co-financing

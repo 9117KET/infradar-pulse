@@ -1,22 +1,5 @@
 # InfraRadarAI — Go-To-Market Hub
 
-<<<<<<< HEAD
-> Central navigation for all accelerator applications, LOI outreach, and GTM materials.
-> Last updated: May 2026
-
----
-
-## IMMEDIATE ACTIONS (Open Deadlines)
-
-| Action | Deadline | Link |
-|---|---|---|
-| Apply - Y Combinator S2026 | **May 4, 2026** | [Apply](https://www.ycombinator.com/apply/) · [Our answers](applications/YC-S2026.md) |
-| Apply - a16z Speedrun SR007 | **May 17, 2026** | [Apply](https://speedrun.a16z.com/apply) · [Our answers](applications/A16Z-SPEEDRUN.md) |
-| Apply - Visa Africa Fintech Accelerator | **May 17, 2026** | [Apply](https://opportunitydesk.org/2026/04/14/visa-africa-fintech-accelerator-program-2026-cohort-6/) · [Our answers](applications/VISA-AFRICA-FINTECH.md) |
-| Activate - Microsoft for Startups | **Rolling** | [Apply](https://www.microsoft.com/en-us/startups) · [Our answers](applications/MICROSOFT-FOR-STARTUPS.md) |
-| Activate - NVIDIA Inception | **Rolling** | [Apply](https://www.nvidia.com/en-us/startups/) · [Our answers](applications/NVIDIA-INCEPTION.md) |
-| Activate - Google Cloud AI Tier | **Rolling** | [Apply](https://cloud.google.com/startup/ai) · [Our answers](applications/GOOGLE-CLOUD-AI.md) |
-=======
 > Central navigation for accelerator applications, LOI outreach and GTM materials.
 > Last updated: **May 2026**.
 > Canonical messaging lives in **[MESSAGING.md](MESSAGING.md)** — every other doc inherits from it.
@@ -62,7 +45,6 @@
 | Activate — Google Cloud AI Tier | Rolling | [Apply](https://cloud.google.com/startup/ai) · [Our answers](applications/GOOGLE-CLOUD-AI.md) |
 
 > Entrepreneur First London (May 1) deadline lapsed; reopens for next cohort — track separately.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -106,18 +88,6 @@ Mine 50+ more named contacts at zero cost:
 
 ### Application Documents
 
-<<<<<<< HEAD
-| File | Program | Deadline | Apply Link |
-|---|---|---|---|
-| [ENTREPRENEUR-FIRST.md](applications/archive/ENTREPRENEUR-FIRST.md) | Entrepreneur First London | May 1, 2026 (ARCHIVED) | [apply.joinef.com](https://apply.joinef.com/) |
-| [YC-S2026.md](applications/YC-S2026.md) | Y Combinator Summer 2026 | May 4, 2026 | [ycombinator.com/apply](https://www.ycombinator.com/apply/) |
-| [A16Z-SPEEDRUN.md](applications/A16Z-SPEEDRUN.md) | a16z Speedrun SR007 | May 17, 2026 | [speedrun.a16z.com/apply](https://speedrun.a16z.com/apply) |
-| [VISA-AFRICA-FINTECH.md](applications/VISA-AFRICA-FINTECH.md) | Visa Africa Fintech Accelerator | May 17, 2026 | [See application](https://opportunitydesk.org/2026/04/14/visa-africa-fintech-accelerator-program-2026-cohort-6/) |
-| [TECHSTARS-ANYWHERE.md](applications/TECHSTARS-ANYWHERE.md) | Techstars Anywhere Fall 2026 | June 10, 2026 | [techstars.com/accelerators/anywhere](https://www.techstars.com/accelerators/anywhere) |
-| [MICROSOFT-FOR-STARTUPS.md](applications/MICROSOFT-FOR-STARTUPS.md) | Microsoft for Startups | Rolling | [microsoft.com/en-us/startups](https://www.microsoft.com/en-us/startups) |
-| [NVIDIA-INCEPTION.md](applications/NVIDIA-INCEPTION.md) | NVIDIA Inception Program | Rolling | [nvidia.com/en-us/startups](https://www.nvidia.com/en-us/startups/) |
-| [GOOGLE-CLOUD-AI.md](applications/GOOGLE-CLOUD-AI.md) | Google Cloud AI Tier | Rolling | [cloud.google.com/startup/ai](https://cloud.google.com/startup/ai) |
-=======
 | File | Program | Deadline |
 |---|---|---|
 | [YC-S2026.md](applications/YC-S2026.md) | Y Combinator Summer 2026 | May 4, 2026 |
@@ -128,7 +98,6 @@ Mine 50+ more named contacts at zero cost:
 | [MICROSOFT-FOR-STARTUPS.md](applications/MICROSOFT-FOR-STARTUPS.md) | Microsoft for Startups | Rolling |
 | [NVIDIA-INCEPTION.md](applications/NVIDIA-INCEPTION.md) | NVIDIA Inception | Rolling |
 | [GOOGLE-CLOUD-AI.md](applications/GOOGLE-CLOUD-AI.md) | Google Cloud AI Tier | Rolling |
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ### LOI Letter Templates
 
@@ -145,27 +114,16 @@ Mine 50+ more named contacts at zero cost:
 ## Standard Pitch (copy-paste across all applications)
 
 **One-liner (140 chars):**
-<<<<<<< HEAD
-InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - 7 MDBs, 14 regions, 50+ agents.
-=======
 InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $29/month.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 **Problem:**
 Infrastructure BD teams, EPC contractors, lenders and consultants pay $3K–$200K/year for quarterly PDF reports from MEED, GlobalData, Wood Mackenzie, IJGlobal and regional publishers. The underlying data is public. Incumbents hire human analysts to read it; their cost structure prevents them rebuilding AI-native without destroying their own gross margin.
 
 **Solution:**
-<<<<<<< HEAD
-50+ AI agents aggregate and score real-time project data from 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB). Self-service SaaS at $199/month.
-
-**Traction:**
-Platform live on Vercel + Supabase. 7 MDB integrations running. 50+ agents operational. 30 dashboard pages shipped. Payments live via Paddle. Pre-revenue - seeking first enterprise pilots.
-=======
 30+ specialised AI agents continuously ingest 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals. Every project carries a source URL and confidence score; unverified records cap at 30% and route through a human review queue. Plain-English Ask, Portfolio Chat, AI Market Report Builder, satellite-verified construction progress, contractor intelligence and 9-category risk monitoring. Self-serve SaaS from $29/mo; Enterprise with API + SSO.
 
 **Traction (May 2026):**
 1,671 verified projects, 140 countries, 5,657 classified alerts, $246B+ pipeline indexed. Platform live on Vercel + Supabase. Paddle billing live (Free, Starter $29, Pro $199, Enterprise, Founders Lifetime $1,499 capped at 100 seats). 7 MDB integrations + 30+ agents operational. Pilot access live with public seat counter. **[VERIFY]** revenue numbers before quoting.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 **Market:**
 $2–4B/year infrastructure intelligence stack. MEED ~$50M/yr at $5–15K/seat; GlobalData infra ~$200M/yr; Wood Mackenzie, IJGlobal and regional publishers add billions more.
