@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
-import { recordAiUsage, requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
+import { recordAiUsage, requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
 import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
@@ -168,7 +168,11 @@ async function runResearch(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireAiEntitlementOrRespond(req);
+  // user-research is a Pro-tier feature: gate by plan before consuming quota,
+  // matching generate-insight (pro) and the documented plan limits. Previously
+  // this used the quota-only gate, which let free users run it until their free
+  // AI quota was exhausted instead of being plan-blocked.
+  const gate = await requirePlanAndAiOrRespond(req, "pro");
   if (gate instanceof Response) return gate;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

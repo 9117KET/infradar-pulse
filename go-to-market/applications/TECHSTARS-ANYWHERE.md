@@ -25,11 +25,7 @@ InfraRadarAI
 https://infradarai.com
 
 ### Elevator pitch (50 words)
-<<<<<<< HEAD
-InfraRadar replaces $200,000/year infrastructure intelligence reports with real-time AI agents at $199/month. We aggregate data from 7 multilateral development banks, run 50+ AI agents per project, and deliver alerts and research to infrastructure investors, EPC contractors, and project finance teams across 14 global regions.
-=======
 InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $29/month. 30+ agents continuously ingest 7 MDBs and 20+ procurement portals, score every project across 9 risk categories, and answer plain-English questions over 1,600+ verified projects in 140 countries.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
@@ -37,11 +33,7 @@ InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with 
 
 Infrastructure investors, EPC contractors, lenders, DFI staff and consultants need real-time intelligence on the world's largest infrastructure projects. Today they pay $3,000–$200,000/year to MEED, GlobalData, Wood Mackenzie, IJGlobal and regional publishers for quarterly PDF reports — slow, static, generic, unverifiable, and priced beyond most participants.
 
-<<<<<<< HEAD
-The gap in the market: the MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) publish all project data publicly - but it is unstructured, scattered across seven portals, and requires human analysts to read and synthesize. Incumbents hire these analysts. We deploy AI agents.
-=======
 The gap: the 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ national procurement portals publish all project data publicly. Incumbents hire analysts at $80–150K/yr to read it. We deploy agents on the Lovable AI gateway, with near-zero marginal cost.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 This is not a niche market. The incumbent stack is $2–4B/year of recurring spend. Buyers have established budgets and real pain — they are waiting for a verified, AI-native tool that meets them at the price they can justify.
 
@@ -49,11 +41,7 @@ This is not a niche market. The incumbent stack is $2–4B/year of recurring spe
 
 ### What is your solution?
 
-<<<<<<< HEAD
-InfraRadar aggregates real-time data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB daily. Our 50+ AI agents process each project to extract details, score risk, verify evidence, and monitor for signals across 9 categories. Users access this through a SaaS dashboard with:
-=======
 InfraRadarAI aggregates real-time data from 7 MDBs and 20+ procurement portals daily. 30+ agents process each project to extract details, score risk across 9 categories, link every claim to a source, cap unverified records at 30% confidence and route them through a human review queue with mandatory audit reasons.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Users access this through a SaaS dashboard with:
 - Custom alert rules ("alert me when any East Africa energy project moves to At Risk").
@@ -81,30 +69,16 @@ Five primary personas (LOI templates deployed against each):
 
 ### What is your revenue model?
 
-<<<<<<< HEAD
-- Free: public project discovery
-- Trial: 3-day no-card trial (full platform)
-- Starter: $29/month
-- Pro: $199/month (full platform)
-- Enterprise: custom contracts
-- Lifetime: $1,499 one-time (100 seats)
-=======
 - Free — public project discovery (no card).
 - Starter $29/mo.
 - Pro $199/mo (full platform incl. delay risk, contractor intel, AI report PDFs).
 - Enterprise — custom (API, SSO, white-label, SLA).
 - Founders Lifetime $1,499 one-time (100 seats).
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
 ### What is your current traction?
 
-<<<<<<< HEAD
-Stage: Pre-revenue, May 2026.
-
-Platform is live on Vercel + Supabase. 7 MDB integrations operational (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB). 50+ AI agents running. 30 dashboard pages shipped including tender intelligence, stakeholder intel, portfolio chat, and risk signals. Payments live via Paddle. Seeking first enterprise pilot customers.
-=======
 **Stage:** Live platform, paid plans live via Paddle `[VERIFY paid conversion count before submission]`.
 
 **Numbers (May 2026)** `[VERIFY against public-stats RPC at submission]`:
@@ -114,7 +88,6 @@ Platform is live on Vercel + Supabase. 7 MDB integrations operational (World Ban
 - 7 MDB ingest agents live (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB).
 - 20+ procurement portals monitored.
 - 10 home-page modules live.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 **Distribution.** Active outbound to 50–100 publicly identifiable DFI Task Team Leaders from MDB project documents 2024–2026; LOI templates deployed across 5 personas; pilot-access counter live on the pricing page.
 
@@ -140,18 +113,9 @@ Platform is live on Vercel + Supabase. 7 MDB integrations operational (World Ban
 
 By the end of the 13-week program (end of November 2026):
 
-<<<<<<< HEAD
-1. **3 paying enterprise pilot customers** - at least one in each of our top three personas (DFI analyst, infrastructure PE fund, EPC BD team)
-2. **200 monthly active users** on the free tier - our survival metric
-3. **LOIs from 5+ named organizations** suitable for Series A fundraising materials
-4. **New procurement sources** integrated beyond the current 7 MDBs (IsDB, KfW, JICA, NDB, national portals)
-5. **First iteration of delay prediction model** - proprietary scoring trained on historical MDB project completion data
-6. **Pitch-ready for $1-2M seed round** at Demo Day
-=======
 1. **8 paying enterprise pilot customers** across the 3 fastest revenue personas (infra PE, EPC BD, consultants).
 2. **500 monthly active users** on the free tier.
 3. **LOIs from 7+ named institutions** suitable for Series A materials.
 4. **5 new ingest sources** integrated beyond 7 MDBs (KfW, IsDB, JICA, NDB + 1 large national portal).
 5. **First production version of the delay prediction model.**
 6. **Pitch-ready for $1.5–2.5M seed round** at Demo Day.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e

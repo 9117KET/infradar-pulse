@@ -26,11 +26,7 @@ InfraRadarAI
 https://infradarai.com
 
 ### Company description
-<<<<<<< HEAD
-InfraRadar is an AI-powered infrastructure intelligence platform that tracks real-time project data from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB - delivering early-stage signals on Africa's $500B+ infrastructure pipeline to investors, banks, and contractors.
-=======
 InfraRadarAI is the AI-native, verified replacement for $5K–$200K/year infrastructure intelligence reports. We track real-time project signals from World Bank, IFC, ADB, **AfDB**, EBRD, AIIB and IADB across 140 countries and 14 regions — and deliver them at $29–$199/month to the investors, banks and contractors building Africa's $500B+ pipeline.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ### What problem does your startup solve?
 
@@ -38,21 +34,13 @@ Africa has the world's fastest-growing infrastructure pipeline. The World Bank c
 
 Yet the intelligence market serving African infrastructure is dominated by expensive, slow, analyst-driven incumbents charging $3,000–$200,000/year for quarterly PDFs. The professionals who need this intelligence — DFI staff at AfDB and World Bank, project finance teams at Standard Bank, Absa, Nedbank, Standard Chartered Africa, EPC contractors bidding on AfDB tenders, infra PE funds like AIIM, Actis and DPI — either pay or go without.
 
-<<<<<<< HEAD
-InfraRadar solves this by aggregating real-time project signals from all seven major MDBs - including AfDB, World Bank, IFC, ADB, EBRD, AIIB, and IDB - scoring them with 50+ AI agents, and delivering actionable intelligence at $199/month. We give African infrastructure market participants the same quality of intelligence previously accessible only to the largest global institutions.
-=======
 InfraRadarAI aggregates real-time signals from all 7 major MDBs active in Africa, scores them with 30+ AI agents, links every record to its source, caps unverified data at 30% confidence and routes it through human review — and delivers the result at $29–$199/month. Same intelligence quality previously gated behind global-institution-only pricing.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 ---
 
 ### How does your solution work?
 
-<<<<<<< HEAD
-InfraRadar ingests project data from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB daily. Each project is processed by a pipeline of 50+ AI agents that:
-=======
 InfraRadarAI ingests project data from World Bank, IFC, ADB, **AfDB**, EBRD, AIIB and IADB daily, plus 20+ procurement portals. Each project is processed by a pipeline of 30+ AI agents that:
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 - Extract project details, funding structure, milestones and stakeholder contacts.
 - Score across 9 risk categories.
@@ -77,22 +65,12 @@ Users get a SaaS dashboard with: customizable alert rules, plain-English Ask, AI
 
 ### What is your business model?
 
-<<<<<<< HEAD
-Subscription SaaS:
-- Free: public project discovery (no payment required)
-- Trial: 3-day no-card trial for full platform evaluation
-- Starter: $29/month - individual professionals
-- Pro: $199/month - full platform including AI research agent
-- Enterprise: custom contracts - teams, API access, white-label reports
-- Lifetime: $1,499 one-time (100 seats, limited offer)
-=======
 SaaS subscription, billed via Paddle:
 - **Free** — public project discovery (no card)
 - **Starter $29/mo** — individual professionals, alert rules, portfolio chat, saved searches
 - **Pro $199/mo** — full platform incl. delay risk, contractor intel, country/sector/tender PDFs
 - **Enterprise** — custom; API + webhooks, SSO/SAML, white-label, SLA
 - **Founders Lifetime $1,499** one-time, capped at 100 seats
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Stage: Live platform, paid plans live `[VERIFY ARR / paid conversion count before submission]`.
 
@@ -100,11 +78,7 @@ Stage: Live platform, paid plans live `[VERIFY ARR / paid conversion count befor
 
 ### What is your connection to the African fintech / financial ecosystem?
 
-<<<<<<< HEAD
-InfraRadar sits at the intersection of infrastructure data and African financial markets. Our seven MDB data sources - including AfDB specifically - provide the intelligence layer that underlies Africa's largest capital flows. The project finance banks (Standard Bank, Absa, Standard Chartered) and infrastructure PE funds (AIIM, Actis) who are our target users are exactly Visa's financial ecosystem partners in Africa.
-=======
 InfraRadarAI sits at the intersection of infrastructure data and African financial markets. Our MDB sources — including AfDB explicitly — are the intelligence layer underlying Africa's largest capital flows. The project finance banks (Standard Bank, Absa, Standard Chartered) and infra PE funds (AIIM, Actis, DPI) we sell to are precisely Visa's financial-ecosystem partners on the continent.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Infrastructure projects generate cross-border payments, contractor procurement chains and financing flows that touch Visa's ecosystem directly. Better pipeline intelligence means more deals reaching financial close — and more downstream payment volume.
 
@@ -130,8 +104,4 @@ Live platform, paid plans live, May 2026. Two founders. 1,671 projects across 14
 
 3. **Demo Day investor access.** Plug and Play and Visa-aligned VCs are the right profile for a B2B verified-data platform with African market depth.
 
-<<<<<<< HEAD
-4. **Credit and perks** - The $200k+ in vendor perks offsets infrastructure costs and supports our ability to operate the 50+ agent pipeline at scale during the pre-revenue phase.
-=======
 4. **Credits and perks.** $200K+ in vendor perks extends the cost moat we already operate (Lovable AI gateway, near-zero marginal LLM cost) through Series A.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e

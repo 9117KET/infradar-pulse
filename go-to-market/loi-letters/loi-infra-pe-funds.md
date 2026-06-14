@@ -46,11 +46,7 @@ Hi [Name],
 
 I'm building InfraRadarAI: verified, real-time intelligence on infrastructure deals and assets across 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals — with delay prediction, contractor distress signals and satellite verification.
 
-<<<<<<< HEAD
-I'm building InfraRadar - a platform that aggregates real-time deal signals from the World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB pipelines. The idea: surface bankable infrastructure deals in [Africa / MENA] 6-18 months before they become competitive, with AI-scored risk and confidence ratings on each project.
-=======
 Built so PE deal teams stop discovering portfolio risk one quarter late. Plain-English Portfolio Chat across tracked assets, AI-generated IC briefs, source-linked confidence scoring on every record.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 Pilot access (free Pro window, no card) is open. Worth a 20-min call to look at it on a couple of [region/sector] assets relevant to [Fund]?
 
@@ -68,11 +64,7 @@ Hi [Name],
 
 Three things [Fund] does today that InfraRadarAI replaces with a live workflow:
 
-<<<<<<< HEAD
-I'm building InfraRadar - an AI platform that aggregates real-time signals from 7 MDB pipelines (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IDB) and surfaces infrastructure deals 6-18 months before public tender. AI-scored risk (0-100), confidence (0-100), cross-MDB co-financing graph, and custom alerting by sector/region.
-=======
 1. **Deal sourcing across 7 MDBs.** WB, IFC, ADB, AfDB, EBRD, AIIB, IADB pipelines aggregated into one source-linked dashboard. Cross-MDB co-financing surfaces deals you'd otherwise see only when a competitor announces.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 2. **Portfolio monitoring with leading indicators.** Delay prediction, contractor distress signals and satellite-verified construction progress — so you escalate at month 3, not at the year-end review.
 
@@ -123,18 +115,9 @@ InfraRadarAI (infradarai.com).
 Capabilities directly relevant to our investment and portfolio
 monitoring work:
 
-<<<<<<< HEAD
-I have reviewed InfraRadar Pulse and find the following capabilities directly relevant to our investment workflow:
-- Real-time aggregation of project pipeline from World Bank, IFC, ADB, AfDB, EBRD, AIIB, and IDB
-- AI-scored risk and confidence assessment per project
-- Pre-tender signal detection up to 18 months before public RFP
-- Cross-MDB co-financing graph and stakeholder intelligence
-- Portfolio monitoring with custom alerting by sector, region, and risk level
-=======
 1. Cross-MDB deal sourcing — pipelines from World Bank, IFC, ADB, AfDB,
    EBRD, AIIB and IADB aggregated into a single source-linked dashboard
    with cross-MDB co-financing visibility.
->>>>>>> b7dd70197e259fd1d7d28ef28e353c8dee08a80e
 
 2. Portfolio monitoring with leading indicators — delay prediction,
    contractor distress signals, regulatory and ESG monitoring, and
