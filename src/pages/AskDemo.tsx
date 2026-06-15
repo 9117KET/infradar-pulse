@@ -65,9 +65,12 @@ export default function AskDemo() {
   const [queriesUsed, setQueriesUsed] = useState(0);
   const [examples, setExamples] = useState<ChipExample[]>(FALLBACK_EXAMPLES);
 
-  // Fetch data-driven example chips once on mount. These map to (sector, region)
-  // pairs that actually have projects, so every chip returns results. This call
-  // does NOT consume a free query.
+  // On mount, fetch data-driven example chips AND the caller's current usage.
+  // The examples map to (sector, region) pairs that actually have projects, so
+  // every chip returns results. The usage figures come straight from the server
+  // (per-IP), so a refresh shows the real remaining count and the signup wall
+  // survives a reload — the client never owns the limit. This call consumes
+  // no free query.
   useEffect(() => {
     let active = true;
     (async () => {
@@ -78,8 +81,12 @@ export default function AskDemo() {
         if (!active || fnError) return;
         const fetched = (data?.examples as ChipExample[] | undefined)?.filter((e) => e?.prompt && e?.filters);
         if (fetched && fetched.length > 0) setExamples(fetched);
+        if (typeof data?.queries_used === 'number') {
+          setQueriesUsed(data.queries_used);
+          if (data.queries_remaining === 0) setRateLimited(true);
+        }
       } catch {
-        // keep FALLBACK_EXAMPLES
+        // keep FALLBACK_EXAMPLES and the optimistic 3-remaining counter
       }
     })();
     return () => { active = false; };

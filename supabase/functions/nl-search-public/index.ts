@@ -313,25 +313,37 @@ serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // --- Mode 1: examples (no quota, no LLM) -------------------------------
-    if (body?.mode === "examples") {
-      const examples = await buildExamples(supabase);
-      return json({ examples });
-    }
-
-    // --- Rate-limit pre-check (read current count) ------------------------
     const clientIp = getClientIp(req);
     const ipHash = await hashIp(clientIp);
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: existing } = await supabase
-      .from("public_demo_rate_limits")
-      .select("count")
-      .eq("ip_hash", ipHash)
-      .eq("query_date", today)
-      .maybeSingle();
+    const readCount = async (): Promise<number> => {
+      const { data } = await supabase
+        .from("public_demo_rate_limits")
+        .select("count")
+        .eq("ip_hash", ipHash)
+        .eq("query_date", today)
+        .maybeSingle();
+      return data?.count ?? 0;
+    };
 
-    const currentCount = existing?.count ?? 0;
+    // --- Mode: examples / status (no quota, no LLM) -----------------------
+    // Both echo back the caller's CURRENT usage so the page reflects real
+    // server state on load. This is what stops a refresh from resetting the
+    // counter or unlocking more queries — the client never owns the count.
+    if (body?.mode === "examples" || body?.mode === "status") {
+      const used = await readCount();
+      const examples = body?.mode === "examples" ? await buildExamples(supabase) : undefined;
+      return json({
+        ...(examples ? { examples } : {}),
+        queries_used: used,
+        queries_limit: MAX_QUERIES_PER_DAY,
+        queries_remaining: Math.max(0, MAX_QUERIES_PER_DAY - used),
+      });
+    }
+
+    // --- Rate-limit pre-check (read current count) ------------------------
+    const currentCount = await readCount();
 
     if (currentCount >= MAX_QUERIES_PER_DAY) {
       // Returned as 200 (not 429) so supabase-js delivers it as `data` and the
@@ -420,11 +432,19 @@ serve(async (req) => {
       const { data: newCount, error: incErr } = await supabase.rpc("increment_demo_quota", {
         p_ip_hash: ipHash,
       });
-      if (incErr) {
-        console.error("increment_demo_quota error", incErr);
-        queriesUsed = currentCount + 1; // best-effort; don't fail the request
+      if (!incErr && typeof newCount === "number") {
+        queriesUsed = newCount;
       } else {
-        queriesUsed = typeof newCount === "number" ? newCount : currentCount + 1;
+        // Fallback: persist via upsert so the per-IP limit is STILL enforced
+        // even if the increment_demo_quota RPC isn't deployed yet. Without this,
+        // a missing RPC would silently stop persisting the count and let a
+        // refresh bypass the limit forever.
+        if (incErr) console.error("increment_demo_quota error, falling back to upsert", incErr);
+        queriesUsed = currentCount + 1;
+        await supabase.from("public_demo_rate_limits").upsert(
+          { ip_hash: ipHash, query_date: today, count: queriesUsed },
+          { onConflict: "ip_hash,query_date" },
+        );
       }
     }
     const queriesRemaining = Math.max(0, MAX_QUERIES_PER_DAY - queriesUsed);

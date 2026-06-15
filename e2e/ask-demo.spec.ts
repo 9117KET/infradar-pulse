@@ -6,15 +6,28 @@ import { test, expect } from "@playwright/test";
  * The Edge Function call is intercepted so this passes WITHOUT a live backend
  * deploy. It locks in the request/response contract between AskDemo.tsx and
  * nl-search-public:
- *  - { mode: "examples" } returns chips (and costs no query)
+ *  - { mode: "examples" } returns chips + the caller's current usage (no query)
  *  - a chip click sends { filters } and renders results
  *  - the free-query counter counts down 3 -> 2 -> 1 -> signup wall
  *  - the "closest matches" note appears when a result is relaxed
+ *  - the counter reflects server state on load, so a refresh can't reset it
  */
 
 const FN = "**/functions/v1/nl-search-public";
 
 type Body = { mode?: string; filters?: unknown; query?: string };
+
+function examplesPayload(queriesUsed = 0) {
+  return {
+    examples: [
+      { prompt: "Energy projects in MENA", filters: { sectors: ["Energy"], regions: ["MENA"] } },
+      { prompt: "Transport projects in East Africa", filters: { sectors: ["Transport"], regions: ["East Africa"] } },
+    ],
+    queries_used: queriesUsed,
+    queries_limit: 3,
+    queries_remaining: Math.max(0, 3 - queriesUsed),
+  };
+}
 
 function projectPayload(n: number, queriesRemaining: number, relaxed = false) {
   return {
@@ -54,14 +67,7 @@ test("suggested chips return results and the counter counts down to the signup w
     const body = JSON.parse(route.request().postData() || "{}") as Body;
 
     if (body.mode === "examples") {
-      await route.fulfill({
-        json: {
-          examples: [
-            { prompt: "Energy projects in MENA", filters: { sectors: ["Energy"], regions: ["MENA"] } },
-            { prompt: "Transport projects in East Africa", filters: { sectors: ["Transport"], regions: ["East Africa"] } },
-          ],
-        },
-      });
+      await route.fulfill({ json: examplesPayload(0) });
       return;
     }
 
@@ -103,9 +109,7 @@ test("examples fetch costs no query and the relaxed note shows on a fallback mat
     const body = JSON.parse(route.request().postData() || "{}") as Body;
     if (body.mode === "examples") {
       exampleCalls += 1;
-      await route.fulfill({
-        json: { examples: [{ prompt: "Energy projects in MENA", filters: { sectors: ["Energy"], regions: ["MENA"] } }] },
-      });
+      await route.fulfill({ json: examplesPayload(0) });
       return;
     }
     searches += 1;
@@ -122,4 +126,37 @@ test("examples fetch costs no query and the relaxed note shows on a fallback mat
   await page.getByRole("button", { name: "Energy projects in MENA" }).click();
   await expect(page.getByText("No exact match — showing the closest projects we found.")).toBeVisible();
   await expect(page.getByText("2 free queries remaining today")).toBeVisible();
+});
+
+test("counter reflects server-side usage on load — a refresh cannot reset it", async ({ page }) => {
+  // The server reports 2 already used today for this IP. On a fresh page load
+  // the counter must show 1 remaining (not the optimistic 3), so a refresh is
+  // not a way to get more queries.
+  await page.route(FN, async (route) => {
+    const body = JSON.parse(route.request().postData() || "{}") as Body;
+    if (body.mode === "examples") {
+      await route.fulfill({ json: examplesPayload(2) });
+      return;
+    }
+    await route.fulfill({ json: projectPayload(3, 0) });
+  });
+
+  await page.goto("/ask-demo");
+  await expect(page.getByText("1 free query remaining today")).toBeVisible();
+  // The optimistic default must NOT win.
+  await expect(page.getByText("3 free queries remaining today")).toHaveCount(0);
+});
+
+test("an already-exhausted visitor sees the signup wall immediately on load", async ({ page }) => {
+  await page.route(FN, async (route) => {
+    const body = JSON.parse(route.request().postData() || "{}") as Body;
+    if (body.mode === "examples") {
+      await route.fulfill({ json: examplesPayload(3) });
+      return;
+    }
+    await route.fulfill({ json: { error: "rate_limited", queries_used: 3, queries_limit: 3, queries_remaining: 0 } });
+  });
+
+  await page.goto("/ask-demo");
+  await expect(page.getByText(/You've used all 3 free demo queries/)).toBeVisible();
 });
