@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart, HardHat } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
