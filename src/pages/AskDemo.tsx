@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Search, Loader2, Info, MapPin, TrendingUp, AlertTriangle, ArrowRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,17 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Seo } from '@/components/Seo';
 
-const EXAMPLES = [
-  'Renewable energy projects in West Africa above $100M',
-  'High-risk transport infrastructure in MENA',
-  'Data center projects worth more than $500M globally',
+type ChipExample = {
+  prompt: string;
+  filters: Record<string, unknown>;
+};
+
+// Shown instantly on first paint and as a fallback if the data-driven fetch
+// fails. These pairs are broad enough to almost always have matching projects.
+const FALLBACK_EXAMPLES: ChipExample[] = [
+  { prompt: 'Energy projects in MENA', filters: { sectors: ['Energy'], regions: ['MENA'] } },
+  { prompt: 'Transport projects in East Africa', filters: { sectors: ['Transport'], regions: ['East Africa'] } },
+  { prompt: 'Renewable Energy projects in West Africa', filters: { sectors: ['Renewable Energy'], regions: ['West Africa'] } },
 ];
 
 const QUERIES_LIMIT = 3;
@@ -34,6 +41,7 @@ type DemoProject = {
 type DemoResult = {
   projects: DemoProject[];
   interpretation: string;
+  relaxed?: boolean;
   queries_used: number;
   queries_remaining: number;
 };
@@ -55,21 +63,48 @@ export default function AskDemo() {
   const [error, setError] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
   const [queriesUsed, setQueriesUsed] = useState(0);
+  const [examples, setExamples] = useState<ChipExample[]>(FALLBACK_EXAMPLES);
 
-  const submit = async (q: string) => {
-    if (!q.trim() || loading) return;
+  // Fetch data-driven example chips once on mount. These map to (sector, region)
+  // pairs that actually have projects, so every chip returns results. This call
+  // does NOT consume a free query.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
+          body: { mode: 'examples' },
+        });
+        if (!active || fnError) return;
+        const fetched = (data?.examples as ChipExample[] | undefined)?.filter((e) => e?.prompt && e?.filters);
+        if (fetched && fetched.length > 0) setExamples(fetched);
+      } catch {
+        // keep FALLBACK_EXAMPLES
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // A chip click passes `filters` (LLM-bypassed, guaranteed results); a typed
+  // query passes `query`. `label` is what we show in the input box.
+  const submit = async (opts: { query?: string; filters?: Record<string, unknown>; label?: string }) => {
+    const typed = opts.query?.trim() ?? '';
+    const usePreset = !!opts.filters;
+    if (loading) return;
+    if (!usePreset && typed.length < 3) return;
     if (rateLimited || queriesUsed >= QUERIES_LIMIT) {
       setRateLimited(true);
       return;
     }
 
+    setQuery(opts.label ?? typed);
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
-        body: { query: q.trim() },
+        body: usePreset ? { filters: opts.filters } : { query: typed },
       });
 
       if (fnError) throw fnError;
@@ -82,7 +117,7 @@ export default function AskDemo() {
       if (data?.error) throw new Error(data.error);
 
       setResult(data as DemoResult);
-      setQueriesUsed(data.queries_used ?? queriesUsed + 1);
+      setQueriesUsed(data.queries_used ?? queriesUsed);
       if (data.queries_remaining === 0) setRateLimited(true);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Search failed';
@@ -144,7 +179,7 @@ export default function AskDemo() {
             {/* Search box */}
             <Card className="p-4 glass-panel mb-6">
               <form
-                onSubmit={(e) => { e.preventDefault(); void submit(query); }}
+                onSubmit={(e) => { e.preventDefault(); void submit({ query }); }}
                 className="flex flex-col sm:flex-row gap-2"
               >
                 <div className="relative flex-1">
@@ -170,14 +205,14 @@ export default function AskDemo() {
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Try one of these</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {EXAMPLES.map((ex) => (
+                    {examples.map((ex) => (
                       <button
-                        key={ex}
+                        key={ex.prompt}
                         type="button"
-                        onClick={() => { setQuery(ex); void submit(ex); }}
+                        onClick={() => void submit({ filters: ex.filters, label: ex.prompt })}
                         className="text-xs px-2.5 py-1 rounded-md bg-muted/50 hover:bg-primary/10 hover:text-primary border border-transparent hover:border-primary/30 transition-colors"
                       >
-                        {ex}
+                        {ex.prompt}
                       </button>
                     ))}
                   </div>
@@ -213,6 +248,15 @@ export default function AskDemo() {
                     <p className="text-sm">{result.interpretation || 'Searching across all projects.'}</p>
                   </div>
                 </Card>
+
+                {result.relaxed && result.projects.length > 0 && (
+                  <Card className="p-3 glass-panel border-amber-500/30">
+                    <div className="flex items-center gap-2 text-xs text-amber-500">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      No exact match — showing the closest projects we found.
+                    </div>
+                  </Card>
+                )}
 
                 {result.projects.length === 0 ? (
                   <Card className="p-8 glass-panel text-center">

@@ -7,6 +7,17 @@
  *
  * Used by the /ask-demo public page to let prospects experience
  * the AI Q&A before signing up.
+ *
+ * Request modes (POST body):
+ *   { mode: "examples" }   -> returns data-driven example prompts that are
+ *                             guaranteed to have matching projects. No quota cost.
+ *   { filters: {...} }      -> runs a preset search (suggested-chip click). Skips
+ *                             the LLM so results are guaranteed. Consumes 1 query.
+ *   { query: "free text" }  -> translates text -> filters via the LLM, then searches.
+ *                             Consumes 1 query.
+ *
+ * A query is only consumed when the search actually returns projects, so a
+ * dead-end never costs a prospect one of their free queries.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -19,6 +30,8 @@ const corsHeaders = {
 
 const MAX_QUERIES_PER_DAY = 3;
 const MAX_RESULTS = 6;
+const EXAMPLE_COUNT = 3;
+const MIN_PROJECTS_PER_EXAMPLE = 1; // a (sector, region) pair must have at least this many approved projects
 
 const REGIONS = [
   "MENA", "East Africa", "West Africa", "Southern Africa", "Central Africa",
@@ -35,6 +48,15 @@ const STAGES = [
   "Completed", "Cancelled", "Stopped",
 ];
 const STATUSES = ["Verified", "Stable", "Pending", "At Risk"];
+
+const PROJECT_COLUMNS =
+  "id, slug, name, country, region, sector, stage, status, value_usd, value_label, confidence, risk_score, description";
+
+const STATIC_EXAMPLE_FALLBACK = [
+  { prompt: "Energy projects in MENA", filters: { sectors: ["Energy"], regions: ["MENA"] } },
+  { prompt: "Transport projects in East Africa", filters: { sectors: ["Transport"], regions: ["East Africa"] } },
+  { prompt: "Renewable Energy projects in West Africa", filters: { sectors: ["Renewable Energy"], regions: ["West Africa"] } },
+];
 
 const SYSTEM_PROMPT = `You translate natural-language questions about global infrastructure projects into structured filters for a Postgres query.
 You MUST return your answer by calling the \`apply_filters\` tool — never plain text.
@@ -78,6 +100,29 @@ const FILTER_TOOL = {
   },
 };
 
+type Filters = {
+  regions: string[];
+  sectors: string[];
+  stages: string[];
+  statuses: string[];
+  countries: string[];
+  value_min_usd: number | null;
+  value_max_usd: number | null;
+  keyword: string | null;
+  order_by: string;
+  interpretation: string;
+};
+
+// deno-lint-ignore no-explicit-any
+type SupabaseClient = any;
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 async function hashIp(ip: string): Promise<string> {
   const salt = Deno.env.get("DEMO_IP_SALT") ?? "infradar-demo-2026";
   const data = new TextEncoder().encode(`${salt}:${ip}`);
@@ -105,12 +150,155 @@ function sanitizeStringArray(arr: unknown, allowed: string[] | null): string[] {
     if (!trimmed) continue;
     if (allowed) {
       const match = allowed.find((a) => a.toLowerCase() === trimmed.toLowerCase());
-      if (match) out.push(match);
-    } else {
+      if (match && !out.includes(match)) out.push(match);
+    } else if (!out.includes(trimmed)) {
       out.push(trimmed);
     }
   }
   return out;
+}
+
+/** Sanitize raw filter input (from the LLM or from a preset chip) against the whitelists. */
+function buildFilters(raw: Record<string, unknown>): Filters {
+  return {
+    regions: sanitizeStringArray(raw.regions, REGIONS),
+    sectors: sanitizeStringArray(raw.sectors, SECTORS),
+    stages: sanitizeStringArray(raw.stages, STAGES),
+    statuses: sanitizeStringArray(raw.statuses, STATUSES),
+    countries: sanitizeStringArray(raw.countries, null).slice(0, 10),
+    value_min_usd:
+      typeof raw.value_min_usd === "number" && raw.value_min_usd >= 0
+        ? Math.floor(raw.value_min_usd)
+        : null,
+    value_max_usd:
+      typeof raw.value_max_usd === "number" && raw.value_max_usd >= 0
+        ? Math.floor(raw.value_max_usd)
+        : null,
+    keyword:
+      typeof raw.keyword === "string" && raw.keyword.trim().length > 0
+        ? raw.keyword.trim().slice(0, 80)
+        : null,
+    order_by: raw.order_by === "recent" || raw.order_by === "risk" ? (raw.order_by as string) : "value",
+    interpretation: typeof raw.interpretation === "string" ? raw.interpretation.slice(0, 300) : "",
+  };
+}
+
+/** Human sentence describing a preset filter (used when no LLM interpretation is present). */
+function describeFilters(f: Filters): string {
+  const parts: string[] = [];
+  if (f.sectors.length) parts.push(f.sectors.join(" / "));
+  parts.push("projects");
+  if (f.countries.length) parts.push(`in ${f.countries.join(", ")}`);
+  else if (f.regions.length) parts.push(`in ${f.regions.join(", ")}`);
+  if (f.stages.length) parts.push(`at ${f.stages.join(" / ")} stage`);
+  if (f.value_min_usd != null) parts.push(`above $${Math.round(f.value_min_usd / 1_000_000)}M`);
+  return `Showing ${parts.join(" ")}.`;
+}
+
+/** Apply the structured filters to a projects query builder. */
+function applyFilters(q: SupabaseClient, f: Filters): SupabaseClient {
+  if (f.regions.length) q = q.in("region", f.regions);
+  if (f.sectors.length) q = q.in("sector", f.sectors);
+  if (f.stages.length) q = q.in("stage", f.stages);
+  if (f.statuses.length) q = q.in("status", f.statuses);
+  if (f.countries.length) q = q.in("country", f.countries);
+  if (f.value_min_usd != null) q = q.gte("value_usd", f.value_min_usd);
+  if (f.value_max_usd != null) q = q.lte("value_usd", f.value_max_usd);
+  if (f.keyword) {
+    const safe = f.keyword.replace(/[%,]/g, " ");
+    q = q.or(`name.ilike.%${safe}%,description.ilike.%${safe}%`);
+  }
+  if (f.order_by === "recent") q = q.order("last_updated", { ascending: false });
+  else if (f.order_by === "risk") q = q.order("risk_score", { ascending: true });
+  else q = q.order("value_usd", { ascending: false });
+  return q.limit(MAX_RESULTS);
+}
+
+/**
+ * Run a filtered search. If it returns 0 rows, progressively relax the most
+ * restrictive constraints (value bounds, then stages, then statuses, then
+ * keyword) and retry, so a prospect rarely hits a dead end. Returns the rows
+ * plus a `relaxed` flag indicating filters were dropped to find matches.
+ */
+async function runSearch(
+  supabase: SupabaseClient,
+  filters: Filters,
+): Promise<{ projects: unknown[]; relaxed: boolean }> {
+  const attempts: Filters[] = [
+    filters,
+    { ...filters, value_min_usd: null, value_max_usd: null },
+    { ...filters, value_min_usd: null, value_max_usd: null, stages: [] },
+    { ...filters, value_min_usd: null, value_max_usd: null, stages: [], statuses: [] },
+    { ...filters, value_min_usd: null, value_max_usd: null, stages: [], statuses: [], keyword: null },
+  ];
+
+  for (let i = 0; i < attempts.length; i++) {
+    const base = supabase.from("projects").select(PROJECT_COLUMNS).eq("approved", true);
+    const { data, error } = await applyFilters(base, attempts[i]);
+    if (error) throw error;
+    if (data && data.length > 0) {
+      return { projects: data, relaxed: i > 0 };
+    }
+    // If this attempt is identical to the previous one (nothing left to relax), stop early.
+  }
+  return { projects: [], relaxed: false };
+}
+
+/**
+ * Build data-driven example prompts from real data: the (sector, region) pairs
+ * that actually have approved projects. Guarantees every suggested chip returns
+ * results. Falls back to a small static list if the table is empty/unavailable.
+ */
+async function buildExamples(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("sector, region")
+    .eq("approved", true)
+    .not("sector", "is", null)
+    .not("region", "is", null)
+    .limit(5000);
+
+  if (error || !data || data.length === 0) {
+    return STATIC_EXAMPLE_FALLBACK.slice(0, EXAMPLE_COUNT);
+  }
+
+  const counts = new Map<string, { sector: string; region: string; n: number }>();
+  for (const row of data as Array<{ sector: string; region: string }>) {
+    const sector = SECTORS.find((s) => s.toLowerCase() === String(row.sector).toLowerCase());
+    const region = REGIONS.find((r) => r.toLowerCase() === String(row.region).toLowerCase());
+    if (!sector || !region) continue;
+    const key = `${sector}|${region}`;
+    const cur = counts.get(key);
+    if (cur) cur.n++;
+    else counts.set(key, { sector, region, n: 1 });
+  }
+
+  const ranked = [...counts.values()]
+    .filter((c) => c.n >= MIN_PROJECTS_PER_EXAMPLE)
+    .sort((a, b) => b.n - a.n);
+
+  // Spread examples across distinct sectors so the chips feel varied.
+  const picked: Array<{ sector: string; region: string }> = [];
+  const usedSectors = new Set<string>();
+  for (const c of ranked) {
+    if (usedSectors.has(c.sector)) continue;
+    picked.push({ sector: c.sector, region: c.region });
+    usedSectors.add(c.sector);
+    if (picked.length >= EXAMPLE_COUNT) break;
+  }
+  // Top up from the ranked list if we couldn't fill on distinct sectors alone.
+  for (const c of ranked) {
+    if (picked.length >= EXAMPLE_COUNT) break;
+    if (picked.some((p) => p.sector === c.sector && p.region === c.region)) continue;
+    picked.push({ sector: c.sector, region: c.region });
+  }
+
+  if (picked.length === 0) return STATIC_EXAMPLE_FALLBACK.slice(0, EXAMPLE_COUNT);
+
+  return picked.map((p) => ({
+    prompt: `${p.sector} projects in ${p.region}`,
+    filters: { sectors: [p.sector], regions: [p.region] },
+  }));
 }
 
 serve(async (req) => {
@@ -123,7 +311,15 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    // 1. IP-based rate limiting
+    const body = await req.json().catch(() => ({}));
+
+    // --- Mode 1: examples (no quota, no LLM) -------------------------------
+    if (body?.mode === "examples") {
+      const examples = await buildExamples(supabase);
+      return json({ examples });
+    }
+
+    // --- Rate-limit pre-check (read current count) ------------------------
     const clientIp = getClientIp(req);
     const ipHash = await hashIp(clientIp);
     const today = new Date().toISOString().slice(0, 10);
@@ -138,154 +334,110 @@ serve(async (req) => {
     const currentCount = existing?.count ?? 0;
 
     if (currentCount >= MAX_QUERIES_PER_DAY) {
-      return new Response(
-        JSON.stringify({
-          error: "rate_limited",
-          message: `You've used all ${MAX_QUERIES_PER_DAY} free demo queries for today. Sign up for a free account to keep going.`,
-          queries_used: currentCount,
-          queries_limit: MAX_QUERIES_PER_DAY,
-        }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // 2. Validate query
-    const body = await req.json().catch(() => ({}));
-    const prompt = typeof body?.query === "string" ? body.query.trim() : "";
-    if (prompt.length < 3) {
-      return new Response(
-        JSON.stringify({ error: "Query must be at least 3 characters" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    if (prompt.length > 300) {
-      return new Response(
-        JSON.stringify({ error: "Query is too long (max 300 chars for demo)" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // 3. AI filter translation
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "AI gateway not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt },
-        ],
-        tools: [FILTER_TOOL],
-        tool_choice: { type: "function", function: { name: "apply_filters" } },
-      }),
-    });
-
-    if (aiResp.status === 429) {
-      return new Response(
-        JSON.stringify({ error: "AI rate limit hit. Try again in a moment." }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    if (!aiResp.ok) {
-      return new Response(
-        JSON.stringify({ error: "AI gateway error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const aiData = await aiResp.json();
-    const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) {
-      return new Response(
-        JSON.stringify({ error: "Could not interpret your query. Try rephrasing." }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    let raw: Record<string, unknown>;
-    try {
-      raw = JSON.parse(toolCall.function.arguments);
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "AI returned malformed filters" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    // 4. Sanitize
-    const filters = {
-      regions: sanitizeStringArray(raw.regions, REGIONS),
-      sectors: sanitizeStringArray(raw.sectors, SECTORS),
-      stages: sanitizeStringArray(raw.stages, STAGES),
-      statuses: sanitizeStringArray(raw.statuses, STATUSES),
-      countries: sanitizeStringArray(raw.countries, null).slice(0, 10),
-      value_min_usd: typeof raw.value_min_usd === "number" && raw.value_min_usd >= 0 ? Math.floor(raw.value_min_usd) : null,
-      value_max_usd: typeof raw.value_max_usd === "number" && raw.value_max_usd >= 0 ? Math.floor(raw.value_max_usd) : null,
-      keyword: typeof raw.keyword === "string" && raw.keyword.trim().length > 0 ? raw.keyword.trim().slice(0, 80) : null,
-      order_by: raw.order_by === "recent" || raw.order_by === "risk" ? raw.order_by as string : "value",
-      interpretation: typeof raw.interpretation === "string" ? raw.interpretation.slice(0, 300) : "",
-    };
-
-    // 5. Query - hard cap at MAX_RESULTS
-    let q = supabase
-      .from("projects")
-      .select("id, slug, name, country, region, sector, stage, status, value_usd, value_label, confidence, risk_score, description")
-      .eq("approved", true);
-
-    if (filters.regions.length) q = q.in("region", filters.regions);
-    if (filters.sectors.length) q = q.in("sector", filters.sectors);
-    if (filters.stages.length) q = q.in("stage", filters.stages);
-    if (filters.statuses.length) q = q.in("status", filters.statuses);
-    if (filters.countries.length) q = q.in("country", filters.countries);
-    if (filters.value_min_usd != null) q = q.gte("value_usd", filters.value_min_usd);
-    if (filters.value_max_usd != null) q = q.lte("value_usd", filters.value_max_usd);
-    if (filters.keyword) {
-      const safe = filters.keyword.replace(/[%,]/g, " ");
-      q = q.or(`name.ilike.%${safe}%,description.ilike.%${safe}%`);
-    }
-    if (filters.order_by === "recent") q = q.order("last_updated", { ascending: false });
-    else if (filters.order_by === "risk") q = q.order("risk_score", { ascending: true });
-    else q = q.order("value_usd", { ascending: false });
-    q = q.limit(MAX_RESULTS);
-
-    const { data: projects, error: queryErr } = await q;
-    if (queryErr) throw queryErr;
-
-    // 6. Increment rate limit counter (upsert)
-    await supabase.from("public_demo_rate_limits").upsert(
-      { ip_hash: ipHash, query_date: today, count: currentCount + 1 },
-      { onConflict: "ip_hash,query_date" },
-    );
-
-    const queriesUsed = currentCount + 1;
-
-    return new Response(
-      JSON.stringify({
-        projects: projects ?? [],
-        filters,
-        interpretation: filters.interpretation,
-        queries_used: queriesUsed,
+      // Returned as 200 (not 429) so supabase-js delivers it as `data` and the
+      // client can render the signup wall instead of a generic error toast.
+      return json({
+        error: "rate_limited",
+        message: `You've used all ${MAX_QUERIES_PER_DAY} free demo queries for today. Sign up for a free account to keep going.`,
+        queries_used: currentCount,
         queries_limit: MAX_QUERIES_PER_DAY,
-        queries_remaining: MAX_QUERIES_PER_DAY - queriesUsed,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+        queries_remaining: 0,
+      });
+    }
+
+    // --- Resolve filters: preset chip (no LLM) or free-text (LLM) ----------
+    let filters: Filters;
+
+    if (body?.filters && typeof body.filters === "object") {
+      // Suggested-chip click: trusted-but-sanitized preset. Skips the LLM so
+      // the chip is guaranteed to return the results it advertises.
+      filters = buildFilters(body.filters as Record<string, unknown>);
+      if (!filters.interpretation) filters.interpretation = describeFilters(filters);
+    } else {
+      // Free-text query: translate via the LLM.
+      const prompt = typeof body?.query === "string" ? body.query.trim() : "";
+      if (prompt.length < 3) {
+        return json({ error: "Query must be at least 3 characters" }, 400);
+      }
+      if (prompt.length > 300) {
+        return json({ error: "Query is too long (max 300 chars for demo)" }, 400);
+      }
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return json({ error: "AI gateway not configured" }, 500);
+      }
+
+      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: prompt },
+          ],
+          tools: [FILTER_TOOL],
+          tool_choice: { type: "function", function: { name: "apply_filters" } },
+        }),
+      });
+
+      if (aiResp.status === 429) {
+        return json({ error: "AI rate limit hit. Try again in a moment." }, 429);
+      }
+      if (!aiResp.ok) {
+        return json({ error: "AI gateway error" }, 500);
+      }
+
+      const aiData = await aiResp.json();
+      const toolCall = aiData?.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall?.function?.arguments) {
+        return json({ error: "Could not interpret your query. Try rephrasing." }, 422);
+      }
+
+      let raw: Record<string, unknown>;
+      try {
+        raw = JSON.parse(toolCall.function.arguments);
+      } catch {
+        return json({ error: "AI returned malformed filters" }, 500);
+      }
+
+      filters = buildFilters(raw);
+    }
+
+    // --- Search with graceful relaxation ----------------------------------
+    const { projects, relaxed } = await runSearch(supabase, filters);
+
+    // --- Consume a query ONLY when we actually delivered results ----------
+    // A dead end never costs a prospect one of their free queries.
+    let queriesUsed = currentCount;
+    if (projects.length > 0) {
+      const { data: newCount, error: incErr } = await supabase.rpc("increment_demo_quota", {
+        p_ip_hash: ipHash,
+      });
+      if (incErr) {
+        console.error("increment_demo_quota error", incErr);
+        queriesUsed = currentCount + 1; // best-effort; don't fail the request
+      } else {
+        queriesUsed = typeof newCount === "number" ? newCount : currentCount + 1;
+      }
+    }
+    const queriesRemaining = Math.max(0, MAX_QUERIES_PER_DAY - queriesUsed);
+
+    return json({
+      projects,
+      filters,
+      interpretation: filters.interpretation || describeFilters(filters),
+      relaxed,
+      queries_used: queriesUsed,
+      queries_limit: MAX_QUERIES_PER_DAY,
+      queries_remaining: queriesRemaining,
+    });
   } catch (e) {
     console.error("nl-search-public error", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
   }
 });
