@@ -356,11 +356,13 @@ serve(async (req) => {
     } else {
       // Free-text query: translate via the LLM.
       const prompt = typeof body?.query === "string" ? body.query.trim() : "";
+      // Return validation issues as 200 so the client's global runtime-error
+      // logger doesn't flag them — the page already renders `data.error`.
       if (prompt.length < 3) {
-        return json({ error: "Query must be at least 3 characters" }, 400);
+        return json({ error: "Query must be at least 3 characters" });
       }
       if (prompt.length > 300) {
-        return json({ error: "Query is too long (max 300 chars for demo)" }, 400);
+        return json({ error: "Query is too long (max 300 chars for demo)" });
       }
 
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
