@@ -311,10 +311,19 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   try {
-    const body = await req.json().catch(() => ({}));
+    let body: Record<string, unknown> = {};
+    try {
+      const raw = await req.text();
+      console.log("nl-search-public raw body:", raw?.slice(0, 500), "content-type:", req.headers.get("content-type"));
+      if (raw && raw.trim().length > 0) {
+        body = JSON.parse(raw);
+      }
+    } catch (e) {
+      console.error("nl-search-public body parse error", e);
+    }
 
     // --- Mode 1: examples (no quota, no LLM) -------------------------------
-    if (body?.mode === "examples") {
+    if ((body as { mode?: string })?.mode === "examples") {
       const examples = await buildExamples(supabase);
       return json({ examples });
     }
