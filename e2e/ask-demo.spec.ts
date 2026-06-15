@@ -160,3 +160,23 @@ test("an already-exhausted visitor sees the signup wall immediately on load", as
   await page.goto("/ask-demo");
   await expect(page.getByText(/You've used all 3 free demo queries/)).toBeVisible();
 });
+
+test("persists the signed visitor token and resends it on the next request", async ({ page }) => {
+  const TOKEN = "v1.11111111-1111-1111-1111-111111111111.9999999999.deadbeef";
+  let searchSawToken = false;
+
+  await page.route(FN, async (route) => {
+    const body = JSON.parse(route.request().postData() || "{}") as Body & { visitor_token?: string };
+    if (body.mode === "examples") {
+      await route.fulfill({ json: { ...examplesPayload(0), visitor_token: TOKEN } });
+      return;
+    }
+    if (body.visitor_token === TOKEN) searchSawToken = true;
+    await route.fulfill({ json: { ...projectPayload(1, 2), visitor_token: TOKEN } });
+  });
+
+  await page.goto("/ask-demo");
+  await page.getByRole("button", { name: "Energy projects in MENA" }).click();
+  await expect(page.getByText("Demo Project 1")).toBeVisible();
+  expect(searchSawToken).toBe(true);
+});

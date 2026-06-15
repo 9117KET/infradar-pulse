@@ -141,6 +141,74 @@ function getClientIp(req: Request): string {
   );
 }
 
+// ── Signed visitor token: a tamper-evident "cookie" sent in the request body ──
+// A real cross-origin Set-Cookie won't flow back through supabase.functions
+// .invoke, so the client persists this HMAC-signed token in localStorage and
+// resends it. It is a SECOND rate-limit dimension alongside IP: a visitor has to
+// change IP *and* drop the token to win a fresh allowance. Forging it requires
+// DEMO_COOKIE_SECRET; set a strong one in env (falls back to the IP salt).
+const TOKEN_TTL_SEC = 7 * 24 * 60 * 60; // ~matches the table's 7-day cleanup window
+
+function demoSecret(): string {
+  return Deno.env.get("DEMO_COOKIE_SECRET") ?? Deno.env.get("DEMO_IP_SALT") ?? "infradar-demo-2026";
+}
+
+async function hmacHex(data: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+
+async function mintToken(visitorId: string): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL_SEC;
+  const payload = `${visitorId}.${exp}`;
+  const sig = await hmacHex(payload, demoSecret());
+  return `v1.${payload}.${sig}`;
+}
+
+/** Returns the visitorId if the token is well-formed, unexpired and correctly signed; else null. */
+async function verifyToken(token: unknown): Promise<string | null> {
+  if (typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 4 || parts[0] !== "v1") return null;
+  const [, visitorId, expStr, sig] = parts;
+  const exp = Number(expStr);
+  if (!visitorId || !Number.isFinite(exp) || exp * 1000 < Date.now()) return null;
+  const expected = await hmacHex(`${visitorId}.${expStr}`, demoSecret());
+  return timingSafeEqual(expected, sig) ? visitorId : null;
+}
+
+/** Atomically increment one rate-limit key, falling back to an upsert if the RPC is unavailable. */
+async function incrementKey(
+  supabase: SupabaseClient,
+  key: string,
+  today: string,
+  fallbackCurrent: number,
+): Promise<number> {
+  const { data: newCount, error } = await supabase.rpc("increment_demo_quota", { p_ip_hash: key });
+  if (!error && typeof newCount === "number") return newCount;
+  if (error) console.error("increment_demo_quota error, upsert fallback", error);
+  const next = fallbackCurrent + 1;
+  await supabase.from("public_demo_rate_limits").upsert(
+    { ip_hash: key, query_date: today, count: next },
+    { onConflict: "ip_hash,query_date" },
+  );
+  return next;
+}
+
 function sanitizeStringArray(arr: unknown, allowed: string[] | null): string[] {
   if (!Array.isArray(arr)) return [];
   const out: string[] = [];
@@ -317,11 +385,23 @@ serve(async (req) => {
     const ipHash = await hashIp(clientIp);
     const today = new Date().toISOString().slice(0, 10);
 
-    const readCount = async (): Promise<number> => {
+    // Signed visitor token = a second rate-limit key alongside the IP. Verify
+    // the one the client sent; mint a fresh signed one when it's missing,
+    // expired or forged. We always echo `visitor_token` so the client persists it.
+    const verifiedId = await verifyToken(body?.visitor_token);
+    const visitorId = verifiedId ?? crypto.randomUUID();
+    const visitorToken = verifiedId ? (body.visitor_token as string) : await mintToken(visitorId);
+    const cookieKey = "cookie_" + (await hashIp(visitorId));
+
+    // A query is counted against BOTH dimensions; effective usage is the higher
+    // of the two, so exhausting either the IP or the token hits the wall.
+    const keys = [ipHash, cookieKey];
+
+    const readCount = async (key: string): Promise<number> => {
       const { data } = await supabase
         .from("public_demo_rate_limits")
         .select("count")
-        .eq("ip_hash", ipHash)
+        .eq("ip_hash", key)
         .eq("query_date", today)
         .maybeSingle();
       return data?.count ?? 0;
@@ -332,18 +412,20 @@ serve(async (req) => {
     // server state on load. This is what stops a refresh from resetting the
     // counter or unlocking more queries — the client never owns the count.
     if (body?.mode === "examples" || body?.mode === "status") {
-      const used = await readCount();
+      const used = Math.max(...(await Promise.all(keys.map(readCount))));
       const examples = body?.mode === "examples" ? await buildExamples(supabase) : undefined;
       return json({
         ...(examples ? { examples } : {}),
+        visitor_token: visitorToken,
         queries_used: used,
         queries_limit: MAX_QUERIES_PER_DAY,
         queries_remaining: Math.max(0, MAX_QUERIES_PER_DAY - used),
       });
     }
 
-    // --- Rate-limit pre-check (read current count) ------------------------
-    const currentCount = await readCount();
+    // --- Rate-limit pre-check (read current count across both keys) --------
+    const currentCounts = await Promise.all(keys.map(readCount));
+    const currentCount = Math.max(...currentCounts);
 
     if (currentCount >= MAX_QUERIES_PER_DAY) {
       // Returned as 200 (not 429) so supabase-js delivers it as `data` and the
@@ -351,6 +433,7 @@ serve(async (req) => {
       return json({
         error: "rate_limited",
         message: `You've used all ${MAX_QUERIES_PER_DAY} free demo queries for today. Sign up for a free account to keep going.`,
+        visitor_token: visitorToken,
         queries_used: currentCount,
         queries_limit: MAX_QUERIES_PER_DAY,
         queries_remaining: 0,
@@ -429,23 +512,13 @@ serve(async (req) => {
     // A dead end never costs a prospect one of their free queries.
     let queriesUsed = currentCount;
     if (projects.length > 0) {
-      const { data: newCount, error: incErr } = await supabase.rpc("increment_demo_quota", {
-        p_ip_hash: ipHash,
-      });
-      if (!incErr && typeof newCount === "number") {
-        queriesUsed = newCount;
-      } else {
-        // Fallback: persist via upsert so the per-IP limit is STILL enforced
-        // even if the increment_demo_quota RPC isn't deployed yet. Without this,
-        // a missing RPC would silently stop persisting the count and let a
-        // refresh bypass the limit forever.
-        if (incErr) console.error("increment_demo_quota error, falling back to upsert", incErr);
-        queriesUsed = currentCount + 1;
-        await supabase.from("public_demo_rate_limits").upsert(
-          { ip_hash: ipHash, query_date: today, count: queriesUsed },
-          { onConflict: "ip_hash,query_date" },
-        );
-      }
+      // Consume one query from BOTH the IP and the visitor-token buckets so
+      // neither dimension can be reset independently. The upsert fallback inside
+      // incrementKey keeps enforcement working even if the RPC isn't deployed.
+      const newCounts = await Promise.all(
+        keys.map((key, i) => incrementKey(supabase, key, today, currentCounts[i])),
+      );
+      queriesUsed = Math.max(...newCounts);
     }
     const queriesRemaining = Math.max(0, MAX_QUERIES_PER_DAY - queriesUsed);
 
@@ -454,6 +527,7 @@ serve(async (req) => {
       filters,
       interpretation: filters.interpretation || describeFilters(filters),
       relaxed,
+      visitor_token: visitorToken,
       queries_used: queriesUsed,
       queries_limit: MAX_QUERIES_PER_DAY,
       queries_remaining: queriesRemaining,

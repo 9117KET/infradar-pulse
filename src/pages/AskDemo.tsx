@@ -56,6 +56,19 @@ function statusColor(s: string) {
   return map[s] ?? 'bg-muted text-muted-foreground border-border';
 }
 
+// Signed visitor token issued by the server (a "cookie" we keep in localStorage
+// because cross-origin Set-Cookie won't survive supabase.functions.invoke). We
+// resend it so the server can rate-limit by token as well as by IP.
+const VISITOR_TOKEN_KEY = 'infradar_demo_token';
+function readVisitorToken(): string | undefined {
+  try { return localStorage.getItem(VISITOR_TOKEN_KEY) ?? undefined; } catch { return undefined; }
+}
+function writeVisitorToken(token: unknown) {
+  if (typeof token === 'string' && token) {
+    try { localStorage.setItem(VISITOR_TOKEN_KEY, token); } catch { /* ignore */ }
+  }
+}
+
 export default function AskDemo() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -76,9 +89,10 @@ export default function AskDemo() {
     (async () => {
       try {
         const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
-          body: { mode: 'examples' },
+          body: { mode: 'examples', visitor_token: readVisitorToken() },
         });
         if (!active || fnError) return;
+        writeVisitorToken(data?.visitor_token);
         const fetched = (data?.examples as ChipExample[] | undefined)?.filter((e) => e?.prompt && e?.filters);
         if (fetched && fetched.length > 0) setExamples(fetched);
         if (typeof data?.queries_used === 'number') {
@@ -111,10 +125,15 @@ export default function AskDemo() {
 
     try {
       const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
-        body: usePreset ? { filters: opts.filters } : { query: typed },
+        body: {
+          ...(usePreset ? { filters: opts.filters } : { query: typed }),
+          visitor_token: readVisitorToken(),
+        },
       });
 
       if (fnError) throw fnError;
+
+      writeVisitorToken(data?.visitor_token);
 
       if (data?.error === 'rate_limited') {
         setRateLimited(true);
