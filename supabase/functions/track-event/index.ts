@@ -82,6 +82,14 @@ serve(async (req) => {
       ? body.roles.filter((role): role is string => typeof role === 'string' && ['user', 'researcher', 'admin'].includes(role)).slice(0, 3)
       : [];
 
+    // Coarse country from the CDN edge (Cloudflare / Vercel). Country-level
+    // only — disclosed in the Privacy Notice as device/connection data. No
+    // precise geolocation and no third-party geo lookup.
+    const country = cleanString(
+      req.headers.get('cf-ipcountry') ?? req.headers.get('x-vercel-ip-country'),
+      2,
+    );
+
     const admin = createClient(supabaseUrl, serviceRoleKey);
     const { error } = await admin.from('user_events').insert({
       user_id: user?.id ?? null,
@@ -94,6 +102,7 @@ serve(async (req) => {
       properties,
       plan_key: planKey,
       roles,
+      country: country ? country.toUpperCase() : null,
       user_agent: cleanString(req.headers.get('user-agent'), 500),
     });
 

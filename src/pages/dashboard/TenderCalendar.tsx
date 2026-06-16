@@ -138,11 +138,11 @@ export default function TenderCalendar() {
         {/* Calendar */}
         <div className="lg:col-span-2 glass-panel rounded-xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <button onClick={prevMonth} className="p-1.5 rounded hover:bg-muted/30 transition-colors">
+            <button onClick={prevMonth} className="p-1.5 rounded hover:bg-muted/30 transition-colors" aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="text-sm font-semibold">{MONTHS[month]} {year}</span>
-            <button onClick={nextMonth} className="p-1.5 rounded hover:bg-muted/30 transition-colors">
+            <button onClick={nextMonth} className="p-1.5 rounded hover:bg-muted/30 transition-colors" aria-label="Next month">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>

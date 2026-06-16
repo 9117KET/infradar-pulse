@@ -7,7 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
-import { getPaddleEnvironment, isLiveCheckoutEnabled } from '@/lib/paddle';
+import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
+import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { cn } from '@/lib/utils';
 import { Seo } from '@/components/Seo';
 
@@ -43,7 +44,13 @@ export default function Pricing() {
   const { toast } = useToast();
   const { openCheckout, loading } = usePaddleCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
+  const { openFoundingAccess } = useFoundingAccess();
   const navigate = useNavigate();
+  const paymentsLive = isPaymentsLive();
+
+  // Pre-launch: capture demand instead of charging.
+  const reserve = (planKey: string, planLabel: string, billingCycle: string) =>
+    openFoundingAccess({ planKey, planLabel, billingCycle, source: 'pricing' });
   const [cycle, setCycle] = useState<Cycle>('monthly');
   const [seatsTaken, setSeatsTaken] = useState<number | null>(null);
   const [pilotCounter, setPilotCounter] = useState<PilotCounter | null>(null);
@@ -168,7 +175,7 @@ export default function Pricing() {
           description: 'AI-assisted, human-verified global infrastructure intelligence. Track high-value projects across 14 global regions with confidence-scored signals.',
           brand: { '@type': 'Organization', name: 'InfradarAI' },
           offers: [
-            { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '2 AI queries/day, 3 insight reads, public project data' },
+            { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '5 AI queries/day (earn +3/day per referral), 3 insight reads, public project data' },
             { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '20 AI queries/day, alert rules, CSV/Excel exports, portfolio chat' },
             { '@type': 'Offer', name: 'Pro', price: '99', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, risk signals, real-time monitoring, stakeholder intel, AI report PDFs' },
           ],
@@ -272,7 +279,7 @@ export default function Pricing() {
             <p className="text-3xl font-serif font-bold mb-1">$0</p>
             <p className="text-xs text-muted-foreground mb-5">No credit card required</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
-              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 2 AI queries/day</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 5 AI queries/day · +3/day per referral (up to +30)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 3 full insight reads/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 1 export/day (CSV or Excel, up to 25 rows)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Core project discovery</li>
@@ -315,7 +322,11 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> AI digest and market snapshot summaries</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Saved searches</li>
             </ul>
-            {user ? (
+            {!paymentsLive ? (
+              <Button className="w-full teal-glow" onClick={() => reserve('starter', 'Starter', cycle)}>
+                Reserve founding price
+              </Button>
+            ) : user ? (
               <Button className="w-full teal-glow" onClick={() => void goCheckout(starterPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {checkoutEnabled ? (isYearly ? 'Subscribe yearly' : 'Subscribe') : 'Request pilot access'}
@@ -351,7 +362,11 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Contractor intelligence</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Permit &amp; regulatory tracker</li>
             </ul>
-            {user ? (
+            {!paymentsLive ? (
+              <Button className="w-full" onClick={() => reserve('pro', 'Pro', cycle)}>
+                Reserve founding price
+              </Button>
+            ) : user ? (
               <Button className="w-full" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {checkoutEnabled ? (isYearly ? 'Subscribe yearly' : 'Subscribe') : 'Request pilot access'}
@@ -429,7 +444,17 @@ export default function Pricing() {
                     </span>
                   </div>
                 )}
-                {user ? (
+                {!paymentsLive ? (
+                  <Button
+                    size="lg"
+                    className="w-full md:w-auto teal-glow"
+                    disabled={lifetimeSoldOut}
+                    onClick={() => reserve('lifetime', 'Lifetime Pro', 'lifetime')}
+                  >
+                    <Crown className="h-4 w-4 mr-2" />
+                    {lifetimeSoldOut ? 'Sold out' : 'Reserve founder seat'}
+                  </Button>
+                ) : user ? (
                   <Button
                     size="lg"
                     className="w-full md:w-auto teal-glow"

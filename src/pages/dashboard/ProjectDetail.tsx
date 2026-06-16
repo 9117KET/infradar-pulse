@@ -679,7 +679,7 @@ export default function ProjectDetail() {
                   <Input value={ctPhone} onChange={e => setCtPhone(e.target.value)} placeholder="Phone number" className="bg-black/20" />
                   <Input value={ctEmail} onChange={e => setCtEmail(e.target.value)} placeholder="Email" className="bg-black/20" />
                   <Select value={ctType} onValueChange={setCtType}>
-                    <SelectTrigger className="bg-black/20"><SelectValue placeholder="Contact Type" /></SelectTrigger>
+                    <SelectTrigger className="bg-black/20" aria-label="Contact type"><SelectValue placeholder="Contact Type" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="contractor">Contractor</SelectItem>
                       <SelectItem value="government">Government</SelectItem>
@@ -786,7 +786,7 @@ export default function ProjectDetail() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Select value={evType} onValueChange={setEvType}>
-                    <SelectTrigger className="bg-black/20"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-black/20" aria-label="Evidence type"><SelectValue /></SelectTrigger>
                     <SelectContent>{EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t === 'Satellite' ? 'Multi-Source' : t}</SelectItem>)}</SelectContent>
                   </Select>
                   <Input value={evDate} onChange={e => setEvDate(e.target.value)} placeholder="Date" className="bg-black/20" />

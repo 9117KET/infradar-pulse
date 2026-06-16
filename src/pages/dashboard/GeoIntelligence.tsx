@@ -174,14 +174,14 @@ export default function GeoIntelligence() {
             </div>
           )}
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs" aria-label="Filter by region"><Filter className="h-3 w-3 mr-1" /><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Regions</SelectItem>
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={sectorFilter} onValueChange={setSectorFilter}>
-            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[160px] h-8 text-xs" aria-label="Filter by sector"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Sectors</SelectItem>
               {sectors.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}

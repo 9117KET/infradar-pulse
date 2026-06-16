@@ -15,6 +15,7 @@ import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { Switch as UISwitch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { ReferralDashboardCard } from '@/components/ReferralDashboardCard';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
 import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
@@ -614,65 +615,7 @@ function BillingTab() {
 }
 
 function ReferralSection() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [code, setCode] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-
-  // Load or generate referral code
-  useEffect(() => {
-    if (!user) return;
-    (supabase as any).from('referral_codes').select('code').eq('user_id', user.id).maybeSingle()
-      .then(({ data }: { data: { code: string } | null }) => { if (data?.code) setCode(data.code); });
-  }, [user]);
-
-  const getOrCreateCode = async () => {
-    if (code || !user) return;
-    setCreating(true);
-    // Generate a short random code
-    const raw = Array.from(crypto.getRandomValues(new Uint8Array(5)))
-      .map(b => b.toString(36)).join('').toUpperCase();
-    const { data, error } = await (supabase as any)
-      .from('referral_codes')
-      .insert({ user_id: user.id, code: raw })
-      .select('code')
-      .single();
-    if (!error && data) setCode(data.code);
-    setCreating(false);
-  };
-
-  const referralUrl = code ? `https://infradarai.com?ref=${code}` : null;
-
-  const copyLink = () => {
-    if (!referralUrl) return;
-    navigator.clipboard.writeText(referralUrl).then(() => {
-      toast({ title: 'Copied', description: 'Referral link copied to clipboard.' });
-    });
-  };
-
-  return (
-    <div className="glass-panel rounded-xl p-6 space-y-4">
-      <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
-        <Share2 className="h-5 w-5 text-primary" />
-        Refer a colleague
-      </h3>
-      <p className="text-sm text-muted-foreground">
-        Share your referral link. When someone signs up and becomes a paying subscriber,
-        you get 1 free month of Pro.
-      </p>
-      {code ? (
-        <div className="flex gap-2">
-          <Input readOnly value={referralUrl ?? ''} className="font-mono text-xs bg-muted/30" />
-          <Button variant="outline" size="sm" onClick={copyLink}>Copy</Button>
-        </div>
-      ) : (
-        <Button variant="outline" size="sm" disabled={creating} onClick={() => void getOrCreateCode()}>
-          {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Share2 className="h-4 w-4 mr-2" />}
-          Generate referral link
-        </Button>
-      )}
-    </div>
-  );
+  return <ReferralDashboardCard />;
 }
 
 function AccountTab() {

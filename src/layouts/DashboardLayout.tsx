@@ -181,7 +181,7 @@ function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <Button variant="ghost" size="icon" className="relative h-8 w-8" onClick={() => setOpen(!open)}>
+      <Button variant="ghost" size="icon" className="relative h-8 w-8" onClick={() => setOpen(!open)} aria-label={unreadCount > 0 ? `Notifications (${unreadCount} unread)` : 'Notifications'}>
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
@@ -271,7 +271,7 @@ function ProjectSearch() {
           className="h-8 w-40 sm:w-56 rounded-lg border border-border bg-background pl-8 pr-8 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setFocused(false); }} className="absolute right-2 top-1/2 -translate-y-1/2">
+          <button onClick={() => { setQuery(''); setFocused(false); }} className="absolute right-2 top-1/2 -translate-y-1/2" aria-label="Clear search">
             <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
           </button>
         )}

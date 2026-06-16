@@ -310,7 +310,7 @@ export default function UsersPage() {
                   </td>
                   <td className="p-3">
                     <Select value={u.role} onValueChange={(val) => changeRole(u.id, val as AppRole)}>
-                      <SelectTrigger className="w-32 h-8 text-xs">
+                      <SelectTrigger className="w-32 h-8 text-xs" aria-label="Change user role">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

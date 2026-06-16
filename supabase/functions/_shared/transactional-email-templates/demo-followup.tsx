@@ -64,8 +64,8 @@ const DemoFollowupEmail = ({
       </Text>
       <Text style={text}>
         If you're still curious, the free tier gives you full access to the dashboard,
-        2 AI queries per day, and the ability to track up to 25 projects in your portfolio
-        — no credit card required.
+        5 AI queries per day (plus +3/day for every colleague you refer), and the ability
+        to track up to 25 projects in your portfolio — no credit card required.
       </Text>
       <Text style={text}>
         Happy to answer any questions or set up a proper demo call. Just reply to this email.

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -83,7 +83,7 @@ export default function EvidenceVerification() {
     const hasConflict = p.evidence.some(e => !e.verified) && p.evidence.some(e => e.verified);
     const satEvidence = p.evidence.filter(e => e.type === 'Satellite');
     const satelliteVerified = satEvidence.some(e => e.verified);
-    const lastSatCheck = satEvidence.length > 0 ? satEvidence.sort((a, b) => b.date.localeCompare(a.date))[0].date : null;
+    const lastSatCheck = satEvidence.length > 0 ? satEvidence.slice().sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''))[0].date : null;
     return { ...p, typesPresent, verifiedCount, totalCount, coverage, hasConflict, satEvidence, satelliteVerified, lastSatCheck, satCount: satEvidence.length };
   }), [projects]);
 
@@ -125,14 +125,14 @@ export default function EvidenceVerification() {
         </h1>
         <div className="flex items-center gap-2">
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-8 text-xs" aria-label="Filter by evidence type"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               {EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t === 'Satellite' ? 'Multi-Source' : t}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[130px] h-8 text-xs" aria-label="Filter by status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="verified">Verified</SelectItem>
@@ -238,8 +238,8 @@ export default function EvidenceVerification() {
                 </div>
               ))}
               {filtered.slice(0, 20).map(p => (
-                <>
-                  <div key={`name-${p.id}`} className="text-xs p-2 truncate">
+                <Fragment key={p.id}>
+                  <div className="text-xs p-2 truncate">
                     <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline">{p.name}</Link>
                   </div>
                   {EVIDENCE_TYPES.map(t => {
@@ -255,7 +255,7 @@ export default function EvidenceVerification() {
                       </div>
                     );
                   })}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>

@@ -151,7 +151,7 @@ export default function Explore() {
               />
             </div>
             <Select value={sector} onValueChange={setSector}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48" aria-label="Filter by sector">
                 <SelectValue placeholder="All sectors" />
               </SelectTrigger>
               <SelectContent>
@@ -162,7 +162,7 @@ export default function Explore() {
               </SelectContent>
             </Select>
             <Select value={riskFilter} onValueChange={setRiskFilter}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-40" aria-label="Filter by risk level">
                 <SelectValue placeholder="All risk levels" />
               </SelectTrigger>
               <SelectContent>

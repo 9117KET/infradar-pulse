@@ -209,15 +209,50 @@ export async function consumeAiQuota(
 ): Promise<{ ok: true } | { ok: false; message: string; plan: PlanKey; reason: "daily" | "hourly" }> {
   const ent = prefetchedEnt ?? await getEntitlementForUser(supabaseAdmin, userId, environment);
   if (ent.bypass) return { ok: true };
+
+  // Referral-earned bonus stacks on the DAILY cap for free/trialing users only
+  // (paid plans already have generous caps, and this keeps the extra round-trip
+  // off every paid AI call). The hourly anti-burst cap is left untouched.
+  // Fails closed to the base cap: any RPC error -> bonus 0, never block the user.
+  let dailyCap = ent.limits.aiPerDay;
+  if (ent.plan === "free" || ent.plan === "trialing") {
+    dailyCap += await referralBonusForUser(supabaseAdmin, userId);
+  }
+
   return tryConsume(
     supabaseAdmin,
     userId,
     "ai_generation",
-    ent.limits.aiPerDay,
+    dailyCap,
     ent.limits.aiPerHour,
     ent.plan,
     "AI generation"
   );
+}
+
+/**
+ * Live referral bonus added to a free/trialing user's daily AI cap:
+ *   referral_ai_bonus      (+3/day per qualified referral, capped at +30)
+ * + referred_welcome_bonus (+3/day for the user's first 14 days, if referred)
+ *
+ * Best-effort: any RPC failure resolves to 0 so a broken bonus never blocks AI.
+ */
+async function referralBonusForUser(
+  supabaseAdmin: SupabaseClient,
+  userId: string
+): Promise<number> {
+  try {
+    const [{ data: earned }, { data: welcome }] = await Promise.all([
+      supabaseAdmin.rpc("referral_ai_bonus", { p_user_id: userId }),
+      supabaseAdmin.rpc("referred_welcome_bonus", { p_user_id: userId }),
+    ]);
+    const a = typeof earned === "number" ? earned : 0;
+    const b = typeof welcome === "number" ? welcome : 0;
+    return a + b;
+  } catch (e) {
+    console.error("referralBonusForUser error", e);
+    return 0;
+  }
 }
 
 export async function consumeExportQuota(

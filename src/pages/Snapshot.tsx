@@ -35,8 +35,6 @@ function fmt(usd: number) {
   return `$${usd.toLocaleString()}`;
 }
 
-const SITE_URL = 'https://infradarai.com';
-
 export default function Snapshot() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [top, setTop] = useState<Project[]>([]);
@@ -47,10 +45,11 @@ export default function Snapshot() {
 
   useEffect(() => {
     const load = async () => {
-      // Fetch live stats (may be cached by CDN)
+      // Fetch live stats via the configured Supabase project (works in every
+      // environment; the function sets permissive CORS). Non-fatal if it fails.
       try {
-        const res = await fetch(`${SITE_URL}/functions/v1/public-stats`);
-        if (res.ok) setStats(await res.json());
+        const { data, error } = await supabase.functions.invoke('public-stats');
+        if (!error && data) setStats(data as Stats);
       } catch { /* non-fatal */ }
 
       // Top 3 projects by value (teaser - no full description)
@@ -194,7 +193,7 @@ export default function Snapshot() {
               <Button variant="outline">See plans</Button>
             </Link>
           </div>
-          <p className="text-xs text-muted-foreground">No credit card required · Free tier includes 2 AI queries/day</p>
+          <p className="text-xs text-muted-foreground">No credit card required · Free tier includes 5 AI queries/day</p>
         </section>
 
         <footer className="text-center text-xs text-muted-foreground pt-4 border-t border-border">

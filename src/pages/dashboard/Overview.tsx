@@ -19,12 +19,15 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import OverviewMap from '@/components/dashboard/OverviewMap';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import { ReferralDashboardCard } from '@/components/ReferralDashboardCard';
 
 const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
 
 export default function DashboardOverview() {
   const { profile, hasRole } = useAuth();
   const isStaff = hasRole('admin') || hasRole('researcher');
+  const { isFreeTier } = useEntitlements();
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, allProjects, loading: projectsLoading } = useProjects(filters);
   const { alerts, loading: alertsLoading, stats: alertStats } = useAlerts();
@@ -469,6 +472,9 @@ export default function DashboardOverview() {
           )}
         </div>
       </div>
+
+      {/* Referral growth loop — free users earn more daily AI quota by inviting colleagues */}
+      {isFreeTier && <ReferralDashboardCard />}
 
       {/* Mini Map */}
       {!projectsLoading && <OverviewMap projects={projects} />}

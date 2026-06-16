@@ -176,7 +176,7 @@ export default function AskDemo() {
               ? `${remaining} free ${remaining === 1 ? 'query' : 'queries'} remaining today`
               : 'Free queries used up for today'}
             {' '}·{' '}
-            <Link to="/login" className="text-primary hover:underline">Sign up free for 2 queries/day</Link>
+            <Link to="/login" className="text-primary hover:underline">Sign up free for 5 queries/day</Link>
             {' '}·{' '}
             <Link to="/pricing" className="text-primary hover:underline">Starter gets 20/day</Link>
           </p>
@@ -188,8 +188,9 @@ export default function AskDemo() {
             <Lock className="h-8 w-8 text-primary mx-auto mb-3" />
             <h2 className="font-serif text-xl font-semibold mb-2">You've used all {QUERIES_LIMIT} free demo queries</h2>
             <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-              Sign up for a free account to get 2 AI queries per day, or upgrade to Starter for 20/day
-              with alert rules, portfolio tracking, and CSV exports.
+              Sign up for a free account to get 5 AI queries per day — then earn +3/day for every
+              colleague you refer (up to +30). Or upgrade to Starter for 20/day with alert rules,
+              portfolio tracking, and CSV exports.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button className="teal-glow" asChild>
@@ -328,7 +329,7 @@ export default function AskDemo() {
                       <p className="text-sm font-medium mb-1">
                         Want to see all {result.projects.length === MAX_RESULTS ? '1,600+' : result.projects.length} results, set alerts, and export?
                       </p>
-                      <p className="text-xs text-muted-foreground mb-4">Free account gives 2 AI queries/day. Starter ($29/mo) gives 20/day + alert rules + exports.</p>
+                      <p className="text-xs text-muted-foreground mb-4">Free account gives 5 AI queries/day (earn +3/day per referral). Starter ($29/mo) gives 20/day + alert rules + exports.</p>
                       <div className="flex flex-col sm:flex-row gap-2 justify-center">
                         <Button className="teal-glow" asChild>
                           <Link to="/login">Create free account</Link>

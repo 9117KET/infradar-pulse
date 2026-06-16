@@ -76,6 +76,7 @@ import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
 import { UtmCapture } from "./components/UtmCapture";
 import { AnalyticsCapture } from "./components/AnalyticsCapture";
+import { FoundingAccessProvider } from "./components/billing/FoundingAccessProvider";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,7 @@ const App = () => (
         <BrowserRouter>
           <UtmCapture />
           <AnalyticsCapture />
+          <FoundingAccessProvider>
           <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">Loading…</div>}>
           <Routes>
             <Route element={<MarketingLayout />}>
@@ -169,6 +171,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </FoundingAccessProvider>
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>

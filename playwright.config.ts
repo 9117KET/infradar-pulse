@@ -11,6 +11,16 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:8080",
     trace: "on-first-retry",
+    // Slow actions down so a headed/ui run is watchable. Defaults to 400ms when
+    // running headed; override with SLOWMO=<ms> (0 disables).
+    launchOptions: {
+      slowMo:
+        process.env.SLOWMO !== undefined
+          ? Number(process.env.SLOWMO)
+          : process.argv.some((a) => a === "--headed" || a === "--ui")
+            ? 400
+            : 0,
+    },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

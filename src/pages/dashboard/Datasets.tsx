@@ -78,7 +78,7 @@ export default function Datasets() {
         </div>
         <div className="flex items-center gap-2">
           <Select value={datasetKey} onValueChange={setDatasetKey}>
-            <SelectTrigger className="w-[180px] h-9 text-xs">
+            <SelectTrigger className="w-[180px] h-9 text-xs" aria-label="Select dataset">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

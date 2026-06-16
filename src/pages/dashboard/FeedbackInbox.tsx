@@ -84,14 +84,14 @@ export default function FeedbackInbox() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[160px]" aria-label="Filter feedback by status"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
-            <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[140px]" aria-label="Filter feedback by type"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All types</SelectItem>
               <SelectItem value="bug">Bugs</SelectItem>
@@ -129,7 +129,7 @@ export default function FeedbackInbox() {
                     </span>
                   </div>
                   <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v as FeedbackRow['status'])}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-[140px] h-8 text-xs" aria-label="Update feedback status"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
                     </SelectContent>

@@ -666,7 +666,7 @@ export default function Research() {
                   <>
                     <Briefcase className="h-12 w-12 text-muted-foreground/30 mb-4" />
                     <h3 className="text-lg font-semibold text-muted-foreground">Company Intelligence Briefing</h3>
-                    <p className="text-sm text-muted-foreground/70 max-w-md mt-2">
+                    <p className="text-sm text-muted-foreground max-w-md mt-2">
                       Enter a company name above. Our agents will map their infrastructure portfolio, key contacts, risk exposure, and stakeholder relationships - ready to export as a PDF before your call.
                     </p>
                   </>
@@ -674,7 +674,7 @@ export default function Research() {
                   <>
                     <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
                     <h3 className="text-lg font-semibold text-muted-foreground">Start a Research Query</h3>
-                    <p className="text-sm text-muted-foreground/70 max-w-md mt-2">
+                    <p className="text-sm text-muted-foreground max-w-md mt-2">
                       Enter a project name, region, or topic above. Our AI agents will search the web, scrape sources, and extract structured project data in real time.
                     </p>
                   </>

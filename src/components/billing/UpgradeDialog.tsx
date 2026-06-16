@@ -16,8 +16,9 @@ import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { isLiveCheckoutEnabled } from '@/lib/paddle';
+import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
+import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { trackEvent } from '@/lib/analytics';
 
 type Reason = 'ai' | 'export' | 'insight' | 'default';
@@ -62,8 +63,10 @@ export function UpgradeDialog({
 }) {
   const { openCheckout, loading } = usePaddleCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
+  const { openFoundingAccess } = useFoundingAccess();
   const { toast } = useToast();
   const { plan } = useEntitlements();
+  const paymentsLive = isPaymentsLive();
   const { locations } = usePublicProjectLocations();
   const { title, description } = COPY[reason] ?? COPY.default;
   const projectCount = locations.length;
@@ -213,7 +216,17 @@ export function UpgradeDialog({
                 {trialLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Start 3-day trial
               </Button>
-              {checkoutEnabled ? (
+              {!paymentsLive ? (
+                <Button
+                  className="teal-glow"
+                  onClick={() => {
+                    openFoundingAccess({ planKey: 'pro', planLabel: 'Pro', source: 'upgrade_dialog' });
+                    handleOpenChange(false);
+                  }}
+                >
+                  Reserve founding price
+                </Button>
+              ) : checkoutEnabled ? (
                 <Button className="teal-glow" onClick={() => void subscribe()} disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   Subscribe to Starter

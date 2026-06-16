@@ -471,35 +471,35 @@ export default function IntelligenceSummaries() {
             <div className="space-y-1 md:col-span-2">
               <Label className="text-xs">Report type</Label>
               <Select value={reportType} onValueChange={setReportType}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9" aria-label="Report type"><SelectValue /></SelectTrigger>
                 <SelectContent>{REPORT_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Region</Label>
               <Select value={region} onValueChange={setRegion}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9" aria-label="Region"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">All regions</SelectItem>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Sector</Label>
               <Select value={sector} onValueChange={setSector}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9" aria-label="Sector"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">All sectors</SelectItem>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Stage</Label>
               <Select value={stage} onValueChange={setStage}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9" aria-label="Stage"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="all">All stages</SelectItem>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Window</Label>
               <Select value={days} onValueChange={setDays}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9" aria-label="Time window"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="7">7 days</SelectItem><SelectItem value="30">30 days</SelectItem><SelectItem value="90">90 days</SelectItem><SelectItem value="180">180 days</SelectItem></SelectContent>
               </Select>
             </div>
@@ -508,7 +508,7 @@ export default function IntelligenceSummaries() {
             <div className="space-y-1">
               <Label className="text-xs">Country focus</Label>
               <Select value={country} onValueChange={setCountry}>
-                <SelectTrigger className="h-9 w-full sm:w-[180px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-[180px]" aria-label="Country focus"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All countries</SelectItem>
                   {['United Arab Emirates', 'Saudi Arabia', 'Egypt', 'Kenya', 'Nigeria', 'South Africa', 'Morocco', 'India', 'Indonesia', 'Brazil'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}

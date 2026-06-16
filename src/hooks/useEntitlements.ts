@@ -39,6 +39,13 @@ export function useEntitlements() {
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
   const [noCardTrial, setNoCardTrial] = useState<NoCardTrialInfo | null>(null);
   const [pilotAccess, setPilotAccess] = useState<PilotAccessInfo | null>(null);
+  // Referral reward engine (live-computed server-side, see migration
+  // 20260615120000_referral_bonus.sql). referralBonus = earned (+3 each, cap +30),
+  // welcomeBonus = +3/day for a freshly-referred user's first 14 days.
+  const [qualifiedReferrals, setQualifiedReferrals] = useState(0);
+  const [pendingReferrals, setPendingReferrals] = useState(0);
+  const [referralBonus, setReferralBonus] = useState(0);
+  const [welcomeBonus, setWelcomeBonus] = useState(0);
 
   const refresh = useCallback(async () => {
     if (authLoading || profileLoading) return;
@@ -51,6 +58,10 @@ export function useEntitlements() {
       setSubInfo(null);
       setNoCardTrial(null);
       setPilotAccess(null);
+      setQualifiedReferrals(0);
+      setPendingReferrals(0);
+      setReferralBonus(0);
+      setWelcomeBonus(0);
       setLoading(false);
       return;
     }
@@ -66,12 +77,16 @@ export function useEntitlements() {
         setSubInfo(null);
         setNoCardTrial(null);
         setPilotAccess(null);
+        setQualifiedReferrals(0);
+        setPendingReferrals(0);
+        setReferralBonus(0);
+        setWelcomeBonus(0);
         setLoading(false);
         return;
       }
 
       const environment = getPaddleEnvironment();
-      const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }, { data: pilot }] = await Promise.all([
+      const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }, { data: pilot }, { data: referral }] = await Promise.all([
         supabase
           .from('subscriptions')
           .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
@@ -113,7 +128,16 @@ export function useEntitlements() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        // Live referral summary (qualified/pending counts + earned/welcome bonus).
+        // Best-effort: a failure leaves the bonus at 0, never blocks entitlements.
+        (supabase as any).rpc('my_referral_summary'),
       ]);
+
+      const ref = Array.isArray(referral) ? referral[0] : referral;
+      setQualifiedReferrals(Number(ref?.qualified_count ?? 0));
+      setPendingReferrals(Number(ref?.pending_count ?? 0));
+      setReferralBonus(Number(ref?.ai_bonus ?? 0));
+      setWelcomeBonus(Number(ref?.welcome_bonus ?? 0));
 
       setHasPaddleCustomer(!!sub?.paddle_customer_id);
       setHasLifetime(!!lifetime);
@@ -176,12 +200,31 @@ export function useEntitlements() {
     return () => { void supabase.removeChannel(channel); };
   }, [userId, refresh]);
 
+  // Realtime: bump the referral bonus the moment a new referral lands.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`referral_events:${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'referral_events', filter: `referrer_id=eq.${userId}` },
+        () => { void refresh(); },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [userId, refresh]);
+
   const limits = useMemo(() => {
     if (staffBypass) return PLAN_LIMITS.enterprise;
     return PLAN_LIMITS[plan];
   }, [plan, staffBypass]);
 
-  const canUseAi = staffBypass || (usage.ai_generation ?? 0) < limits.aiPerDay;
+  // Referral bonus stacks on the DAILY AI cap for free/trialing only (mirrors
+  // the server gate in entitlementCheck.ts). aiBonus = earned + welcome.
+  const aiBonus = (plan === 'free' || plan === 'trialing') ? referralBonus + welcomeBonus : 0;
+  const effectiveAiPerDay = limits.aiPerDay + aiBonus;
+
+  const canUseAi = staffBypass || (usage.ai_generation ?? 0) < effectiveAiPerDay;
   const canExportCsv = staffBypass || (usage.export_csv ?? 0) < limits.exportsPerDay;
   const canExportPdf = staffBypass || (usage.export_pdf ?? 0) < limits.exportsPerDay;
   const canReadInsightFull = staffBypass || (usage.insight_read ?? 0) < limits.insightReadsPerDay;
@@ -203,6 +246,15 @@ export function useEntitlements() {
     /** True when no user is signed in. Used to skip per-user caps on public pages. */
     isAnonymous: !userId,
     subInfo,
+    // Referral reward surface for dashboards / nudges.
+    qualifiedReferrals,
+    pendingReferrals,
+    /** Bonus daily AI quota earned by referring others (+3 each, cap +30). */
+    referralBonus,
+    /** Two-sided welcome bonus (+3/day) while the user is in their first 14 days as a referred user. */
+    welcomeBonus,
+    /** Effective daily AI cap = plan aiPerDay + applicable referral bonus. */
+    effectiveAiPerDay,
     refresh,
     canUseAi,
     canExportCsv,

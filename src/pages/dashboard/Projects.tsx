@@ -702,15 +702,15 @@ export default function Projects() {
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects or countries..." className="pl-9 bg-black/20" />
         </div>
         <Select value={stage} onValueChange={setStage}>
-          <SelectTrigger className="w-full lg:w-[140px] bg-black/20"><SelectValue placeholder="Stage" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[140px] bg-black/20" aria-label="Filter by stage"><SelectValue placeholder="Stage" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All stages</SelectItem>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={sector} onValueChange={setSector}>
-          <SelectTrigger className="w-full lg:w-[160px] bg-black/20"><SelectValue placeholder="Sector" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[160px] bg-black/20" aria-label="Filter by sector"><SelectValue placeholder="Sector" /></SelectTrigger>
           <SelectContent><SelectItem value="all">All sectors</SelectItem>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={confFilter} onValueChange={setConfFilter}>
-          <SelectTrigger className="w-full lg:w-[150px] bg-black/20"><SelectValue placeholder="Confidence" /></SelectTrigger>
+          <SelectTrigger className="w-full lg:w-[150px] bg-black/20" aria-label="Filter by confidence"><SelectValue placeholder="Confidence" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All confidence</SelectItem>
             <SelectItem value="high">High (≥90%)</SelectItem>

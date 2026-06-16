@@ -6,8 +6,9 @@
  * staff-bypass paths. This script proves the parts that need real quota state:
  *
  *   Q1  Free user's daily AI cap actually counts down and blocks (portfolio-chat
- *       is a free-tier AI feature; free plan = 2/day). Calls 1-2 pass the gate,
- *       call 3 returns 402 ENTITLEMENT.
+ *       is a free-tier AI feature; free plan = FREE_AI_PER_DAY/day). The first
+ *       FREE_AI_PER_DAY calls pass the gate, the next returns 402 ENTITLEMENT.
+ *       (Assumes the free user has no referral bonus, which would raise the cap.)
  *   Q2  A non-staff Pro user is LET THROUGH the Pro plan gate on user-research
  *       (not 401/402/403). Staff bypass can't prove this — staff bypass *everything*.
  *   Q3  The same Pro user passes the Starter gate on nl-search.
@@ -98,15 +99,20 @@ if (free.token && free.id) {
     console.warn("[verify-ai-quota] WARN: no service key — quota not reset; Q1 may be off if quota already used today.");
   }
 
-  // Free plan = 2 AI/day on a free-tier AI feature (portfolio-chat).
-  const r1 = await invoke("portfolio-chat", free.token);
-  const r2 = await invoke("portfolio-chat", free.token);
-  const r3 = await invoke("portfolio-chat", free.token);
-  check(r1.status !== 402, "free call #1 passes AI gate (not 402)", `(got ${r1.status})`);
-  check(r2.status !== 402, "free call #2 passes AI gate (not 402)", `(got ${r2.status})`);
-  const blocked = r3.status === 402 && String(JSON.stringify(r3.json)).includes("ENTITLEMENT");
-  check(blocked, "free call #3 blocked by daily AI quota → 402 ENTITLEMENT",
-    `(got ${r3.status} reason=${r3.json?.reason ?? r3.json?.code ?? JSON.stringify(r3.json).slice(0, 80)})`);
+  // Free plan = FREE_AI_PER_DAY AI/day on a free-tier AI feature (portfolio-chat).
+  // Keep in sync with PLAN_LIMITS.free.aiPerDay in _shared/billing.ts.
+  const FREE_AI_PER_DAY = 5;
+  let allPassed = true;
+  for (let i = 1; i <= FREE_AI_PER_DAY; i++) {
+    const r = await invoke("portfolio-chat", free.token);
+    if (r.status === 402) allPassed = false;
+    check(r.status !== 402, `free call #${i} passes AI gate (not 402)`, `(got ${r.status})`);
+  }
+  const rBlocked = await invoke("portfolio-chat", free.token);
+  const blocked = rBlocked.status === 402 && String(JSON.stringify(rBlocked.json)).includes("ENTITLEMENT");
+  check(blocked, `free call #${FREE_AI_PER_DAY + 1} blocked by daily AI quota → 402 ENTITLEMENT`,
+    `(got ${rBlocked.status} reason=${rBlocked.json?.reason ?? rBlocked.json?.code ?? JSON.stringify(rBlocked.json).slice(0, 80)})`);
+  if (!allPassed) console.warn("[verify-ai-quota] WARN: a call within the free cap was blocked — quota may not have reset.");
 } else {
   console.log("SKIP | free quota test (set SECURITY_TEST_FREE_EMAIL + SECURITY_TEST_FREE_PASSWORD)");
 }

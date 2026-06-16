@@ -16,6 +16,9 @@
     "test:edge-security": "node --env-file=.env scripts/verify-edge-security.mjs",
     "test:ai-quota": "node --env-file=.env scripts/verify-ai-quota.mjs",
     "test:e2e": "playwright test",
+    "test:crawl": "playwright test e2e/crawl-public.spec.ts e2e/crawl-authenticated.spec.ts",
+    "test:crawl:watch": "playwright test e2e/crawl-public.spec.ts e2e/crawl-authenticated.spec.ts --headed --workers=1",
+    "test:crawl:ui": "playwright test e2e/crawl-public.spec.ts e2e/crawl-authenticated.spec.ts --ui",
     "sb:seed-security-test-users": "node scripts/seed-security-test-users.mjs",
     "sb:seed-sample-projects": "node scripts/seed-sample-projects.mjs",
     "lint:src": "eslint src",
@@ -101,6 +104,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^9.32.0",
     "@playwright/test": "^1.57.0",
     "@tailwindcss/typography": "^0.5.16",

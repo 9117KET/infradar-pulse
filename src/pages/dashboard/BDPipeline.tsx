@@ -289,14 +289,14 @@ export default function BDPipeline() {
               <div>
                 <Label>Tier</Label>
                 <Select value={form.tier} onValueChange={v => setForm(f => ({ ...f, tier: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Deal tier"><SelectValue /></SelectTrigger>
                   <SelectContent>{TIERS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Status</Label>
                 <Select value={form.deal_status} onValueChange={v => setForm(f => ({ ...f, deal_status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger aria-label="Deal status"><SelectValue /></SelectTrigger>
                   <SelectContent>{STATUSES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
                 </Select>
               </div>

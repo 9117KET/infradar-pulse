@@ -143,7 +143,7 @@ export default function AnalyticsReports() {
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={regionFilter} onValueChange={setRegionFilter}>
-            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[140px] h-8 text-xs" aria-label="Filter by region"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Regions</SelectItem>
               {regions.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}

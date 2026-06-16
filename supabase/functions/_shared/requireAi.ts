@@ -58,7 +58,20 @@ export async function requireAiEntitlementOrRespond(req: Request): Promise<
       { status: 402, headers: corsJson },
     );
   }
+  markReferralQualified(supabaseAdmin, user.id);
   return { userId: user.id, supabaseAdmin };
+}
+
+/**
+ * Fire-and-forget cosmetic update: flips this user's referral_events row from
+ * 'pending' to 'awarded' once they actually use an AI feature (proof the
+ * referred account is real and active). The bonus is computed live, so this is
+ * purely for the referrer's dashboard label / analytics — errors are swallowed.
+ */
+function markReferralQualified(supabaseAdmin: AdminClient, userId: string): void {
+  void supabaseAdmin
+    .rpc("mark_referral_qualified", { p_referred_user_id: userId })
+    .then(() => {}, () => {});
 }
 
 /**
@@ -131,6 +144,7 @@ export async function requirePlanAndAiOrRespond(
       { status: 402, headers: corsJson },
     );
   }
+  markReferralQualified(supabaseAdmin, user.id);
   return { userId: user.id, supabaseAdmin };
 }
 

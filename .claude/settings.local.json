@@ -53,7 +53,12 @@
       "Bash(node_modules/.bin/supabase login *)",
       "Bash(find *)",
       "Bash(git restore *)",
-      "Bash(git pull *)"
+      "Bash(git pull *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8080\" -TimeoutSec 3 -UseBasicParsing; \"DEV SERVER UP: $\\($r.StatusCode\\)\" } catch { \"DEV SERVER DOWN: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(npm run *)",
+      "PowerShell($ok=$false; for\\($i=0;$i -lt 30;$i++\\){ try{ $r=Invoke-WebRequest -Uri \"http://localhost:8080\" -TimeoutSec 2 -UseBasicParsing; \"UP: $\\($r.StatusCode\\)\"; $ok=$true; break }catch{ Start-Sleep -Milliseconds 1000 } }; if\\(-not $ok\\){\"still down\"})",
+      "PowerShell(npx playwright test e2e/crawl-public.spec.ts --reporter=list 2>&1 | Select-Object -Last 60)",
+      "PowerShell($json = npx supabase status -o json 2>$null | Out-String; $s = $json | ConvertFrom-Json; \"API=$\\($s.API_URL\\)\"; \"ANON_len=$\\($s.ANON_KEY.Length\\)\"; \"SERVICE_len=$\\($s.SERVICE_ROLE_KEY.Length\\)\")"
     ]
   }
 }

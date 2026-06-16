@@ -199,16 +199,16 @@ export default function ProjectEditor() {
           <div><Label>Project Name *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. NEOM Smart City" className="mt-1 bg-black/20" /></div>
           <div><Label>Country *</Label><Input value={country} onChange={e => setCountry(e.target.value)} placeholder="e.g. Saudi Arabia" className="mt-1 bg-black/20" /></div>
           <div><Label>Region</Label>
-            <Select value={region} onValueChange={setRegion}><SelectTrigger className="mt-1 bg-black/20"><SelectValue /></SelectTrigger>
+            <Select value={region} onValueChange={setRegion}><SelectTrigger className="mt-1 bg-black/20" aria-label="Region"><SelectValue /></SelectTrigger>
               <SelectContent>{REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Sector</Label>
-            <Select value={sector} onValueChange={setSector}><SelectTrigger className="mt-1 bg-black/20"><SelectValue /></SelectTrigger>
+            <Select value={sector} onValueChange={setSector}><SelectTrigger className="mt-1 bg-black/20" aria-label="Sector"><SelectValue /></SelectTrigger>
               <SelectContent>{SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Stage</Label>
-            <Select value={stage} onValueChange={setStage}><SelectTrigger className="mt-1 bg-black/20"><SelectValue /></SelectTrigger>
+            <Select value={stage} onValueChange={setStage}><SelectTrigger className="mt-1 bg-black/20" aria-label="Stage"><SelectValue /></SelectTrigger>
               <SelectContent>{STAGES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
           <div><Label>Status</Label>
-            <Select value={status} onValueChange={setStatus}><SelectTrigger className="mt-1 bg-black/20"><SelectValue /></SelectTrigger>
+            <Select value={status} onValueChange={setStatus}><SelectTrigger className="mt-1 bg-black/20" aria-label="Status"><SelectValue /></SelectTrigger>
               <SelectContent>{STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent></Select></div>
         </div>
         <div className="grid gap-4 sm:grid-cols-4">

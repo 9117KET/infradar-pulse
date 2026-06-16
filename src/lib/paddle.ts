@@ -25,6 +25,16 @@ export function isLiveCheckoutEnabled(): boolean {
   return getPaddleEnvironment() === 'sandbox';
 }
 
+/**
+ * Master switch for whether we actually charge yet. While false (the default,
+ * pre-launch), every Upgrade/Choose-plan CTA opens the founding-access modal to
+ * capture demand instead of opening a real checkout. Flip VITE_PAYMENTS_LIVE to
+ * 'true' once billing is ready to go live.
+ */
+export function isPaymentsLive(): boolean {
+  return (import.meta.env.VITE_PAYMENTS_LIVE as string | undefined) === 'true';
+}
+
 export async function initializePaddle(): Promise<void> {
   if (paddleInitialized) return;
   if (!clientToken) throw new Error('Payments are not configured yet.');

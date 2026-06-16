@@ -19,8 +19,10 @@ export type PlanLimit = {
 };
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
-  // Free tier is for evaluation. Hourly caps == daily caps (already small).
-  free:       { aiPerDay: 2,    aiPerHour: 2,   exportsPerDay: 1,    exportsPerHour: 1,   insightReadsPerDay: 3,    insightReadsPerHour: 3 },
+  // Free tier is for evaluation. Set above the 3 anonymous demo queries so
+  // creating an account is a clear step up. The referral bonus (live, see
+  // entitlementCheck.ts) STACKS on top of aiPerDay for free/trialing users.
+  free:       { aiPerDay: 5,    aiPerHour: 3,   exportsPerDay: 1,    exportsPerHour: 1,   insightReadsPerDay: 3,    insightReadsPerHour: 3 },
   trialing:   { aiPerDay: 5,    aiPerHour: 3,   exportsPerDay: 3,    exportsPerHour: 2,   insightReadsPerDay: 10,   insightReadsPerHour: 5 },
   starter:    { aiPerDay: 20,   aiPerHour: 8,   exportsPerDay: 20,   exportsPerHour: 8,   insightReadsPerDay: 50,   insightReadsPerHour: 20 },
   pro:        { aiPerDay: 100,  aiPerHour: 30,  exportsPerDay: 100,  exportsPerHour: 30,  insightReadsPerDay: 200,  insightReadsPerHour: 60 },

@@ -169,7 +169,7 @@ export function GuidedTour({ onComplete }: { onComplete: () => void }) {
                 Step {currentStep + 1} of {steps.length}
               </span>
             </div>
-            <button onClick={onComplete} className="text-muted-foreground hover:text-foreground">
+            <button onClick={onComplete} className="text-muted-foreground hover:text-foreground" aria-label="Skip tour">
               <X className="h-3.5 w-3.5" />
             </button>
           </div>

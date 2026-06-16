@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { agentApi } from '@/lib/api/agents';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
+import { trackEvent } from '@/lib/analytics';
 
 type NlProject = {
   id: string;
@@ -62,7 +63,7 @@ function statusBadge(s: string) {
 
 export default function Ask() {
   const { toast } = useToast();
-  const { canUseAi, plan, refresh, usage, limits, staffBypass } = useEntitlements();
+  const { canUseAi, plan, refresh, usage, limits, staffBypass, effectiveAiPerDay, isFreeTier, referralBonus } = useEntitlements();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<NlSearchResponse | null>(null);
@@ -71,6 +72,7 @@ export default function Ask() {
   const submit = async (q: string) => {
     if (!q.trim()) return;
     if (!canUseAi) {
+      void trackEvent('ai_limit_hit', { plan, source: 'ask', is_free: isFreeTier }, 'monetization');
       setUpgradeOpen(true);
       return;
     }
@@ -108,20 +110,29 @@ export default function Ask() {
       {!staffBypass && limits.aiPerDay < 9999 && (
         <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            <span className={`font-medium ${(usage.ai_generation ?? 0) >= limits.aiPerDay ? 'text-destructive' : 'text-foreground'}`}>
+            <span className={`font-medium ${(usage.ai_generation ?? 0) >= effectiveAiPerDay ? 'text-destructive' : 'text-foreground'}`}>
               {usage.ai_generation ?? 0}
             </span>
             {' '}of{' '}
-            <span className="font-medium text-foreground">{limits.aiPerDay}</span>
+            <span className="font-medium text-foreground">{effectiveAiPerDay}</span>
             {' '}AI queries used today
+            {referralBonus > 0 && (
+              <span className="text-primary"> (incl. +{referralBonus} from referrals)</span>
+            )}
           </span>
           {!canUseAi && (
-            <button
-              onClick={() => setUpgradeOpen(true)}
-              className="text-primary hover:underline"
-            >
-              Upgrade for more →
-            </button>
+            isFreeTier ? (
+              <Link to="/dashboard/settings" className="text-primary hover:underline">
+                Refer colleagues to earn more →
+              </Link>
+            ) : (
+              <button
+                onClick={() => setUpgradeOpen(true)}
+                className="text-primary hover:underline"
+              >
+                Upgrade for more →
+              </button>
+            )
           )}
         </div>
       )}

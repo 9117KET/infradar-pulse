@@ -17,7 +17,9 @@ export type PlanLimit = {
 };
 
 export const PLAN_LIMITS: Record<PlanKey, PlanLimit> = {
-  free:       { aiPerDay: 2,    aiPerHour: 2,   exportsPerDay: 1,    exportsPerHour: 1,   insightReadsPerDay: 3,    insightReadsPerHour: 3 },
+  // Free aiPerDay sits above the 3 anonymous demo queries (account = step up).
+  // Referral bonus stacks on this daily cap for free/trialing (see useEntitlements).
+  free:       { aiPerDay: 5,    aiPerHour: 3,   exportsPerDay: 1,    exportsPerHour: 1,   insightReadsPerDay: 3,    insightReadsPerHour: 3 },
   trialing:   { aiPerDay: 5,    aiPerHour: 3,   exportsPerDay: 3,    exportsPerHour: 2,   insightReadsPerDay: 10,   insightReadsPerHour: 5 },
   starter:    { aiPerDay: 20,   aiPerHour: 8,   exportsPerDay: 20,   exportsPerHour: 8,   insightReadsPerDay: 50,   insightReadsPerHour: 20 },
   pro:        { aiPerDay: 100,  aiPerHour: 30,  exportsPerDay: 100,  exportsPerHour: 30,  insightReadsPerDay: 200,  insightReadsPerHour: 60 },
