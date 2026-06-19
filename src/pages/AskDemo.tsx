@@ -69,6 +69,20 @@ function writeVisitorToken(token: unknown) {
   }
 }
 
+// supabase.functions.invoke reports a generic "Edge Function returned a non-2xx
+// status code" on any error. The function itself returns a structured { error }
+// body (e.g. "AI gateway not configured"); read it so the user sees the real cause.
+async function describeFunctionError(fnError: unknown): Promise<Error> {
+  const ctx = (fnError as { context?: Response })?.context;
+  if (ctx && typeof ctx.clone === 'function') {
+    try {
+      const body = await ctx.clone().json();
+      if (body?.error) return new Error(String(body.error));
+    } catch { /* fall through to the generic message */ }
+  }
+  return fnError instanceof Error ? fnError : new Error('Search failed');
+}
+
 export default function AskDemo() {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -131,7 +145,7 @@ export default function AskDemo() {
         },
       });
 
-      if (fnError) throw fnError;
+      if (fnError) throw await describeFunctionError(fnError);
 
       writeVisitorToken(data?.visitor_token);
 
