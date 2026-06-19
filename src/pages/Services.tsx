@@ -2,8 +2,10 @@ import { Activity, Satellite, ShieldCheck, Globe, AlertTriangle, FileText } from
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { CapabilitiesSection } from '@/components/home/CapabilitiesSection';
+import { CoverageSection } from '@/components/home/CoverageSection';
 import { PersonasSection } from '@/components/home/PersonasSection';
 import { UseCaseSection } from '@/components/home/UseCaseSection';
+import { PipelineSection } from '@/components/home/PipelineSection';
 import { Seo } from '@/components/Seo';
 
 const MODULES = [
@@ -43,6 +45,8 @@ export default function Services() {
       </div>
 
       <CapabilitiesSection />
+      <CoverageSection />
+      <PipelineSection />
       <PersonasSection />
       <UseCaseSection />
 

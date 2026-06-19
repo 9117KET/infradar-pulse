@@ -16,7 +16,7 @@ const FLAWS = [
   'Pricing excludes the mid-market entirely',
 ];
 
-export function ProblemSection() {
+export function ProblemSection({ showFlaws = true }: { showFlaws?: boolean }) {
   return (
     <section id="problem" className="relative py-24 bg-card border-t border-border/20">
       <div className="section-fluid">
@@ -24,7 +24,7 @@ export function ProblemSection() {
           Infrastructure intelligence is broken
         </h2>
         <p className="mt-4 max-w-2xl text-muted-foreground leading-relaxed">
-          Incumbents sell tools from 2005 at 2025 prices. Stale data, conflicting signals, and manual workflows cost decision-makers weeks when the market moves in hours.
+          Incumbents sell tools from 2005 at {new Date().getFullYear()} prices. Stale data, conflicting signals, and manual workflows cost decision-makers weeks when the market moves in hours.
         </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -44,17 +44,18 @@ export function ProblemSection() {
           ))}
         </div>
 
-        <div className="mt-10 glass-panel rounded-xl p-6 max-w-2xl">
-          
-          <ul className="grid sm:grid-cols-2 gap-2">
-            {FLAWS.map(f => (
-              <li key={f} className="text-sm text-muted-foreground flex items-start gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-destructive/60 shrink-0" />
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
+        {showFlaws && (
+          <div className="mt-10 glass-panel rounded-xl p-6 max-w-2xl">
+            <ul className="grid sm:grid-cols-2 gap-2">
+              {FLAWS.map(f => (
+                <li key={f} className="text-sm text-muted-foreground flex items-start gap-2">
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-destructive/60 shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,15 +1,13 @@
 import { HeroSection } from '@/components/home/HeroSection';
 // import { TrustStrip } from '@/components/home/TrustStrip'; // hidden — see below
 import { ProblemSection } from '@/components/home/ProblemSection';
-import { CapabilitiesSection } from '@/components/home/CapabilitiesSection';
 import { DemoSection } from '@/components/home/DemoSection';
-import { CoverageSection } from '@/components/home/CoverageSection';
 import { SectorSnapshotSection } from '@/components/home/SectorSnapshotSection';
 import { PipelineSection } from '@/components/home/PipelineSection';
-import { PersonasSection } from '@/components/home/PersonasSection';
-import { UseCaseSection } from '@/components/home/UseCaseSection';
 import { EngagementSection } from '@/components/home/EngagementSection';
 import { Seo } from '@/components/Seo';
+// Capabilities, Coverage, Personas, and UseCase sections moved to /services to keep
+// the homepage scannable; they were also previously duplicated there. See Services.tsx.
 
 const Index = () => (
   <>
@@ -29,14 +27,10 @@ const Index = () => (
     <HeroSection />
     {/* Trust strip (approved projects · global coverage · tracked pipeline · …) hidden to reduce clutter. Restore if needed. */}
     {/* <TrustStrip /> */}
-    <ProblemSection />
+    <ProblemSection showFlaws={false} />
     <DemoSection />
-    <CapabilitiesSection />
-    <CoverageSection />
-    <PersonasSection />
-    <UseCaseSection />
     <SectorSnapshotSection />
-    <PipelineSection />
+    <PipelineSection showFeatures={false} />
     <EngagementSection />
   </>
 );

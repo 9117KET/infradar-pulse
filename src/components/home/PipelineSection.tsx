@@ -17,7 +17,7 @@ const FEATURES = [
   { title: 'Governance-ready data handling', desc: 'End-to-end TLS encryption, role-based access, and audit trails for compliance.' },
 ];
 
-export function PipelineSection() {
+export function PipelineSection({ showFeatures = true }: { showFeatures?: boolean }) {
   return (
     <section className="relative py-24 border-t border-border/20">
       <div className="section-fluid">
@@ -37,6 +37,7 @@ export function PipelineSection() {
           ))}
         </div>
 
+        {showFeatures && (
         <div className="mt-12 grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div key={i} className="glass-panel rounded-xl p-6">
@@ -47,6 +48,7 @@ export function PipelineSection() {
             </div>
           ))}
         </div>
+        )}
       </div>
     </section>
   );

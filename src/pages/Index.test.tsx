@@ -79,24 +79,34 @@ function renderIndex() {
   );
 }
 
-describe('Index page - all home sections present', () => {
+describe('Index page - lean home sections present', () => {
   it('renders without crashing', () => {
     expect(() => renderIndex()).not.toThrow();
   });
 
-  it('renders ProblemSection content', () => {
+  it('renders ProblemSection stats', () => {
     renderIndex();
     expect(screen.getByText(/capital at risk/i)).toBeInTheDocument();
   });
 
-  it('renders CapabilitiesSection content', () => {
+  it('does not render the problem flaw list (moved to /about and /services)', () => {
     renderIndex();
-    expect(screen.getByText(/real-time project monitoring/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Pricing excludes the mid-market entirely/i)).not.toBeInTheDocument();
   });
 
-  it('renders PersonasSection content', () => {
+  it('does not render CapabilitiesSection (moved to /services)', () => {
     renderIndex();
-    expect(screen.getAllByText(/business development teams/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Multi-source verification/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render PersonasSection (moved to /services)', () => {
+    renderIndex();
+    expect(screen.queryByText(/Built for the teams that shape/i)).not.toBeInTheDocument();
+  });
+
+  it('renders PipelineSection steps', () => {
+    renderIndex();
+    expect(screen.getByText(/From signals to decisions/i)).toBeInTheDocument();
   });
 
   it('renders EngagementSection form', () => {
