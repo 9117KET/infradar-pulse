@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, DollarSign, MapPin, Star, Info } from 'lucide-react';
+import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck, TrendingUp, TrendingDown, DollarSign, MapPin, Star, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -28,6 +28,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import OverviewMap from '@/components/dashboard/OverviewMap';
+import { HealthScoreBadge } from '@/components/dashboard/HealthScoreBadge';
 
 const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
 const STATUS_COLORS: Record<string, string> = { Verified: '#22c55e', Stable: '#3b82f6', Pending: '#f59e0b', 'At Risk': '#ef4444' };
@@ -63,6 +64,8 @@ export default function Projects() {
   const [stage, setStage] = useState<string>('all');
   const [sector, setSector] = useState<string>('all');
   const [confFilter, setConfFilter] = useState<string>('all');
+  const [delayFilter, setDelayFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('default');
   const [recentlyUnverified, setRecentlyUnverified] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -81,16 +84,26 @@ export default function Projects() {
   const projectSource = (!hasPreferenceFilters || viewScope === 'all') ? allProjects : projects;
 
   const filtered = useMemo(() => {
-    return projectSource.filter(p => {
+    const rows = projectSource.filter(p => {
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.country.toLowerCase().includes(search.toLowerCase())) return false;
       if (stage !== 'all' && p.stage !== stage) return false;
       if (sector !== 'all' && p.sector !== sector) return false;
       if (confFilter === 'high' && p.confidence < 90) return false;
       if (confFilter === 'medium' && (p.confidence < 70 || p.confidence >= 90)) return false;
       if (confFilter === 'low' && p.confidence >= 70) return false;
+      if (delayFilter === 'elevated' && !(p.delayProbability != null && p.delayProbability >= 0.5)) return false;
+      if (delayFilter === 'high' && !(p.delayProbability != null && p.delayProbability >= 0.7)) return false;
       return true;
     });
-  }, [projectSource, search, stage, sector, confFilter]);
+    // Nulls sort last in both directions: unscored projects shouldn't crowd the top.
+    if (sortBy === 'delay') {
+      return [...rows].sort((a, b) => (b.delayProbability ?? -1) - (a.delayProbability ?? -1));
+    }
+    if (sortBy === 'health') {
+      return [...rows].sort((a, b) => (a.healthScore ?? 101) - (b.healthScore ?? 101));
+    }
+    return rows;
+  }, [projectSource, search, stage, sector, confFilter, delayFilter, sortBy]);
 
   // Aggregations for KPIs + Analytics charts
   const totalValue = useMemo(() => filtered.reduce((s, p) => s + (p.valueUsd || 0), 0), [filtered]);
@@ -149,6 +162,8 @@ export default function Projects() {
         const anomalies: string[] = [];
         if (p.riskScore >= 70) anomalies.push('High risk score');
         if (p.confidence < 50) anomalies.push('Low confidence');
+        if (p.delayProbability != null && p.delayProbability >= 0.5) anomalies.push('Elevated delay risk');
+        if (p.healthScore != null && p.healthScore < 45) anomalies.push('Poor health score');
         if (p.status === 'At Risk') anomalies.push('At Risk status');
         if (p.stage === 'Stopped' || p.stage === 'Cancelled') anomalies.push(`Project ${p.stage.toLowerCase()}`);
         const projectAlerts = alerts.filter(a => a.projectName === p.name);
@@ -187,8 +202,8 @@ export default function Projects() {
     }
     const capped = applyExportCap(filtered, plan, staffBypass);
     const watermark = buildWatermarkLabel(user?.email);
-    const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
-    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
+    const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Health', 'Delay %', 'Last Updated'];
+    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.healthScore ?? '', p.delayProbability != null ? `${Math.round(p.delayProbability * 100)}%` : '', p.lastUpdated]);
     const preamble = buildCsvHeaderComment(watermark, capped);
     const csv = [...preamble, headers, ...rows].map(r =>
       Array.isArray(r) ? r.map(c => `"${c}"`).join(',') : r,
@@ -226,8 +241,8 @@ export default function Projects() {
     }
     const capped = applyExportCap(filtered, plan, staffBypass);
     const watermark = buildWatermarkLabel(user?.email);
-    const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Last Updated'];
-    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.lastUpdated]);
+    const headers = ['Name', 'Country', 'Region', 'Sector', 'Stage', 'Value', 'Confidence', 'Status', 'Health', 'Delay %', 'Last Updated'];
+    const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.healthScore ?? '', p.delayProbability != null ? `${Math.round(p.delayProbability * 100)}%` : '', p.lastUpdated]);
     await downloadXlsx('infradar_projects.xlsx', headers, rows, watermark, capped);
     const result = await trackUsage('export_csv');
     if (!result.ok) {
@@ -255,7 +270,7 @@ export default function Projects() {
   const [saveSearchName, setSaveSearchName] = useState('');
   const [saveSearchNotify, setSaveSearchNotify] = useState(false);
 
-  const hasActiveFilters = search || stage !== 'all' || sector !== 'all' || confFilter !== 'all';
+  const hasActiveFilters = search || stage !== 'all' || sector !== 'all' || confFilter !== 'all' || delayFilter !== 'all';
 
   const handleSaveSearch = async () => {
     if (!saveSearchName.trim()) return;
@@ -288,7 +303,7 @@ export default function Projects() {
   // Reset project page whenever filters change
   useEffect(() => {
     setProjectPage(0);
-  }, [search, stage, sector, confFilter, viewScope]);
+  }, [search, stage, sector, confFilter, delayFilter, sortBy, viewScope]);
 
   return (
     <div className="space-y-4">
@@ -534,6 +549,7 @@ export default function Projects() {
                 <tr className="border-b border-border text-left bg-black/20">
                   <th className="p-3 font-medium text-muted-foreground">Project</th>
                   <th className="p-3 font-medium text-muted-foreground">Risk Score</th>
+                  <th className="p-3 font-medium text-muted-foreground">Health</th>
                   <th className="p-3 font-medium text-muted-foreground">Anomalies</th>
                   <th className="p-3 font-medium text-muted-foreground">Alerts</th>
                   <th className="p-3 font-medium text-muted-foreground">Status</th>
@@ -548,6 +564,9 @@ export default function Projects() {
                     </td>
                     <td className="p-3">
                       <span className={`font-bold ${p.riskScore >= 75 ? 'text-red-400' : p.riskScore >= 50 ? 'text-amber-400' : 'text-emerald-400'}`}>{p.riskScore}</span>
+                    </td>
+                    <td className="p-3">
+                      <HealthScoreBadge healthScore={p.healthScore} delayProbability={p.delayProbability} signals={p.healthSignals} size="sm" />
                     </td>
                     <td className="p-3">
                       <div className="flex flex-wrap gap-1">
@@ -678,13 +697,13 @@ export default function Projects() {
       </div>
 
       {/* KPI Summary */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 lg:grid-cols-7">
         {[
           { label: 'Total projects', value: filtered.length, icon: Activity, color: 'text-primary' },
           { label: 'Verified', value: verifiedCount, icon: ShieldCheck, color: 'text-emerald-400' },
           { label: 'Avg confidence', value: `${avgConfidence}%`, icon: TrendingUp, color: 'text-primary' },
           { label: 'Total value', value: totalValue >= 1e9 ? `$${(totalValue / 1e9).toFixed(1)}B` : `$${(totalValue / 1e6).toFixed(0)}M`, icon: DollarSign, color: 'text-amber-400' },
-          { label: 'Regions', value: regionData.length, icon: MapPin, color: 'text-blue-400' },
+          { label: 'Trending to delay', value: filtered.filter(p => p.delayProbability != null && p.delayProbability >= 0.5).length, icon: TrendingDown, color: 'text-orange-400' },
           { label: 'At Risk', value: filtered.filter(p => p.status === 'At Risk').length, icon: AlertTriangle, color: 'text-destructive' },
         ].map(k => (
           <div key={k.label} className="glass-panel rounded-xl p-4">
@@ -718,6 +737,22 @@ export default function Projects() {
             <SelectItem value="low">Low (&lt;70%)</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={delayFilter} onValueChange={setDelayFilter}>
+          <SelectTrigger className="w-full lg:w-[150px] bg-black/20" aria-label="Filter by delay risk"><SelectValue placeholder="Delay risk" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All delay risk</SelectItem>
+            <SelectItem value="elevated">Elevated (≥50%)</SelectItem>
+            <SelectItem value="high">High (≥70%)</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-full lg:w-[180px] bg-black/20" aria-label="Sort projects"><SelectValue placeholder="Sort by" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Default order</SelectItem>
+            <SelectItem value="delay">Delay risk (high→low)</SelectItem>
+            <SelectItem value="health">Health (worst first)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table (md+) / Card list (mobile) */}
@@ -734,15 +769,16 @@ export default function Projects() {
                 <th className="p-3 font-medium text-muted-foreground">Value</th>
                 <th className="p-3 font-medium text-muted-foreground">Confidence</th>
                 <th className="p-3 font-medium text-muted-foreground">Status</th>
+                <th className="p-3 font-medium text-muted-foreground">Health</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={8} className="p-3"><Skeleton className="h-6 w-full" /></td></tr>
+                  <tr key={i}><td colSpan={9} className="p-3"><Skeleton className="h-6 w-full" /></td></tr>
                 ))
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
+                <tr><td colSpan={9} className="p-8 text-center text-muted-foreground">No projects match your filters.</td></tr>
               ) : filtered.slice(projectPage * PROJECT_PAGE_SIZE, (projectPage + 1) * PROJECT_PAGE_SIZE).map(p => (
                 <tr key={p.id} className="border-b border-border/50 hover:bg-white/[0.02] transition-colors">
                   <td className="p-3">
@@ -771,6 +807,9 @@ export default function Projects() {
                     </div>
                   </td>
                   <td className="p-3"><Badge variant="outline" className="text-xs">{p.status}</Badge></td>
+                  <td className="p-3">
+                    <HealthScoreBadge healthScore={p.healthScore} delayProbability={p.delayProbability} signals={p.healthSignals} size="sm" />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -809,6 +848,9 @@ export default function Projects() {
                 </div>
                 <span className="text-[10px] text-muted-foreground">{p.confidence}%</span>
               </div>
+              {p.healthScore != null && (
+                <HealthScoreBadge healthScore={p.healthScore} delayProbability={p.delayProbability} signals={p.healthSignals} size="sm" />
+              )}
             </div>
           ))}
         </div>
