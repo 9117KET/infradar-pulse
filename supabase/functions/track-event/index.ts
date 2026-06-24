@@ -78,9 +78,18 @@ serve(async (req) => {
     }
 
     const user = await getUserFromBearer(req, supabaseUrl, anonKey).catch(() => null);
-    const roles = Array.isArray(body.roles)
-      ? body.roles.filter((role): role is string => typeof role === 'string' && ['user', 'researcher', 'admin'].includes(role)).slice(0, 3)
-      : [];
+
+    const admin = createClient(supabaseUrl, serviceRoleKey);
+
+    // Server-side role lookup — never trust client-supplied role claims.
+    let roles: string[] = [];
+    if (user?.id) {
+      const { data: roleRows } = await admin.from('user_roles').select('role').eq('user_id', user.id);
+      roles = (roleRows ?? [])
+        .map((r: { role: string }) => r.role)
+        .filter((r): r is string => typeof r === 'string' && ['user', 'researcher', 'admin'].includes(r))
+        .slice(0, 3);
+    }
 
     // Coarse country from the CDN edge (Cloudflare / Vercel). Country-level
     // only — disclosed in the Privacy Notice as device/connection data. No
@@ -90,7 +99,7 @@ serve(async (req) => {
       2,
     );
 
-    const admin = createClient(supabaseUrl, serviceRoleKey);
+
     const { error } = await admin.from('user_events').insert({
       user_id: user?.id ?? null,
       anonymous_id: anonymousId,
