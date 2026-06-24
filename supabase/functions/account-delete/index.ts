@@ -77,7 +77,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
   } catch (e) {
     console.error('account-delete error:', e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: corsHeaders,
     });

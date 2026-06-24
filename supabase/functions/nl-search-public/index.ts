@@ -534,6 +534,6 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("nl-search-public error", e);
-    return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
+    return json({ error: "An internal error occurred. Please try again." }, 500);
   }
 });

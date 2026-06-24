@@ -32,7 +32,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ paddleId: data.data[0].id }), { headers: corsHeaders });
   } catch (e) {
     console.error('get-paddle-price error:', e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : 'Unknown error' }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: corsHeaders,
     });

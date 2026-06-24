@@ -148,6 +148,6 @@ ${projects.map((p) => `- ${p.name} (${p.country})`).join("\n")}`;
   } catch (e) {
     console.error("Sentiment analyzer error:", e);
     if (supabase) await failAgentTask(supabase, "sentiment-analyzer", taskId, runStartedAt, e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

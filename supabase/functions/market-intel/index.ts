@@ -124,6 +124,6 @@ serve(async (req) => {
   } catch (e) {
     console.error("Market intel error:", e);
     if (supabase) await failAgentTask(supabase, "market-intel", taskId, runStartedAt, e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

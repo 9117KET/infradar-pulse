@@ -158,7 +158,7 @@ async function runResearch(
       .from("research_tasks")
       .update({
         status: "failed",
-        error: e instanceof Error ? e.message : "Unknown error",
+        error: "An internal error occurred. Please try again.",
         completed_at: new Date().toISOString(),
       })
       .eq("id", taskId);
