@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Activity, AlertCircle, CheckCircle2, Clock, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { timeAgo } from '@/lib/agents/agentUtils';
 
 interface AgentConfigRow {
@@ -101,7 +102,10 @@ export default function AgentHealth() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-serif tracking-tight">Agent Health</h1>
-          <p className="text-muted-foreground text-sm mt-1">Last run, duration, success/failure counts and recent errors per cron agent.</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Reliability at a glance — last run, duration, success/failure counts and recent errors per cron agent. For live logs and pause/run controls, see{' '}
+            <Link to="/dashboard/agents" className="text-primary hover:underline">Agent Operations</Link>.
+          </p>
         </div>
         <Button onClick={() => refetch()} disabled={isFetching} variant="outline" size="sm">
           <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh

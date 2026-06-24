@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -148,8 +148,9 @@ export default function ReviewQueue() {
     },
   });
 
-  // Load evidence sources for all pending projects
-  const pendingIds = pending.map((p: any) => p.id);
+  // Load evidence sources for all pending projects. Memoise so the array
+  // identity is stable across renders (it feeds the query keys below).
+  const pendingIds = useMemo(() => pending.map((p: any) => p.id), [pending]);
   const { data: evidenceMap = {} } = useQuery({
     queryKey: ['pending-evidence', pendingIds],
     enabled: pendingIds.length > 0,
@@ -221,6 +222,91 @@ export default function ReviewQueue() {
     onError: (e) => showErr(e, 'Reject failed'),
   });
 
+  // Keep the Evidence & Verification page in sync whenever a verified flag changes here.
+  const invalidateEvidenceViews = () => {
+    queryClient.invalidateQueries({ queryKey: ['pending-evidence'] });
+    queryClient.invalidateQueries({ queryKey: ['pending-contacts'] });
+    queryClient.invalidateQueries({ queryKey: ['evidence-verification-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['evidence-verification-projects'] });
+  };
+
+  const verifyEvidence = useMutation({
+    mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
+      const { error } = await supabase.from('evidence_sources').update({ verified }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      invalidateEvidenceViews();
+      toast({ title: vars.verified ? 'Evidence verified' : 'Verification removed' });
+    },
+    onError: (e) => showErr(e, 'Could not update evidence'),
+  });
+
+  const verifyContact = useMutation({
+    mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
+      const { error } = await supabase.from('project_contacts').update({ verified }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      invalidateEvidenceViews();
+      toast({ title: vars.verified ? 'Contact verified' : 'Verification removed' });
+    },
+    onError: (e) => showErr(e, 'Could not update contact'),
+  });
+
+  const duplicateAction = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'merged' | 'not_duplicate' }) => {
+      if (action === 'merged') {
+        const { error } = await (supabase as any)
+          .from('project_candidates')
+          .update({ pipeline_status: 'merged', review_status: 'rejected', updated_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) throw error;
+        const { error: logErr } = await (supabase as any)
+          .from('review_actions')
+          .insert({ item_type: 'duplicate', candidate_id: id, action: 'merged', reason: 'Marked as duplicate / merged from verification workbench' });
+        if (logErr) throw logErr;
+        return;
+      }
+      // not_duplicate: clear the duplicate linkage and return the candidate to the review queue.
+      const { error } = await (supabase as any)
+        .from('project_candidates')
+        .update({ duplicate_of: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      const { error: logErr } = await (supabase as any)
+        .from('review_actions')
+        .insert({ item_type: 'duplicate', candidate_id: id, action: 'note', reason: 'Confirmed not a duplicate' });
+      if (logErr) throw logErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['duplicate-candidates-review'] });
+      queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
+      toast({ title: 'Duplicate resolved' });
+    },
+    onError: (e) => showErr(e, 'Duplicate action failed'),
+  });
+
+  const sourceAction = useMutation({
+    mutationFn: async ({ id, action }: { id: string; action: 'retry' | 'pause' }) => {
+      const status = action === 'retry' ? 'active' : 'paused';
+      const { error } = await (supabase as any)
+        .from('source_registry')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      const { error: logErr } = await (supabase as any)
+        .from('review_actions')
+        .insert({ item_type: 'source_issue', action: 'note', reason: action === 'retry' ? 'Source re-activated for retry' : 'Source paused' });
+      if (logErr) throw logErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['source-issues-review'] });
+      toast({ title: 'Source updated' });
+    },
+    onError: (e) => showErr(e, 'Source action failed'),
+  });
+
   const candidateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
       if (action === 'approved') {
@@ -249,7 +335,7 @@ export default function ReviewQueue() {
       const { error: logErr } = await (supabase as any)
         .from('review_actions')
         .insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
-      if (logErr) console.warn('review_actions insert failed', logErr);
+      if (logErr) throw logErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-candidates-review'] });
@@ -278,7 +364,7 @@ export default function ReviewQueue() {
       const { error: logErr } = await (supabase as any)
         .from('review_actions')
         .insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
-      if (logErr) console.warn('review_actions insert failed', logErr);
+      if (logErr) throw logErr;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['update-proposals-review'] });
@@ -493,6 +579,15 @@ export default function ReviewQueue() {
                                   <ExternalLink className="h-3 w-3" /> View
                                 </a>
                               )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="ml-auto h-6 px-2 text-[10px] shrink-0"
+                                onClick={() => verifyEvidence.mutate({ id: ev.id, verified: !ev.verified })}
+                                disabled={verifyEvidence.isPending}
+                              >
+                                {ev.verified ? 'Unverify' : 'Verify'}
+                              </Button>
                             </div>
                           ))}
                         </div>
@@ -535,6 +630,15 @@ export default function ReviewQueue() {
                                     <Badge variant="outline" className="text-[8px] px-1 py-0 bg-emerald-500/15 text-emerald-400">Verified</Badge>
                                   )}
                                   <Badge variant="outline" className="text-[8px] px-1 py-0 capitalize">{contact.contact_type}</Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="ml-auto h-5 px-2 text-[9px]"
+                                    onClick={() => verifyContact.mutate({ id: contact.id, verified: !contact.verified })}
+                                    disabled={verifyContact.isPending}
+                                  >
+                                    {contact.verified ? 'Unverify' : 'Verify'}
+                                  </Button>
                                 </div>
                                 {contact.role && (
                                   <p className="text-muted-foreground">{contact.role}</p>
@@ -619,9 +723,11 @@ export default function ReviewQueue() {
                   <Badge variant="outline" className="bg-amber-500/15 text-amber-400">Duplicate risk {candidate.duplicate_confidence ?? '—'}%</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{candidate.description || 'No extracted description.'}</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" className="teal-glow" onClick={() => duplicateAction.mutate({ id: candidate.id, action: 'merged' })} disabled={duplicateAction.isPending}><Link2 className="h-4 w-4 mr-1" />Merge duplicate</Button>
+                  <Button size="sm" variant="outline" onClick={() => duplicateAction.mutate({ id: candidate.id, action: 'not_duplicate' })} disabled={duplicateAction.isPending}><Check className="h-4 w-4 mr-1" />Not a duplicate</Button>
                   <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'requested_research' })}>More research</Button>
-                  <Button size="sm" variant="outline" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject duplicate</Button>
+                  <Button size="sm" variant="outline" className="text-red-400 hover:text-red-300" onClick={() => candidateAction.mutate({ id: candidate.id, action: 'rejected' })}><X className="h-4 w-4 mr-1" />Reject</Button>
                 </div>
               </div>
             ))}
@@ -733,6 +839,12 @@ export default function ReviewQueue() {
                 </div>
                 {source.last_error && <p className="text-sm text-muted-foreground line-clamp-2">{source.last_error}</p>}
                 {source.base_url && <a href={source.base_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />{source.base_url}</a>}
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" variant="outline" onClick={() => sourceAction.mutate({ id: source.id, action: 'retry' })} disabled={sourceAction.isPending}><RefreshCw className="h-4 w-4 mr-1" />Re-activate</Button>
+                  {source.status !== 'paused' && (
+                    <Button size="sm" variant="outline" onClick={() => sourceAction.mutate({ id: source.id, action: 'pause' })} disabled={sourceAction.isPending}>Pause</Button>
+                  )}
+                </div>
               </div>
             ))}
             <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />

@@ -1,12 +1,13 @@
 import { useState, useMemo, Fragment } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShieldCheck, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, Layers, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -24,6 +25,24 @@ export default function EvidenceVerification() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const verifyEvidence = useMutation({
+    mutationFn: async ({ id, verified }: { id: string; verified: boolean }) => {
+      const { error } = await supabase.from('evidence_sources').update({ verified }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_data, vars) => {
+      // Refresh this page and the Review Queue's evidence view so both stay in sync.
+      queryClient.invalidateQueries({ queryKey: ['evidence-verification-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['evidence-verification-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-evidence'] });
+      toast({ title: vars.verified ? 'Evidence verified' : 'Verification removed' });
+    },
+    onError: (e) => toast({ title: 'Could not update evidence', description: e instanceof Error ? e.message : String(e), variant: 'destructive' }),
+  });
 
   const evidenceStats = useQuery({
     queryKey: ['evidence-verification-stats'],
@@ -293,9 +312,21 @@ export default function EvidenceVerification() {
               </TableHeader>
               <TableBody>
                 {filtered.map(p => (
-                  <TableRow key={p.id} className="border-border/50">
+                  <Fragment key={p.id}>
+                  <TableRow className="border-border/50">
                     <TableCell>
-                      <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                      <div className="flex items-center gap-1.5">
+                        {p.totalCount > 0 && (
+                          <button
+                            onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                            className="text-muted-foreground hover:text-foreground"
+                            aria-label={expandedId === p.id ? `Collapse ${p.name} evidence` : `Expand ${p.name} evidence`}
+                          >
+                            {expandedId === p.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
+                        )}
+                        <Link to={`/dashboard/projects/${p.id}`} className="text-primary hover:underline font-medium">{p.name}</Link>
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{p.country}</TableCell>
                     <TableCell>
@@ -339,6 +370,37 @@ export default function EvidenceVerification() {
                       </span>
                     </TableCell>
                   </TableRow>
+                  {expandedId === p.id && (
+                    <TableRow className="border-border/50 bg-muted/20">
+                      <TableCell colSpan={8} className="p-3">
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Evidence sources — verify each to raise confidence</p>
+                          {p.evidence.map((ev: any) => (
+                            <div key={ev.id} className="flex items-center gap-2 text-xs">
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0">{ev.type}</Badge>
+                              {ev.verified && <CheckCircle2 className="h-3 w-3 text-emerald-400" />}
+                              <span className="text-muted-foreground truncate max-w-[220px]">{ev.title || ev.source}</span>
+                              {ev.url && ev.url !== '#' && (
+                                <a href={ev.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-0.5 shrink-0">
+                                  <ExternalLink className="h-3 w-3" /> View
+                                </a>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="ml-auto h-6 px-2 text-[10px] shrink-0"
+                                onClick={() => verifyEvidence.mutate({ id: ev.id, verified: !ev.verified })}
+                                disabled={verifyEvidence.isPending}
+                              >
+                                {ev.verified ? 'Unverify' : 'Verify'}
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

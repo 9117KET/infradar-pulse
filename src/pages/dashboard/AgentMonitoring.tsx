@@ -13,6 +13,7 @@ import {
   type TaskRow,
 } from '@/lib/agents/agentUtils';
 import { agentApi } from '@/lib/api/agents';
+import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
@@ -686,10 +687,16 @@ export default function AgentMonitoring() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="flex items-center justify-between">
-        <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
-          <Bot className="h-6 w-6 text-primary" /> Agent Monitoring
-        </h1>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="font-serif text-2xl font-bold flex items-center gap-2">
+            <Bot className="h-6 w-6 text-primary" /> Agent Operations
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Live run status, logs, pause/resume and run-now controls. For success rates and error history, see{' '}
+            <Link to="/dashboard/agent-health" className="text-primary hover:underline">Agent Health</Link>.
+          </p>
+        </div>
         <Button variant="outline" size="sm" onClick={() => refetch()}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Refresh
         </Button>
