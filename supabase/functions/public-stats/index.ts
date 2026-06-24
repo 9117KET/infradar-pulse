@@ -24,15 +24,17 @@ Deno.serve(async (req) => {
   const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const supabase = createClient(supabaseUrl, serviceKey)
 
-  // Count active projects
+  // Count active, approved projects
   const { count: projectCount } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
+    .eq('approved', true)
 
-  // Sum pipeline value (value_usd)
+  // Sum pipeline value (value_usd) for approved projects only
   const { data: valueRow } = await supabase
     .from('projects')
     .select('value_usd')
+    .eq('approved', true)
     .not('value_usd', 'is', null)
 
   const pipelineValue = (valueRow ?? []).reduce(
@@ -40,10 +42,12 @@ Deno.serve(async (req) => {
     0,
   )
 
-  // Count distinct regions covered
+  // Count distinct regions covered (approved only)
   const { data: regionRows } = await supabase
     .from('projects')
     .select('region')
+    .eq('approved', true)
+
 
   const regions = new Set((regionRows ?? []).map((r: { region: string }) => r.region).filter(Boolean))
 
