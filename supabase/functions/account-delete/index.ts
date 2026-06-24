@@ -55,13 +55,14 @@ serve(async (req) => {
 
     if (failed.length > 0) {
       // Return 502 so the user sees a clear retry-able error. The auth row
-      // is intact, so they can come back and try again.
+      // is intact, so they can come back and try again. Do not leak Paddle
+      // subscription IDs or raw provider error messages to the client.
+      console.error('account-delete: paddle cancellations failed', failed);
       return new Response(
         JSON.stringify({
           error:
             'Could not cancel your active subscription with our payment provider. Please try again in a minute, or contact support.',
           code: 'PADDLE_CANCEL_FAILED',
-          details: failed,
         }),
         { status: 502, headers: corsHeaders },
       );
@@ -71,8 +72,10 @@ serve(async (req) => {
     //    saved_searches + alert_rules + subscriptions + user_roles wipes the rest.
     const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
     if (delErr) {
-      return new Response(JSON.stringify({ error: delErr.message }), { status: 500, headers: corsHeaders });
+      console.error('account-delete: auth.admin.deleteUser failed', delErr);
+      return new Response(JSON.stringify({ error: 'An internal error occurred. Please try again.' }), { status: 500, headers: corsHeaders });
     }
+
 
     return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
   } catch (e) {
