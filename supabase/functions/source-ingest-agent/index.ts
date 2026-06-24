@@ -227,6 +227,6 @@ serve(async (req) => {
     );
   } catch (e) {
     console.error("source-ingest-agent error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), { status: 500, headers: corsHeaders });
   }
 });

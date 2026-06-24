@@ -266,14 +266,14 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
-          status: "failed", error: e instanceof Error ? e.message : "Unknown error",
+          status: "failed", error: "An internal error occurred. Please try again.",
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
         await recordAgentEvent(supabase, "afdb-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
         if (runStartedAt) await finishAgentRun(supabase, "afdb-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
