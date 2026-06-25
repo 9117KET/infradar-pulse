@@ -125,6 +125,8 @@ export default function ReviewQueue() {
         .from('project_candidates')
         .select('*', { count: 'exact' })
         .or('duplicate_of.not.is.null,canonical_project_id.not.is.null,pipeline_status.eq.deduping')
+        .not('pipeline_status', 'in', '("merged","approved")')
+        .not('review_status', 'in', '("rejected","approved")')
         .order('duplicate_confidence', { ascending: false })
         .range(from, from + REVIEW_PAGE_SIZE - 1);
       if (error) throw error;
@@ -271,7 +273,7 @@ export default function ReviewQueue() {
       // not_duplicate: clear the duplicate linkage and return the candidate to the review queue.
       const { error } = await (supabase as any)
         .from('project_candidates')
-        .update({ duplicate_of: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
+        .update({ duplicate_of: null, canonical_project_id: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
       const { error: logErr } = await (supabase as any)
