@@ -273,7 +273,7 @@ export default function ReviewQueue() {
       // not_duplicate: clear the duplicate linkage and return the candidate to the review queue.
       const { error } = await (supabase as any)
         .from('project_candidates')
-        .update({ duplicate_of: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
+        .update({ duplicate_of: null, canonical_project_id: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
       const { error: logErr } = await (supabase as any)
