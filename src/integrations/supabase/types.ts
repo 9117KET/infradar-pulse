@@ -2427,6 +2427,7 @@ export type Database = {
         Args: { p_job_name: string }
         Returns: number
       }
+      slugify_project_name: { Args: { p_name: string }; Returns: string }
       try_consume_quota: {
         Args: {
           p_daily_cap: number
