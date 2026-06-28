@@ -173,7 +173,7 @@ export default function Research() {
         source_url: sourceUrl,
         value_label: project.value_label || 'Undisclosed',
         research_saved_by: user?.id ?? null,
-      }).select('id').single();
+      } as never).select('id').single();
 
       const trackSavedProject = async (projectId: string) => {
         if (!user?.id) return;
