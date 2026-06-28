@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (utms && Object.keys(utms).length > 0) {
         const referralCode = utms.referred_by_code;
         const { referred_by_code: _ref, ...profileAttribution } = utms;
-        await supabase.from('profiles').update(profileAttribution as Record<string, string>).eq('id', uid);
+        await supabase.from('profiles').update(profileAttribution as never).eq('id', uid);
         if (referralCode && !profileData.referred_by_code) {
           await supabase.rpc('claim_referral_signup' as never, { p_code: referralCode } as never);
         }
