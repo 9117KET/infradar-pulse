@@ -72,6 +72,68 @@ are attached to the HTML report: `npx playwright show-report`.
 
 ---
 
+## Layer C — Entitlement & Usage Limits spec (`entitlement-limits.spec.ts`)
+
+Verifies the advertised billing limits actually enforce as intended, both
+client-side (UpgradeDialog gates) and server-side (402 responses from the
+Edge Function runtime). Split into two tiers:
+
+**Tier 1 — Public (no auth, always runnable):**
+- Pricing page text matches `PLAN_LIMITS` constants in `src/lib/billing/limits.ts`
+- JSON-LD structured data prices are correct (regression: Pro was `$99`, fixed to `$199`)
+- Pilot auto-grant banner is present and discloses seat count
+
+**Tier 2 — Dashboard (requires auth):**
+These tests use `page.route()` interception to inject 402 responses **without
+needing a live edge-function runtime**, so they pass even with local Supabase
+stopped. They log in via `fixtures/auth.ts` as `security-test-user@infradar.local`.
+
+- `UpgradeDialog` opens on server-returned 402 ENTITLEMENT (fixed regression in Ask.tsx)
+- `UpgradeDialog` opens on server-returned 402 PLAN_REQUIRED (nl-search starter minimum)
+- Successful 200 response renders project results without opening UpgradeDialog
+- Dialog can be dismissed cleanly (no crash, page remains functional)
+- Usage counter shown for non-staff users (smoke check, no crash)
+- Client-side pre-block opens UpgradeDialog without calling nl-search when cap hit
+
+```bash
+npm run test:limits          # headless, entitlement spec only (fastest single focus)
+npm run test:limits:watch    # headed/slow-mo for visual debugging
+npm run test:crawl           # full CI gate including this spec + crawl specs
+```
+
+### GuidedTour interaction note
+
+The `GuidedTour` overlay (`z-[9999]` fixed div) blocks all pointer events on
+first login. It fires via a `setTimeout(800ms)` after the auth profile loads
+asynchronously — total latency from `page.goto()` to overlay appearance can
+exceed 3 seconds. Each test:
+
+1. Navigates with `{ waitUntil: "networkidle" }` so auth finishes loading first.
+2. Calls `dismissTourIfVisible()` which waits up to 6 seconds for the overlay,
+   then clicks the "Skip tour" button. Safe to call if no tour appears.
+
+### Auth constraint
+
+`security-test-user@infradar.local` must exist in whatever Supabase backend
+`VITE_SUPABASE_URL` points to:
+
+- **Hosted Supabase** (default `.env`): run `npm run sb:seed-security-test-users`
+  targeting the hosted instance (update env vars or seed manually via Supabase dashboard).
+- **Local Supabase**: `npm run sb:start && npm run sb:seed-security-test-users`.
+
+If the user is missing, all Tier-2 tests auto-skip gracefully (no failure noise).
+
+### Pilot auto-grant note
+
+Any user who logs in via the browser UI has `claim_own_pilot_access()` called in
+`AuthContext`, granting 30 days of Enterprise access. This means the Tier-2 tests
+cannot trigger real free-tier caps through the live edge runtime — they use
+`page.route()` interception instead. For true end-to-end cap testing against the
+local stack, use `npm run test:edge-security` (logs in via API to skip the pilot
+claim).
+
+---
+
 ## Layer B — Agentic exploration (Playwright MCP)
 
 `.mcp.json` registers the [`@playwright/mcp`](https://github.com/microsoft/playwright-mcp)
