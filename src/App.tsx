@@ -71,6 +71,7 @@ import Contractors from "./pages/dashboard/Contractors";
 import BillingAuditLog from "./pages/dashboard/BillingAuditLog";
 import Traction from "./pages/dashboard/Traction";
 import BDPipeline from "./pages/dashboard/BDPipeline";
+import Outreach from "./pages/dashboard/Outreach";
 import Snapshot from "./pages/Snapshot";
 import Ask from "./pages/dashboard/Ask";
 import { Navigate } from "react-router-dom";
@@ -159,6 +160,7 @@ const App = () => (
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               <Route path="/dashboard/traction" element={<RoleGuard requiredRole="admin"><Traction /></RoleGuard>} />
               <Route path="/dashboard/bd-pipeline" element={<RoleGuard requiredRole="admin"><BDPipeline /></RoleGuard>} />
+              <Route path="/dashboard/outreach" element={<RoleGuard requiredRole="admin"><Outreach /></RoleGuard>} />
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />

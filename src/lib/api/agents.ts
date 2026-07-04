@@ -90,4 +90,10 @@ export const agentApi = {
     invokeAgentWithBody('link-validator', { ...(opts ?? {}) }),
   runSourceCleanup: (opts?: { dry_run?: boolean }) =>
     invokeAgentWithBody('source-cleanup', { dry_run: opts?.dry_run ?? true }),
+
+  // Semi-autonomous outbound: draft (AI writes), send (delivers approved emails),
+  // and the weekly-signal inbound newsletter. See /dashboard/outreach.
+  runOutreachDraft: () => invokeAgent('outreach-draft-agent'),
+  runOutreachSend: () => invokeAgent('outreach-send-agent'),
+  runWeeklySignal: () => invokeAgent('weekly-signal-agent'),
 };

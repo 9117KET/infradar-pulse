@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -86,6 +86,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Traction', url: '/dashboard/traction', icon: TrendingUp, tourId: 'nav-traction' },
       { title: 'BD Pipeline', url: '/dashboard/bd-pipeline', icon: Handshake, tourId: 'nav-bd-pipeline' },
+      { title: 'Outreach', url: '/dashboard/outreach', icon: Send, tourId: 'nav-outreach' },
       { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
       { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
       { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },

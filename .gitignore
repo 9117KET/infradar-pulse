@@ -37,3 +37,6 @@ private/
 test-results/
 
 playwright-report/
+
+# Playwright MCP session logs
+.playwright-mcp/

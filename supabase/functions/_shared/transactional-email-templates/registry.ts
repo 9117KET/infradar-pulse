@@ -14,6 +14,8 @@ import { template as contactNotification } from './contact-notification.tsx'
 import { template as digestEmail } from './digest-email.tsx'
 import { template as demoFollowup } from './demo-followup.tsx'
 import { template as pilotAccessGranted } from './pilot-access-granted.tsx'
+import { template as outreachEmail } from './outreach-email.tsx'
+import { template as weeklySignal } from './weekly-signal.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'contact-confirmation': contactConfirmation,
@@ -21,4 +23,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'digest-email': digestEmail,
   'demo-followup': demoFollowup,
   'pilot-access-granted': pilotAccessGranted,
+  'outreach-email': outreachEmail,
+  'weekly-signal': weeklySignal,
 }
