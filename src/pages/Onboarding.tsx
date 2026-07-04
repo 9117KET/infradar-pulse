@@ -50,7 +50,7 @@ const INTEL_FEATURES = [
   { icon: GitCompare, name: 'Compare Projects', desc: 'Compare opportunities side by side across value, geography, sector, stage, confidence, and risk.' },
   { icon: Users2, name: 'Stakeholder Intel', desc: 'Map owners, contractors, financiers, consultants, and other key counterparties across projects.' },
   { icon: Flag, name: 'Country Intelligence', desc: 'Review country-level pipeline, sectors, values, risks, and alert exposure.' },
-  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers: satellite imagery, filings, news, and registry data for each project.' },
+  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers: satellite-tagged sources, filings, news, and registry data for each project.' },
   { icon: AlertTriangle, name: 'Risk & Anomaly Signals', desc: 'AI-powered risk scoring with political, financial, regulatory, and environmental signal detection.' },
   { icon: BarChart3, name: 'Analytics & Reports', desc: 'Custom dashboards with sector breakdowns, investment flows, and exportable PDF reports.' },
   { icon: BookOpen, name: 'Insights & Briefings', desc: 'AI-generated intelligence briefings on market trends, regulatory changes, and emerging opportunities.' },

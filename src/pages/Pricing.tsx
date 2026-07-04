@@ -177,7 +177,7 @@ export default function Pricing() {
           offers: [
             { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '5 AI queries/day (earn +3/day per referral), 3 insight reads, public project data' },
             { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '20 AI queries/day, alert rules, CSV/Excel exports, portfolio chat' },
-            { '@type': 'Offer', name: 'Pro', price: '99', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, risk signals, real-time monitoring, stakeholder intel, AI report PDFs' },
+            { '@type': 'Offer', name: 'Pro', price: '199', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, risk signals, real-time monitoring, stakeholder intel, AI report PDFs' },
           ],
         }}
       />

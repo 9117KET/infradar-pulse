@@ -58,7 +58,18 @@
       "PowerShell(npm run *)",
       "PowerShell($ok=$false; for\\($i=0;$i -lt 30;$i++\\){ try{ $r=Invoke-WebRequest -Uri \"http://localhost:8080\" -TimeoutSec 2 -UseBasicParsing; \"UP: $\\($r.StatusCode\\)\"; $ok=$true; break }catch{ Start-Sleep -Milliseconds 1000 } }; if\\(-not $ok\\){\"still down\"})",
       "PowerShell(npx playwright test e2e/crawl-public.spec.ts --reporter=list 2>&1 | Select-Object -Last 60)",
-      "PowerShell($json = npx supabase status -o json 2>$null | Out-String; $s = $json | ConvertFrom-Json; \"API=$\\($s.API_URL\\)\"; \"ANON_len=$\\($s.ANON_KEY.Length\\)\"; \"SERVICE_len=$\\($s.SERVICE_ROLE_KEY.Length\\)\")"
+      "PowerShell($json = npx supabase status -o json 2>$null | Out-String; $s = $json | ConvertFrom-Json; \"API=$\\($s.API_URL\\)\"; \"ANON_len=$\\($s.ANON_KEY.Length\\)\"; \"SERVICE_len=$\\($s.SERVICE_ROLE_KEY.Length\\)\")",
+      "mcp__playwright__browser_navigate",
+      "Bash(npx playwright *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\([k for k in d.get\\('paths',{}\\).keys\\(\\) if not k.startswith\\('/rpc'\\)][30:60]\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); paths=[k for k in d.get\\('paths',{}\\).keys\\(\\) if not k.startswith\\('/rpc'\\)]; print\\([p for p in paths if 'project' in p.lower\\(\\)]\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(git -C \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse\" diff --stat)",
+      "Bash(git -C \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse\" diff e2e/README.md)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

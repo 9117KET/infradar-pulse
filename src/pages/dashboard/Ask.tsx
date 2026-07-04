@@ -9,6 +9,7 @@ import { agentApi } from '@/lib/api/agents';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { trackEvent } from '@/lib/analytics';
+import { isEntitlementOrQuotaError } from '@/lib/billing/functionsErrors';
 
 type NlProject = {
   id: string;
@@ -83,9 +84,19 @@ export default function Ask() {
       setResult(data);
       refresh();
     } catch (e: any) {
-      const msg = e?.message || 'Search failed';
-      const lower = msg.toLowerCase();
-      if (lower.includes('credits') || lower.includes('rate limit') || lower.includes('entitlement') || lower.includes('quota')) {
+      // Supabase wraps HTTP errors in e.context — parse the real body for a user-facing message.
+      let msg = 'Search failed';
+      const ctx = (e as { context?: Response })?.context;
+      if (ctx && typeof ctx.clone === 'function') {
+        try {
+          const body = await ctx.clone().json();
+          if (body?.error) msg = String(body.error);
+        } catch { /* fall through to generic message */ }
+      }
+      if (msg === 'Search failed') msg = e?.message || 'Search failed';
+
+      if (isEntitlementOrQuotaError(e)) {
+        void trackEvent('ai_limit_hit', { plan, source: 'ask_server', is_free: isFreeTier }, 'monetization');
         setUpgradeOpen(true);
       }
       toast({ variant: 'destructive', title: 'Search failed', description: msg });

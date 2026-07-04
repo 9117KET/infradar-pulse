@@ -10,7 +10,7 @@ import { Seo } from '@/components/Seo';
 
 const MODULES = [
   { icon: Activity, title: 'Real-time project monitoring', desc: 'Continuous tracking of infrastructure project milestones, delays, and status changes. Confidence-scored updates from 20+ verified sources.' },
-  { icon: Satellite, title: 'Satellite verification', desc: 'Independent construction progress verification using commercial satellite imagery. Ground-truth confirmation for filed claims and contractor reports.' },
+  { icon: Satellite, title: 'Evidence verification', desc: 'Cross-reference satellite-tagged sources, filings, news and registry data into a layered evidence base — every claim source-linked and confidence-scored.' },
   { icon: ShieldCheck, title: 'Multi-source validation', desc: 'Cross-referencing government filings, news feeds, registry data, and partner intelligence to eliminate conflicting signals.' },
   { icon: Globe, title: 'Geospatial intelligence', desc: 'Interactive map-based analysis with location-enriched risk overlays, project clustering, and regional comparison tools.' },
   { icon: AlertTriangle, title: 'Risk and anomaly signals', desc: 'Automated detection of cost overruns, timeline drift, political risk factors, and supply chain disruptions.' },
@@ -22,7 +22,7 @@ export default function Services() {
     <>
       <Seo
         title="Services & Platform Modules | InfradarAI"
-        description="Real-time monitoring, satellite verification, multi-source validation, geospatial intelligence and AI-powered market reports for infrastructure teams."
+        description="Real-time monitoring, evidence verification, multi-source validation, geospatial intelligence and AI-powered market reports for infrastructure teams."
         path="/services"
       />
       <div className="py-20">

@@ -282,7 +282,8 @@ Return only entities you are confident about from the message text. If no clear 
                 project_name: s.contractor_name,
                 severity: s.distress_score >= 80 ? "high" : "medium",
                 message: `Contractor distress signal: ${s.contractor_name} — distress score ${s.distress_score}/100. ${(s.signals ?? []).join("; ")}`,
-                category: "risk",
+                category: "financial",
+                origin: "ai_agent",
                 source_url: null,
               });
             }

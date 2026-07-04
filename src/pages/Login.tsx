@@ -53,15 +53,21 @@ export default function Login() {
         return;
       }
 
-      // 2) Server-side re-check (defense in depth)
+      // 2) Server-side re-check (defense in depth).
+      //    Fail OPEN when the validation service is unavailable: the client-side
+      //    check already ran, and Supabase Auth still enforces email format.
+      //    Only block when the function explicitly returns ok: false.
       try {
         const { data: validation, error: validationError } = await supabase.functions.invoke(
           'validate-signup-email',
           { body: { email } },
         );
-        if (validationError || (validation && validation.ok === false)) {
+        if (validationError) {
+          // Service unavailable (503, network error, etc.) — log and proceed.
+          console.warn('[Login] server-side email validation unavailable, proceeding', validationError);
+        } else if (validation && validation.ok === false) {
           const description =
-            (validation && typeof validation.message === 'string' && validation.message) ||
+            (typeof validation.message === 'string' && validation.message) ||
             DISPOSABLE_EMAIL_MESSAGE;
           toast({ title: 'Sign up blocked', description, variant: 'destructive' });
           setLoading(false);
@@ -92,7 +98,23 @@ export default function Login() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
+        // A user who never clicked their confirmation link is otherwise stuck here
+        // with no way back in. Detect that case and re-send the link instead of
+        // dead-ending them on a generic error.
+        const isUnconfirmed = /not confirmed|email.*confirm/i.test(error.message ?? '');
+        if (isUnconfirmed) {
+          void supabase.auth.resend({
+            type: 'signup',
+            email,
+            options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+          });
+          toast({
+            title: 'Email not confirmed',
+            description: `We've re-sent the confirmation link to ${email}. Click it, then sign in.`,
+          });
+        } else {
+          toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
+        }
       } else {
         void trackEvent('login_completed', { method: 'email' }, 'auth');
         navigate('/dashboard');
