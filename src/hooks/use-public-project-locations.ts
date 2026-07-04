@@ -66,7 +66,7 @@ export function usePublicProjectLocations() {
     // table/map stay current without a page refresh. This covers all 5 home
     // page components and the Explore page that share this hook.
     const channel = supabase
-      .channel('public-project-locations-realtime')
+      .channel(`public-project-locations-realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projects' },
