@@ -190,7 +190,7 @@ export function useEntitlements() {
   useEffect(() => {
     if (!userId) return;
     const channel = supabase
-      .channel(`subscriptions:${userId}`)
+      .channel(`subscriptions:${userId}:${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'subscriptions', filter: `user_id=eq.${userId}` },
