@@ -83,7 +83,7 @@ export default function RealTimeMonitoring() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('monitoring-realtime-full')
+      .channel(`monitoring-realtime-full-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_updates' }, () => queryClient.invalidateQueries({ queryKey: ['project-updates'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'research_tasks' }, () => queryClient.invalidateQueries({ queryKey: ['research-tasks-monitoring'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => queryClient.invalidateQueries({ queryKey: ['alerts'] }))

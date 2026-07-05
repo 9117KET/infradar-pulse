@@ -123,7 +123,7 @@ export function useAlerts() {
     fetchAlerts();
 
     const channel = supabase
-      .channel('alerts-realtime')
+      .channel(`alerts-realtime-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => {
         if (mounted) fetchAlerts();
       })

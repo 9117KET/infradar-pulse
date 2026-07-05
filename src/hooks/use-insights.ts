@@ -110,7 +110,7 @@ export function useInsights(publishedOnly = true) {
   // The insights table is already in the supabase_realtime publication.
   useEffect(() => {
     const channel = supabase
-      .channel('insights-realtime')
+      .channel(`insights-realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'insights' },

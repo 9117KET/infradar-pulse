@@ -419,7 +419,7 @@ export default function AgentMonitoring() {
   useEffect(() => {
     if (!isStreaming) return;
     const channel = supabase
-      .channel('agent-logs-realtime')
+      .channel(`agent-logs-realtime-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'research_tasks' }, (payload) => {
         const record = payload.new as LogEntry;
         if (!record?.id) return;
