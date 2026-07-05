@@ -64,7 +64,7 @@ function statusBadge(s: string) {
 
 export default function Ask() {
   const { toast } = useToast();
-  const { canUseAi, plan, refresh, usage, limits, staffBypass, effectiveAiPerDay, isFreeTier, referralBonus } = useEntitlements();
+  const { canUseAi, plan, planLabel, refresh, usage, limits, staffBypass, effectiveAiPerDay, isFreeTier, referralBonus } = useEntitlements();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<NlSearchResponse | null>(null);
@@ -113,7 +113,7 @@ export default function Ask() {
         <p className="text-sm text-muted-foreground max-w-2xl">
           Describe what you're looking for in plain English. Filter by country, sector, value, stage, or
           risk — no manual filters needed. Each query counts as one AI request against your{' '}
-          <span className="text-foreground font-medium capitalize">{plan}</span> plan.
+          <span className="text-foreground font-medium capitalize">{planLabel}</span> plan.
         </p>
       </div>
 

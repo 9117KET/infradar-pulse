@@ -235,6 +235,8 @@ export function useEntitlements() {
   return {
     loading,
     plan,
+    /** Display name for the plan. Pilot users get enterprise-tier limits but signed up for a "Pro pilot", so label it that way. */
+    planLabel: !staffBypass && pilotAccess ? 'Pro pilot' : plan,
     limits,
     usage,
     staffBypass,

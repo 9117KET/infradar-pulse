@@ -10,15 +10,7 @@ export function PaymentTestModeBanner() {
 
   return (
     <div className="w-full bg-amber-100 dark:bg-amber-950/40 border-b border-amber-300/50 px-4 py-2 text-center text-xs text-amber-900 dark:text-amber-200">
-      Payments are in test mode.{' '}
-      <a
-        href="https://docs.lovable.dev/features/payments#test-and-live-environments"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline font-medium"
-      >
-        Read more
-      </a>
+      Payments are in test mode — checkouts will not charge real cards.
     </div>
   );
 }

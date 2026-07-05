@@ -40,7 +40,7 @@ export default function Research() {
   const [upgradeReason, setUpgradeReason] = useState<'ai' | 'export'>('ai');
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { canExportPdf, canUseAi, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportPdf, canUseAi, plan, planLabel, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const { user } = useAuth();
 
   // Poll active task
@@ -297,7 +297,7 @@ export default function Research() {
       addText('Discovered Projects', 14, true);
       if (cappedProjects.truncated) {
         addText(
-          `Showing ${cappedProjects.rows.length} of ${cappedProjects.total} projects (${plan} plan cap = ${cappedProjects.cap}). Upgrade for more.`,
+          `Showing ${cappedProjects.rows.length} of ${cappedProjects.total} projects (${planLabel} plan cap = ${cappedProjects.cap}). Upgrade for more.`,
           8,
           false,
           [180, 100, 40],

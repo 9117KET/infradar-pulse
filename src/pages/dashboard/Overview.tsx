@@ -83,7 +83,7 @@ export default function DashboardOverview() {
     },
     {
       id: 'research', label: 'Run an AI research query', desc: 'Ask anything about infrastructure projects.', done: userResearchCount > 0,
-      action: { label: 'Open Research', href: '/dashboard/chat' },
+      action: { label: 'Open Research', href: '/dashboard/research' },
     },
     {
       id: 'profile', label: 'Complete your profile', desc: 'Set your regions and sectors for personalised coverage.', done: !!(profile?.company && profile?.display_name),

@@ -26,7 +26,7 @@ export default function AnalyticsReports() {
   const isStaff = hasRole('admin') || hasRole('researcher');
   const filters = profile?.onboarded ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages } : undefined;
   const { projects, loading } = useProjects(filters);
-  const { canExportCsv, canUseAi, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportCsv, canUseAi, plan, planLabel, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [exportingCsv, setExportingCsv] = useState(false);
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -94,7 +94,7 @@ export default function AnalyticsReports() {
       await refreshEntitlements();
       if (capped.truncated) {
         toast.success(
-          `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps exports at ${capped.cap} rows — upgrade for more.`,
+          `Exported ${capped.rows.length} of ${capped.total} rows. Your ${planLabel} plan caps exports at ${capped.cap} rows — upgrade for more.`,
         );
       } else {
         toast.success(`Exported ${capped.rows.length} projects to CSV`);

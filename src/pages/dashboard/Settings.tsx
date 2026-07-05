@@ -327,7 +327,7 @@ function daysUntil(iso: string | null): number | null {
 function BillingTab() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { loading, plan, limits, usage, hasPaddleCustomer, staffBypass, subInfo, noCardTrial, refresh } = useEntitlements();
+  const { loading, plan, planLabel, limits, usage, hasPaddleCustomer, staffBypass, subInfo, noCardTrial, refresh } = useEntitlements();
   const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | 'resume' | null>(null);
@@ -450,7 +450,7 @@ function BillingTab() {
         ) : (
           <div className="text-sm space-y-2 text-muted-foreground">
             <p>
-              <span className="text-foreground font-medium capitalize">{plan}</span> plan — daily caps:{' '}
+              <span className="text-foreground font-medium capitalize">{planLabel}</span> plan — daily caps:{' '}
               {limits.aiPerDay} AI runs, {limits.exportsPerDay} exports (per type), {limits.insightReadsPerDay} full insight reads.
             </p>
             <p>

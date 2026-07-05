@@ -58,7 +58,7 @@ interface IntelBrief {
 export default function Alerts() {
   const { alerts, loading, stats, filterByCategory, markAllAsRead, truncated, totalAvailable, rowCap } = useAlerts();
   const { projects } = useProjects();
-  const { staffBypass, plan } = useEntitlements();
+  const { staffBypass, planLabel } = useEntitlements();
   const [selectedCategory, setSelectedCategory] = useState<AlertCategory | 'all'>('all');
   const [brief, setBrief] = useState<IntelBrief | null>(null);
   const [briefLoading, setBriefLoading] = useState(false);
@@ -195,7 +195,7 @@ export default function Alerts() {
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
           <p className="text-foreground">
             Showing the {rowCap.toLocaleString()} most recent alerts of {totalAvailable.toLocaleString()} available on your{' '}
-            <span className="capitalize font-medium">{plan}</span> plan.{' '}
+            <span className="capitalize font-medium">{planLabel}</span> plan.{' '}
             <a href="/pricing" className="underline underline-offset-2 text-primary hover:text-primary/80">
               Upgrade
             </a>{' '}

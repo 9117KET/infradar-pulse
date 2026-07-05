@@ -47,7 +47,7 @@ export default function Projects() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasRole, profile, user } = useAuth();
-  const { canExportCsv, plan, staffBypass, refresh: refreshEntitlements } = useEntitlements();
+  const { canExportCsv, plan, planLabel, staffBypass, refresh: refreshEntitlements } = useEntitlements();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const preferenceFilters = profile?.onboarded
     ? { regions: profile.regions, sectors: profile.sectors, stages: profile.stages }
@@ -227,7 +227,7 @@ export default function Projects() {
     if (capped.truncated) {
       toast({
         title: 'Export truncated',
-        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
+        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${planLabel} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
       });
     } else {
       toast({ title: 'Exported', description: `${filtered.length} projects exported to CSV.` });
@@ -258,7 +258,7 @@ export default function Projects() {
     if (capped.truncated) {
       toast({
         title: 'Export truncated',
-        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${plan} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
+        description: `Exported ${capped.rows.length} of ${capped.total} rows. Your ${planLabel} plan caps each export at ${capped.cap} rows. Upgrade for more.`,
       });
     } else {
       toast({ title: 'Exported', description: `${filtered.length} projects exported to Excel.` });
