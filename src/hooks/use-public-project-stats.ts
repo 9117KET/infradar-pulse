@@ -66,7 +66,7 @@ export function usePublicProjectStats(): { pipeline: PublicPipelineStats; loadin
     void fetchStats();
 
     const channel = supabase
-      .channel('public-project-stats-realtime')
+      .channel(`public-project-stats-realtime-${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projects' },

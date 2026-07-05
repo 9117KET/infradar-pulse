@@ -54,7 +54,7 @@ export default function BillingAuditLog() {
     void load();
     if (!user) return;
     const channel = supabase
-      .channel(`billing_events:${user.id}`)
+      .channel(`billing_events:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'billing_events', filter: `user_id=eq.${user.id}` },
