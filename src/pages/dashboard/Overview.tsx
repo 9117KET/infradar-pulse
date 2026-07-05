@@ -130,7 +130,7 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     const channel = supabase
-      .channel('overview-realtime')
+      .channel(`overview-realtime-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'research_tasks' }, () => queryClient.invalidateQueries({ queryKey: ['research-tasks'] }))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => { queryClient.invalidateQueries({ queryKey: ['pending-count'] }); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'alerts' }, () => queryClient.invalidateQueries({ queryKey: ['alerts'] }))
