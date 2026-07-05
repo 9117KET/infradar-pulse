@@ -56,6 +56,21 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://infradarai.com/ask-demo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/login</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/auth/forgot-password</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
     <loc>https://infradarai.com/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
@@ -69,6 +84,16 @@
     <loc>https://infradarai.com/refund</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/refund-policy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://infradarai.com/unsubscribe</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.2</priority>
   </url>
   <url>
     <loc>https://infradarai.com/data-protection</loc>

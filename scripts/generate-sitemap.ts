@@ -26,9 +26,14 @@ const STATIC_ENTRIES: SitemapEntry[] = [
   { path: '/careers', changefreq: 'monthly', priority: '0.4' },
   { path: '/press', changefreq: 'monthly', priority: '0.5' },
   { path: '/feedback', changefreq: 'monthly', priority: '0.4' },
+  { path: '/ask-demo', changefreq: 'monthly', priority: '0.6' },
+  { path: '/login', changefreq: 'yearly', priority: '0.2' },
+  { path: '/auth/forgot-password', changefreq: 'yearly', priority: '0.2' },
   { path: '/terms', changefreq: 'yearly', priority: '0.3' },
   { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
   { path: '/refund', changefreq: 'yearly', priority: '0.3' },
+  { path: '/refund-policy', changefreq: 'yearly', priority: '0.3' },
+  { path: '/unsubscribe', changefreq: 'yearly', priority: '0.2' },
   { path: '/data-protection', changefreq: 'yearly', priority: '0.3' },
 ];
 
