@@ -1,0 +1,1 @@
+ALTER TABLE public.user_events ADD COLUMN IF NOT EXISTS country text;
