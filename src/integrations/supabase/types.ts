@@ -2066,6 +2066,7 @@ export type Database = {
       user_events: {
         Row: {
           anonymous_id: string | null
+          country: string | null
           created_at: string
           event_category: string
           event_name: string
@@ -2081,6 +2082,7 @@ export type Database = {
         }
         Insert: {
           anonymous_id?: string | null
+          country?: string | null
           created_at?: string
           event_category?: string
           event_name: string
@@ -2096,6 +2098,7 @@ export type Database = {
         }
         Update: {
           anonymous_id?: string | null
+          country?: string | null
           created_at?: string
           event_category?: string
           event_name?: string
