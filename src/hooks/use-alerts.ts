@@ -28,7 +28,7 @@ type AlertRow = {
   created_at: string;
   read: boolean;
   source_url: string | null;
-  origin?: 'system' | 'ai_agent' | 'human' | null;
+  origin?: string | null;
 };
 
 function mapAlertRow(a: AlertRow): Alert {
