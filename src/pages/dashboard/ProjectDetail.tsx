@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star, Bot, Loader2, Activity, Download, Clock, Heart } from 'lucide-react';
 import { HealthScoreBadge } from '@/components/dashboard/HealthScoreBadge';
+import { ProvenanceBadge } from '@/components/dashboard/ProvenanceBadge';
 import { formatDistanceToNow } from 'date-fns';
 import jsPDF from 'jspdf';
 import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
@@ -463,6 +464,7 @@ export default function ProjectDetail() {
         </div>
         <div className="flex gap-2 flex-wrap items-center">
           <Badge variant="outline" className="border-primary/30 text-primary">{project.status}</Badge>
+          <ProvenanceBadge provenance={project.provenance} />
           <Badge variant="outline">{project.stage}</Badge>
           <Badge variant="outline">{project.sector}</Badge>
           {project.lastUpdated && (

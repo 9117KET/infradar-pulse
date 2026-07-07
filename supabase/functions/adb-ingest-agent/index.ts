@@ -15,7 +15,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, recordAgentEvent } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
+import { getIngestCursor, saveIngestCursor } from "../_shared/ingestCursor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,28 +68,6 @@ function mapAdbStatus(status: string): { stage: string; infraStatus: string } {
   if (s.includes("approved") || s.includes("loan") || s.includes("grant")) return { stage: "Financing", infraStatus: "Verified" };
   if (s.includes("closed") || s.includes("completed") || s.includes("pcr")) return { stage: "Completed", infraStatus: "Stable" };
   return { stage: "Construction", infraStatus: "Pending" };
-}
-
-const ADB_COUNTRY_CENTROIDS: Record<string, [number, number]> = {
-  "india": [20.59, 78.96], "indonesia": [-0.79, 113.92], "vietnam": [14.06, 108.28],
-  "philippines": [12.88, 121.77], "thailand": [15.87, 100.99], "bangladesh": [23.68, 90.36],
-  "pakistan": [30.38, 69.35], "china": [35.86, 104.20], "mongolia": [46.86, 103.85],
-  "cambodia": [12.57, 104.99], "myanmar": [21.91, 95.96], "laos": [19.86, 102.50],
-  "nepal": [28.39, 84.12], "sri lanka": [7.87, 80.77], "bhutan": [27.51, 90.43],
-  "maldives": [3.20, 73.22], "papua new guinea": [-6.31, 143.96], "fiji": [-17.71, 178.07],
-  "timor-leste": [-8.87, 125.73], "kazakhstan": [48.02, 66.92], "uzbekistan": [41.38, 64.59],
-  "kyrgyz republic": [41.20, 74.77], "kyrgyzstan": [41.20, 74.77], "tajikistan": [38.86, 71.28],
-  "turkmenistan": [38.97, 59.56], "afghanistan": [33.94, 67.71], "azerbaijan": [40.14, 47.58],
-  "georgia": [42.32, 43.36], "armenia": [40.07, 45.04], "malaysia": [4.21, 101.98],
-};
-
-function getAdbCentroid(country: string): [number, number] {
-  const key = country.toLowerCase().trim();
-  if (ADB_COUNTRY_CENTROIDS[key]) return ADB_COUNTRY_CENTROIDS[key];
-  for (const [k, v] of Object.entries(ADB_COUNTRY_CENTROIDS)) {
-    if (key.includes(k) || k.includes(key)) return v;
-  }
-  return [10, 100]; // default to Southeast Asia region center
 }
 
 /** Simple CSV parser — handles quoted fields with embedded commas */
@@ -148,9 +128,14 @@ serve(async (req) => {
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
     const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
-    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    const backfill = body.mode === "backfill";
+    let startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    if (backfill) {
+      const cursor = await getIngestCursor(supabase, "adb-ingest");
+      startOffset = cursor.nextOffset;
+    }
 
-    const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}`, gate.userId);
+    const lock = await beginAgentTask(supabase, "adb-ingest", `ADB Projects Portal - limit:${totalLimit}${backfill ? " (backfill)" : ""}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("adb-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
@@ -275,6 +260,7 @@ serve(async (req) => {
     console.log(`Parsed ${rows.length} ADB project rows`);
 
     // Step 4: Stage source-first project candidates for review
+    let autoPublished = 0;
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
@@ -308,7 +294,7 @@ serve(async (req) => {
         const { stage, infraStatus } = mapAdbStatus(statusRaw);
         const sector = mapAdbSector(sectorRaw);
         const region = mapAdbRegion(adbRegion, country);
-        const [lat, lng] = getAdbCentroid(country);
+        const coords = resolveCountryCoords(country, slugifyProjectName(name));
 
         let timeline = "";
         if (approvalYear && closingYear) timeline = `${approvalYear}–${closingYear}`;
@@ -333,15 +319,19 @@ serve(async (req) => {
           valueLabel,
           confidence,
           riskScore: 38,
-          lat, lng,
+          lat: coords.lat,
+          lng: coords.lng,
+          coordPrecision: coords.precision,
           description,
           timeline,
           sourceUrl: projectUrl,
           publishedAt: approvalYear ? `${approvalYear}-01-01` : null,
           rawPayload: row,
           extractedClaims: { adb_project_id: projectId, source_csv: csvUrl },
+          autoPublish: true,
         });
-        if (staged.outcome === "candidate_created") candidatesWritten++;
+        if (staged.outcome === "auto_published") autoPublished++;
+        else if (staged.outcome === "candidate_created") candidatesWritten++;
         else if (staged.outcome === "candidate_updated") candidatesUpdated++;
         else if (staged.outcome === "update_proposed") updatesProposed++;
         else skipped++;
@@ -351,8 +341,15 @@ serve(async (req) => {
       }
     }
 
+    if (backfill) {
+      await saveIngestCursor(supabase, "adb-ingest", {
+        nextOffset: startOffset + processLimit,
+        exhausted: startOffset + processLimit >= rows.length,
+      });
+    }
+
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, fetched: processLimit, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset };
+    const result = { success: true, fetched: processLimit, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset, mode: backfill ? "backfill" : "standard" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),

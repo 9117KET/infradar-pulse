@@ -65,17 +65,25 @@ export const agentApi = {
     use_ai?: boolean;
   }) => invokeAgentWithBody('insight-sources-agent', { ...(opts ?? {}) }),
 
-  runWorldBankIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
+  runWorldBankIngest: (opts?: { status?: string; limit?: number; offset?: number; mode?: 'backfill' }) =>
     invokeAgentWithBody('world-bank-ingest-agent', { ...(opts ?? {}) }),
-  runIfcIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
+  runIfcIngest: (opts?: { status?: string; limit?: number; offset?: number; mode?: 'backfill' }) =>
     invokeAgentWithBody('ifc-ingest-agent', { ...(opts ?? {}) }),
-  runAdbIngest: (opts?: { limit?: number; offset?: number }) =>
+  runAdbIngest: (opts?: { limit?: number; offset?: number; mode?: 'backfill' }) =>
     invokeAgentWithBody('adb-ingest-agent', { ...(opts ?? {}) }),
   runAfdbIngest: () => invokeAgent('afdb-ingest-agent'),
   runEbrdIngest: () => invokeAgent('ebrd-ingest-agent'),
-  runIadbIngest: (opts?: { status?: string; limit?: number; offset?: number }) =>
+  runIadbIngest: (opts?: { status?: string; limit?: number; offset?: number; mode?: 'backfill' }) =>
     invokeAgentWithBody('iadb-ingest-agent', { ...(opts ?? {}) }),
   runAiibIngest: () => invokeAgent('aiib-ingest-agent'),
+  /** GEM Global Integrated Power Tracker — exact facility coordinates, CC BY 4.0. */
+  runGemIngest: (opts?: { mode?: 'backfill'; limit?: number; offset?: number; min_mw?: number; file_url?: string }) =>
+    invokeAgentWithBody('gem-ingest-agent', { ...(opts ?? {}) }),
+  runEibIngest: (opts?: { statuses?: string; limit?: number; offset?: number; mode?: 'backfill' }) =>
+    invokeAgentWithBody('eib-ingest-agent', { ...(opts ?? {}) }),
+  /** TED EU procurement notices (CPV 45*) → tender_events. */
+  runTedIngest: (opts?: { days?: number; limit?: number; min_value_usd?: number }) =>
+    invokeAgentWithBody('ted-ingest-agent', { ...(opts ?? {}) }),
   runEntityDedup: () => invokeAgent('entity-dedup'),
   runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
   runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),

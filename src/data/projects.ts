@@ -93,6 +93,10 @@ export interface Project {
   delayProbability?: number | null;
   /** Signal breakdown from the health-score agent */
   healthSignals?: Record<string, unknown> | null;
+  /** How the record was published: official registry auto-ingest, human review, or AI agent. Null for legacy rows. */
+  provenance?: 'official_registry' | 'human_verified' | 'ai_agent' | null;
+  /** 'exact' = real project coordinates; 'country' = jittered country centroid. */
+  coordPrecision?: 'exact' | 'country' | null;
 }
 
 

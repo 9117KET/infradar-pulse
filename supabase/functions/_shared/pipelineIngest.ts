@@ -29,8 +29,11 @@ export interface StageProjectInput {
   valueLabel: string;
   confidence: number;
   riskScore?: number;
-  lat: number;
-  lng: number;
+  /** Null when the location is unknown — never substitute [0,0]. */
+  lat: number | null;
+  lng: number | null;
+  /** "exact" for real per-project coordinates, "country" for centroid approximations. */
+  coordPrecision?: "exact" | "country" | null;
   description: string;
   timeline?: string | null;
   sourceUrl: string;
@@ -39,7 +42,18 @@ export interface StageProjectInput {
   extractedClaims?: Record<string, unknown>;
   stakeholder?: string | null;
   supportsFields?: string[];
+  /**
+   * Deterministic official-registry sources (World Bank, IFC, ADB, IADB,
+   * AIIB, ...) may auto-publish: the candidate is promoted to a live project
+   * with provenance='official_registry' when its quality score clears
+   * AUTO_PUBLISH_MIN_QUALITY. LLM-extracted candidates must NOT set this —
+   * they keep the human review gate.
+   */
+  autoPublish?: boolean;
 }
+
+/** Minimum intelligence-quality total score for machine promotion. */
+const AUTO_PUBLISH_MIN_QUALITY = 60;
 
 export function normalizeProjectName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -175,6 +189,7 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     risk_score: input.riskScore ?? 40,
     lat: input.lat,
     lng: input.lng,
+    coord_precision: input.coordPrecision ?? null,
     description: input.description,
     timeline: input.timeline ?? "",
     source_url: isHttpUrl(input.sourceUrl) ? input.sourceUrl : "",
@@ -233,6 +248,20 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
       recommendation: quality.recommendation,
       details: { source: input.discoveredBy, external_id: input.externalId ?? null },
     });
+  }
+
+  // Machine promotion for deterministic official registries. On any failure
+  // the candidate simply stays in the human review queue.
+  if (input.autoPublish && candidate?.id && quality.total_score >= AUTO_PUBLISH_MIN_QUALITY && isHttpUrl(input.sourceUrl)) {
+    const { data: promoted, error: promoteError } = await supabase.rpc("auto_promote_official_candidate", {
+      p_candidate_id: candidate.id,
+      p_reason: `Auto-published from ${input.sourceName} (quality ${quality.total_score})`,
+    });
+    if (promoteError) {
+      console.error(`auto_promote_official_candidate failed for ${input.name}:`, promoteError.message ?? promoteError);
+    } else if (promoted?.project_id) {
+      return { outcome: "auto_published" as const, projectId: promoted.project_id as string };
+    }
   }
 
   return { outcome: existingCandidate?.id ? "candidate_updated" as const : "candidate_created" as const };

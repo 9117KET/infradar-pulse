@@ -15,7 +15,8 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -168,30 +169,6 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
       return new Response(JSON.stringify({ success: false, error: "AI extracted 0 projects" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Africa country centroid lookup (simplified)
-    const AFRICA_CENTROIDS: Record<string, [number, number]> = {
-      "nigeria": [9.08, 8.68], "kenya": [-0.02, 37.91], "ethiopia": [9.14, 40.49],
-      "tanzania": [-6.37, 34.89], "ghana": [7.95, -1.02], "south africa": [-30.56, 22.94],
-      "egypt": [26.82, 30.80], "morocco": [31.79, -7.09], "algeria": [28.03, 1.66],
-      "mozambique": [-18.67, 35.53], "zambia": [-13.13, 27.85], "zimbabwe": [-19.02, 29.15],
-      "uganda": [1.37, 32.29], "rwanda": [-1.94, 29.87], "senegal": [14.50, -14.45],
-      "mali": [17.57, -4.00], "cameroon": [7.37, 12.35], "angola": [-11.20, 17.87],
-      "dr congo": [-4.04, 21.76], "congo": [-0.23, 15.83], "burkina faso": [12.36, -1.56],
-      "côte d'ivoire": [7.54, -5.55], "ivory coast": [7.54, -5.55],
-      "niger": [17.61, 8.08], "chad": [15.45, 18.73], "guinea": [11.80, -15.18],
-      "malawi": [-13.25, 34.30], "madagascar": [-18.77, 46.87], "botswana": [-22.33, 24.68],
-      "namibia": [-22.96, 18.49], "somalia": [5.15, 46.20], "sudan": [12.86, 30.22],
-      "libya": [26.34, 17.23], "tunisia": [33.89, 9.54],
-    };
-    function getAfricaCentroid(country: string): [number, number] {
-      const key = country.toLowerCase().trim();
-      if (AFRICA_CENTROIDS[key]) return AFRICA_CENTROIDS[key];
-      for (const [k, v] of Object.entries(AFRICA_CENTROIDS)) {
-        if (key.includes(k) || k.includes(key)) return v;
-      }
-      return [0, 20]; // center of Africa
-    }
-
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
@@ -206,7 +183,7 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
           ? ep.source_url
           : "https://projectsportal.afdb.org/dataportal/VProject/ongoingProjects";
 
-        const [lat, lng] = getAfricaCentroid(ep.country || "");
+        const coords = resolveCountryCoords(ep.country || "", slugifyProjectName(name));
         const totalAmt = Number(ep.value_usd) || 0;
         let valueLabel = ep.value_label || "";
         if (!valueLabel) {
@@ -234,7 +211,9 @@ ${rawContent.join("\n\n---\n\n").slice(0, 12000)}`,
           valueLabel,
           confidence,
           riskScore: 45,
-          lat, lng,
+          lat: coords.lat,
+          lng: coords.lng,
+          coordPrecision: coords.precision,
           description,
           timeline: "",
           sourceUrl: bestUrl,

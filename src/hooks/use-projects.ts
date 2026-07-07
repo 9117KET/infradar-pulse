@@ -35,7 +35,7 @@ export interface DbProject {
 export type ProjectFilters = { regions?: string[]; sectors?: string[]; stages?: string[] };
 
 function dbToProject(
-  p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string },
+  p: DbProject & { detailed_analysis?: string; key_risks?: string; funding_sources?: string; environmental_impact?: string; political_context?: string; source_url?: string; provenance?: Project['provenance']; coord_precision?: Project['coordPrecision'] },
   stakeholders: string[],
   milestones: Milestone[],
   evidence: Evidence[],
@@ -74,6 +74,8 @@ function dbToProject(
     healthScore: p.health_score ?? null,
     delayProbability: p.delay_probability ?? null,
     healthSignals: p.health_signals ?? null,
+    provenance: p.provenance ?? null,
+    coordPrecision: p.coord_precision ?? null,
   };
 }
 

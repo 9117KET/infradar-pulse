@@ -65,7 +65,18 @@
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); paths=[k for k in d.get\\('paths',{}\\).keys\\(\\) if not k.startswith\\('/rpc'\\)]; print\\([p for p in paths if 'project' in p.lower\\(\\)]\\)\")",
       "Bash(python -c ' *)",
       "Bash(git -C \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse\" diff --stat)",
-      "Bash(git -C \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse\" diff e2e/README.md)"
+      "Bash(git -C \"C:/Users/kinlo/OneDrive - Constructor University/Desktop/dev/projects/2026/Infradar Lovable/infradar-pulse\" diff e2e/README.md)",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "Bash(PLAYWRIGHT_BASE_URL=https://infradarai.com npx playwright test e2e/crawl-public.spec.ts --reporter=line)",
+      "Bash(SCRATCH=\"C:\\\\Users\\\\kinlo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-kinlo-OneDrive---Constructor-University-Desktop-dev-projects-2026-Infradar-Lovable-infradar-pulse\\\\1d188705-68b7-42b7-878c-7c9b7c5b772f\\\\scratchpad\" node *)",
+      "mcp__claude_ai_Gmail__search_threads",
+      "mcp__claude_ai_Gmail__get_thread",
+      "Bash(python -)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(export SCRATCH=\"C:\\\\Users\\\\kinlo\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-kinlo-OneDrive---Constructor-University-Desktop-dev-projects-2026-Infradar-Lovable-infradar-pulse\\\\1d188705-68b7-42b7-878c-7c9b7c5b772f\\\\scratchpad\")"
     ]
   },
   "enableAllProjectMcpServers": true,

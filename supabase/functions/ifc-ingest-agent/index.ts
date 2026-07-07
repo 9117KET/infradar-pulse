@@ -15,7 +15,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
+import { getIngestCursor, saveIngestCursor } from "../_shared/ingestCursor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,27 +94,15 @@ function mapStage(wbStatus: string, closingDate: string): string {
   return "Construction";
 }
 
-const COUNTRY_CENTROIDS: Record<string, [number, number]> = {
-  "nigeria": [9.08, 8.68], "kenya": [-0.02, 37.91], "ethiopia": [9.14, 40.49],
-  "india": [20.59, 78.96], "indonesia": [-0.79, 113.92], "vietnam": [14.06, 108.28],
-  "philippines": [12.88, 121.77], "thailand": [15.87, 100.99], "bangladesh": [23.68, 90.36],
-  "pakistan": [30.38, 69.35], "egypt": [26.82, 30.80], "morocco": [31.79, -7.09],
-  "saudi arabia": [23.89, 45.08], "uae": [23.42, 53.85], "turkey": [38.96, 35.24],
-  "brazil": [-14.24, -51.93], "mexico": [23.63, -102.55], "colombia": [4.57, -74.30],
-  "peru": [-9.19, -75.02], "chile": [-35.68, -71.54], "argentina": [-38.42, -63.62],
-  "ghana": [7.95, -1.02], "tanzania": [-6.37, 34.89], "mozambique": [-18.67, 35.53],
-  "zambia": [-13.13, 27.85], "south africa": [-30.56, 22.94], "uganda": [1.37, 32.29],
-  "kazakhstan": [48.02, 66.92], "uzbekistan": [41.38, 64.59], "ukraine": [48.38, 31.17],
-  "romania": [45.94, 24.97], "poland": [51.92, 19.15],
-};
+/** WB API returns some fields as arrays and amounts as comma-strings. */
+function firstString(value: unknown): string {
+  if (Array.isArray(value)) return String(value[0] ?? "").trim();
+  return String(value ?? "").trim();
+}
 
-function getCountryCentroid(country: string): [number, number] {
-  const key = country.toLowerCase().trim();
-  if (COUNTRY_CENTROIDS[key]) return COUNTRY_CENTROIDS[key];
-  for (const [k, v] of Object.entries(COUNTRY_CENTROIDS)) {
-    if (key.includes(k) || k.includes(key)) return v;
-  }
-  return [0, 0];
+function parseAmount(value: unknown): number {
+  const n = Number(String(value ?? "").replace(/,/g, ""));
+  return Number.isFinite(n) ? n : 0;
 }
 
 serve(async (req) => {
@@ -140,8 +130,9 @@ serve(async (req) => {
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
     const totalLimit: number = Math.min(Math.max(Number(body.limit) || 200, 1), 5000);
     const startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    const backfill = body.mode === "backfill";
 
-    const lock = await beginAgentTask(supabase, "ifc-ingest", `IFC Projects API - status:${statusFilter} limit:${totalLimit}`, gate.userId);
+    const lock = await beginAgentTask(supabase, "ifc-ingest", `IFC Projects API - status:${statusFilter} limit:${totalLimit}${backfill ? " (backfill)" : ""}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("ifc-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
@@ -156,6 +147,7 @@ serve(async (req) => {
 
     // IFC-financed projects via World Bank API (source=IF)
     const SECTOR_CODES = "TX,YA,WS,TU,TC,YB,YZ,JA,LZ";
+    let autoPublished = 0;
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
@@ -165,9 +157,15 @@ serve(async (req) => {
     const statuses = statusFilter.split(",").map((s) => s.trim());
 
     for (const status of statuses) {
+      const cursorKey = `ifc-ingest:${status}`;
       let offset = startOffset;
+      if (backfill) {
+        const cursor = await getIngestCursor(supabase, cursorKey);
+        offset = cursor.nextOffset;
+      }
       const perStatusLimit = Math.ceil(totalLimit / statuses.length);
       let statusFetched = 0;
+      let exhausted = false;
 
       while (statusFetched < perStatusLimit) {
         const rows = Math.min(pageSize, perStatusLimit - statusFetched);
@@ -189,32 +187,32 @@ serve(async (req) => {
         const projectList = Object.values(data?.projects || {}).filter(
           (p: any) => p && typeof p === "object" && p.id
         );
-        if (projectList.length === 0) break;
+        if (projectList.length === 0) { exhausted = true; break; }
 
         fetched += projectList.length;
         statusFetched += projectList.length;
 
         for (const p of projectList as any[]) {
           try {
-            const name: string = (p.projectname || "").trim();
+            const name: string = firstString(p.projectname || p.project_name);
             if (!name) { skipped++; continue; }
 
-            const country: string = (p.countryname || "").trim();
-            const wbSector: string = p.sector1?.Name || p.sectorname || "";
-            const wbStatus: string = p.status || "Active";
-            const closingDate: string = p.closingdate || "";
-            const approvalDate: string = p.boardapprovaldate || "";
-            const totalAmt: number = Number(p.totalamt) || 0;
+            const country: string = firstString(p.countryname);
+            const wbSector: string = p.sector1?.Name || firstString(p.sectorname);
+            const wbStatus: string = firstString(p.status) || "Active";
+            const closingDate: string = firstString(p.closingdate);
+            const approvalDate: string = firstString(p.boardapprovaldate);
+            const totalAmt: number = parseAmount(p.totalamt);
             const description: string =
-              (p.project_abstract?.cdata || p.project_abstract || "").toString().slice(0, 500).trim() ||
+              (p.project_abstract?.cdata || p.project_abstract?.["cdata!"] || p.project_abstract || "").toString().slice(0, 500).trim() ||
               `IFC-financed ${wbSector} project in ${country}.`;
             const projectUrl: string = p.url || `https://projects.worldbank.org/en/projects-operations/project-detail/${p.id}`;
 
             const sector = mapSector(wbSector);
-            const region = mapRegion(p.regionname || "", country);
+            const region = mapRegion(firstString(p.regionname), country);
             const stage = mapStage(wbStatus, closingDate);
             const infraStatus = wbStatus === "Active" ? "Verified" : wbStatus === "Pipeline" ? "Pending" : "Stable";
-            const [lat, lng] = getCountryCentroid(country);
+            const coords = resolveCountryCoords(country, slugifyProjectName(name));
 
             let timeline = "";
             if (approvalDate && closingDate) timeline = `${approvalDate.slice(0, 4)}–${closingDate.slice(0, 4)}`;
@@ -238,28 +236,36 @@ serve(async (req) => {
               valueLabel,
               confidence,
               riskScore: 38,
-              lat, lng,
+              lat: coords.lat,
+              lng: coords.lng,
+              coordPrecision: coords.precision,
               description,
               timeline,
               sourceUrl: projectUrl,
               publishedAt: approvalDate || null,
               rawPayload: { id: p.id, name, country, wbSector, wbStatus, totalAmt, projectUrl, description, borrower: p.borrower ?? null },
               extractedClaims: { ifc_id: p.id, borrower: p.borrower ?? null },
-              stakeholder: p.borrower ? String(p.borrower).trim() : null,
+              stakeholder: p.borrower ? firstString(p.borrower) : null,
+              autoPublish: true,
             });
-            if (staged.outcome === "candidate_created") candidatesWritten++;
+            if (staged.outcome === "auto_published") autoPublished++;
+            else if (staged.outcome === "candidate_created") candidatesWritten++;
             else if (staged.outcome === "candidate_updated") candidatesUpdated++;
             else if (staged.outcome === "update_proposed") updatesProposed++;
             else skipped++;
           } catch (err) { console.error(`Error processing IFC project ${(p as any).id}:`, err); skipped++; }
         }
 
-        if (projectList.length < rows) break;
+        if (projectList.length < rows) { exhausted = true; break; }
         offset += rows;
+      }
+
+      if (backfill) {
+        await saveIngestCursor(supabase, cursorKey, { nextOffset: offset, exhausted });
       }
     }
 
-    const result = { success: true, fetched, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IFC" };
+    const result = { success: true, fetched, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IFC", mode: backfill ? "backfill" : "standard" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),

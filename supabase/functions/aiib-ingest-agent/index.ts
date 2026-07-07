@@ -24,7 +24,9 @@ import {
   finishAgentRun,
   recordAgentEvent,
 } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
+import { getIngestCursor, saveIngestCursor } from "../_shared/ingestCursor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,36 +52,6 @@ interface AiibRow {
   special_funding?: string;
   status?: string;
   path?: string;
-}
-
-const AIIB_COUNTRY_CENTROIDS: Record<string, [number, number]> = {
-  "china": [35.86, 104.20], "india": [20.59, 78.96], "indonesia": [-0.79, 113.92],
-  "bangladesh": [23.68, 90.36], "pakistan": [30.38, 69.35], "vietnam": [14.06, 108.28],
-  "philippines": [12.88, 121.77], "thailand": [15.87, 100.99], "myanmar": [21.91, 95.96],
-  "cambodia": [12.57, 104.99], "laos": [19.86, 102.50], "nepal": [28.39, 84.12],
-  "sri lanka": [7.87, 80.77], "mongolia": [46.86, 103.85], "papua new guinea": [-6.31, 143.96],
-  "fiji": [-17.71, 178.07], "timor-leste": [-8.87, 125.73], "kazakhstan": [48.02, 66.92],
-  "uzbekistan": [41.38, 64.59], "kyrgyzstan": [41.20, 74.77], "tajikistan": [38.86, 71.28],
-  "turkmenistan": [38.97, 59.56], "afghanistan": [33.94, 67.71], "azerbaijan": [40.14, 47.58],
-  "georgia": [42.32, 43.36], "armenia": [40.07, 45.04], "oman": [21.51, 55.92],
-  "turkey": [38.96, 35.24], "türkiye": [38.96, 35.24], "egypt": [26.82, 30.80],
-  "iran": [32.43, 53.69], "iraq": [33.22, 43.68], "jordan": [30.59, 36.24],
-  "saudi arabia": [23.89, 45.08], "uae": [23.42, 53.85],
-  "ethiopia": [9.15, 40.49], "kenya": [-0.02, 37.91], "ghana": [7.95, -1.02],
-  "rwanda": [-1.94, 29.87], "ivory coast": [7.54, -5.55], "côte d'ivoire": [7.54, -5.55],
-  "russia": [61.52, 105.32], "ukraine": [48.38, 31.17], "poland": [51.92, 19.15],
-  "romania": [45.94, 24.97], "hungary": [47.16, 19.50], "serbia": [44.02, 21.01],
-  "malaysia": [4.21, 101.98], "singapore": [1.35, 103.82], "brazil": [-14.24, -51.93],
-  "ecuador": [-1.83, -78.18], "argentina": [-38.42, -63.62],
-};
-
-function getAiibCentroid(country: string): [number, number] {
-  const key = (country || "").toLowerCase().trim();
-  if (AIIB_COUNTRY_CENTROIDS[key]) return AIIB_COUNTRY_CENTROIDS[key];
-  for (const [k, v] of Object.entries(AIIB_COUNTRY_CENTROIDS)) {
-    if (key.includes(k) || k.includes(key)) return v;
-  }
-  return [25.0, 90.0]; // safe default in South Asia
 }
 
 function mapAiibRegion(country: string): string {
@@ -198,9 +170,14 @@ serve(async (req) => {
     // Per-invocation cap kept small to stay under edge-runtime CPU limit (~2s).
     // Larger backfills should paginate via repeated calls with `offset`.
     const totalLimit: number = Math.min(Math.max(Number(body.limit) || 75, 1), 200);
-    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    const backfill = body.mode === "backfill";
+    let startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    if (backfill) {
+      const cursor = await getIngestCursor(supabase, "aiib-ingest");
+      startOffset = cursor.nextOffset;
+    }
 
-    const lock = await beginAgentTask(supabase, "aiib-ingest", `AIIB official data file - limit:${totalLimit}`, gate.userId);
+    const lock = await beginAgentTask(supabase, "aiib-ingest", `AIIB official data file - limit:${totalLimit}${backfill ? " (backfill)" : ""}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("aiib-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
@@ -239,6 +216,7 @@ serve(async (req) => {
       });
     }
 
+    let autoPublished = 0;
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
@@ -270,7 +248,7 @@ serve(async (req) => {
         const { stage, status: infraStatus, confidence } = mapStatus(statusRaw);
         const sector = mapAiibSector(sectorRaw);
         const region = mapAiibRegion(country);
-        const [lat, lng] = getAiibCentroid(country);
+        const coords = resolveCountryCoords(country, slugifyProjectName(`${country}: ${projectName}`));
 
         const projectUrl = row.path
           ? `https://www.aiib.org${row.path.startsWith("/") ? "" : "/"}${row.path}`
@@ -294,7 +272,9 @@ serve(async (req) => {
           valueLabel,
           confidence,
           riskScore: 38,
-          lat, lng,
+          lat: coords.lat,
+          lng: coords.lng,
+          coordPrecision: coords.precision,
           description,
           timeline,
           sourceUrl: projectUrl,
@@ -307,8 +287,10 @@ serve(async (req) => {
             funding_raw: fundingRaw,
             source_data_url: AIIB_DATA_URL,
           },
+          autoPublish: true,
         });
-        if (staged.outcome === "candidate_created") candidatesWritten++;
+        if (staged.outcome === "auto_published") autoPublished++;
+        else if (staged.outcome === "candidate_created") candidatesWritten++;
         else if (staged.outcome === "candidate_updated") candidatesUpdated++;
         else if (staged.outcome === "update_proposed") updatesProposed++;
         else skipped++;
@@ -318,10 +300,18 @@ serve(async (req) => {
       }
     }
 
+    if (backfill) {
+      await saveIngestCursor(supabase, "aiib-ingest", {
+        nextOffset: startOffset + processLimit,
+        exhausted: startOffset + processLimit >= rows.length,
+      });
+    }
+
     const result = {
       success: true,
       total_rows: rows.length,
       processed: processLimit,
+      auto_published: autoPublished,
       candidates_created: candidatesWritten,
       candidates_updated: candidatesUpdated,
       update_proposals_created: updatesProposed,

@@ -14,7 +14,8 @@ import { chatCompletions } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -150,27 +151,6 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
       return new Response(JSON.stringify({ success: false, error: "AI extracted 0 projects" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const EBRD_CENTROIDS: Record<string, [number, number]> = {
-      "ukraine": [48.38, 31.17], "poland": [51.92, 19.15], "romania": [45.94, 24.97],
-      "turkey": [38.96, 35.24], "kazakhstan": [48.02, 66.92], "uzbekistan": [41.38, 64.59],
-      "egypt": [26.82, 30.80], "morocco": [31.79, -7.09], "jordan": [30.59, 36.24],
-      "georgia": [42.32, 43.36], "armenia": [40.07, 45.04], "azerbaijan": [40.14, 47.58],
-      "moldova": [47.41, 28.37], "belarus": [53.71, 27.95], "serbia": [44.02, 21.01],
-      "north macedonia": [41.61, 21.75], "albania": [41.15, 20.17], "bosnia": [43.92, 17.68],
-      "kosovo": [42.60, 20.90], "montenegro": [42.71, 19.37], "hungary": [47.16, 19.50],
-      "czech republic": [49.82, 15.47], "slovakia": [48.67, 19.70], "bulgaria": [42.73, 25.49],
-      "tajikistan": [38.86, 71.28], "kyrgyzstan": [41.20, 74.77], "turkmenistan": [38.97, 59.56],
-      "mongolia": [46.86, 103.85], "tunisia": [33.89, 9.54], "libya": [26.34, 17.23],
-    };
-    function getEbrdCentroid(country: string): [number, number] {
-      const key = country.toLowerCase().trim();
-      if (EBRD_CENTROIDS[key]) return EBRD_CENTROIDS[key];
-      for (const [k, v] of Object.entries(EBRD_CENTROIDS)) {
-        if (key.includes(k) || k.includes(key)) return v;
-      }
-      return [45, 30]; // center of EBRD coverage area
-    }
-
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
@@ -185,7 +165,7 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
           ? ep.source_url
           : "https://www.ebrd.com/work-with-us/projects/psd.html";
 
-        const [lat, lng] = getEbrdCentroid(ep.country || "");
+        const coords = resolveCountryCoords(ep.country || "", slugifyProjectName(name));
         const totalAmt = Number(ep.value_usd) || 0;
         let valueLabel = ep.value_label || "";
         if (!valueLabel) {
@@ -213,7 +193,9 @@ Return only projects clearly financed or being considered by EBRD. Each must hav
           valueLabel,
           confidence,
           riskScore: 42,
-          lat, lng,
+          lat: coords.lat,
+          lng: coords.lng,
+          coordPrecision: coords.precision,
           description,
           timeline: "",
           sourceUrl: bestUrl,

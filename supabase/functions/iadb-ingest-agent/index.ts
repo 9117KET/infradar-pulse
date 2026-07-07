@@ -15,7 +15,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
-import { registerPipelineSource, stagePipelineProject } from "../_shared/pipelineIngest.ts";
+import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
+import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
+import { getIngestCursor, saveIngestCursor } from "../_shared/ingestCursor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,30 +27,6 @@ const corsHeaders = {
 
 const IADB_RESOURCE_ID = "814b7b54-477a-4c25-b3bf-6be05412069d";
 const IADB_API = "https://data.iadb.org/api/action/datastore_search";
-
-// Latin American and Caribbean country centroids
-const IADB_COUNTRY_CENTROIDS: Record<string, [number, number]> = {
-  "argentina": [-38.42, -63.62], "bolivia": [-16.29, -63.59], "brazil": [-14.24, -51.93],
-  "chile": [-35.68, -71.54], "colombia": [4.57, -74.30], "costa rica": [9.75, -83.75],
-  "cuba": [21.52, -77.78], "dominican republic": [18.74, -70.16], "ecuador": [-1.83, -78.18],
-  "el salvador": [13.79, -88.90], "guatemala": [15.78, -90.23], "guyana": [4.86, -58.93],
-  "haiti": [18.97, -72.29], "honduras": [15.20, -86.24], "jamaica": [18.10, -77.30],
-  "mexico": [23.63, -102.55], "nicaragua": [12.87, -85.21], "panama": [8.54, -80.78],
-  "paraguay": [-23.44, -58.44], "peru": [-9.19, -75.02], "suriname": [3.92, -56.03],
-  "trinidad and tobago": [10.69, -61.22], "trinidad": [10.69, -61.22], "uruguay": [-32.52, -55.77],
-  "venezuela": [6.42, -66.59], "barbados": [13.19, -59.54], "bahamas": [25.03, -77.40],
-  "belize": [17.19, -88.50], "grenada": [12.12, -61.68], "saint lucia": [13.91, -60.98],
-  "antigua": [17.06, -61.80], "dominica": [15.41, -61.37], "regional": [4.00, -74.00],
-};
-
-function getIadbCentroid(country: string): [number, number] {
-  const key = (country || "").toLowerCase().trim();
-  if (IADB_COUNTRY_CENTROIDS[key]) return IADB_COUNTRY_CENTROIDS[key];
-  for (const [k, v] of Object.entries(IADB_COUNTRY_CENTROIDS)) {
-    if (key.includes(k) || k.includes(key)) return v;
-  }
-  return [4.0, -74.0]; // default: Colombia
-}
 
 function mapIadbRegion(country: string): string {
   const c = (country || "").toLowerCase();
@@ -102,10 +80,15 @@ serve(async (req) => {
     let body: Record<string, unknown> = {};
     try { body = await req.json(); } catch { /* no body */ }
     const totalLimit: number = Math.min(Math.max(Number(body.limit) || 300, 1), 10000);
-    const startOffset: number = Math.max(Number(body.offset) || 0, 0);
     const statusFilter: string = String(body.status || "Active,Implementation");
+    const backfill = body.mode === "backfill";
+    let startOffset: number = Math.max(Number(body.offset) || 0, 0);
+    if (backfill) {
+      const cursor = await getIngestCursor(supabase, "iadb-ingest");
+      startOffset = cursor.nextOffset;
+    }
 
-    const lock = await beginAgentTask(supabase, "iadb-ingest", `IADB Projects API — status:${statusFilter} limit:${totalLimit}`, gate.userId);
+    const lock = await beginAgentTask(supabase, "iadb-ingest", `IADB Projects API — status:${statusFilter} limit:${totalLimit}${backfill ? " (backfill)" : ""}`, gate.userId);
     if (lock.alreadyRunning) return alreadyRunningResponse("iadb-ingest");
     taskId = lock.taskId;
     runStartedAt = new Date();
@@ -120,11 +103,14 @@ serve(async (req) => {
 
     console.log(`Fetching IADB projects (status:${statusFilter}, limit:${totalLimit})...`);
 
+    let autoPublished = 0;
     let candidatesWritten = 0;
     let candidatesUpdated = 0;
     let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
+    let exhausted = false;
+    let endOffset = startOffset;
     const BATCH = 100;
 
     // Infrastructure-relevant sectors to filter down to
@@ -156,8 +142,9 @@ serve(async (req) => {
       if (!json.success) throw new Error(`IADB API returned error: ${JSON.stringify(json.error)}`);
 
       const records: Record<string, unknown>[] = json.result?.records || [];
-      if (records.length === 0) break;
+      if (records.length === 0) { exhausted = true; break; }
       fetched += records.length;
+      endOffset = offset + records.length;
 
       for (const row of records) {
         try {
@@ -198,7 +185,7 @@ serve(async (req) => {
           const { stage, infraStatus } = mapIadbStatus(statusRaw);
           const sector = mapIadbSector(sectorRaw, subsectorRaw);
           const region = mapIadbRegion(country);
-          const [lat, lng] = getIadbCentroid(country);
+          const coords = resolveCountryCoords(country, slugifyProjectName(name));
 
           let valueLabel = "";
           if (totalAmt >= 1_000_000_000) valueLabel = `$${(totalAmt / 1_000_000_000).toFixed(1)}B`;
@@ -224,15 +211,19 @@ serve(async (req) => {
             valueLabel,
             confidence,
             riskScore: 35,
-            lat, lng,
+            lat: coords.lat,
+            lng: coords.lng,
+            coordPrecision: coords.precision,
             description: shortDesc,
             timeline,
             sourceUrl: projectUrl,
             publishedAt: approvalDate || null,
             rawPayload: row,
             extractedClaims: { iadb_operation_number: operNum, lending_type: lendingType },
+            autoPublish: true,
           });
-          if (staged.outcome === "candidate_created") candidatesWritten++;
+          if (staged.outcome === "auto_published") autoPublished++;
+          else if (staged.outcome === "candidate_created") candidatesWritten++;
           else if (staged.outcome === "candidate_updated") candidatesUpdated++;
           else if (staged.outcome === "update_proposed") updatesProposed++;
           else skipped++;
@@ -242,10 +233,14 @@ serve(async (req) => {
         }
       }
 
-      if (records.length < batchSize) break;
+      if (records.length < batchSize) { exhausted = true; break; }
     }
 
-    const result = { success: true, fetched, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IADB", offset: startOffset };
+    if (backfill) {
+      await saveIngestCursor(supabase, "iadb-ingest", { nextOffset: endOffset, exhausted });
+    }
+
+    const result = { success: true, fetched, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "IADB", offset: startOffset, mode: backfill ? "backfill" : "standard" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),

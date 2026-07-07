@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import OverviewMap from '@/components/dashboard/OverviewMap';
 import { HealthScoreBadge } from '@/components/dashboard/HealthScoreBadge';
+import { ProvenanceBadge } from '@/components/dashboard/ProvenanceBadge';
 
 const CHART_COLORS = ['#5eead4', '#38bdf8', '#a78bfa', '#fb923c', '#f87171', '#34d399'];
 const STATUS_COLORS: Record<string, string> = { Verified: '#22c55e', Stable: '#3b82f6', Pending: '#f59e0b', 'At Risk': '#ef4444' };
@@ -806,7 +807,12 @@ export default function Projects() {
                       <span className="text-xs">{p.confidence}%</span>
                     </div>
                   </td>
-                  <td className="p-3"><Badge variant="outline" className="text-xs">{p.status}</Badge></td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="outline" className="text-xs">{p.status}</Badge>
+                      <ProvenanceBadge provenance={p.provenance} size="xs" />
+                    </div>
+                  </td>
                   <td className="p-3">
                     <HealthScoreBadge healthScore={p.healthScore} delayProbability={p.delayProbability} signals={p.healthSignals} size="sm" />
                   </td>
@@ -840,6 +846,7 @@ export default function Projects() {
               <div className="flex flex-wrap gap-1.5 items-center">
                 <Badge variant="outline" className="text-[10px]">{p.stage}</Badge>
                 <Badge variant="outline" className="text-[10px]">{p.status}</Badge>
+                <ProvenanceBadge provenance={p.provenance} size="xs" />
                 <span className="text-xs font-medium ml-auto">{p.valueLabel}</span>
               </div>
               <div className="flex items-center gap-2">
