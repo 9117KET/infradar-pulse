@@ -68,6 +68,7 @@ export default function ReviewQueue() {
   const [updatePage, setUpdatePage] = useState(0);
   const [duplicatePage, setDuplicatePage] = useState(0);
   const [sourceIssuePage, setSourceIssuePage] = useState(0);
+  const [officialPage, setOfficialPage] = useState(0);
 
   const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
     queryKey: ['pending-projects', legacyPage],
@@ -144,6 +145,24 @@ export default function ReviewQueue() {
         .select('*', { count: 'exact' })
         .or(`status.eq.failing,last_success_at.is.null,last_success_at.lt.${staleBefore}`)
         .order('last_failure_at', { ascending: false, nullsFirst: false })
+        .range(from, from + REVIEW_PAGE_SIZE - 1);
+      if (error) throw error;
+      return { rows: data ?? [], total: count ?? 0 };
+    },
+  });
+
+  // Machine-published official-registry projects (already live) — read-only
+  // spot-check list with an unpublish escape hatch.
+  const { data: officialPageResult = { rows: [], total: 0 } } = useQuery({
+    queryKey: ['official-published-review', officialPage],
+    queryFn: async () => {
+      const from = officialPage * REVIEW_PAGE_SIZE;
+      const { data, error, count } = await supabase
+        .from('projects')
+        .select('id, name, country, region, sector, stage, status, value_label, confidence, source_url, coord_precision, last_updated', { count: 'exact' })
+        .eq('approved', true)
+        .eq('provenance', 'official_registry')
+        .order('last_updated', { ascending: false })
         .range(from, from + REVIEW_PAGE_SIZE - 1);
       if (error) throw error;
       return { rows: data ?? [], total: count ?? 0 };
@@ -254,6 +273,27 @@ export default function ReviewQueue() {
       toast({ title: vars.verified ? 'Contact verified' : 'Verification removed' });
     },
     onError: (e) => showErr(e, 'Could not update contact'),
+  });
+
+  // Unpublish a machine-published project: it disappears from the public
+  // dashboard/map (approved=false lands it in the Legacy Queue) and the
+  // action is recorded in the review audit trail.
+  const unpublishMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('projects').update({ approved: false }).eq('id', id);
+      if (error) throw error;
+      const { error: logErr } = await supabase
+        .from('review_actions')
+        .insert({ item_type: 'quality_issue', project_id: id, action: 'note', reason: 'Unpublished official-registry project from verification workbench' });
+      if (logErr) throw logErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['official-published-review'] });
+      queryClient.invalidateQueries({ queryKey: ['pending-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast({ title: 'Project unpublished', description: 'It is off the public dashboard and now sits in the Legacy Queue for re-review.' });
+    },
+    onError: (e) => showErr(e, 'Unpublish failed'),
   });
 
   const duplicateAction = useMutation({
@@ -436,12 +476,13 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-muted/60">
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
           <TabsTrigger value="updates">Update Proposals ({updatePageResult.total})</TabsTrigger>
           <TabsTrigger value="sources">Source Issues ({sourceIssuePageResult.total})</TabsTrigger>
+          <TabsTrigger value="official">Published (official) ({officialPageResult.total})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -850,6 +891,59 @@ export default function ReviewQueue() {
               </div>
             ))}
             <Pager page={sourceIssuePage} total={sourceIssuePageResult.total} onPageChange={setSourceIssuePage} />
+          </>}
+        </TabsContent>
+
+        <TabsContent value="official" className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Auto-published from official registries (World Bank, IFC, ADB, IADB, AIIB, GEM, EIB). These are already live —
+            spot-check them here and unpublish anything that looks wrong; unpublished projects return to the Legacy Queue.
+          </p>
+          {officialPageResult.rows.length === 0 ? (
+            <div className="glass-panel rounded-xl p-12 text-center">
+              <FileCheck2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-serif text-lg font-semibold">No auto-published projects yet</h3>
+              <p className="text-sm text-muted-foreground mt-1">Official-registry ingest runs will publish here once the backfill cron is armed.</p>
+            </div>
+          ) : <>
+            <Pager page={officialPage} total={officialPageResult.total} onPageChange={setOfficialPage} />
+            {officialPageResult.rows.map((project: any) => (
+              <div key={project.id} className="glass-panel rounded-xl p-5 space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-serif font-semibold">{project.name}</h3>
+                      <Badge variant="outline" className="border-sky-500/40 text-sky-400">Official registry</Badge>
+                      <Badge variant="outline">{project.stage}</Badge>
+                      {project.coord_precision && (
+                        <Badge variant="outline" className="text-[10px] capitalize">
+                          <MapPin className="h-3 w-3 mr-1" />{project.coord_precision === 'exact' ? 'Exact location' : 'Country-level location'}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {project.country} · {project.sector || 'Unknown sector'} · {project.value_label} · confidence {project.confidence}%
+                      {project.last_updated ? ` · published ${new Date(project.last_updated).toLocaleDateString()}` : ''}
+                    </p>
+                    {project.source_url && (
+                      <a href={project.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
+                        <ExternalLink className="h-3 w-3" />{project.source_url}
+                      </a>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-400 hover:text-red-300 shrink-0"
+                    onClick={() => unpublishMutation.mutate(project.id)}
+                    disabled={unpublishMutation.isPending}
+                  >
+                    <X className="h-4 w-4 mr-1" />Unpublish
+                  </Button>
+                </div>
+              </div>
+            ))}
+            <Pager page={officialPage} total={officialPageResult.total} onPageChange={setOfficialPage} />
           </>}
         </TabsContent>
       </Tabs>
