@@ -1,5 +1,5 @@
 /**
- * gem-ingest-agent
+ * gem-ingest-agent (redeploy nudge 2026-07-09)
  *
  * Ingests power infrastructure from Global Energy Monitor's Global Integrated
  * Power Tracker (GIPT) — coal, oil/gas, nuclear, hydro, wind, solar,

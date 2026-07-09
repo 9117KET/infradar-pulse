@@ -1,5 +1,5 @@
 /**
- * eib-ingest-agent
+ * eib-ingest-agent (redeploy nudge 2026-07-09)
  *
  * Ingests European Investment Bank financed projects from the public JSON API
  * that powers eib.org's own project list (no API key required):

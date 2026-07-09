@@ -1,5 +1,5 @@
 /**
- * ted-ingest-agent
+ * ted-ingest-agent (redeploy nudge 2026-07-09)
  *
  * Ingests EU public procurement notices from TED (Tenders Electronic Daily)
  * via the free v3 search API — no API key required for read access:
