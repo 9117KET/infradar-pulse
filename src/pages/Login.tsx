@@ -22,10 +22,15 @@ export default function Login() {
   const { toast } = useToast();
   const { user } = useAuth();
   const refCode = new URLSearchParams(location.search).get('ref')?.toUpperCase() ?? getStoredReferralCode();
+  // Preserve `?next=` through login/signup so OAuth consent (and any other
+  // deep-link) returns the user to the URL they started from. Only accept
+  // same-origin relative paths to avoid open-redirect abuse.
+  const rawNext = new URLSearchParams(location.search).get('next');
+  const nextPath = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
 
   useEffect(() => {
-    if (user?.email_confirmed_at) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
+    if (user?.email_confirmed_at) navigate(nextPath, { replace: true });
+  }, [user, navigate, nextPath]);
 
   useEffect(() => {
     (supabase.rpc as any)('get_public_pilot_access_counter', {}).then(
@@ -81,7 +86,7 @@ export default function Login() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
           data: refCode ? { referred_by_code: refCode } : undefined,
         },
       });
