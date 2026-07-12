@@ -30,6 +30,7 @@ import Login from "./pages/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import AuthCallback from "./pages/auth/AuthCallback";
+import OAuthConsent from "./pages/auth/OAuthConsent";
 import Onboarding from "./pages/Onboarding";
 import SharedReport from "./pages/SharedReport";
 import DashboardOverview from "./pages/dashboard/Overview";
@@ -119,6 +120,7 @@ const App = () => (
             <Route path="/auth/forgot-password" element={<ForgotPassword />} />
             <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/onboarding" element={<Onboarding />} />
             {/* Public read-only shared report (no auth) */}
             <Route path="/r/:token" element={<SharedReport />} />

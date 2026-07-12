@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="InfraRadar">
+  <defs>
+    <linearGradient id="ir-teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5eead4"/>
+      <stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+  <circle cx="16" cy="16" r="14.4" fill="none" stroke="url(#ir-teal)" stroke-width="1.2" opacity="0.35"/>
+  <circle cx="16" cy="16" r="9.6" fill="none" stroke="url(#ir-teal)" stroke-width="1" opacity="0.55"/>
+  <circle cx="16" cy="16" r="4.8" fill="none" stroke="url(#ir-teal)" stroke-width="0.8" opacity="0.75"/>
+  <circle cx="16" cy="16" r="2.5" fill="url(#ir-teal)"/>
+  <line x1="16" y1="1" x2="16" y2="11.2" stroke="url(#ir-teal)" stroke-width="1" opacity="0.65"/>
+  <line x1="16" y1="20.8" x2="16" y2="31" stroke="url(#ir-teal)" stroke-width="1" opacity="0.65"/>
+  <line x1="1" y1="16" x2="11.2" y2="16" stroke="url(#ir-teal)" stroke-width="1" opacity="0.65"/>
+  <line x1="20.8" y1="16" x2="31" y2="16" stroke="url(#ir-teal)" stroke-width="1" opacity="0.65"/>
+</svg>

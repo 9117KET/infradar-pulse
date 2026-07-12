@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.1",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://yofglpxqpouqqhkidlkx.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "infradarai-mcp",
+      "version": "0.1.0",
+      "title": "InfraRadarAI"
+    },
+    "tools": [
+      {
+        "name": "list_projects",
+        "title": "List infrastructure projects",
+        "description": "List infrastructure projects tracked in InfraRadar. Supports optional filters for country, region, sector, and stage, plus a text query on project name/description. Returns id, name, country, region, sector, stage, value_usd, health_score, and last_updated.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Free-text match against project name/description."
+            },
+            "country": {
+              "type": "string",
+              "description": "ISO country name or code, e.g. 'Germany'."
+            },
+            "region": {
+              "type": "string",
+              "description": "Region label used by InfraRadar, e.g. 'Europe'."
+            },
+            "sector": {
+              "type": "string",
+              "description": "Sector, e.g. 'Energy', 'Transport'."
+            },
+            "stage": {
+              "type": "string",
+              "description": "Project stage, e.g. 'planning', 'construction'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max rows to return (default 25)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_project",
+        "title": "Get project detail",
+        "description": "Fetch the full record for a single InfraRadar infrastructure project by id, including description, risks, funding sources, health signals, and political context.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "project_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Project id (UUID)."
+            }
+          },
+          "required": [
+            "project_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_alerts",
+        "title": "List recent alerts",
+        "description": "Return the most recent InfraRadar alerts (risk, tender, market, ESG signals). Optional filters for severity and category.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "severity": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "critical"
+              ]
+            },
+            "category": {
+              "type": "string",
+              "description": "Alert category, e.g. 'risk', 'tender', 'market', 'esg'."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Max rows (default 25)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_tracked_projects",
+        "title": "List my tracked projects",
+        "description": "Return the current user's tracked/watchlisted infrastructure projects with the associated notes. Uses row-level security so callers only see their own watchlist.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
