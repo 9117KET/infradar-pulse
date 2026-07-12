@@ -1244,6 +1244,7 @@ export type Database = {
           acq_medium: string | null
           acq_source: string | null
           acq_term: string | null
+          checklist_dismissed_at: string | null
           company: string | null
           created_at: string | null
           critical_only: boolean | null
@@ -1251,6 +1252,7 @@ export type Database = {
           email_alerts: boolean | null
           id: string
           onboarded: boolean | null
+          onboarding_step: number
           referred_by_code: string | null
           regions: string[] | null
           role: string | null
@@ -1266,6 +1268,7 @@ export type Database = {
           acq_medium?: string | null
           acq_source?: string | null
           acq_term?: string | null
+          checklist_dismissed_at?: string | null
           company?: string | null
           created_at?: string | null
           critical_only?: boolean | null
@@ -1273,6 +1276,7 @@ export type Database = {
           email_alerts?: boolean | null
           id: string
           onboarded?: boolean | null
+          onboarding_step?: number
           referred_by_code?: string | null
           regions?: string[] | null
           role?: string | null
@@ -1288,6 +1292,7 @@ export type Database = {
           acq_medium?: string | null
           acq_source?: string | null
           acq_term?: string | null
+          checklist_dismissed_at?: string | null
           company?: string | null
           created_at?: string | null
           critical_only?: boolean | null
@@ -1295,6 +1300,7 @@ export type Database = {
           email_alerts?: boolean | null
           id?: string
           onboarded?: boolean | null
+          onboarding_step?: number
           referred_by_code?: string | null
           regions?: string[] | null
           role?: string | null

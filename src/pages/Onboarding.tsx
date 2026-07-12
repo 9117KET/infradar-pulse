@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import type { LucideIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,16 +9,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { InfradarLogo } from '@/components/InfradarLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { REGIONS, SECTORS, STAGES, type ProjectStage, type Region } from '@/data/projects';
 import {
-  ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, LayoutDashboard,
-  FolderSearch, Search, ShieldCheck, AlertTriangle, BarChart3, BookOpen, Activity, Sparkles, Star,
-  Bell, MessageSquare, Award, CalendarDays, Columns, GitCompare, Users2, Flag
+  ArrowRight, ArrowLeft, Briefcase, Globe, Rocket, Star,
 } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
-
-const TOTAL_STEPS = 7;
+import { TOTAL_ONBOARDING_STEPS as TOTAL_STEPS, resolveResumeStep, computePreselectedIds } from '@/lib/onboarding';
 
 const ROLES = [
   { value: 'investor', label: 'Investor / CFO', desc: 'Portfolio tracking, risk assessment' },
@@ -32,28 +29,6 @@ const ROLES = [
   { value: 'government', label: 'Government / SWF', desc: 'Cross-sector coordination, economic planning' },
   { value: 'legal_advisory', label: 'Legal / Advisory', desc: 'Due diligence, regulatory tracking' },
   { value: 'supply_chain', label: 'Supply Chain / Logistics', desc: 'Material demand, transport timing' },
-];
-
-const CORE_FEATURES = [
-  { icon: LayoutDashboard, name: 'Overview Dashboard', desc: 'Real-time portfolio metrics, regional risk heatmaps, and KPI tracking across all your monitored projects.' },
-  { icon: Sparkles, name: 'Ask AI', desc: 'Ask plain-language questions across the project database and get filtered intelligence with source-aware results.' },
-  { icon: FolderSearch, name: 'Project Intelligence', desc: 'Detailed project profiles with verified data, stakeholders, funding sources, evidence, timelines, and watchlist tracking.' },
-  { icon: MessageSquare, name: 'Portfolio Chat', desc: 'Chat directly with your tracked portfolio to identify risks, updates, actions, and priority opportunities.' },
-  { icon: Bell, name: 'Alerts & Rules', desc: 'Monitor political, financial, regulatory, supply chain, security, and construction alerts with configurable notification rules.' },
-];
-
-const INTEL_FEATURES = [
-  { icon: Globe, name: 'Geo Intelligence', desc: 'Interactive maps showing project clusters, infrastructure corridors, and regional investment patterns.' },
-  { icon: Award, name: 'Tenders & Awards', desc: 'Track contract awards, open tenders, re-tenders, cancellations, disputes, and arbitration signals.' },
-  { icon: CalendarDays, name: 'Tender Calendar', desc: 'View upcoming tender and award activity in a time-based workflow.' },
-  { icon: Columns, name: 'Pipeline View', desc: 'See projects grouped by selected stages from planning through completion, including cancelled and stopped projects.' },
-  { icon: GitCompare, name: 'Compare Projects', desc: 'Compare opportunities side by side across value, geography, sector, stage, confidence, and risk.' },
-  { icon: Users2, name: 'Stakeholder Intel', desc: 'Map owners, contractors, financiers, consultants, and other key counterparties across projects.' },
-  { icon: Flag, name: 'Country Intelligence', desc: 'Review country-level pipeline, sectors, values, risks, and alert exposure.' },
-  { icon: ShieldCheck, name: 'Evidence & Verification', desc: 'Multi-source evidence layers: satellite-tagged sources, filings, news, and registry data for each project.' },
-  { icon: AlertTriangle, name: 'Risk & Anomaly Signals', desc: 'AI-powered risk scoring with political, financial, regulatory, and environmental signal detection.' },
-  { icon: BarChart3, name: 'Analytics & Reports', desc: 'Custom dashboards with sector breakdowns, investment flows, and exportable PDF reports.' },
-  { icon: BookOpen, name: 'Insights & Briefings', desc: 'AI-generated intelligence briefings on market trends, regulatory changes, and emerging opportunities.' },
 ];
 
 const ROLE_TIPS: Record<string, { tip: string; startWith: string }> = {
@@ -69,26 +44,13 @@ const ROLE_TIPS: Record<string, { tip: string; startWith: string }> = {
   supply_chain: { tip: 'As Supply Chain/Logistics, timing and demand signals are crucial.', startWith: 'Start with Monitoring for real-time project updates.' },
 };
 
-function FeatureCard({ icon: Icon, name, desc }: { icon: LucideIcon; name: string; desc: string }) {
-  return (
-    <div className="flex gap-3 p-4 rounded-xl border border-border bg-card/50 hover:bg-card/80 transition-colors">
-      <div className="shrink-0 h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-        <Icon className="h-5 w-5 text-primary" />
-      </div>
-      <div>
-        <h4 className="text-sm font-semibold">{name}</h4>
-        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
 export default function Onboarding() {
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, profileLoading, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [portfolioSaving, setPortfolioSaving] = useState(false);
 
   const [role, setRole] = useState('');
   const [company, setCompany] = useState('');
@@ -99,12 +61,41 @@ export default function Onboarding() {
   const [suggestedProjects, setSuggestedProjects] = useState<{ id: string; name: string; country: string; sector: string; stage: string; value_usd: number | null }[]>([]);
   const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
   const [loadingProjects, setLoadingProjects] = useState(false);
+  const selectionTouched = useRef(false);
+  const preselectedCount = useRef(0);
+  const hydrated = useRef(false);
+
+  // Resume: seed local state from the saved profile once it's available.
+  useEffect(() => {
+    if (hydrated.current || !profile || profile.onboarded) return;
+    hydrated.current = true;
+    setDisplayName(profile.display_name ?? '');
+    setCompany(profile.company ?? '');
+    setRole(profile.role ?? '');
+    setRegions(profile.regions ?? []);
+    setSectors(profile.sectors ?? []);
+    setStages(profile.stages ?? []);
+    const resume = resolveResumeStep(profile);
+    setStep(resume);
+    void trackEvent(resume > 0 ? 'onboarding_resumed' : 'onboarding_started', { step: resume }, 'activation');
+  }, [profile]);
+
+  // Save-as-you-go: advance the wizard and persist answers so refresh/re-login resumes here.
+  // Fire-and-forget - a failed write only degrades resume, never blocks the wizard.
+  const persistStep = (nextStep: number, fields: TablesUpdate<'profiles'> = {}) => {
+    if (nextStep > step) void trackEvent('onboarding_step_completed', { step }, 'activation');
+    setStep(nextStep);
+    if (!user) return;
+    // .then() is required to actually execute the lazy supabase builder.
+    void supabase.from('profiles')
+      .update({ ...fields, onboarding_step: nextStep, updated_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .then(({ error }) => {
+        if (error) console.warn('onboarding: failed to persist step', error.message);
+      });
+  };
 
   // Reload suggested projects when the portfolio step is opened or preferences change.
-  useEffect(() => {
-    void trackEvent(step === 0 ? 'onboarding_started' : 'onboarding_step_completed', { step }, 'activation');
-  }, [step]);
-
   useEffect(() => {
     if (step !== 3) return;
     let cancelled = false;
@@ -118,15 +109,26 @@ export default function Onboarding() {
     if (regions.length > 0) query = query.in('region', regions as Region[]);
     if (sectors.length > 0) query = query.in('sector', sectors as never[]);
     if (stages.length > 0) query = query.in('stage', stages as ProjectStage[]);
-    query.then(({ data }) => {
+    const trackedQuery = user
+      ? supabase.from('tracked_projects').select('project_id').eq('user_id', user.id)
+      : Promise.resolve({ data: [] as { project_id: string }[] });
+    Promise.all([query, trackedQuery]).then(([{ data }, trackedRes]) => {
       if (cancelled) return;
-      setSuggestedProjects(data ?? []);
+      const suggestions = data ?? [];
+      setSuggestedProjects(suggestions);
+      const trackedIds = (trackedRes.data ?? []).map(t => t.project_id);
+      setSelectedProjectIds(prev => {
+        const next = computePreselectedIds(suggestions, trackedIds, selectionTouched.current, prev);
+        if (!selectionTouched.current) preselectedCount.current = next.size;
+        return next;
+      });
       setLoadingProjects(false);
     });
     return () => { cancelled = true; };
-  }, [step, regions, sectors, stages]);
+  }, [step, regions, sectors, stages, user]);
 
   const toggleProject = (id: string) => {
+    selectionTouched.current = true;
     setSelectedProjectIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -137,6 +139,28 @@ export default function Onboarding() {
 
   const toggle = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
+  };
+
+  // Persist the portfolio selection when leaving step 3, so resuming at the summary is accurate.
+  // Only touches suggested ids - projects tracked elsewhere are never removed here.
+  const continueFromPortfolio = async () => {
+    if (!user) { persistStep(4); return; }
+    setPortfolioSaving(true);
+    const suggestedIds = suggestedProjects.map(p => p.id);
+    const selected = suggestedIds.filter(id => selectedProjectIds.has(id));
+    const deselected = suggestedIds.filter(id => !selectedProjectIds.has(id));
+    if (selected.length > 0) {
+      await supabase.from('tracked_projects').upsert(
+        selected.map(project_id => ({ user_id: user.id, project_id, notes: '' })),
+        { onConflict: 'user_id,project_id' },
+      );
+      void trackEvent('first_project_tracked', { count: selected.length, preselected_count: preselectedCount.current }, 'activation');
+    }
+    if (deselected.length > 0) {
+      await supabase.from('tracked_projects').delete().eq('user_id', user.id).in('project_id', deselected);
+    }
+    setPortfolioSaving(false);
+    persistStep(4);
   };
 
   const finish = async () => {
@@ -158,22 +182,26 @@ export default function Onboarding() {
       setSaving(false);
       return;
     }
-    // Seed portfolio with selected projects
-    if (selectedProjectIds.size > 0) {
-      const rows = Array.from(selectedProjectIds).map(project_id => ({
-        user_id: user.id,
-        project_id,
-        notes: '',
-      }));
-      await supabase.from('tracked_projects').upsert(rows, { onConflict: 'user_id,project_id' });
-      void trackEvent('first_project_tracked', { count: selectedProjectIds.size }, 'activation');
-    }
     void trackEvent('onboarding_completed', { role, regions_count: regions.length, sectors_count: sectors.length, stages_count: stages.length }, 'activation');
     await refreshProfile();
     navigate('/dashboard', { replace: true });
   };
 
   const roleTips = ROLE_TIPS[role] || { tip: 'Welcome to InfradarAI.', startWith: 'Start with the Overview Dashboard to explore your data.' };
+
+  if (profile?.onboarded) return <Navigate to="/dashboard" replace />;
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="w-full max-w-lg space-y-4">
+          <Skeleton className="h-10 w-10 rounded-full mx-auto" />
+          <Skeleton className="h-6 w-48 mx-auto" />
+          <Skeleton className="h-40 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -209,7 +237,7 @@ export default function Onboarding() {
                 <Input value={company} onChange={e => setCompany(e.target.value)} placeholder="Your organization" className="mt-1" />
               </div>
             </div>
-            <Button onClick={() => setStep(1)} disabled={!displayName.trim()} className="w-full">
+            <Button onClick={() => persistStep(1, { display_name: displayName, company })} disabled={!displayName.trim()} className="w-full">
               Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -234,10 +262,10 @@ export default function Onboarding() {
               ))}
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(0)} className="flex-1">
+              <Button variant="outline" onClick={() => persistStep(0)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => setStep(2)} disabled={!role} className="flex-1">
+              <Button onClick={() => persistStep(2, { role })} disabled={!role} className="flex-1">
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -284,10 +312,10 @@ export default function Onboarding() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+              <Button variant="outline" onClick={() => persistStep(1)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => setStep(3)} disabled={regions.length === 0 && sectors.length === 0} className="flex-1">
+              <Button onClick={() => persistStep(3, { regions, sectors, stages })} disabled={regions.length === 0 && sectors.length === 0} className="flex-1">
                 Continue <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -301,7 +329,7 @@ export default function Onboarding() {
               <Star className="h-5 w-5 text-primary" /> Start your portfolio
             </div>
             <p className="text-sm text-muted-foreground">
-              Select projects to add to your portfolio. You can add more anytime from the Projects page.
+              We've pre-selected top matches for your focus areas — tap any to remove. You can add more anytime from the Projects page.
             </p>
             {loadingProjects ? (
               <div className="grid grid-cols-1 gap-2">
@@ -349,60 +377,18 @@ export default function Onboarding() {
               <p className="text-xs text-primary text-center">{selectedProjectIds.size} project{selectedProjectIds.size !== 1 ? 's' : ''} selected</p>
             )}
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+              <Button variant="outline" onClick={() => persistStep(2)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
-              <Button onClick={() => setStep(4)} className="flex-1">
-                {selectedProjectIds.size === 0 ? 'Skip' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={continueFromPortfolio} disabled={portfolioSaving} className="flex-1">
+                {portfolioSaving ? 'Saving…' : selectedProjectIds.size === 0 ? 'Skip' : 'Continue'} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 4: Platform tour, core features */}
+        {/* Step 4: Getting started, role-specific tips and summary */}
         {step === 4 && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
-              <Sparkles className="h-5 w-5 text-primary" /> Core Features
-            </div>
-            <p className="text-sm text-muted-foreground">Here's what powers your intelligence workflow:</p>
-            <div className="space-y-3">
-              {CORE_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={() => setStep(5)} className="flex-1">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Platform tour, intelligence and analysis */}
-        {step === 5 && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 text-lg font-serif font-semibold">
-              <Activity className="h-5 w-5 text-primary" /> Intelligence & Analysis
-            </div>
-            <p className="text-sm text-muted-foreground">Deep analytical tools for informed decisions:</p>
-            <div className="space-y-3">
-              {INTEL_FEATURES.map(f => <FeatureCard key={f.name} {...f} />)}
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(4)} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
-              </Button>
-              <Button onClick={() => setStep(6)} className="flex-1">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 6: Getting started, role-specific tips and summary */}
-        {step === 6 && (
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-lg font-serif font-semibold">
               <Rocket className="h-5 w-5 text-primary" /> You're all set!
@@ -447,7 +433,7 @@ export default function Onboarding() {
             <p className="text-xs text-muted-foreground text-center">You can change these preferences anytime in Settings.</p>
 
             <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(5)} className="flex-1">
+              <Button variant="outline" onClick={() => persistStep(3)} className="flex-1">
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <Button onClick={finish} disabled={saving} className="flex-1">

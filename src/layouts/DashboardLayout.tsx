@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useProjects } from '@/hooks/use-projects';
+import { useGettingStarted } from '@/hooks/use-getting-started';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -365,6 +366,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string }> = {
 
 function ProfileMenu() {
   const { profile, roles, signOut, hasRole } = useAuth();
+  const { reopen: reopenChecklist } = useGettingStarted();
   const navigate = useNavigate();
   const topRole = hasRole('admin') ? 'admin' : hasRole('researcher') ? 'researcher' : 'user';
   const roleInfo = ROLE_LABELS[topRole];
@@ -413,6 +415,9 @@ function ProfileMenu() {
         )}
 
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => { void reopenChecklist(); navigate('/dashboard'); }}>
+          <ListChecks className="mr-2 h-4 w-4" /> Getting started
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => navigate('/dashboard/settings')}>
           <Settings className="mr-2 h-4 w-4" /> Settings
         </DropdownMenuItem>

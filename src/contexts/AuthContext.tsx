@@ -15,6 +15,8 @@ export interface UserProfile {
   sectors: string[];
   stages: string[];
   onboarded: boolean;
+  onboarding_step: number;
+  checklist_dismissed_at: string | null;
   tour_completed: boolean;
   email_alerts: boolean;
   weekly_digest: boolean;

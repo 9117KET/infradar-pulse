@@ -2,7 +2,7 @@
  * New-user onboarding walkthrough — verification spec.
  *
  * Covers the full journey of a brand-new user:
- *   signup → (email confirm) → onboarding (7 steps) → dashboard → pilot access check
+ *   signup → (email confirm) → onboarding (5 steps, resumable) → dashboard → pilot access check
  *
  * Environment:
  *   - App running on http://localhost:8080
@@ -70,6 +70,7 @@ function extractLink(html: string): string | null {
 
 // ── single test ─────────────────────────────────────────────────────────────
 test("new-user onboarding walkthrough: signup → onboarding → dashboard", async ({ page }) => {
+  test.setTimeout(120_000); // long serial walkthrough: signup, resume-reload, 6 page visits
   const errors: string[] = [];
   page.on("console", (msg) => {
     if (msg.type() === "error") errors.push(msg.text());
@@ -227,6 +228,14 @@ test("new-user onboarding walkthrough: signup → onboarding → dashboard", asy
     await page.waitForTimeout(400);
     await snap(page, "09-onboarding-focus");
 
+    // Resumability: answers persist per-step, so a reload must land back on
+    // the focus step (step 3 of 5), not restart at step 1.
+    await page.waitForTimeout(800); // let the fire-and-forget profile write land
+    await page.reload({ waitUntil: "networkidle" });
+    await expect(page.locator("text=Step 3 of 5")).toBeVisible({ timeout: 8000 });
+    console.log("  resume after reload: OK (back on focus step)");
+    await snap(page, "09b-onboarding-resumed");
+
     // Step 2: Focus areas — must select ≥1 region OR sector
     // The "Continue" button is disabled until at least one checkbox is checked.
     // The Radix Checkbox renders as a <button> with role="checkbox".
@@ -262,26 +271,27 @@ test("new-user onboarding walkthrough: signup → onboarding → dashboard", asy
     const suggestedProjects = await page.locator("button.w-full.text-left").count();
     console.log(`  suggested projects: ${suggestedProjects}`);
 
-    // Select 1 project if available
+    // Smart pre-seeding: top matches should already be selected before any click.
+    const selectedCountText = () =>
+      page.locator("text=/\\d+ projects? selected/").first().textContent().catch(() => null);
     if (suggestedProjects > 0) {
+      const preselected = await selectedCountText();
+      console.log(`  pre-selected: ${preselected}`);
+      expect(preselected, "expected projects to be pre-selected (opt-out)").toBeTruthy();
+
+      // Toggling the first project now DESELECTS it — count must change.
       await page.locator("button.w-full.text-left").first().click();
       await page.waitForTimeout(200);
+      const afterToggle = await selectedCountText();
+      console.log(`  after toggling first project: ${afterToggle}`);
+      expect(afterToggle).not.toBe(preselected);
     }
 
     await page.getByRole("button", { name: /skip|continue/i }).last().click();
-    await page.waitForTimeout(400);
-
-    // Step 4: Core features
-    await snap(page, "11-onboarding-core-features");
-    await page.getByRole("button", { name: /continue/i }).last().click();
-    await page.waitForTimeout(400);
-
-    // Step 5: Intelligence features
-    await page.getByRole("button", { name: /continue/i }).last().click();
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(800); // portfolio selection is persisted before advancing
     await snap(page, "12-onboarding-finish");
 
-    // Step 6: Finish — "Go to Dashboard"
+    // Step 4: Finish — "Go to Dashboard"
     const finishBtn = page.getByRole("button", { name: /go to dashboard/i });
     await expect(finishBtn).toBeVisible({ timeout: 5000 });
     await finishBtn.click();
