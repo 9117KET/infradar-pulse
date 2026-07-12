@@ -122,7 +122,7 @@ export default function Login() {
         }
       } else {
         void trackEvent('login_completed', { method: 'email' }, 'auth');
-        navigate('/dashboard');
+        navigate(nextPath);
       }
     }
     setLoading(false);
