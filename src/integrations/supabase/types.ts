@@ -3035,6 +3035,14 @@ export type Database = {
         | "Transport"
         | "Water"
         | "Energy"
+        | "Infrastructure"
+        | "Mining"
+        | "Oil & Gas"
+        | "Industrial"
+        | "AI Infrastructure"
+        | "Data Centers"
+        | "Building Construction"
+        | "Chemical"
       project_stage:
         | "Planned"
         | "Tender"
@@ -3044,7 +3052,12 @@ export type Database = {
         | "Completed"
         | "Cancelled"
         | "Stopped"
-      project_status: "Verified" | "Stable" | "Pending" | "At Risk"
+      project_status:
+        | "Verified"
+        | "Stable"
+        | "Pending"
+        | "At Risk"
+        | "Cancelled"
       research_task_status: "pending" | "running" | "completed" | "failed"
     }
     CompositeTypes: {
@@ -3227,6 +3240,14 @@ export const Constants = {
         "Transport",
         "Water",
         "Energy",
+        "Infrastructure",
+        "Mining",
+        "Oil & Gas",
+        "Industrial",
+        "AI Infrastructure",
+        "Data Centers",
+        "Building Construction",
+        "Chemical",
       ],
       project_stage: [
         "Planned",
@@ -3238,7 +3259,7 @@ export const Constants = {
         "Cancelled",
         "Stopped",
       ],
-      project_status: ["Verified", "Stable", "Pending", "At Risk"],
+      project_status: ["Verified", "Stable", "Pending", "At Risk", "Cancelled"],
       research_task_status: ["pending", "running", "completed", "failed"],
     },
   },
