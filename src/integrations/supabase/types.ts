@@ -2944,6 +2944,22 @@ export type Database = {
         Args: { p_report_run_id: string }
         Returns: undefined
       }
+      safe_cast_project_region: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_region"]
+      }
+      safe_cast_project_sector: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_sector"]
+      }
+      safe_cast_project_stage: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_stage"]
+      }
+      safe_cast_project_status: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
       slugify_project_name: { Args: { p_name: string }; Returns: string }
       try_consume_quota: {
         Args: {

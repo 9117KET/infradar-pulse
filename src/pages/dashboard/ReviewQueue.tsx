@@ -161,7 +161,7 @@ export default function ReviewQueue() {
         .from('projects')
         .select('id, name, country, region, sector, stage, status, value_label, confidence, source_url, coord_precision, last_updated', { count: 'exact' })
         .eq('approved', true)
-        .eq('provenance', 'official_registry')
+        .eq('provenance' as never, 'official_registry')
         .order('last_updated', { ascending: false })
         .range(from, from + REVIEW_PAGE_SIZE - 1);
       if (error) throw error;
@@ -211,12 +211,15 @@ export default function ReviewQueue() {
     },
   });
 
-  const showErr = (e: unknown, title: string) =>
-    toast({
-      title,
-      description: e instanceof Error ? e.message : String(e),
-      variant: 'destructive',
-    });
+  const showErr = (e: unknown, title: string) => {
+    let description = 'Unknown error';
+    if (e instanceof Error) description = e.message;
+    else if (e && typeof e === 'object') {
+      const err = e as { message?: string; details?: string; hint?: string; code?: string };
+      description = err.message || err.details || err.hint || err.code || JSON.stringify(e);
+    } else if (e != null) description = String(e);
+    toast({ title, description, variant: 'destructive' });
+  };
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
