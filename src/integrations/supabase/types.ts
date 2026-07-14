@@ -2851,6 +2851,10 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
+      has_paid_contact_access: {
+        Args: { _user_id: string; check_env?: string }
+        Returns: boolean
+      }
       has_paid_or_staff_access:
         | { Args: { _user_id: string }; Returns: boolean }
         | { Args: { _user_id: string; check_env?: string }; Returns: boolean }
