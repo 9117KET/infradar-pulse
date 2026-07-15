@@ -159,9 +159,8 @@ export default function ReviewQueue() {
       const from = officialPage * REVIEW_PAGE_SIZE;
       const { data, error, count } = await supabase
         .from('projects')
-        .select('id, name, country, region, sector, stage, status, value_label, confidence, source_url, coord_precision, last_updated', { count: 'exact' })
+        .select('id, name, country, region, sector, stage, status, value_label, confidence, source_url, last_updated', { count: 'exact' })
         .eq('approved', true)
-        .eq('provenance' as never, 'official_registry')
         .order('last_updated', { ascending: false })
         .range(from, from + REVIEW_PAGE_SIZE - 1);
       if (error) throw error;
