@@ -1223,33 +1223,36 @@ export type Database = {
       }
       project_claims: {
         Row: {
-          candidate_id: string
+          candidate_id: string | null
           confidence: number
           created_at: string
           evidence_id: string | null
           field_name: string
           field_value: string | null
           id: string
+          project_id: string | null
           quote: string | null
         }
         Insert: {
-          candidate_id: string
+          candidate_id?: string | null
           confidence?: number
           created_at?: string
           evidence_id?: string | null
           field_name: string
           field_value?: string | null
           id?: string
+          project_id?: string | null
           quote?: string | null
         }
         Update: {
-          candidate_id?: string
+          candidate_id?: string | null
           confidence?: number
           created_at?: string
           evidence_id?: string | null
           field_name?: string
           field_value?: string | null
           id?: string
+          project_id?: string | null
           quote?: string | null
         }
         Relationships: [
@@ -1265,6 +1268,13 @@ export type Database = {
             columns: ["evidence_id"]
             isOneToOne: false
             referencedRelation: "raw_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_claims_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2145,6 +2155,8 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          last_error: string | null
+          last_failure_at: string | null
           last_success_at: string | null
           name: string
           reliability_score: number
@@ -2159,6 +2171,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          last_error?: string | null
+          last_failure_at?: string | null
           last_success_at?: string | null
           name: string
           reliability_score?: number
@@ -2173,6 +2187,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          last_error?: string | null
+          last_failure_at?: string | null
           last_success_at?: string | null
           name?: string
           reliability_score?: number
