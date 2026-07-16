@@ -31,7 +31,7 @@ supabase/.branches/
 supabase/.temp/
 
 # Private research & notes (never commit)
-private/
+go-to-market/private/
 
 # Playwright output
 test-results/

@@ -85,6 +85,8 @@ Mine 50+ more named contacts at zero cost:
 
 - [ACCELERATORS.md](ACCELERATORS.md) — accelerator master tracker
 - [LOI-TARGETS.md](LOI-TARGETS.md) — named-contact database
+- [TRACTION_MARKETING.md](TRACTION_MARKETING.md) — traction narrative for marketing use
+- `private/` — **gitignored.** Real scraped names/emails, the live lead tracker (`first-100-tracker.csv`), concierge email log, EF application draft, and legal docs. Never commit anything from this folder.
 
 ### Application Documents
 

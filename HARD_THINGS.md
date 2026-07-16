@@ -279,7 +279,7 @@ For InfraRadar specifically: the most valuable orchestration investment is makin
 
 | Practice | Tool / Resource |
 |---|---|
-| Weekly written review | Obsidian / Notion / plain markdown in this repo under `private/` |
+| Weekly written review | Obsidian / Notion / plain markdown in this repo under `go-to-market/private/` |
 | Decision log | A `DECISIONS.md` in the repo — date, decision, reasoning, expected outcome. Review monthly. |
 | Honest feedback network | Find 1-2 people in infrastructure procurement or B2B SaaS who will do 30-min calls monthly |
 | Burn tracking | A simple spreadsheet: monthly costs (Supabase, OpenAI, Perplexity, Stripe, Vercel, Firecrawl), projected runway at current burn |
