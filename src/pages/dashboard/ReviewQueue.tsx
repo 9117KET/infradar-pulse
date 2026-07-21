@@ -143,7 +143,7 @@ export default function ReviewQueue() {
       const { data, error, count } = await (supabase as any)
         .from('source_registry')
         .select('*', { count: 'exact' })
-        .or(`status.eq.failing,last_success_at.is.null,last_success_at.lt.${staleBefore}`)
+        .or(`status.eq.failing,and(status.neq.active,last_success_at.lt.${staleBefore})`)
         .order('last_failure_at', { ascending: false, nullsFirst: false })
         .range(from, from + REVIEW_PAGE_SIZE - 1);
       if (error) throw error;
