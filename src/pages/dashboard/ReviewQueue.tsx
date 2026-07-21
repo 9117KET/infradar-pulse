@@ -341,7 +341,7 @@ export default function ReviewQueue() {
       if (error) throw error;
       const { error: logErr } = await (supabase as any)
         .from('review_actions')
-        .insert({ item_type: 'source', item_id: id, action: 'note', reason: action === 'retry' ? 'Source re-activated for retry' : 'Source paused' });
+        .insert({ item_type: 'source', action: 'note', reason: action === 'retry' ? `Source re-activated for retry: ${id}` : `Source paused: ${id}` });
       if (logErr) throw logErr;
     },
     onSuccess: () => {
