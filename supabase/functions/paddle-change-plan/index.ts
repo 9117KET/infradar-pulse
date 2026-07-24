@@ -1,3 +1,6 @@
+// DORMANT: superseded by lemonsqueezy-change-plan. Not called from any client
+// path as of 2026-07-24. Left in place for reference/rollback.
+//
 // Upgrades / downgrades a user's Paddle subscription to a different price.
 //
 // Proration mode depends on subscription status:

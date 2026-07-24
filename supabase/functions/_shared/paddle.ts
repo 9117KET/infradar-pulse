@@ -1,3 +1,7 @@
+// DORMANT: superseded by _shared/lemonsqueezy.ts. Not called from any client
+// path as of 2026-07-24. Left in place for reference/rollback — do not wire
+// up without also re-enabling VITE_PAYMENTS_CLIENT_TOKEN and Paddle secrets.
+//
 // Canonical Paddle utility for edge functions. Routes API calls through the
 // Lovable connector gateway and verifies webhooks using the env-specific secret.
 import { Environment, Paddle, EventName } from 'npm:@paddle/paddle-node-sdk';

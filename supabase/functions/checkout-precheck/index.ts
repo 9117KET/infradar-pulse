@@ -50,10 +50,13 @@ Deno.serve(async (req: Request) => {
 
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    // Find any existing paddle customer id we have on file for this user.
+    // Find any existing customer id we have on file for this user, from
+    // either provider — check_trial_eligible's p_paddle_customer_id param is
+    // opaque text used for anti-abuse matching regardless of which provider
+    // it came from.
     const { data: existing } = await supabaseAdmin
       .from("subscriptions")
-      .select("paddle_customer_id")
+      .select("paddle_customer_id, ls_customer_id")
       .eq("user_id", user.id)
       .eq("environment", env)
       .maybeSingle();
@@ -63,7 +66,7 @@ Deno.serve(async (req: Request) => {
       {
         p_user_id: user.id,
         p_email: user.email ?? null,
-        p_paddle_customer_id: existing?.paddle_customer_id ?? null,
+        p_paddle_customer_id: existing?.paddle_customer_id ?? existing?.ls_customer_id ?? null,
         p_environment: env,
       },
     );

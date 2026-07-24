@@ -1,3 +1,6 @@
+// DORMANT: superseded by lemonsqueezy-portal. Not called from any client
+// path as of 2026-07-24. Left in place for reference/rollback.
+//
 // Returns a Paddle customer portal URL for the signed-in user. Opens in a new tab.
 //
 // Important edge case: if the user only has a CANCELED subscription, we

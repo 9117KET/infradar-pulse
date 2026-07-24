@@ -18,8 +18,11 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { ReferralDashboardCard } from '@/components/ReferralDashboardCard';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { isEntitlementOrQuotaError, isStaffOnlyError } from '@/lib/billing/functionsErrors';
-import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
-import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+// DORMANT: import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription, exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
+import { exportAccountData, deleteAccount } from '@/lib/billing/paddleClient';
+import { openCustomerPortal, changePlan, cancelSubscription, resumeSubscription } from '@/lib/billing/lemonSqueezyClient';
+// DORMANT: import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { useLemonSqueezyCheckout, type PlanPriceId } from '@/hooks/useLemonSqueezyCheckout';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
@@ -327,12 +330,13 @@ function daysUntil(iso: string | null): number | null {
 function BillingTab() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { loading, plan, planLabel, limits, usage, hasPaddleCustomer, staffBypass, subInfo, noCardTrial, refresh } = useEntitlements();
-  const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { loading, plan, planLabel, limits, usage, hasPaymentsCustomer, staffBypass, subInfo, noCardTrial, refresh } = useEntitlements();
+  // DORMANT: const { openCheckout, loading: checkoutLoading } = usePaddleCheckout();
+  const { openCheckout, loading: checkoutLoading } = useLemonSqueezyCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const [busy, setBusy] = useState<'starter' | 'pro' | 'portal' | 'change' | 'cancel' | 'resume' | null>(null);
 
-  // After Paddle checkout completes, poll the subscriptions table until the
+  // After checkout completes, poll the subscriptions table until the
   // webhook lands (~2-30s). Without this, users see "Free plan" right after
   // paying which is jarring.
   const completion = useCheckoutCompletion(user?.id, async () => {
@@ -353,9 +357,9 @@ function BillingTab() {
     setBusy(key);
     try {
       await openCheckout(priceId);
-      // Paddle's overlay closes on success — we begin polling at that point.
-      // (If the user just abandons the overlay, we'll still poll for 30s,
-      // which is harmless.)
+      // The Lemon Squeezy overlay closes on success — we begin polling at that
+      // point. (If the user just abandons the overlay, we'll still poll for
+      // 30s, which is harmless.)
       completion.start();
     } catch (e) {
       toast({ title: 'Checkout failed', description: e instanceof Error ? e.message : 'Please try again.', variant: 'destructive' });
@@ -388,7 +392,7 @@ function BillingTab() {
     }
   };
 
-  const switchPlan = async (priceId: 'starter_monthly_no_trial' | 'starter_yearly_no_trial' | 'pro_monthly_no_trial' | 'pro_yearly_no_trial') => {
+  const switchPlan = async (priceId: 'starter_monthly' | 'starter_yearly' | 'pro_monthly' | 'pro_yearly') => {
     setBusy('change');
     try {
       await changePlan(priceId);
@@ -520,11 +524,11 @@ function BillingTab() {
                   Start 3-day trial
                 </Button>
               )}
-              <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly_no_trial', 'starter')}>
+              <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly', 'starter')}>
                 {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Subscribe Starter — $29/mo
               </Button>
-              <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly_no_trial', 'pro')}>
+              <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly', 'pro')}>
                 {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Subscribe Pro — $199/mo
               </Button>
@@ -537,19 +541,19 @@ function BillingTab() {
             <p className="text-xs text-muted-foreground">Switch plans (charges adjust immediately, prorated) or cancel.</p>
             <div className="flex flex-wrap gap-2">
               {plan !== 'pro' && plan !== 'lifetime' && (
-                <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly_no_trial')}>
+                <Button className="teal-glow" disabled={!!busy} onClick={() => void switchPlan('pro_monthly')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
                   Upgrade to Pro
                 </Button>
               )}
               {(plan === 'starter' || plan === 'pro') && (
-                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan(plan === 'pro' ? 'pro_yearly_no_trial' : 'starter_yearly_no_trial')}>
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan(plan === 'pro' ? 'pro_yearly' : 'starter_yearly')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowUpRight className="h-4 w-4 mr-2" />}
                   Switch to yearly · save 20%
                 </Button>
               )}
               {plan !== 'starter' && plan !== 'free' && plan !== 'lifetime' && (
-                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly_no_trial')}>
+                <Button variant="outline" disabled={!!busy} onClick={() => void switchPlan('starter_monthly')}>
                   {busy === 'change' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowDownRight className="h-4 w-4 mr-2" />}
                   Downgrade to Starter
                 </Button>
@@ -585,10 +589,10 @@ function BillingTab() {
           </>
         )}
 
-        {hasPaddleCustomer && (
+        {hasPaymentsCustomer && (
           <div className="pt-3 mt-1 border-t border-border/40 space-y-2">
             <p className="text-xs text-muted-foreground">
-              Paddle handles billing as Merchant of Record. Manage payment methods, download invoices, and request refunds via the secure customer portal (opens in a new tab).
+              Lemon Squeezy handles billing as Merchant of Record. Manage payment methods, download invoices, and request refunds via the secure customer portal (opens in a new tab).
             </p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" disabled={!!busy} onClick={() => void portal()}>

@@ -1,3 +1,15 @@
+// DORMANT: superseded by lemonsqueezy-webhook. Unlike the other paddle-*
+// functions, this one is reachable by an external third party (Paddle's own
+// servers), not just our own frontend — so removing client call sites alone
+// wouldn't guarantee it can't fire. It hard-gates with 410 below; the
+// original logic is preserved in the block comment for reference/rollback.
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { status: 410 });
+  return new Response('Paddle integration is currently dormant.', { status: 410 });
+});
+
+/* ORIGINAL PADDLE WEBHOOK LOGIC (dormant as of 2026-07-24) ------------------
+
 // Paddle webhook handler. Receives subscription, transaction, and adjustment
 // events and syncs the public.subscriptions table + billing_events audit log.
 // Webhook URL and secret are pre-registered by the Lovable Paddle integration.
@@ -376,3 +388,5 @@ async function maybeGrantLifetime(data: any, env: PaddleEnv) {
     console.error('maybeGrantLifetime failed (non-fatal):', err);
   }
 }
+
+----------------------------------------------------------------------------- */

@@ -1,9 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getPaddleEnvironment } from '@/lib/paddle';
+import { getAppEnvironment } from '@/lib/billing/environment';
 
 async function invokeAgent(functionName: string) {
   const { data, error } = await supabase.functions.invoke(functionName, {
-    body: { environment: getPaddleEnvironment() },
+    body: { environment: getAppEnvironment() },
   });
 
   if (error) {
@@ -15,7 +15,7 @@ async function invokeAgent(functionName: string) {
 
 async function invokeAgentWithBody(functionName: string, body: Record<string, unknown>) {
   const { data, error } = await supabase.functions.invoke(functionName, {
-    body: { ...body, environment: getPaddleEnvironment() },
+    body: { ...body, environment: getAppEnvironment() },
   });
   // Re-throw the original error to preserve context (HTTP status, etc.) so
   // callers like isEntitlementOrQuotaError can inspect it correctly.

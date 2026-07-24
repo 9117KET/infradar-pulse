@@ -1,12 +1,9 @@
-// DORMANT: superseded by lemonsqueezy-cancel. Not called from any client
-// path as of 2026-07-24. Left in place for reference/rollback.
-//
-// Cancels the user's Paddle subscription at the end of the current billing
-// period. Webhook will mark cancel_at_period_end=true; status flips to
-// 'canceled' once the period actually ends.
+// Cancels the user's Lemon Squeezy subscription (access continues until the
+// current period's `ends_at`). Webhook (subscription_cancelled) syncs local
+// status once LS processes it.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
+import { lsFetch, type LsEnv } from '../_shared/lemonsqueezy.ts';
 import { getUserFromBearer } from '../_shared/auth.ts';
 
 const corsHeaders = {
@@ -30,32 +27,36 @@ serve(async (req) => {
     }
 
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {};
-    const env = (body.environment === 'live' ? 'live' : 'sandbox') as PaddleEnv;
+    const env = (body.environment === 'live' ? 'live' : 'sandbox') as LsEnv;
 
     const admin = createClient(supabaseUrl, serviceKey);
     const { data: sub } = await admin
       .from('subscriptions')
-      .select('paddle_subscription_id')
+      .select('ls_subscription_id')
       .eq('user_id', user.id)
       .eq('environment', env)
+      .eq('provider', 'lemonsqueezy')
       .maybeSingle();
 
-    if (!sub?.paddle_subscription_id) {
+    if (!sub?.ls_subscription_id) {
       return new Response(JSON.stringify({ error: 'No active subscription.' }), { status: 400, headers: corsHeaders });
     }
 
-    const paddle = getPaddleClient(env);
-    const cancelled = await paddle.subscriptions.cancel(sub.paddle_subscription_id, {
-      effectiveFrom: 'next_billing_period',
-    });
+    const res = await lsFetch(`/subscriptions/${sub.ls_subscription_id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error('lemonsqueezy-cancel: LS API error', res.status, errBody);
+      return new Response(JSON.stringify({ error: 'Failed to cancel subscription.' }), { status: 502, headers: corsHeaders });
+    }
 
+    const json = await res.json();
     return new Response(
-      JSON.stringify({ ok: true, status: cancelled.status, cancel_at: cancelled.scheduledChange?.effectiveAt }),
-      { headers: corsHeaders }
+      JSON.stringify({ ok: true, status: json?.data?.attributes?.status, ends_at: json?.data?.attributes?.ends_at }),
+      { headers: corsHeaders },
     );
   } catch (e) {
-    console.error('paddle-cancel error:', e);
-    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+    console.error('lemonsqueezy-cancel error:', e);
+    return new Response(JSON.stringify({ error: 'An internal error occurred. Please try again.' }), {
       status: 500,
       headers: corsHeaders,
     });

@@ -5,7 +5,7 @@
 // It exposes a state machine the BillingTab can render as a progress UI.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getPaddleEnvironment } from '@/lib/paddle';
+import { getAppEnvironment } from '@/lib/billing/environment';
 
 const POLL_INTERVAL_MS = 2000;
 const TIMEOUT_MS = 30_000;
@@ -68,7 +68,7 @@ export function useCheckoutCompletion(
         .from('subscriptions')
         .select('status')
         .eq('user_id', userId)
-        .eq('environment', getPaddleEnvironment())
+        .eq('environment', getAppEnvironment())
         .in('status', ['trialing', 'active', 'past_due'])
         .order('created_at', { ascending: false })
         .limit(1)

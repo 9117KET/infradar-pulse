@@ -12,11 +12,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { Sparkles, Loader2, Clock, Globe } from 'lucide-react';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
-import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+// DORMANT: import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { useLemonSqueezyCheckout } from '@/hooks/useLemonSqueezyCheckout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
+// DORMANT: import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
+import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/lemonSqueezy';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { trackEvent } from '@/lib/analytics';
@@ -61,7 +63,8 @@ export function UpgradeDialog({
   onOpenChange: (open: boolean) => void;
   reason?: Reason;
 }) {
-  const { openCheckout, loading } = usePaddleCheckout();
+  // DORMANT: const { openCheckout, loading } = usePaddleCheckout();
+  const { openCheckout, loading } = useLemonSqueezyCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();
   const { toast } = useToast();
@@ -80,7 +83,7 @@ export function UpgradeDialog({
   const subscribe = async () => {
     try {
       void trackEvent('paywall_cta_clicked', { action: 'subscribe', plan: 'starter', source: 'upgrade_dialog', reason }, 'monetization');
-      await openCheckout('starter_monthly_no_trial');
+      await openCheckout('starter_monthly');
       onOpenChange(false);
     } catch (e) {
       toast({

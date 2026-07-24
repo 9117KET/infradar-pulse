@@ -3,7 +3,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { effectivePlan, PLAN_LIMITS, PlanKey } from '@/lib/billing/limits';
-import { getPaddleEnvironment } from '@/lib/paddle';
+import { getAppEnvironment } from '@/lib/billing/environment';
 
 export type EntitlementSnapshot = {
   plan: PlanKey;
@@ -16,7 +16,7 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  const environment = getPaddleEnvironment();
+  const environment = getAppEnvironment();
 
   const [
     { data: staffRoles, error: staffError },

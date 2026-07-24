@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { effectivePlan, PLAN_LIMITS, PlanKey } from '@/lib/billing/limits';
-import { getPaddleEnvironment } from '@/lib/paddle';
+import { getAppEnvironment } from '@/lib/billing/environment';
 import { useAuth } from '@/contexts/AuthContext';
 
 function todayUtc(): string {
@@ -33,7 +33,7 @@ export function useEntitlements() {
   const [plan, setPlan] = useState<PlanKey>('free');
   const [loading, setLoading] = useState(true);
   const [usage, setUsage] = useState<Partial<Record<UsageMetric, number>>>({});
-  const [hasPaddleCustomer, setHasPaddleCustomer] = useState(false);
+  const [hasPaymentsCustomer, setHasPaymentsCustomer] = useState(false);
   const [staffBypass, setStaffBypass] = useState(false);
   const [hasLifetime, setHasLifetime] = useState(false);
   const [subInfo, setSubInfo] = useState<SubInfo | null>(null);
@@ -52,7 +52,7 @@ export function useEntitlements() {
     if (!userId) {
       setPlan('free');
       setUsage({});
-      setHasPaddleCustomer(false);
+      setHasPaymentsCustomer(false);
       setStaffBypass(false);
       setHasLifetime(false);
       setSubInfo(null);
@@ -85,11 +85,11 @@ export function useEntitlements() {
         return;
       }
 
-      const environment = getPaddleEnvironment();
+      const environment = getAppEnvironment();
       const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }, { data: pilot }, { data: referral }] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
+          .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, ls_customer_id, cancel_at_period_end')
           .eq('user_id', userId)
           .eq('environment', environment)
           .order('created_at', { ascending: false })
@@ -139,7 +139,7 @@ export function useEntitlements() {
       setReferralBonus(Number(ref?.ai_bonus ?? 0));
       setWelcomeBonus(Number(ref?.welcome_bonus ?? 0));
 
-      setHasPaddleCustomer(!!sub?.paddle_customer_id);
+      setHasPaymentsCustomer(!!sub?.paddle_customer_id || !!sub?.ls_customer_id);
       setHasLifetime(!!lifetime);
       setNoCardTrial(trial ?? null);
       setPilotAccess(pilot ?? null);
@@ -240,7 +240,7 @@ export function useEntitlements() {
     limits,
     usage,
     staffBypass,
-    hasPaddleCustomer,
+    hasPaymentsCustomer,
     hasLifetime,
     noCardTrial,
     pilotAccess,

@@ -4,10 +4,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, Gift } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+// DORMANT: import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
+import { useLemonSqueezyCheckout, type PlanPriceId } from '@/hooks/useLemonSqueezyCheckout';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
-import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
+import { getAppEnvironment } from '@/lib/billing/environment';
+// DORMANT: import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
+import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/lemonSqueezy';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { cn } from '@/lib/utils';
 import { Seo } from '@/components/Seo';
@@ -42,7 +45,8 @@ type PilotCounter = {
 export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { openCheckout, loading } = usePaddleCheckout();
+  // DORMANT: const { openCheckout, loading } = usePaddleCheckout();
+  const { openCheckout, loading } = useLemonSqueezyCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();
   const navigate = useNavigate();
@@ -59,7 +63,7 @@ export default function Pricing() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const env = getPaddleEnvironment(); // 'sandbox' | 'live'
+      const env = getAppEnvironment(); // 'sandbox' | 'live'
       const { data, error } = await supabase.rpc('lifetime_seats_taken', {
         p_environment: env,
       });
@@ -143,14 +147,14 @@ export default function Pricing() {
   const starterSubtitle = isYearly
     ? `~$${(starterYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
     : 'Billed monthly';
-  const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly_no_trial' : 'starter_monthly_no_trial';
+  const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly' : 'starter_monthly';
 
   const proPrice = isYearly ? proYearlyPrice : proMonthlyPrice;
   const proUnit = isYearly ? '/yr' : '/mo';
   const proSubtitle = isYearly
     ? `~$${(proYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
     : 'Billed monthly';
-  const proPriceId: PlanPriceId = isYearly ? 'pro_yearly_no_trial' : 'pro_monthly_no_trial';
+  const proPriceId: PlanPriceId = isYearly ? 'pro_yearly' : 'pro_monthly';
 
   const seatsRemaining =
     seatsTaken === null ? null : Math.max(0, LIFETIME_MAX_SEATS - seatsTaken);

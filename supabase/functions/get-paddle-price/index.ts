@@ -1,3 +1,6 @@
+// DORMANT: superseded by lemonsqueezy-create-checkout. Not called from any
+// client path as of 2026-07-24. Left in place for reference/rollback.
+//
 // Resolves human-readable price IDs (e.g. "starter_monthly") to Paddle internal
 // IDs that Paddle.Checkout.open() requires.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
