@@ -34,14 +34,19 @@ export default function AuthCallback() {
 
       // Otherwise wait for the session to settle, then route to the app.
       const { data } = await supabase.auth.getSession();
+      // Honor `?next=` if it's a safe same-origin relative path — this is how
+      // the OAuth consent route round-trips users back after email verification.
+      const rawNext = params.get('next');
+      const nextPath =
+        rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard';
       if (!data.session) {
-        navigate('/login', { replace: true });
+        navigate('/login?next=' + encodeURIComponent(nextPath), { replace: true });
         return;
       }
       void trackEvent('login_completed', { method: type === 'signup' ? 'email_verification' : 'oauth_or_email_link' }, 'auth');
       if (type === 'signup') void trackEvent('email_verified_callback', { method: 'email' }, 'auth');
-      // Onboarding decides if profile setup is needed. If not, dashboard.
-      navigate('/dashboard', { replace: true });
+      // Onboarding decides if profile setup is needed. If not, dashboard (or the requested next path).
+      navigate(nextPath, { replace: true });
     })();
   }, [navigate]);
 

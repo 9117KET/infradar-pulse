@@ -7,30 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -43,10 +23,8 @@ export type Database = {
           last_duration_ms: number | null
           last_run_at: string | null
           last_run_status: string | null
-          notes: string | null
           success_count: number
           updated_at: string
-          updated_by: string | null
         }
         Insert: {
           agent_type: string
@@ -56,10 +34,8 @@ export type Database = {
           last_duration_ms?: number | null
           last_run_at?: string | null
           last_run_status?: string | null
-          notes?: string | null
           success_count?: number
           updated_at?: string
-          updated_by?: string | null
         }
         Update: {
           agent_type?: string
@@ -69,10 +45,8 @@ export type Database = {
           last_duration_ms?: number | null
           last_run_at?: string | null
           last_run_status?: string | null
-          notes?: string | null
           success_count?: number
           updated_at?: string
-          updated_by?: string | null
         }
         Relationships: []
       }
@@ -121,79 +95,29 @@ export type Database = {
         }
         Relationships: []
       }
-      agent_run_events: {
-        Row: {
-          agent_type: string
-          counters: Json
-          created_at: string
-          event_type: string
-          id: string
-          message: string
-          metadata: Json
-          task_id: string | null
-        }
-        Insert: {
-          agent_type: string
-          counters?: Json
-          created_at?: string
-          event_type: string
-          id?: string
-          message?: string
-          metadata?: Json
-          task_id?: string | null
-        }
-        Update: {
-          agent_type?: string
-          counters?: Json
-          created_at?: string
-          event_type?: string
-          id?: string
-          message?: string
-          metadata?: Json
-          task_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agent_run_events_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "research_tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       alert_rules: {
         Row: {
-          cadence: string
-          channels: string[]
           created_at: string
           enabled: boolean
           filters: Json
           id: string
           name: string
-          updated_at: string
           user_id: string
         }
         Insert: {
-          cadence?: string
-          channels?: string[]
           created_at?: string
           enabled?: boolean
           filters?: Json
           id?: string
-          name?: string
-          updated_at?: string
+          name: string
           user_id: string
         }
         Update: {
-          cadence?: string
-          channels?: string[]
           created_at?: string
           enabled?: boolean
           filters?: Json
           id?: string
           name?: string
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -242,69 +166,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "alerts_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bd_partners: {
-        Row: {
-          contact_email: string | null
-          contact_name: string | null
-          created_at: string
-          deal_status: string
-          deal_value_usd: number | null
-          id: string
-          next_action: string | null
-          next_action_at: string | null
-          notes: string | null
-          org_name: string
-          referral_code: string | null
-          tier: string
-          updated_at: string
-        }
-        Insert: {
-          contact_email?: string | null
-          contact_name?: string | null
-          created_at?: string
-          deal_status?: string
-          deal_value_usd?: number | null
-          id?: string
-          next_action?: string | null
-          next_action_at?: string | null
-          notes?: string | null
-          org_name: string
-          referral_code?: string | null
-          tier?: string
-          updated_at?: string
-        }
-        Update: {
-          contact_email?: string | null
-          contact_name?: string | null
-          created_at?: string
-          deal_status?: string
-          deal_value_usd?: number | null
-          id?: string
-          next_action?: string | null
-          next_action_at?: string | null
-          notes?: string | null
-          org_name?: string
-          referral_code?: string | null
-          tier?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bd_partners_referral_code_fkey"
-            columns: ["referral_code"]
-            isOneToOne: false
-            referencedRelation: "referral_codes"
-            referencedColumns: ["code"]
           },
         ]
       }
@@ -367,8 +228,7 @@ export type Database = {
           candidate_id: string
           created_at: string
           evidence_id: string
-          id: string
-          quote: string
+          quote: string | null
           relevance_score: number
           supports_fields: string[]
         }
@@ -376,8 +236,7 @@ export type Database = {
           candidate_id: string
           created_at?: string
           evidence_id: string
-          id?: string
-          quote?: string
+          quote?: string | null
           relevance_score?: number
           supports_fields?: string[]
         }
@@ -385,8 +244,7 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           evidence_id?: string
-          id?: string
-          quote?: string
+          quote?: string | null
           relevance_score?: number
           supports_fields?: string[]
         }
@@ -502,13 +360,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "contractor_awards_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "contractor_awards_source_alert_id_fkey"
             columns: ["source_alert_id"]
             isOneToOne: false
@@ -605,48 +456,40 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          markdown: string
+          markdown: string | null
           payload: Json
-          read: boolean
+          read_at: string | null
           rule_id: string | null
           status: string
-          summary: string
+          summary: string | null
           title: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          markdown?: string
+          markdown?: string | null
           payload?: Json
-          read?: boolean
+          read_at?: string | null
           rule_id?: string | null
           status?: string
-          summary?: string
+          summary?: string | null
           title: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
-          markdown?: string
+          markdown?: string | null
           payload?: Json
-          read?: boolean
+          read_at?: string | null
           rule_id?: string | null
           status?: string
-          summary?: string
+          summary?: string | null
           title?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "digests_rule_id_fkey"
-            columns: ["rule_id"]
-            isOneToOne: false
-            referencedRelation: "alert_rules"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       email_send_log: {
         Row: {
@@ -780,13 +623,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "evidence_sources_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       feedback: {
@@ -828,27 +664,6 @@ export type Database = {
           updated_at?: string
           user_agent?: string | null
           user_id?: string | null
-        }
-        Relationships: []
-      }
-      ingest_cursors: {
-        Row: {
-          agent_key: string
-          exhausted_at: string | null
-          next_offset: number
-          updated_at: string
-        }
-        Insert: {
-          agent_key: string
-          exhausted_at?: string | null
-          next_offset?: number
-          updated_at?: string
-        }
-        Update: {
-          agent_key?: string
-          exhausted_at?: string | null
-          next_offset?: number
-          updated_at?: string
         }
         Relationships: []
       }
@@ -1107,15 +922,7 @@ export type Database = {
           updated_at?: string
           wave?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "outreach_prospects_bd_partner_id_fkey"
-            columns: ["bd_partner_id"]
-            isOneToOne: false
-            referencedRelation: "bd_partners"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       pending_role_assignments: {
         Row: {
@@ -1265,9 +1072,9 @@ export type Database = {
           checklist_dismissed_at: string | null
           company: string | null
           created_at: string | null
-          critical_only: boolean | null
+          critical_only: boolean
           display_name: string | null
-          email_alerts: boolean | null
+          email_alerts: boolean
           id: string
           onboarded: boolean | null
           onboarding_step: number
@@ -1278,7 +1085,7 @@ export type Database = {
           stages: string[] | null
           tour_completed: boolean | null
           updated_at: string | null
-          weekly_digest: boolean | null
+          weekly_digest: boolean
         }
         Insert: {
           acq_campaign?: string | null
@@ -1289,9 +1096,9 @@ export type Database = {
           checklist_dismissed_at?: string | null
           company?: string | null
           created_at?: string | null
-          critical_only?: boolean | null
+          critical_only?: boolean
           display_name?: string | null
-          email_alerts?: boolean | null
+          email_alerts?: boolean
           id: string
           onboarded?: boolean | null
           onboarding_step?: number
@@ -1302,7 +1109,7 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
-          weekly_digest?: boolean | null
+          weekly_digest?: boolean
         }
         Update: {
           acq_campaign?: string | null
@@ -1313,9 +1120,9 @@ export type Database = {
           checklist_dismissed_at?: string | null
           company?: string | null
           created_at?: string | null
-          critical_only?: boolean | null
+          critical_only?: boolean
           display_name?: string | null
-          email_alerts?: boolean | null
+          email_alerts?: boolean
           id?: string
           onboarded?: boolean | null
           onboarding_step?: number
@@ -1326,19 +1133,17 @@ export type Database = {
           stages?: string[] | null
           tour_completed?: boolean | null
           updated_at?: string | null
-          weekly_digest?: boolean | null
+          weekly_digest?: boolean
         }
         Relationships: []
       }
       project_candidates: {
         Row: {
-          assigned_to: string | null
           canonical_project_id: string | null
           confidence: number
-          coord_precision: string | null
-          country: string
+          country: string | null
           created_at: string
-          description: string
+          description: string | null
           discovered_by: string
           duplicate_confidence: number | null
           duplicate_of: string | null
@@ -1348,28 +1153,26 @@ export type Database = {
           lng: number | null
           name: string
           normalized_name: string
-          pipeline_status: Database["public"]["Enums"]["pipeline_status"]
-          region: Database["public"]["Enums"]["project_region"] | null
-          review_status: Database["public"]["Enums"]["pipeline_status"]
+          pipeline_status: string
+          region: string | null
+          review_status: string
           risk_score: number
-          sector: Database["public"]["Enums"]["project_sector"] | null
-          source_url: string
-          stage: Database["public"]["Enums"]["project_stage"]
-          status: Database["public"]["Enums"]["project_status"]
+          sector: string | null
+          source_url: string | null
+          stage: string | null
+          status: string | null
           timeline: string | null
           updated_at: string
-          value_label: string
-          value_usd: number
+          value_label: string | null
+          value_usd: number | null
         }
         Insert: {
-          assigned_to?: string | null
           canonical_project_id?: string | null
           confidence?: number
-          coord_precision?: string | null
-          country?: string
+          country?: string | null
           created_at?: string
-          description?: string
-          discovered_by?: string
+          description?: string | null
+          discovered_by: string
           duplicate_confidence?: number | null
           duplicate_of?: string | null
           extracted_claims?: Json
@@ -1378,27 +1181,25 @@ export type Database = {
           lng?: number | null
           name: string
           normalized_name: string
-          pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
-          region?: Database["public"]["Enums"]["project_region"] | null
-          review_status?: Database["public"]["Enums"]["pipeline_status"]
+          pipeline_status?: string
+          region?: string | null
+          review_status?: string
           risk_score?: number
-          sector?: Database["public"]["Enums"]["project_sector"] | null
-          source_url?: string
-          stage?: Database["public"]["Enums"]["project_stage"]
-          status?: Database["public"]["Enums"]["project_status"]
+          sector?: string | null
+          source_url?: string | null
+          stage?: string | null
+          status?: string | null
           timeline?: string | null
           updated_at?: string
-          value_label?: string
-          value_usd?: number
+          value_label?: string | null
+          value_usd?: number | null
         }
         Update: {
-          assigned_to?: string | null
           canonical_project_id?: string | null
           confidence?: number
-          coord_precision?: string | null
-          country?: string
+          country?: string | null
           created_at?: string
-          description?: string
+          description?: string | null
           discovered_by?: string
           duplicate_confidence?: number | null
           duplicate_of?: string | null
@@ -1408,18 +1209,18 @@ export type Database = {
           lng?: number | null
           name?: string
           normalized_name?: string
-          pipeline_status?: Database["public"]["Enums"]["pipeline_status"]
-          region?: Database["public"]["Enums"]["project_region"] | null
-          review_status?: Database["public"]["Enums"]["pipeline_status"]
+          pipeline_status?: string
+          region?: string | null
+          review_status?: string
           risk_score?: number
-          sector?: Database["public"]["Enums"]["project_sector"] | null
-          source_url?: string
-          stage?: Database["public"]["Enums"]["project_stage"]
-          status?: Database["public"]["Enums"]["project_status"]
+          sector?: string | null
+          source_url?: string | null
+          stage?: string | null
+          status?: string | null
           timeline?: string | null
           updated_at?: string
-          value_label?: string
-          value_usd?: number
+          value_label?: string | null
+          value_usd?: number | null
         }
         Relationships: [
           {
@@ -1427,13 +1228,6 @@ export type Database = {
             columns: ["canonical_project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_candidates_canonical_project_id_fkey"
-            columns: ["canonical_project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
             referencedColumns: ["id"]
           },
           {
@@ -1452,10 +1246,10 @@ export type Database = {
           created_at: string
           evidence_id: string | null
           field_name: string
-          field_value: string
+          field_value: string | null
           id: string
           project_id: string | null
-          quote: string
+          quote: string | null
         }
         Insert: {
           candidate_id?: string | null
@@ -1463,10 +1257,10 @@ export type Database = {
           created_at?: string
           evidence_id?: string | null
           field_name: string
-          field_value: string
+          field_value?: string | null
           id?: string
           project_id?: string | null
-          quote?: string
+          quote?: string | null
         }
         Update: {
           candidate_id?: string | null
@@ -1474,10 +1268,10 @@ export type Database = {
           created_at?: string
           evidence_id?: string | null
           field_name?: string
-          field_value?: string
+          field_value?: string | null
           id?: string
           project_id?: string | null
-          quote?: string
+          quote?: string | null
         }
         Relationships: [
           {
@@ -1499,13 +1293,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_claims_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1564,13 +1351,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_contacts_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_health_history: {
@@ -1606,13 +1386,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_health_history_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_milestones: {
@@ -1646,13 +1419,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1729,13 +1495,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_recheck_findings_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_stakeholders: {
@@ -1760,13 +1519,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_stakeholders_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1807,13 +1559,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_updates_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_verification_log: {
@@ -1849,13 +1594,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_verification_log_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       projects: {
@@ -1863,10 +1601,8 @@ export type Database = {
           ai_generated: boolean
           approved: boolean
           confidence: number
-          coord_precision: string | null
           country: string
           created_at: string
-          created_by: string | null
           delay_probability: number | null
           description: string
           detailed_analysis: string | null
@@ -1878,13 +1614,11 @@ export type Database = {
           id: string
           key_risks: string | null
           last_updated: string
-          lat: number | null
-          lng: number | null
+          lat: number
+          lng: number
           name: string
           political_context: string | null
-          provenance: string | null
           region: Database["public"]["Enums"]["project_region"]
-          research_saved_by: string | null
           risk_score: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -1899,10 +1633,8 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
-          coord_precision?: string | null
           country: string
           created_at?: string
-          created_by?: string | null
           delay_probability?: number | null
           description?: string
           detailed_analysis?: string | null
@@ -1914,13 +1646,11 @@ export type Database = {
           id?: string
           key_risks?: string | null
           last_updated?: string
-          lat?: number | null
-          lng?: number | null
+          lat: number
+          lng: number
           name: string
           political_context?: string | null
-          provenance?: string | null
           region: Database["public"]["Enums"]["project_region"]
-          research_saved_by?: string | null
           risk_score?: number
           sector: Database["public"]["Enums"]["project_sector"]
           slug: string
@@ -1935,10 +1665,8 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
-          coord_precision?: string | null
           country?: string
           created_at?: string
-          created_by?: string | null
           delay_probability?: number | null
           description?: string
           detailed_analysis?: string | null
@@ -1950,13 +1678,11 @@ export type Database = {
           id?: string
           key_risks?: string | null
           last_updated?: string
-          lat?: number | null
-          lng?: number | null
+          lat?: number
+          lng?: number
           name?: string
           political_context?: string | null
-          provenance?: string | null
           region?: Database["public"]["Enums"]["project_region"]
-          research_saved_by?: string | null
           risk_score?: number
           sector?: Database["public"]["Enums"]["project_sector"]
           slug?: string
@@ -1969,72 +1695,48 @@ export type Database = {
         }
         Relationships: []
       }
-      public_demo_rate_limits: {
-        Row: {
-          count: number
-          ip_hash: string
-          query_date: string
-        }
-        Insert: {
-          count?: number
-          ip_hash: string
-          query_date?: string
-        }
-        Update: {
-          count?: number
-          ip_hash?: string
-          query_date?: string
-        }
-        Relationships: []
-      }
       quality_scores: {
         Row: {
-          calculated_at: string
-          candidate_id: string | null
+          candidate_id: string
           completeness_score: number
           confidence_score: number
-          contradiction_penalty: number
+          created_at: string
           details: Json
           evidence_score: number
           flags: string[]
           freshness_score: number
           id: string
           missing_fields: string[]
-          project_id: string | null
           recommendation: string
           source_score: number
           total_score: number
         }
         Insert: {
-          calculated_at?: string
-          candidate_id?: string | null
+          candidate_id: string
           completeness_score?: number
           confidence_score?: number
-          contradiction_penalty?: number
+          created_at?: string
           details?: Json
           evidence_score?: number
           flags?: string[]
           freshness_score?: number
           id?: string
           missing_fields?: string[]
-          project_id?: string | null
           recommendation?: string
           source_score?: number
           total_score?: number
         }
         Update: {
-          calculated_at?: string
-          candidate_id?: string | null
+          candidate_id?: string
           completeness_score?: number
           confidence_score?: number
-          contradiction_penalty?: number
+          created_at?: string
           details?: Json
           evidence_score?: number
           flags?: string[]
           freshness_score?: number
           id?: string
           missing_fields?: string[]
-          project_id?: string | null
           recommendation?: string
           source_score?: number
           total_score?: number
@@ -2045,20 +1747,6 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "project_candidates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_scores_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_scores_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2102,56 +1790,53 @@ export type Database = {
       raw_evidence: {
         Row: {
           canonical_url: string | null
-          content_hash: string
+          content_hash: string | null
           created_at: string
-          extracted_text: string
-          extraction_confidence: number
+          extracted_text: string | null
+          extraction_confidence: number | null
           fetch_status: string
-          fetched_at: string
           id: string
-          kind: Database["public"]["Enums"]["source_kind"]
+          kind: string
           metadata: Json
           published_at: string | null
           source_id: string | null
-          source_key: string | null
-          summary: string
-          title: string
+          source_key: string
+          summary: string | null
+          title: string | null
           url: string
         }
         Insert: {
           canonical_url?: string | null
-          content_hash: string
+          content_hash?: string | null
           created_at?: string
-          extracted_text?: string
-          extraction_confidence?: number
+          extracted_text?: string | null
+          extraction_confidence?: number | null
           fetch_status?: string
-          fetched_at?: string
           id?: string
-          kind?: Database["public"]["Enums"]["source_kind"]
+          kind?: string
           metadata?: Json
           published_at?: string | null
           source_id?: string | null
-          source_key?: string | null
-          summary?: string
-          title?: string
+          source_key: string
+          summary?: string | null
+          title?: string | null
           url: string
         }
         Update: {
           canonical_url?: string | null
-          content_hash?: string
+          content_hash?: string | null
           created_at?: string
-          extracted_text?: string
-          extraction_confidence?: number
+          extracted_text?: string | null
+          extraction_confidence?: number | null
           fetch_status?: string
-          fetched_at?: string
           id?: string
-          kind?: Database["public"]["Enums"]["source_kind"]
+          kind?: string
           metadata?: Json
           published_at?: string | null
           source_id?: string | null
-          source_key?: string | null
-          summary?: string
-          title?: string
+          source_key?: string
+          summary?: string | null
+          title?: string | null
           url?: string
         }
         Relationships: [
@@ -2163,42 +1848,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      raw_sources: {
-        Row: {
-          content_hash: string
-          content_text: string
-          fetched_at: string
-          id: string
-          metadata: Json
-          source_key: string
-          source_type: string
-          title: string
-          url: string
-        }
-        Insert: {
-          content_hash?: string
-          content_text?: string
-          fetched_at?: string
-          id?: string
-          metadata?: Json
-          source_key?: string
-          source_type?: string
-          title?: string
-          url: string
-        }
-        Update: {
-          content_hash?: string
-          content_text?: string
-          fetched_at?: string
-          id?: string
-          metadata?: Json
-          source_key?: string
-          source_type?: string
-          title?: string
-          url?: string
-        }
-        Relationships: []
       }
       referral_codes: {
         Row: {
@@ -2223,7 +1872,7 @@ export type Database = {
           {
             foreignKeyName: "referral_codes_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -2296,13 +1945,12 @@ export type Database = {
           created_at: string
           error: string | null
           id: string
-          markdown: string
+          markdown: string | null
           parameters: Json
           report_type: string
           status: string
           title: string | null
-          user_id: string | null
-          visibility: string
+          user_id: string
         }
         Insert: {
           citations?: Json
@@ -2310,13 +1958,12 @@ export type Database = {
           created_at?: string
           error?: string | null
           id?: string
-          markdown?: string
+          markdown?: string | null
           parameters?: Json
           report_type: string
           status?: string
           title?: string | null
-          user_id?: string | null
-          visibility?: string
+          user_id: string
         }
         Update: {
           citations?: Json
@@ -2324,13 +1971,12 @@ export type Database = {
           created_at?: string
           error?: string | null
           id?: string
-          markdown?: string
+          markdown?: string | null
           parameters?: Json
           report_type?: string
           status?: string
           title?: string | null
-          user_id?: string | null
-          visibility?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -2410,42 +2056,33 @@ export type Database = {
       }
       review_actions: {
         Row: {
-          action: Database["public"]["Enums"]["review_action_type"]
+          action: string
           candidate_id: string | null
           created_at: string
-          field_name: string | null
           id: string
-          item_type: Database["public"]["Enums"]["review_item_type"]
-          new_value: string | null
-          old_value: string | null
+          item_type: string
           performed_by: string | null
           project_id: string | null
           reason: string
           update_proposal_id: string | null
         }
         Insert: {
-          action: Database["public"]["Enums"]["review_action_type"]
+          action: string
           candidate_id?: string | null
           created_at?: string
-          field_name?: string | null
           id?: string
-          item_type: Database["public"]["Enums"]["review_item_type"]
-          new_value?: string | null
-          old_value?: string | null
+          item_type: string
           performed_by?: string | null
           project_id?: string | null
           reason?: string
           update_proposal_id?: string | null
         }
         Update: {
-          action?: Database["public"]["Enums"]["review_action_type"]
+          action?: string
           candidate_id?: string | null
           created_at?: string
-          field_name?: string | null
           id?: string
-          item_type?: Database["public"]["Enums"]["review_item_type"]
-          new_value?: string | null
-          old_value?: string | null
+          item_type?: string
           performed_by?: string | null
           project_id?: string | null
           reason?: string
@@ -2467,14 +2104,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "review_actions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "review_actions_update_proposal_fk"
+            foreignKeyName: "review_actions_update_proposal_id_fkey"
             columns: ["update_proposal_id"]
             isOneToOne: false
             referencedRelation: "update_proposals"
@@ -2539,84 +2169,51 @@ export type Database = {
       source_registry: {
         Row: {
           base_url: string | null
-          countries: string[]
           crawl_frequency_minutes: number
           created_at: string
           id: string
-          kind: Database["public"]["Enums"]["source_kind"]
+          kind: string
           last_error: string | null
           last_failure_at: string | null
           last_success_at: string | null
           name: string
-          regions: Database["public"]["Enums"]["project_region"][]
           reliability_score: number
-          sectors: Database["public"]["Enums"]["project_sector"][]
           source_key: string
-          status: Database["public"]["Enums"]["source_status"]
+          status: string
           supports_api: boolean
-          supports_rss: boolean
-          supports_sitemap: boolean
           updated_at: string
         }
         Insert: {
           base_url?: string | null
-          countries?: string[]
           crawl_frequency_minutes?: number
           created_at?: string
           id?: string
-          kind?: Database["public"]["Enums"]["source_kind"]
+          kind?: string
           last_error?: string | null
           last_failure_at?: string | null
           last_success_at?: string | null
           name: string
-          regions?: Database["public"]["Enums"]["project_region"][]
           reliability_score?: number
-          sectors?: Database["public"]["Enums"]["project_sector"][]
           source_key: string
-          status?: Database["public"]["Enums"]["source_status"]
+          status?: string
           supports_api?: boolean
-          supports_rss?: boolean
-          supports_sitemap?: boolean
           updated_at?: string
         }
         Update: {
           base_url?: string | null
-          countries?: string[]
           crawl_frequency_minutes?: number
           created_at?: string
           id?: string
-          kind?: Database["public"]["Enums"]["source_kind"]
+          kind?: string
           last_error?: string | null
           last_failure_at?: string | null
           last_success_at?: string | null
           name?: string
-          regions?: Database["public"]["Enums"]["project_region"][]
           reliability_score?: number
-          sectors?: Database["public"]["Enums"]["project_sector"][]
           source_key?: string
-          status?: Database["public"]["Enums"]["source_status"]
+          status?: string
           supports_api?: boolean
-          supports_rss?: boolean
-          supports_sitemap?: boolean
           updated_at?: string
-        }
-        Relationships: []
-      }
-      stripe_customers: {
-        Row: {
-          created_at: string
-          stripe_customer_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          stripe_customer_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          stripe_customer_id?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -2837,13 +2434,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tender_events_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tender_events_source_alert_id_fkey"
             columns: ["source_alert_id"]
             isOneToOne: false
@@ -2882,13 +2472,6 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "tracked_projects_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       trial_history: {
@@ -2925,53 +2508,43 @@ export type Database = {
         Row: {
           confidence: number
           created_at: string
-          evidence_id: string | null
           field_changes: Json
           id: string
-          impact: string
-          project_id: string
+          impact: string | null
+          project_id: string | null
           proposed_by_agent: string
           reviewed_at: string | null
           reviewed_by: string | null
           source_url: string | null
-          status: Database["public"]["Enums"]["update_proposal_status"]
+          status: string
         }
         Insert: {
           confidence?: number
           created_at?: string
-          evidence_id?: string | null
           field_changes?: Json
           id?: string
-          impact?: string
-          project_id: string
-          proposed_by_agent?: string
+          impact?: string | null
+          project_id?: string | null
+          proposed_by_agent: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_url?: string | null
-          status?: Database["public"]["Enums"]["update_proposal_status"]
+          status?: string
         }
         Update: {
           confidence?: number
           created_at?: string
-          evidence_id?: string | null
           field_changes?: Json
           id?: string
-          impact?: string
-          project_id?: string
+          impact?: string | null
+          project_id?: string | null
           proposed_by_agent?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_url?: string | null
-          status?: Database["public"]["Enums"]["update_proposal_status"]
+          status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "update_proposals_evidence_id_fkey"
-            columns: ["evidence_id"]
-            isOneToOne: false
-            referencedRelation: "raw_evidence"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "update_proposals_project_id_fkey"
             columns: ["project_id"]
@@ -2979,18 +2552,12 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "update_proposals_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       usage_counters: {
         Row: {
           count: number
+          id: string
           metric: string
           period_start: string
           updated_at: string
@@ -2998,13 +2565,15 @@ export type Database = {
         }
         Insert: {
           count?: number
+          id?: string
           metric: string
-          period_start: string
+          period_start?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           count?: number
+          id?: string
           metric?: string
           period_start?: string
           updated_at?: string
@@ -3138,108 +2707,6 @@ export type Database = {
         }
         Relationships: []
       }
-      insights_public: {
-        Row: {
-          ai_generated: boolean | null
-          author: string | null
-          cover_image_url: string | null
-          created_at: string | null
-          excerpt: string | null
-          id: string | null
-          published: boolean | null
-          reading_time_min: number | null
-          slug: string | null
-          source_url: string | null
-          sources: Json | null
-          tag: string | null
-          title: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          ai_generated?: boolean | null
-          author?: string | null
-          cover_image_url?: string | null
-          created_at?: string | null
-          excerpt?: string | null
-          id?: string | null
-          published?: boolean | null
-          reading_time_min?: number | null
-          slug?: string | null
-          source_url?: string | null
-          sources?: Json | null
-          tag?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          ai_generated?: boolean | null
-          author?: string | null
-          cover_image_url?: string | null
-          created_at?: string | null
-          excerpt?: string | null
-          id?: string | null
-          published?: boolean | null
-          reading_time_min?: number | null
-          slug?: string | null
-          source_url?: string | null
-          sources?: Json | null
-          tag?: string | null
-          title?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      projects_public: {
-        Row: {
-          approved: boolean | null
-          confidence: number | null
-          country: string | null
-          created_at: string | null
-          id: string | null
-          last_updated: string | null
-          name: string | null
-          region: Database["public"]["Enums"]["project_region"] | null
-          risk_score: number | null
-          sector: Database["public"]["Enums"]["project_sector"] | null
-          stage: Database["public"]["Enums"]["project_stage"] | null
-          status: Database["public"]["Enums"]["project_status"] | null
-          value_label: string | null
-          value_usd: number | null
-        }
-        Insert: {
-          approved?: boolean | null
-          confidence?: number | null
-          country?: string | null
-          created_at?: string | null
-          id?: string | null
-          last_updated?: string | null
-          name?: string | null
-          region?: Database["public"]["Enums"]["project_region"] | null
-          risk_score?: number | null
-          sector?: Database["public"]["Enums"]["project_sector"] | null
-          stage?: Database["public"]["Enums"]["project_stage"] | null
-          status?: Database["public"]["Enums"]["project_status"] | null
-          value_label?: string | null
-          value_usd?: number | null
-        }
-        Update: {
-          approved?: boolean | null
-          confidence?: number | null
-          country?: string | null
-          created_at?: string | null
-          id?: string | null
-          last_updated?: string | null
-          name?: string | null
-          region?: Database["public"]["Enums"]["project_region"] | null
-          risk_score?: number | null
-          sector?: Database["public"]["Enums"]["project_sector"] | null
-          stage?: Database["public"]["Enums"]["project_stage"] | null
-          status?: Database["public"]["Enums"]["project_status"] | null
-          value_label?: string | null
-          value_usd?: number | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
@@ -3294,27 +2761,8 @@ export type Database = {
         Args: { p_reason?: string; p_update_proposal_id: string }
         Returns: string
       }
-      auto_promote_official_candidate: {
-        Args: { p_candidate_id: string; p_reason?: string }
-        Returns: Json
-      }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
-        Returns: Json
-      }
-      calculate_quality_score: {
-        Args: {
-          p_confidence: number
-          p_contact_count?: number
-          p_description: string
-          p_evidence_count?: number
-          p_last_updated?: string
-          p_lat: number
-          p_lng: number
-          p_official_source_count?: number
-          p_source_url: string
-          p_value_usd: number
-        }
         Returns: Json
       }
       check_trial_eligible: {
@@ -3369,6 +2817,7 @@ export type Database = {
         Args: { p_hours?: number }
         Returns: Json
       }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -3421,7 +2870,6 @@ export type Database = {
         }[]
       }
       get_existing_project_recheck_summary: { Args: never; Returns: Json }
-      get_intelligence_pipeline_summary: { Args: never; Returns: Json }
       get_paywall_dropoff: { Args: { p_days?: number }; Returns: Json }
       get_pilot_access_summary: {
         Args: { p_environment?: string }
@@ -3455,6 +2903,10 @@ export type Database = {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
       }
+      has_paid_contact_access: {
+        Args: { _user_id: string; check_env?: string }
+        Returns: boolean
+      }
       has_paid_or_staff_access:
         | { Args: { _user_id: string }; Returns: boolean }
         | { Args: { _user_id: string; check_env?: string }; Returns: boolean }
@@ -3470,13 +2922,10 @@ export type Database = {
         Args: { p_metric: string; p_user_id: string }
         Returns: undefined
       }
-      increment_usage_metric:
-        | {
-            Args: { metric_name: string; user_uuid: string }
-            Returns: undefined
-          }
-        | { Args: { p_metric: string }; Returns: Json }
-      is_staff: { Args: { _user_id: string }; Returns: boolean }
+      increment_usage_metric: {
+        Args: { metric_name: string; user_uuid: string }
+        Returns: undefined
+      }
       lifetime_seats_taken: {
         Args: { p_environment?: string }
         Returns: number
@@ -3551,6 +3000,22 @@ export type Database = {
         Args: { p_report_run_id: string }
         Returns: undefined
       }
+      safe_cast_project_region: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_region"]
+      }
+      safe_cast_project_sector: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_sector"]
+      }
+      safe_cast_project_stage: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_stage"]
+      }
+      safe_cast_project_status: {
+        Args: { t: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
       slugify_project_name: { Args: { p_name: string }; Returns: string }
       try_consume_quota: {
         Args: {
@@ -3592,16 +3057,6 @@ export type Database = {
         | "resolved"
         | "wont_fix"
       feedback_type: "bug" | "idea" | "praise" | "other"
-      pipeline_status:
-        | "new"
-        | "extracted"
-        | "deduping"
-        | "enriching"
-        | "ready_for_review"
-        | "needs_research"
-        | "approved"
-        | "rejected"
-        | "merged"
       project_recheck_finding_type:
         | "missing_source"
         | "missing_contact"
@@ -3633,13 +3088,13 @@ export type Database = {
         | "Water"
         | "Energy"
         | "Infrastructure"
-        | "Building Construction"
-        | "Industrial"
-        | "Chemical"
-        | "Oil & Gas"
         | "Mining"
-        | "Data Centers"
+        | "Oil & Gas"
+        | "Industrial"
         | "AI Infrastructure"
+        | "Data Centers"
+        | "Building Construction"
+        | "Chemical"
       project_stage:
         | "Planned"
         | "Tender"
@@ -3649,37 +3104,13 @@ export type Database = {
         | "Completed"
         | "Cancelled"
         | "Stopped"
-      project_status: "Verified" | "Stable" | "Pending" | "At Risk"
+      project_status:
+        | "Verified"
+        | "Stable"
+        | "Pending"
+        | "At Risk"
+        | "Cancelled"
       research_task_status: "pending" | "running" | "completed" | "failed"
-      review_action_type:
-        | "approved"
-        | "rejected"
-        | "requested_research"
-        | "merged"
-        | "field_approved"
-        | "field_rejected"
-        | "note"
-        | "auto_published"
-      review_item_type:
-        | "candidate"
-        | "duplicate"
-        | "enrichment"
-        | "update"
-        | "source_issue"
-        | "quality_issue"
-      source_kind:
-        | "mdb"
-        | "government"
-        | "procurement"
-        | "regulator"
-        | "company"
-        | "news"
-        | "trade_publication"
-        | "satellite"
-        | "manual"
-        | "other"
-      source_status: "active" | "paused" | "failing" | "retired"
-      update_proposal_status: "pending" | "approved" | "rejected" | "applied"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3805,9 +3236,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       alert_category: [
@@ -3832,17 +3260,6 @@ export const Constants = {
         "wont_fix",
       ],
       feedback_type: ["bug", "idea", "praise", "other"],
-      pipeline_status: [
-        "new",
-        "extracted",
-        "deduping",
-        "enriching",
-        "ready_for_review",
-        "needs_research",
-        "approved",
-        "rejected",
-        "merged",
-      ],
       project_recheck_finding_type: [
         "missing_source",
         "missing_contact",
@@ -3876,13 +3293,13 @@ export const Constants = {
         "Water",
         "Energy",
         "Infrastructure",
-        "Building Construction",
-        "Industrial",
-        "Chemical",
-        "Oil & Gas",
         "Mining",
-        "Data Centers",
+        "Oil & Gas",
+        "Industrial",
         "AI Infrastructure",
+        "Data Centers",
+        "Building Construction",
+        "Chemical",
       ],
       project_stage: [
         "Planned",
@@ -3894,41 +3311,8 @@ export const Constants = {
         "Cancelled",
         "Stopped",
       ],
-      project_status: ["Verified", "Stable", "Pending", "At Risk"],
+      project_status: ["Verified", "Stable", "Pending", "At Risk", "Cancelled"],
       research_task_status: ["pending", "running", "completed", "failed"],
-      review_action_type: [
-        "approved",
-        "rejected",
-        "requested_research",
-        "merged",
-        "field_approved",
-        "field_rejected",
-        "note",
-        "auto_published",
-      ],
-      review_item_type: [
-        "candidate",
-        "duplicate",
-        "enrichment",
-        "update",
-        "source_issue",
-        "quality_issue",
-      ],
-      source_kind: [
-        "mdb",
-        "government",
-        "procurement",
-        "regulator",
-        "company",
-        "news",
-        "trade_publication",
-        "satellite",
-        "manual",
-        "other",
-      ],
-      source_status: ["active", "paused", "failing", "retired"],
-      update_proposal_status: ["pending", "approved", "rejected", "applied"],
     },
   },
 } as const
-
