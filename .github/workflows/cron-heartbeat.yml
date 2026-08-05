@@ -2,12 +2,28 @@ name: Cron heartbeat check
 
 # Runs every 30 minutes - INDEPENDENT of pg_cron.
 # If all Supabase scheduled agents go silent (e.g. stale vault key),
-# this workflow detects it and triggers an email alert via the
-# cron-heartbeat-check Edge Function.
+# this workflow detects it via the cron-heartbeat-check Edge Function and
+# fails the run. A failing scheduled workflow emails the repo owner without
+# touching any Supabase infrastructure, which is the point: the Edge
+# Function's own email alert goes through process-email-queue, which is
+# itself a pg_cron job and therefore dead in exactly this scenario.
+#
+# A red run means one of two things, and the ::error:: message says which:
+#   1. Config problem  - secrets missing or mismatched.
+#   2. Real alert      - the agents actually are silent. Go look at
+#                        /dashboard/agent-health and pg_cron.job_run_details.
 #
 # Required repository secrets:
-#   SUPABASE_URL              - e.g. https://xxxxx.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY - service role key (not anon key)
+#   SUPABASE_URL           - e.g. https://xxxxx.supabase.co
+#   CRON_HEARTBEAT_SECRET  - must equal the CRON_HEARTBEAT_SECRET Edge
+#                            Function secret (Supabase -> Edge Functions ->
+#                            Secrets). Any long random string; generate with
+#                            `openssl rand -hex 32`.
+# Legacy fallback (deprecated - breaks whenever project keys are rotated):
+#   SUPABASE_SERVICE_ROLE_KEY - used only if CRON_HEARTBEAT_SECRET is unset.
+#                               Must be the legacy service_role JWT that the
+#                               platform injects into the function, not an
+#                               sb_secret_* key and not the anon key.
 
 on:
   schedule:
@@ -20,17 +36,74 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Ping cron-heartbeat-check Edge Function
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          CRON_HEARTBEAT_SECRET: ${{ secrets.CRON_HEARTBEAT_SECRET }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            -H "Content-Type: application/json" \
-            "${{ secrets.SUPABASE_URL }}/functions/v1/cron-heartbeat-check")
+          set -uo pipefail
 
-          echo "HTTP status: $HTTP_STATUS"
-          echo "Response: $(cat /tmp/response.json)"
-
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "::error::Heartbeat check returned HTTP $HTTP_STATUS"
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "::error::Repository secret SUPABASE_URL is not set."
             exit 1
           fi
+
+          TOKEN="${CRON_HEARTBEAT_SECRET:-$SUPABASE_SERVICE_ROLE_KEY}"
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Neither CRON_HEARTBEAT_SECRET nor SUPABASE_SERVICE_ROLE_KEY is set as a repository secret."
+            exit 1
+          fi
+          if [ -z "${CRON_HEARTBEAT_SECRET:-}" ]; then
+            echo "::warning::Falling back to SUPABASE_SERVICE_ROLE_KEY. This breaks on key rotation - set CRON_HEARTBEAT_SECRET on both sides instead."
+          fi
+
+          ENDPOINT="${SUPABASE_URL%/}/functions/v1/cron-heartbeat-check"
+
+          HTTP_STATUS=$(curl -sS -o /tmp/response.json -w '%{http_code}' \
+            --max-time 30 --retry 2 --retry-delay 5 --retry-connrefused \
+            -X POST \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H 'Content-Type: application/json' \
+            "$ENDPOINT") || HTTP_STATUS=000
+
+          BODY=$(cat /tmp/response.json 2>/dev/null || true)
+          echo "Endpoint: $ENDPOINT"
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response: $BODY"
+
+          case "$HTTP_STATUS" in
+            200)
+              ;;
+            000)
+              echo "::error::Could not reach $ENDPOINT. Check SUPABASE_URL and that the function is deployed."
+              exit 1
+              ;;
+            401)
+              echo "::error::Config problem: the Edge Function rejected this workflow's bearer token. The 'accepts' field in the response above lists the secret names the function has configured - set the matching repository secret to the same value."
+              exit 1
+              ;;
+            404)
+              echo "::error::Config problem: cron-heartbeat-check is not deployed to this project."
+              exit 1
+              ;;
+            503)
+              echo "::error::Config problem: the Edge Function has no heartbeat secret configured. Set CRON_HEARTBEAT_SECRET in Supabase -> Edge Functions -> Secrets."
+              exit 1
+              ;;
+            *)
+              echo "::error::Heartbeat check returned HTTP $HTTP_STATUS"
+              exit 1
+              ;;
+          esac
+
+          ALERT=$(printf '%s' "$BODY" | jq -r 'if .alert == true then "true" else "false" end' 2>/dev/null || echo unknown)
+          if [ "$ALERT" = "unknown" ]; then
+            echo "::error::Heartbeat returned 200 but the response was not valid JSON."
+            exit 1
+          fi
+          if [ "$ALERT" = "true" ]; then
+            echo "::error::REAL ALERT - scheduled agents are silent. pg_cron may be stalled or the vault key is stale. Check /dashboard/agent-health and pg_cron.job_run_details. Response: $BODY"
+            exit 1
+          fi
+
+          echo "Heartbeat OK - agents are running."

@@ -27,3 +27,8 @@ verify_jwt = true
 [functions.source-cleanup]
 verify_jwt = true
 
+# Called by an external scheduler (GitHub Actions) that holds a shared secret,
+# not a Supabase JWT. The function does its own constant-time bearer check.
+[functions.cron-heartbeat-check]
+verify_jwt = false
+
