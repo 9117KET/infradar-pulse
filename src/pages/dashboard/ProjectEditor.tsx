@@ -119,9 +119,17 @@ export default function ProjectEditor() {
         if (error) throw error;
         projectId = dbId;
 
-        // Delete old stakeholders & milestones, re-insert
-        await supabase.from('project_stakeholders').delete().eq('project_id', projectId);
-        await supabase.from('project_milestones').delete().eq('project_id', projectId);
+        // Delete old stakeholders & milestones, then re-insert. Every step is
+        // error-checked: previously the deletes and re-inserts ran unchecked,
+        // so a failed re-insert AFTER a successful delete permanently lost the
+        // project's stakeholders/milestones behind a "Project updated" toast.
+        // The form still holds the values in memory, so surfacing the error
+        // lets the user retry (the deletes are idempotent) rather than losing
+        // data silently.
+        const { error: delStakeErr } = await supabase.from('project_stakeholders').delete().eq('project_id', projectId);
+        if (delStakeErr) throw delStakeErr;
+        const { error: delMileErr } = await supabase.from('project_milestones').delete().eq('project_id', projectId);
+        if (delMileErr) throw delMileErr;
       } else {
         const insertPayload = {
           ...projectData,
@@ -134,16 +142,18 @@ export default function ProjectEditor() {
 
       // Insert stakeholders
       if (stakeholders.length > 0) {
-        await supabase.from('project_stakeholders').insert(
+        const { error: stakeErr } = await supabase.from('project_stakeholders').insert(
           stakeholders.map(s => ({ project_id: projectId, name: s }))
         );
+        if (stakeErr) throw stakeErr;
       }
 
       // Insert milestones
       if (milestones.length > 0) {
-        await supabase.from('project_milestones').insert(
+        const { error: mileErr } = await supabase.from('project_milestones').insert(
           milestones.map(m => ({ project_id: projectId, title: m.title, date: m.date, completed: m.completed }))
         );
+        if (mileErr) throw mileErr;
       }
 
       toast({ title: isEdit ? 'Project updated' : 'Project created', description: `${name} has been saved.` });

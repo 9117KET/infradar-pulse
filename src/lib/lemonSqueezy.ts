@@ -30,7 +30,12 @@ export function getLemonSqueezyEnvironment(): 'sandbox' | 'live' {
 }
 
 export function isLiveCheckoutEnabled(): boolean {
-  return getLemonSqueezyEnvironment() === 'sandbox';
+  // Real checkout should open only when the go-live switch is on AND a store is
+  // configured. This was inverted (`=== 'sandbox'`): it returned true while
+  // still pre-launch (causing openCheckout to throw "Payments are not
+  // configured yet") and false the moment VITE_PAYMENTS_LIVE flipped to true,
+  // which redirected every buyer to /contact instead of opening checkout.
+  return isPaymentsLive() && isLemonSqueezyConfigured();
 }
 
 export async function initializeLemonSqueezy(): Promise<void> {
