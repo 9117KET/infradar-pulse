@@ -157,7 +157,7 @@ export default function Research() {
 
       const { data: { user } } = await supabase.auth.getUser();
       const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      const { data: inserted } = await supabase.from('projects').insert({
+      const { data: inserted, error: insertError } = await supabase.from('projects').insert({
         name: project.name,
         slug,
         country: project.country || 'Unknown',
@@ -174,6 +174,14 @@ export default function Research() {
         value_label: project.value_label || 'Undisclosed',
         research_saved_by: user?.id ?? null,
       } as never).select('id').single();
+
+      // The insert can fail silently (RLS denial, a unique-slug collision, a
+      // NOT NULL constraint). Without this guard the code fell through to the
+      // "Saved to Review Queue" toast below and reported success while nothing
+      // was written. Surface the real failure instead of lying.
+      if (insertError || !inserted?.id) {
+        throw insertError ?? new Error('Project was not saved (no row returned).');
+      }
 
       const trackSavedProject = async (projectId: string) => {
         if (!user?.id) return;

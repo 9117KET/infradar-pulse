@@ -50,6 +50,10 @@ function dbToProject(
     stage: p.stage as ProjectStage,
     status: p.status as ProjectStatus,
     valueUsd: p.value_usd,
+    // `value` is the legacy alias read by Portfolio/Countries/Compare/Pipeline
+    // as `p.value || 0`. It was never populated here, so those pages summed 0
+    // and rendered every total as "—"/$0. Keep it in sync with valueUsd.
+    value: p.value_usd,
     valueLabel: p.value_label,
     confidence: p.confidence,
     riskScore: p.risk_score,
@@ -128,33 +132,32 @@ export function useProjects(filters?: ProjectFilters) {
         .eq('approved', true);
       setTotalAvailable(count ?? 0);
 
-      // Fetch projects: capped plans use a single limited query; unlimited plans
-      // page through Supabase's default 1000-row ceiling with .range() so staff
-      // and enterprise users see the full dataset.
+      // Fetch projects by paging through PostgREST's hard 1000-row-per-response
+      // ceiling with .range(). A single .limit(rowCap) does NOT work for caps
+      // above 1000 (e.g. Pro = 10,000): the server still returns only the first
+      // 1000 rows, so a Pro user silently saw 1000 of N with no truncation
+      // banner. rowCap === 0 means unlimited. Ordering is by (value_usd, id) so
+      // the tie-break is stable across pages and rows are never skipped or
+      // duplicated when value_usd repeats.
       const SUPABASE_PAGE = 1000;
+      const targetRows = rowCap > 0 ? rowCap : Infinity;
       let pData: any[] = [];
-      if (rowCap > 0) {
+      let from = 0;
+      for (let i = 0; i < 50; i++) {
+        const pageEnd = Math.min(from + SUPABASE_PAGE, targetRows) - 1;
+        if (pageEnd < from) break;
         const { data } = await supabase
           .from('projects')
           .select('*')
           .eq('approved', true)
           .order('value_usd', { ascending: false })
-          .limit(rowCap);
-        pData = data ?? [];
-      } else {
-        let from = 0;
-        for (let i = 0; i < 50; i++) {
-          const { data } = await supabase
-            .from('projects')
-            .select('*')
-            .eq('approved', true)
-            .order('value_usd', { ascending: false })
-            .range(from, from + SUPABASE_PAGE - 1);
-          if (!data?.length) break;
-          pData.push(...data);
-          if (data.length < SUPABASE_PAGE) break;
-          from += SUPABASE_PAGE;
-        }
+          .order('id', { ascending: true })
+          .range(from, pageEnd);
+        if (!data?.length) break;
+        pData.push(...data);
+        if (data.length < SUPABASE_PAGE) break;
+        from += data.length;
+        if (pData.length >= targetRows) break;
       }
 
       const [{ data: sData }, { data: mData }, { data: eData }, { data: cData }] = await Promise.all([

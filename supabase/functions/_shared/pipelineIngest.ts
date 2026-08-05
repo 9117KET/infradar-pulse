@@ -1,4 +1,5 @@
 import { calculateIntelligenceQuality } from "./intelligenceQuality.ts";
+import { sanitizeConfidence, sanitizeValueUsd } from "./sanitizeProjectFacts.ts";
 
 type SupabaseAdmin = any;
 
@@ -92,6 +93,13 @@ export async function registerPipelineSource(supabase: SupabaseAdmin, config: Pi
 }
 
 export async function stagePipelineProject(supabase: SupabaseAdmin, input: StageProjectInput) {
+  // Normalize LLM/scraper-supplied numerics ONCE, before any downstream use or
+  // write. Prevents the two recurring data-integrity defects centrally for
+  // every ingest agent: value_usd stored 1000x too large, and confidence
+  // written as a 0-1 probability into the 0-100 integer column.
+  input.valueUsd = sanitizeValueUsd(input.valueUsd, input.valueLabel);
+  input.confidence = sanitizeConfidence(input.confidence);
+
   const slug = slugifyProjectName(input.name);
   const normalizedName = normalizeProjectName(input.name);
   const { data: existingProject } = await supabase
