@@ -139,7 +139,7 @@ export function useEntitlements() {
       setReferralBonus(Number(ref?.ai_bonus ?? 0));
       setWelcomeBonus(Number(ref?.welcome_bonus ?? 0));
 
-      setHasPaymentsCustomer(!!sub?.paddle_customer_id || !!sub?.ls_customer_id);
+      setHasPaymentsCustomer(!!sub?.paddle_customer_id);
       setHasLifetime(!!lifetime);
       setNoCardTrial(trial ?? null);
       setPilotAccess(pilot ?? null);
