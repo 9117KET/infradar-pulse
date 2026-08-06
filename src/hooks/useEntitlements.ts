@@ -89,7 +89,7 @@ export function useEntitlements() {
       const [{ data: sub }, { data: counters }, { data: lifetime }, { data: trial }, { data: pilot }, { data: referral }] = await Promise.all([
         supabase
           .from('subscriptions')
-          .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, ls_customer_id, cancel_at_period_end')
+          .select('status, plan_key, entitlement_plan_key, entitlement_plan_until, trial_end, current_period_end, paddle_customer_id, cancel_at_period_end')
           .eq('user_id', userId)
           .eq('environment', environment)
           .order('created_at', { ascending: false })
@@ -139,7 +139,7 @@ export function useEntitlements() {
       setReferralBonus(Number(ref?.ai_bonus ?? 0));
       setWelcomeBonus(Number(ref?.welcome_bonus ?? 0));
 
-      setHasPaymentsCustomer(!!sub?.paddle_customer_id || !!sub?.ls_customer_id);
+      setHasPaymentsCustomer(!!sub?.paddle_customer_id);
       setHasLifetime(!!lifetime);
       setNoCardTrial(trial ?? null);
       setPilotAccess(pilot ?? null);
