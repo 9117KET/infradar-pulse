@@ -62,6 +62,8 @@ export const STAFF_ROUTES: string[] = [
   "/dashboard/datasets",
   "/dashboard/users",
   "/dashboard/review",
+  // Now a redirect to /dashboard/review?tab=source-health. Kept in the crawl
+  // so old links stay covered; see e2e/source-health-tab.spec.ts.
   "/dashboard/source-health",
   "/dashboard/subscribers",
   "/dashboard/insights",

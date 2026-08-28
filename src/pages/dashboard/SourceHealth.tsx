@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { agentApi } from "@/lib/api/agents";
-import { Seo } from "@/components/Seo";
 import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -94,13 +93,15 @@ export default function SourceHealth() {
     }
   }
 
+  // Rendered as a tab inside Review Queue, which supplies the page chrome.
+  // The old standalone <h1> and <Seo> lived here when /dashboard/source-health
+  // was its own route; keeping them would double the heading and fight Review
+  // Queue's own <Seo> for the document title.
   return (
-    <div className="p-6 space-y-6">
-      <Seo title="Source Health · InfraRadarAI" description="Validate and clean up broken source URLs across evidence, projects, contacts and insights." path="/dashboard/source-health" />
-      <div>
-        <h1 className="text-3xl font-serif">Source Health</h1>
-        <p className="text-muted-foreground mt-1">Validate every source URL surfaced by agents. Quarantine and remove broken citations.</p>
-      </div>
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Validate every source URL surfaced by agents. Quarantine and remove broken citations.
+      </p>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-2"><CardDescription>Total checked</CardDescription><CardTitle className="text-3xl">{counts.total}</CardTitle></CardHeader></Card>

@@ -126,7 +126,6 @@ const NAV_GROUPS: NavGroup[] = [
         icon: ClipboardCheck,
         tourId: 'nav-review',
         children: [
-          { title: 'Source Health', url: '/dashboard/source-health', icon: Activity, tourId: 'nav-source-health' },
         ],
       },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },

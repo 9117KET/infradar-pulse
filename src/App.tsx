@@ -41,7 +41,6 @@ import SettingsPage from "./pages/dashboard/Settings";
 import { RoleGuard } from "./components/RoleGuard";
 import { FeatureGate } from "./components/billing/FeatureGate";
 import ReviewQueue from "./pages/dashboard/ReviewQueue";
-import SourceHealth from "./pages/dashboard/SourceHealth";
 import SubscriberManagement from "./pages/dashboard/SubscriberManagement";
 import InsightDetail from "./pages/InsightDetail";
 import InsightsManagement from "./pages/dashboard/InsightsManagement";
@@ -133,7 +132,8 @@ const App = () => (
               <Route path="/dashboard/users" element={<RoleGuard requiredRole="admin"><UsersPage /></RoleGuard>} />
               <Route path="/dashboard/settings" element={<SettingsPage />} />
               <Route path="/dashboard/review" element={<RoleGuard requiredRole="researcher"><ReviewQueue /></RoleGuard>} />
-              <Route path="/dashboard/source-health" element={<RoleGuard requiredRole="researcher"><SourceHealth /></RoleGuard>} />
+              {/* Source Health is now a Review Queue tab. Redirect keeps old links and bookmarks working. */}
+              <Route path="/dashboard/source-health" element={<Navigate to="/dashboard/review?tab=source-health" replace />} />
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
               <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
