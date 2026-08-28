@@ -6,6 +6,7 @@ import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, setTaskStep, finishAgentRun, recordAgentEvent, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 import { calculateIntelligenceQuality } from "../_shared/intelligenceQuality.ts";
+import { recordQualityScore } from "../_shared/qualityScoreHistory.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,6 +120,7 @@ serve(async (req) => {
     let contactsAdded = 0;
     let sourcesBackfilled = 0;
     let qualityScoresWritten = 0;
+    let qualityScoresUnchanged = 0;
 
     for (const project of toEnrich) {
       if (Date.now() - runStartedAt.getTime() > WALL_CLOCK_BUDGET_MS) {
@@ -311,27 +313,23 @@ serve(async (req) => {
           // verified regardless of how old the underlying facts were.
           lastUpdated: (project as { last_updated?: string | null }).last_updated ?? null,
         });
-        await supabase.from("quality_scores").insert({
-          project_id: project.id,
-          total_score: quality.total_score,
-          source_score: quality.source_score,
-          evidence_score: quality.evidence_score,
-          completeness_score: quality.completeness_score,
-          freshness_score: quality.freshness_score,
-          confidence_score: quality.confidence_score,
-          missing_fields: quality.missing_fields,
-          flags: quality.flags,
-          recommendation: quality.recommendation,
+        // Only count real writes: recordQualityScore skips rows that repeat the
+        // latest stored assessment, and reporting those as written would
+        // overstate the work done.
+        const scoreOutcome = await recordQualityScore(supabase, {
+          projectId: project.id,
+          quality,
           details: { source: "data-enrichment" },
         });
-        qualityScoresWritten++;
+        if (scoreOutcome === "inserted") qualityScoresWritten++;
+        else if (scoreOutcome === "unchanged") qualityScoresUnchanged++;
       } catch (e) {
         console.error(`Error enriching ${project.name}:`, e);
       }
     }
 
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled, quality_scores_written: qualityScoresWritten };
+    const result = { success: true, projects_scanned: toEnrich.length, enriched, contacts_added: contactsAdded, sources_backfilled: sourcesBackfilled, quality_scores_written: qualityScoresWritten, quality_scores_unchanged: qualityScoresUnchanged };
     if (taskId) await supabase.from("research_tasks").update({ status: "completed", completed_at: new Date().toISOString(), result }).eq("id", taskId);
     await recordAgentEvent(supabase, "data-enrichment", "completed", "Data enrichment completed with quality scoring", taskId, result);
     await finishAgentRun(supabase, "data-enrichment", "completed", runStartedAt);
