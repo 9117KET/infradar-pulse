@@ -29,9 +29,11 @@ import type { AppRole } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { canAccessFeature, type FeatureKey } from '@/lib/billing/featureAccess';
 
-type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string; feature?: FeatureKey };
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string; feature?: FeatureKey; children?: NavItem[] };
 type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
+// Consolidated navigation: top-level destinations stay few, related views are
+// nested and revealed only while their section is active.
 const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Command Center',
@@ -42,32 +44,76 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Projects & Portfolio',
+    label: 'Projects',
     items: [
-      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
-      { title: 'My Portfolio', url: '/dashboard/portfolio', icon: Briefcase, tourId: 'nav-portfolio' },
-      { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
-      { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
-      { title: 'Compare Projects', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+      {
+        title: 'Projects',
+        url: '/dashboard/projects',
+        icon: FolderSearch,
+        tourId: 'nav-projects',
+        children: [
+          { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
+          { title: 'Compare', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+        ],
+      },
+      {
+        title: 'My Portfolio',
+        url: '/dashboard/portfolio',
+        icon: Briefcase,
+        tourId: 'nav-portfolio',
+        children: [
+          { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
+        ],
+      },
     ],
   },
   {
     label: 'Market Intelligence',
     items: [
-      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
-      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
-      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
-      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
-      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
-      { title: 'Contractor Intel', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
+      {
+        title: 'Geo Intelligence',
+        url: '/dashboard/geo',
+        icon: Globe,
+        tourId: 'nav-geo',
+        children: [
+          { title: 'Countries', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
+        ],
+      },
+      {
+        title: 'Tenders & Awards',
+        url: '/dashboard/tenders',
+        icon: Award,
+        tourId: 'nav-tenders',
+        feature: 'tender_intelligence',
+        children: [
+          { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
+        ],
+      },
+      {
+        title: 'People & Firms',
+        url: '/dashboard/stakeholders',
+        icon: Users2,
+        tourId: 'nav-stakeholders',
+        feature: 'stakeholder_intel',
+        children: [
+          { title: 'Contractors', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
+        ],
+      },
     ],
   },
   {
-    label: 'Reports & Insights',
+    label: 'Reports',
     items: [
-      { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries' },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
-      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+      {
+        title: 'Reports',
+        url: '/dashboard/intelligence-summaries',
+        icon: Layers,
+        tourId: 'nav-summaries',
+        children: [
+          { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
+          { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+        ],
+      },
     ],
   },
   {
@@ -76,21 +122,35 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
       { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
+      {
+        title: 'Review Queue',
+        url: '/dashboard/review',
+        icon: ClipboardCheck,
+        tourId: 'nav-review',
+        children: [
+          { title: 'Source Health', url: '/dashboard/source-health', icon: Activity, tourId: 'nav-source-health' },
+        ],
+      },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
-      { title: 'Agent Health', url: '/dashboard/agent-health', icon: Bot, tourId: 'nav-agent-health' },
     ],
   },
   {
     label: 'Admin',
     minRole: 'admin',
     items: [
-      { title: 'Traction', url: '/dashboard/traction', icon: TrendingUp, tourId: 'nav-traction' },
-      { title: 'BD Pipeline', url: '/dashboard/bd-pipeline', icon: Handshake, tourId: 'nav-bd-pipeline' },
-      { title: 'Outreach', url: '/dashboard/outreach', icon: Send, tourId: 'nav-outreach' },
-      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+      {
+        title: 'Growth',
+        url: '/dashboard/traction',
+        icon: TrendingUp,
+        tourId: 'nav-traction',
+        children: [
+          { title: 'BD Pipeline', url: '/dashboard/bd-pipeline', icon: Handshake, tourId: 'nav-bd-pipeline' },
+          { title: 'Outreach', url: '/dashboard/outreach', icon: Send, tourId: 'nav-outreach' },
+          { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+          { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },
+        ],
+      },
       { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
-      { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },
       { title: 'Settings', url: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
     ],
   },
