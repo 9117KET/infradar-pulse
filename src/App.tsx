@@ -57,10 +57,7 @@ import Reports from "./pages/dashboard/Reports";
 import Portfolio from "./pages/dashboard/Portfolio";
 import IntelligenceSummaries from "./pages/dashboard/IntelligenceSummaries";
 import Tenders from "./pages/dashboard/Tenders";
-import Countries from "./pages/dashboard/Countries";
 import CountryDetail from "./pages/dashboard/CountryDetail";
-import Compare from "./pages/dashboard/Compare";
-import Pipeline from "./pages/dashboard/Pipeline";
 import TenderCalendar from "./pages/dashboard/TenderCalendar";
 import PortfolioChat from "./pages/dashboard/PortfolioChat";
 import StakeholderIntel from "./pages/dashboard/StakeholderIntel";
@@ -146,10 +143,11 @@ const App = () => (
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
               <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />
               <Route path="/dashboard/tenders" element={<Tenders />} />
-              <Route path="/dashboard/countries" element={<Countries />} />
+              {/* Pipeline, Compare and Countries are now Projects tabs. Redirects keep old links working. */}
+              <Route path="/dashboard/countries" element={<Navigate to="/dashboard/projects?tab=countries" replace />} />
               <Route path="/dashboard/countries/:country" element={<CountryDetail />} />
-              <Route path="/dashboard/compare" element={<Compare />} />
-              <Route path="/dashboard/pipeline" element={<Pipeline />} />
+              <Route path="/dashboard/compare" element={<Navigate to="/dashboard/projects?tab=compare" replace />} />
+              <Route path="/dashboard/pipeline" element={<Navigate to="/dashboard/projects?tab=pipeline" replace />} />
               <Route path="/dashboard/calendar" element={<TenderCalendar />} />
               <Route path="/dashboard/chat" element={<FeatureGate feature="portfolio_chat"><PortfolioChat /></FeatureGate>} />
               <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />

@@ -74,7 +74,10 @@ export default function Pipeline() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Pipeline View</h1>
+      {/* Rendered as a tab inside Projects, which supplies the page
+          heading. The standalone <h1> that lived here would otherwise
+          duplicate it. */}
+          <p className="text-sm font-medium">Pipeline</p>
           <p className="text-sm text-muted-foreground mt-1">Projects grouped by stage. Sorted by value within each column.</p>
         </div>
         <div className="flex rounded-lg border border-border overflow-hidden text-xs">
