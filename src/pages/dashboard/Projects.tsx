@@ -20,7 +20,6 @@ import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck,
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { canAccessFeature } from '@/lib/billing/featureAccess';
 import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel, downloadXlsx } from '@/lib/billing/exportCaps';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -679,18 +678,10 @@ export default function Projects() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              if (!canAccessFeature(plan, 'saved_searches', staffBypass)) {
-                setUpgradeOpen(true);
-                return;
-              }
-              setSaveSearchOpen(true);
-            }}
+            onClick={() => setSaveSearchOpen(true)}
             disabled={!hasActiveFilters}
-            title={!canAccessFeature(plan, 'saved_searches', staffBypass) ? 'Saved searches require the Starter plan' : undefined}
           >
             <Bookmark className="h-3 w-3 mr-1" />Save search
-            {!canAccessFeature(plan, 'saved_searches', staffBypass) && <span className="ml-1.5 text-[10px] text-primary">PRO</span>}
           </Button>
           <Button size="sm" variant="outline" onClick={() => void exportCSV()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export CSV</Button>
           <Button size="sm" variant="outline" onClick={() => void exportXLSX()} title={!canExportCsv ? 'Opens upgrade options — daily limit reached' : undefined}><Download className="h-3 w-3 mr-1" />Export Excel</Button>

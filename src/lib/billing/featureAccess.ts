@@ -1,7 +1,19 @@
 /**
- * Feature gating catalog. Maps each premium feature to the minimum plan that
- * unlocks it. Mirrors the promises on /pricing so a free user can't bypass
- * limits by navigating the UI directly.
+ * Feature gating catalog.
+ *
+ * Deliberately small. AI calls, exports and insight reads are already metered
+ * per plan by PLAN_LIMITS and enforced server-side, so most capability is
+ * bounded by VOLUME rather than locked behind a plan. Only features with a
+ * real marginal cost per use are hard-gated here.
+ *
+ * Nine gates used to sit on top of those volume limits - pipeline view,
+ * compare, tender calendar, country and stakeholder intelligence, tender
+ * intelligence, alert rules, saved searches. They were views of the same
+ * project table, so a new user met a wall of locked doors before ever seeing
+ * the data the product is judged on. They are now open and volume-limited.
+ *
+ * Before adding a key here, ask whether a quota in PLAN_LIMITS would do the
+ * job instead. It usually will.
  *
  * Staff (admin/researcher) and lifetime grant holders bypass all gates via
  * `useEntitlements().staffBypass` / `plan === 'lifetime'`.
@@ -9,86 +21,22 @@
 import { PLAN_RANK, planMeetsMinimum, type PlanKey } from './limits';
 
 export type FeatureKey =
-  // Starter+
-  | 'alert_rules'
-  | 'saved_searches'
   | 'portfolio_chat'
-  | 'tender_calendar'
-  | 'compare_projects'
-  | 'pipeline_view'
-  | 'intelligence_summaries'
-  // Pro+
-  | 'risk_signals'
-  | 'realtime_monitoring'
-  | 'tender_intelligence'
-  | 'stakeholder_intel'
-  | 'country_intelligence';
+  | 'intelligence_summaries';
 
 export const FEATURE_MIN_PLAN: Record<FeatureKey, PlanKey> = {
-  // Starter (and above)
-  alert_rules: 'starter',
-  saved_searches: 'starter',
   portfolio_chat: 'starter',
-  tender_calendar: 'starter',
-  compare_projects: 'starter',
-  pipeline_view: 'starter',
   intelligence_summaries: 'starter',
-  // Pro (and above)
-  risk_signals: 'pro',
-  realtime_monitoring: 'pro',
-  tender_intelligence: 'pro',
-  stakeholder_intel: 'pro',
-  country_intelligence: 'pro',
 };
 
 export const FEATURE_LABELS: Record<FeatureKey, { name: string; description: string }> = {
-  alert_rules: {
-    name: 'Custom alert rules',
-    description: 'Create unlimited alert rules with custom filters, severity, and email delivery.',
-  },
-  saved_searches: {
-    name: 'Saved searches',
-    description: 'Save filter combinations and get notified when new matches appear.',
-  },
   portfolio_chat: {
     name: 'Portfolio Chat',
     description: 'Ask AI questions about your tracked projects in natural language.',
   },
-  tender_calendar: {
-    name: 'Tender Calendar',
-    description: 'See every milestone and tender deadline in one calendar view.',
-  },
-  compare_projects: {
-    name: 'Compare projects',
-    description: 'Side-by-side comparison of up to 5 projects on risk, value, and stage.',
-  },
-  pipeline_view: {
-    name: 'Pipeline view',
-    description: 'Kanban view of every project across all lifecycle stages.',
-  },
   intelligence_summaries: {
     name: 'AI digests and reports',
     description: 'AI-generated market digests, sector summaries, and exportable PDF reports.',
-  },
-  risk_signals: {
-    name: 'Risk & anomaly signals',
-    description: 'Delay risk scores, anomaly detection, and early warning alerts.',
-  },
-  realtime_monitoring: {
-    name: 'Real-time monitoring',
-    description: 'Live project updates, agent activity, and intelligence stream.',
-  },
-  tender_intelligence: {
-    name: 'Tender intelligence',
-    description: 'Contract awards, cancellations, and tender events feed.',
-  },
-  stakeholder_intel: {
-    name: 'Stakeholder intelligence',
-    description: 'Contractor, sponsor, and stakeholder networks across projects.',
-  },
-  country_intelligence: {
-    name: 'Country intelligence',
-    description: 'Country-by-country project portfolios, risk profiles, and pipelines.',
   },
 };
 
