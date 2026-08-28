@@ -306,7 +306,10 @@ serve(async (req) => {
           evidenceCount: finalEvidenceCount,
           officialSourceCount: finalSourceUrl.includes("worldbank.org") || finalSourceUrl.includes("adb.org") || finalSourceUrl.includes("gov") ? 1 : 0,
           contactCount: finalContactCount,
-          lastUpdated: new Date().toISOString(),
+          // The project's real last_updated, not enrichment time. Enrichment
+          // rewriting this to "now" made every enriched project look freshly
+          // verified regardless of how old the underlying facts were.
+          lastUpdated: (project as { last_updated?: string | null }).last_updated ?? null,
         });
         await supabase.from("quality_scores").insert({
           project_id: project.id,

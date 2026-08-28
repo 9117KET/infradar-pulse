@@ -25,6 +25,12 @@ export interface QualityScoreBreakdown {
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 
+/** Mirrors UNKNOWN_FRESHNESS_SCORE in _shared/intelligenceQuality.ts. */
+const UNKNOWN_FRESHNESS_SCORE = 45;
+
+/** Mirrors FUTURE_TOLERANCE_MS in _shared/intelligenceQuality.ts. */
+const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
 export function isValidEvidenceUrl(url?: string | null) {
   const value = (url ?? '').trim();
   return value.startsWith('http') && value !== '#';
@@ -67,14 +73,33 @@ export function calculateIntelligenceQuality(input: QualityInput): QualityScoreB
     flags.push('weak_geospatial_precision');
   }
 
-  const lastUpdated = input.lastUpdated ? new Date(input.lastUpdated).getTime() : Date.now();
-  const ageDays = Math.max(0, Math.floor((Date.now() - lastUpdated) / 86_400_000));
-  let freshnessScore = 100;
-  if (ageDays > 180) {
-    freshnessScore = 20;
-    flags.push('stale_record');
-  } else if (ageDays > 90) freshnessScore = 45;
-  else if (ageDays > 30) freshnessScore = 70;
+  // Must stay behaviourally identical to
+  // supabase/functions/_shared/intelligenceQuality.ts - the two copies exist
+  // because the Deno edge runtime and the Vite client cannot share a module
+  // across the tsconfig boundary. src/lib/intelligence-quality.parity.test.ts
+  // runs both over the same fixtures and fails if they diverge.
+  //
+  // Every path that cannot establish a real age fails toward "unknown", never
+  // toward "fresh": a missing date, an unparseable one, and a future one all
+  // land on UNKNOWN_FRESHNESS_SCORE and raise a flag.
+  const lastUpdatedMs = input.lastUpdated ? new Date(input.lastUpdated).getTime() : NaN;
+  let freshnessScore: number;
+
+  if (!Number.isFinite(lastUpdatedMs)) {
+    freshnessScore = UNKNOWN_FRESHNESS_SCORE;
+    flags.push(input.lastUpdated ? 'unparseable_last_updated' : 'unknown_freshness');
+  } else if (lastUpdatedMs > Date.now() + FUTURE_TOLERANCE_MS) {
+    freshnessScore = UNKNOWN_FRESHNESS_SCORE;
+    flags.push('future_last_updated');
+  } else {
+    const ageDays = Math.max(0, Math.floor((Date.now() - lastUpdatedMs) / 86_400_000));
+    freshnessScore = 100;
+    if (ageDays > 180) {
+      freshnessScore = 20;
+      flags.push('stale_record');
+    } else if (ageDays > 90) freshnessScore = 45;
+    else if (ageDays > 30) freshnessScore = 70;
+  }
 
   const confidenceScore = clamp(input.confidence ?? 0);
   let totalScore = Math.round(

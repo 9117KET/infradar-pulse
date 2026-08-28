@@ -159,7 +159,12 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     evidenceCount: evidence?.id ? 1 : 0,
     officialSourceCount: 1,
     contactCount: input.stakeholder ? 1 : 0,
-    lastUpdated: new Date().toISOString(),
+    // The upstream record's own published date - NOT ingest time. Passing
+    // new Date() here pinned freshness_score at 100 for every candidate ever
+    // staged, which made the ageDays tiers unreachable and stale_record
+    // impossible to raise. A source with no published date is scored as
+    // unknown-age, which is the honest answer.
+    lastUpdated: input.publishedAt ?? null,
   });
 
   // Fast-path: skip insert entirely if this name+country was previously rejected.
