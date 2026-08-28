@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -2671,6 +2671,30 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_http_failures: {
+        Row: {
+          content_preview: string | null
+          created: string | null
+          error_msg: string | null
+          id: number | null
+          status_code: number | null
+        }
+        Insert: {
+          content_preview?: never
+          created?: string | null
+          error_msg?: string | null
+          id?: number | null
+          status_code?: number | null
+        }
+        Update: {
+          content_preview?: never
+          created?: string | null
+          error_msg?: string | null
+          id?: number | null
+          status_code?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       _agent_cron_auth_header: { Args: never; Returns: Json }
@@ -2771,6 +2795,21 @@ export type Database = {
       create_report_share: {
         Args: { p_report_run_id: string }
         Returns: string
+      }
+      cron_auth_preflight: {
+        Args: never
+        Returns: {
+          detail: string
+          ok: boolean
+        }[]
+      }
+      cron_jobs_with_baked_credentials: {
+        Args: never
+        Returns: {
+          jobid: number
+          jobname: string
+          schedule: string
+        }[]
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -2963,6 +3002,14 @@ export type Database = {
       revoke_report_share: {
         Args: { p_report_run_id: string }
         Returns: undefined
+      }
+      rewrite_cron_baked_credentials: {
+        Args: never
+        Returns: {
+          failed: number
+          rewritten: number
+          skipped: number
+        }[]
       }
       safe_cast_project_region: {
         Args: { t: string }
