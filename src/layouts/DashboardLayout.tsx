@@ -174,6 +174,30 @@ function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, hasRole } = useAuth();
   const { plan, staffBypass, loading: entitlementLoading } = useEntitlements();
+  const location = useLocation();
+
+  const isLocked = (item: NavItem) =>
+    !!item.feature && !entitlementLoading && !canAccessFeature(plan, item.feature, staffBypass);
+
+  const renderLink = (item: NavItem, nested = false) => {
+    const locked = isLocked(item);
+    return (
+      <NavLink
+        to={item.url}
+        end={item.url === '/dashboard'}
+        className={`hover:bg-sidebar-accent ${nested ? 'text-xs' : ''}`}
+        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+      >
+        <item.icon className={`mr-2 ${nested ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
+        {!collapsed && (
+          <span className="flex items-center gap-1.5 flex-1 min-w-0">
+            <span className={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
+            {locked && <Lock className="h-3 w-3 text-muted-foreground/70 shrink-0" />}
+          </span>
+        )}
+      </NavLink>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -192,20 +216,25 @@ function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map(item => {
-                    const locked = !!item.feature && !entitlementLoading && !canAccessFeature(plan, item.feature, staffBypass);
+                    const children = (item.children ?? []).filter(c => meetsMinRole(hasRole, c.minRole));
+                    // Sub-items are revealed only while their section is in use,
+                    // keeping the default sidebar short.
+                    const sectionActive =
+                      location.pathname === item.url ||
+                      location.pathname.startsWith(`${item.url}/`) ||
+                      children.some(c => location.pathname === c.url || location.pathname.startsWith(`${c.url}/`));
                     return (
                       <SidebarMenuItem key={item.url} data-tour={item.tourId}>
-                        <SidebarMenuButton asChild>
-                          <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && (
-                              <span className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <span className={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
-                                {locked && <Lock className="h-3 w-3 text-muted-foreground/70 shrink-0" />}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
+                        <SidebarMenuButton asChild>{renderLink(item)}</SidebarMenuButton>
+                        {!collapsed && children.length > 0 && sectionActive && (
+                          <SidebarMenu className="ml-4 border-l border-border/50 pl-1">
+                            {children.map(child => (
+                              <SidebarMenuItem key={child.url} data-tour={child.tourId}>
+                                <SidebarMenuButton asChild size="sm">{renderLink(child, true)}</SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        )}
                       </SidebarMenuItem>
                     );
                   })}
