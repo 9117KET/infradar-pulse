@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
