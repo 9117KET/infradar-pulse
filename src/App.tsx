@@ -52,8 +52,7 @@ import EvidenceVerification from "./pages/dashboard/EvidenceVerification";
 const AnalyticsReports = lazy(() => import("./pages/dashboard/AnalyticsReports"));
 const RealTimeMonitoring = lazy(() => import("./pages/dashboard/RealTimeMonitoring"));
 const RiskAnomalySignals = lazy(() => import("./pages/dashboard/RiskAnomalySignals"));
-const AgentMonitoring = lazy(() => import("./pages/dashboard/AgentMonitoring"));
-const AgentHealth = lazy(() => import("./pages/dashboard/AgentHealth"));
+const AgentsHub = lazy(() => import("./pages/dashboard/AgentsHub"));
 import Research from "./pages/dashboard/Research";
 import Digests from "./pages/dashboard/Digests";
 import Datasets from "./pages/dashboard/Datasets";
@@ -145,8 +144,8 @@ const App = () => (
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
               <Route path="/dashboard/monitoring" element={<Navigate to="/dashboard/agents" replace />} />
               <Route path="/dashboard/risk" element={<Navigate to="/dashboard/projects?tab=risk" replace />} />
-              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentMonitoring /></RoleGuard>} />
-              <Route path="/dashboard/agent-health" element={<RoleGuard requiredRole="researcher"><AgentHealth /></RoleGuard>} />
+              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentsHub /></RoleGuard>} />
+              <Route path="/dashboard/agent-health" element={<Navigate to="/dashboard/agents?tab=health" replace />} />
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
               <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />

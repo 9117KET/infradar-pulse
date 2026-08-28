@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -29,9 +29,11 @@ import type { AppRole } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { canAccessFeature, type FeatureKey } from '@/lib/billing/featureAccess';
 
-type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string; feature?: FeatureKey };
+type NavItem = { title: string; url: string; icon: any; minRole?: AppRole; tourId?: string; feature?: FeatureKey; children?: NavItem[] };
 type NavGroup = { label: string; minRole?: AppRole; items: NavItem[] };
 
+// Consolidated navigation: top-level destinations stay few, related views are
+// nested and revealed only while their section is active.
 const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Command Center',
@@ -42,32 +44,76 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: 'Projects & Portfolio',
+    label: 'Projects',
     items: [
-      { title: 'Projects', url: '/dashboard/projects', icon: FolderSearch, tourId: 'nav-projects' },
-      { title: 'My Portfolio', url: '/dashboard/portfolio', icon: Briefcase, tourId: 'nav-portfolio' },
-      { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
-      { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
-      { title: 'Compare Projects', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+      {
+        title: 'Projects',
+        url: '/dashboard/projects',
+        icon: FolderSearch,
+        tourId: 'nav-projects',
+        children: [
+          { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
+          { title: 'Compare', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+        ],
+      },
+      {
+        title: 'My Portfolio',
+        url: '/dashboard/portfolio',
+        icon: Briefcase,
+        tourId: 'nav-portfolio',
+        children: [
+          { title: 'Portfolio Chat', url: '/dashboard/chat', icon: MessageSquare, tourId: 'nav-chat', feature: 'portfolio_chat' },
+        ],
+      },
     ],
   },
   {
     label: 'Market Intelligence',
     items: [
-      { title: 'Geo Intelligence', url: '/dashboard/geo', icon: Globe, tourId: 'nav-geo' },
-      { title: 'Country Intelligence', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
-      { title: 'Tenders & Awards', url: '/dashboard/tenders', icon: Award, tourId: 'nav-tenders', feature: 'tender_intelligence' },
-      { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
-      { title: 'Stakeholder Intel', url: '/dashboard/stakeholders', icon: Users2, tourId: 'nav-stakeholders', feature: 'stakeholder_intel' },
-      { title: 'Contractor Intel', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
+      {
+        title: 'Geo Intelligence',
+        url: '/dashboard/geo',
+        icon: Globe,
+        tourId: 'nav-geo',
+        children: [
+          { title: 'Countries', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
+        ],
+      },
+      {
+        title: 'Tenders & Awards',
+        url: '/dashboard/tenders',
+        icon: Award,
+        tourId: 'nav-tenders',
+        feature: 'tender_intelligence',
+        children: [
+          { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
+        ],
+      },
+      {
+        title: 'People & Firms',
+        url: '/dashboard/stakeholders',
+        icon: Users2,
+        tourId: 'nav-stakeholders',
+        feature: 'stakeholder_intel',
+        children: [
+          { title: 'Contractors', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
+        ],
+      },
     ],
   },
   {
-    label: 'Reports & Insights',
+    label: 'Reports',
     items: [
-      { title: 'Intelligence Summaries', url: '/dashboard/intelligence-summaries', icon: Layers, tourId: 'nav-summaries' },
-      { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
-      { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+      {
+        title: 'Reports',
+        url: '/dashboard/intelligence-summaries',
+        icon: Layers,
+        tourId: 'nav-summaries',
+        children: [
+          { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
+          { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
+        ],
+      },
     ],
   },
   {
@@ -76,21 +122,35 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Research', url: '/dashboard/research', icon: Search, tourId: 'nav-research' },
       { title: 'Evidence & Verification', url: '/dashboard/evidence', icon: ShieldCheck, tourId: 'nav-evidence' },
-      { title: 'Review Queue', url: '/dashboard/review', icon: ClipboardCheck, tourId: 'nav-review' },
+      {
+        title: 'Review Queue',
+        url: '/dashboard/review',
+        icon: ClipboardCheck,
+        tourId: 'nav-review',
+        children: [
+          { title: 'Source Health', url: '/dashboard/source-health', icon: Activity, tourId: 'nav-source-health' },
+        ],
+      },
       { title: 'Agents', url: '/dashboard/agents', icon: Bot, tourId: 'nav-agents' },
-      { title: 'Agent Health', url: '/dashboard/agent-health', icon: Bot, tourId: 'nav-agent-health' },
     ],
   },
   {
     label: 'Admin',
     minRole: 'admin',
     items: [
-      { title: 'Traction', url: '/dashboard/traction', icon: TrendingUp, tourId: 'nav-traction' },
-      { title: 'BD Pipeline', url: '/dashboard/bd-pipeline', icon: Handshake, tourId: 'nav-bd-pipeline' },
-      { title: 'Outreach', url: '/dashboard/outreach', icon: Send, tourId: 'nav-outreach' },
-      { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+      {
+        title: 'Growth',
+        url: '/dashboard/traction',
+        icon: TrendingUp,
+        tourId: 'nav-traction',
+        children: [
+          { title: 'BD Pipeline', url: '/dashboard/bd-pipeline', icon: Handshake, tourId: 'nav-bd-pipeline' },
+          { title: 'Outreach', url: '/dashboard/outreach', icon: Send, tourId: 'nav-outreach' },
+          { title: 'Subscribers', url: '/dashboard/subscribers', icon: ListChecks, tourId: 'nav-subscribers' },
+          { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },
+        ],
+      },
       { title: 'Users', url: '/dashboard/users', icon: Users, tourId: 'nav-users' },
-      { title: 'Feedback Inbox', url: '/dashboard/feedback', icon: MessageSquare, tourId: 'nav-feedback' },
       { title: 'Settings', url: '/dashboard/settings', icon: Settings, tourId: 'nav-settings' },
     ],
   },
@@ -114,6 +174,30 @@ function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { signOut, hasRole } = useAuth();
   const { plan, staffBypass, loading: entitlementLoading } = useEntitlements();
+  const location = useLocation();
+
+  const isLocked = (item: NavItem) =>
+    !!item.feature && !entitlementLoading && !canAccessFeature(plan, item.feature, staffBypass);
+
+  const renderLink = (item: NavItem, nested = false) => {
+    const locked = isLocked(item);
+    return (
+      <NavLink
+        to={item.url}
+        end={item.url === '/dashboard'}
+        className={`hover:bg-sidebar-accent ${nested ? 'text-xs' : ''}`}
+        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+      >
+        <item.icon className={`mr-2 ${nested ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
+        {!collapsed && (
+          <span className="flex items-center gap-1.5 flex-1 min-w-0">
+            <span className={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
+            {locked && <Lock className="h-3 w-3 text-muted-foreground/70 shrink-0" />}
+          </span>
+        )}
+      </NavLink>
+    );
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border bg-sidebar">
@@ -132,20 +216,25 @@ function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu>
                   {visibleItems.map(item => {
-                    const locked = !!item.feature && !entitlementLoading && !canAccessFeature(plan, item.feature, staffBypass);
+                    const children = (item.children ?? []).filter(c => meetsMinRole(hasRole, c.minRole));
+                    // Sub-items are revealed only while their section is in use,
+                    // keeping the default sidebar short.
+                    const sectionActive =
+                      location.pathname === item.url ||
+                      location.pathname.startsWith(`${item.url}/`) ||
+                      children.some(c => location.pathname === c.url || location.pathname.startsWith(`${c.url}/`));
                     return (
                       <SidebarMenuItem key={item.url} data-tour={item.tourId}>
-                        <SidebarMenuButton asChild>
-                          <NavLink to={item.url} end={item.url === '/dashboard'} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                            <item.icon className="mr-2 h-4 w-4" />
-                            {!collapsed && (
-                              <span className="flex items-center gap-1.5 flex-1 min-w-0">
-                                <span className={locked ? 'text-muted-foreground' : ''}>{item.title}</span>
-                                {locked && <Lock className="h-3 w-3 text-muted-foreground/70 shrink-0" />}
-                              </span>
-                            )}
-                          </NavLink>
-                        </SidebarMenuButton>
+                        <SidebarMenuButton asChild>{renderLink(item)}</SidebarMenuButton>
+                        {!collapsed && children.length > 0 && sectionActive && (
+                          <SidebarMenu className="ml-4 border-l border-border/50 pl-1">
+                            {children.map(child => (
+                              <SidebarMenuItem key={child.url} data-tour={child.tourId}>
+                                <SidebarMenuButton asChild size="sm">{renderLink(child, true)}</SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        )}
                       </SidebarMenuItem>
                     );
                   })}
