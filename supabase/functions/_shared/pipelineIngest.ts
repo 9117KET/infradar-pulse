@@ -53,8 +53,52 @@ export interface StageProjectInput {
   autoPublish?: boolean;
 }
 
-/** Minimum intelligence-quality total score for machine promotion. */
+/**
+ * Minimum intelligence-quality total score for machine promotion.
+ *
+ * This is DELIBERATELY below the 85 that calculateIntelligenceQuality needs to
+ * return recommendation: 'approve'. The two are not in conflict; they answer
+ * different questions:
+ *
+ *   'approve' at >= 85   "would a reviewer accept this on the evidence alone?"
+ *                        - a general-purpose bar, applied to any candidate
+ *                          including LLM-extracted ones.
+ *   this constant at 60  "is this good enough to skip review, GIVEN that it
+ *                        came from a deterministic official registry?"
+ *                        - provenance is already guaranteed by the caller, so
+ *                          the score only has to clear a completeness floor.
+ *
+ * Only official-registry ingests may set `autoPublish`, so nothing without that
+ * guarantee ever reaches this branch. Previously the divergence was undocumented
+ * and read as a bug.
+ */
 const AUTO_PUBLISH_MIN_QUALITY = 60;
+
+/**
+ * Quality flags that block machine promotion regardless of total score.
+ *
+ * These are the freshness faults the scorer can now actually raise. The line is
+ * "block what we know is bad, allow what we merely do not know":
+ *
+ *   stale_record              the record is provably old - promoting it would
+ *                             publish a figure we already know is out of date.
+ *   unparseable_last_updated  the upstream date did not parse - a parser or
+ *                             feed fault worth a human look.
+ *   future_last_updated       the source claims a date that has not happened.
+ *
+ * `unknown_freshness` is deliberately NOT here. A missing published date is a
+ * limitation of some upstream feeds, not a defect in the record, and blocking on
+ * it would divert a large share of legitimate official-registry rows into the
+ * review queue. Such records still lose freshness points via the scorer.
+ *
+ * This also gives the flags their first consumer: before this, the scorer raised
+ * them and nothing anywhere acted on them.
+ */
+export const AUTO_PUBLISH_BLOCKING_FLAGS = [
+  "stale_record",
+  "unparseable_last_updated",
+  "future_last_updated",
+] as const;
 
 export function normalizeProjectName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -265,7 +309,24 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
 
   // Machine promotion for deterministic official registries. On any failure
   // the candidate simply stays in the human review queue.
-  if (input.autoPublish && candidate?.id && quality.total_score >= AUTO_PUBLISH_MIN_QUALITY && isHttpUrl(input.sourceUrl)) {
+  const blockingFlags = quality.flags.filter((f) =>
+    (AUTO_PUBLISH_BLOCKING_FLAGS as readonly string[]).includes(f)
+  );
+
+  // Say why, so a record diverted to review is traceable rather than silently
+  // absent from the auto-published set.
+  if (input.autoPublish && blockingFlags.length > 0) {
+    console.log(
+      `auto-publish blocked for ${input.name} (${input.sourceKey}): ${blockingFlags.join(", ")}`,
+    );
+  }
+
+  if (
+    input.autoPublish && candidate?.id &&
+    quality.total_score >= AUTO_PUBLISH_MIN_QUALITY &&
+    isHttpUrl(input.sourceUrl) &&
+    blockingFlags.length === 0
+  ) {
     const { data: promoted, error: promoteError } = await supabase.rpc("auto_promote_official_candidate", {
       p_candidate_id: candidate.id,
       p_reason: `Auto-published from ${input.sourceName} (quality ${quality.total_score})`,
