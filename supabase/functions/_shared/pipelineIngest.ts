@@ -1,5 +1,6 @@
 import { calculateIntelligenceQuality } from "./intelligenceQuality.ts";
 import { sanitizeConfidence, sanitizeValueUsd } from "./sanitizeProjectFacts.ts";
+import { recordQualityScore } from "./qualityScoreHistory.ts";
 
 type SupabaseAdmin = any;
 
@@ -292,17 +293,9 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
       });
     }
 
-    await supabase.from("quality_scores").insert({
-      candidate_id: candidate.id,
-      total_score: quality.total_score,
-      source_score: quality.source_score,
-      evidence_score: quality.evidence_score,
-      completeness_score: quality.completeness_score,
-      freshness_score: quality.freshness_score,
-      confidence_score: quality.confidence_score,
-      missing_fields: quality.missing_fields,
-      flags: quality.flags,
-      recommendation: quality.recommendation,
+    await recordQualityScore(supabase, {
+      candidateId: candidate.id,
+      quality,
       details: { source: input.discoveredBy, external_id: input.externalId ?? null },
     });
   }
