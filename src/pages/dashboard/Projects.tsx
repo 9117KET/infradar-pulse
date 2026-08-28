@@ -5,6 +5,9 @@ import { useProjects } from '@/hooks/use-projects';
 import { useAlerts } from '@/hooks/use-alerts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PipelineView from './Pipeline';
+import CompareView from './Compare';
+import CountriesView from './Countries';
 import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,8 +45,18 @@ const TOOLTIP_LABEL_STYLE = { color: 'hsl(180 10% 92%)' };
 const TOOLTIP_ITEM_STYLE = { color: 'hsl(180 10% 92%)' };
 
 export default function Projects() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'projects';
+  // Controlled, not defaultValue: the tab was readable from the URL but never
+  // written back, so a tab could be deep-linked into yet never shared or
+  // survive a reload. Writing it back is also what lets the retired
+  // /dashboard/pipeline, /compare and /countries routes redirect onto a tab.
+  const setActiveTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'projects') next.delete('tab');
+    else next.set('tab', value);
+    setSearchParams(next, { replace: true });
+  };
   const navigate = useNavigate();
   const { toast } = useToast();
   const { hasRole, profile, user } = useAuth();
@@ -343,14 +356,37 @@ export default function Projects() {
         </DialogContent>
       </Dialog>
 
-      <Tabs defaultValue={activeTab}>
+      {/* One page heading for every tab. This h1 previously lived inside the
+          "projects" TabsContent, so Risk Signals and Analytics rendered with no
+          heading at all - and the tabs folded in here would have inherited the
+          same gap. */}
+      <h1 className="font-serif text-2xl font-bold">Project discovery &amp; profiling</h1>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="-mx-1 overflow-x-auto scrollbar-none">
           <TabsList className="w-max">
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+            <TabsTrigger value="compare">Compare</TabsTrigger>
+            <TabsTrigger value="countries">Countries</TabsTrigger>
             <TabsTrigger value="risk">Risk Signals</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
         </div>
+
+        {/* Pipeline, Compare and Countries were separate routes. All three read
+            the same useProjects() data as this page - they are views of one
+            table, not separate products - so they are tabs here now. Radix
+            unmounts inactive tab content, so only the active view queries. */}
+        <TabsContent value="pipeline" className="space-y-4">
+          <PipelineView />
+        </TabsContent>
+        <TabsContent value="compare" className="space-y-4">
+          <CompareView />
+        </TabsContent>
+        <TabsContent value="countries" className="space-y-4">
+          <CountriesView />
+        </TabsContent>
 
       {/* ── Analytics Tab ── */}
       <TabsContent value="analytics" className="space-y-6">
@@ -640,7 +676,6 @@ export default function Projects() {
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-serif text-2xl font-bold">Project discovery & profiling</h1>
           {hasPreferenceFilters && (
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
               The dataset below starts from your onboarding regions, sectors, and stages. Refine further with filters or update preferences in{' '}

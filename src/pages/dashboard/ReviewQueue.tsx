@@ -1,9 +1,11 @@
+import { useSearchParams } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import SourceHealth from './SourceHealth';
 import { useToast } from '@/hooks/use-toast';
 import { calculateIntelligenceQuality } from '@/lib/intelligence-quality';
 import {
@@ -62,7 +64,17 @@ export default function ReviewQueue() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [approveGuardOpen, setApproveGuardOpen] = useState(false);
   const [pendingApproveId, setPendingApproveId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('candidates');
+  // Tab lives in the URL so /dashboard/review?tab=source-health deep-links, and
+  // so the redirect from the retired /dashboard/source-health route lands on the
+  // right tab. Same pattern as AgentsHub.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') ?? 'candidates';
+  const setActiveTab = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === 'candidates') next.delete('tab');
+    else next.set('tab', value);
+    setSearchParams(next, { replace: true });
+  };
   const [legacyPage, setLegacyPage] = useState(0);
   const [candidatePage, setCandidatePage] = useState(0);
   const [updatePage, setUpdatePage] = useState(0);
@@ -478,13 +490,14 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 bg-muted/60">
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
           <TabsTrigger value="updates">Update Proposals ({updatePageResult.total})</TabsTrigger>
           <TabsTrigger value="sources">Source Issues ({sourceIssuePageResult.total})</TabsTrigger>
           <TabsTrigger value="official">Published (official) ({officialPageResult.total})</TabsTrigger>
+          <TabsTrigger value="source-health">Source Health</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
@@ -947,6 +960,13 @@ export default function ReviewQueue() {
             ))}
             <Pager page={officialPage} total={officialPageResult.total} onPageChange={setOfficialPage} />
           </>}
+        </TabsContent>
+
+        {/* Source Health was its own route until it moved here. It is the same
+            job as the rest of this page - data hygiene - and sits next to
+            Source Issues, which reports the problems it fixes. */}
+        <TabsContent value="source-health" className="space-y-3">
+          <SourceHealth />
         </TabsContent>
       </Tabs>
 
