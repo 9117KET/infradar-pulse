@@ -14,8 +14,6 @@ const PLATFORM_LINKS = [
 const COMPANY_LINKS = [
   { label: 'About', href: '/about' },
   { label: 'Contact', href: '/contact' },
-  { label: 'Careers', href: '/careers' },
-  { label: 'Press', href: '/press' },
   { label: 'Feedback', href: '/feedback' },
 ];
 

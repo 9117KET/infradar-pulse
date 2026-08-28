@@ -5,7 +5,6 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { ALERT_CATEGORIES, type AlertCategory } from '@/data/alerts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertRulesTab } from '@/components/alerts/AlertRulesTab';
-import { FeatureGate } from '@/components/billing/FeatureGate';
 
 const PAGE_SIZE = 10;
 import { Badge } from '@/components/ui/badge';
@@ -184,9 +183,7 @@ export default function Alerts() {
         </div>
 
         <TabsContent value="rules">
-          <FeatureGate feature="alert_rules">
-            <AlertRulesTab />
-          </FeatureGate>
+          <AlertRulesTab />
         </TabsContent>
 
         <TabsContent value="feed" className="space-y-6">

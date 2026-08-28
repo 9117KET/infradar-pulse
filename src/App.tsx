@@ -21,8 +21,6 @@ import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Refund from "./pages/Refund";
 import DataProtection from "./pages/DataProtection";
-import Careers from "./pages/Careers";
-import Press from "./pages/Press";
 import FeedbackPage from "./pages/Feedback";
 import FeedbackInbox from "./pages/dashboard/FeedbackInbox";
 import Unsubscribe from "./pages/Unsubscribe";
@@ -110,8 +108,6 @@ const App = () => (
               <Route path="/refund" element={<Refund />} />
               <Route path="/refund-policy" element={<Refund />} />
               <Route path="/data-protection" element={<DataProtection />} />
-              <Route path="/careers" element={<Careers />} />
-              <Route path="/press" element={<Press />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/feedback" element={<FeedbackPage />} />
             </Route>
@@ -149,15 +145,15 @@ const App = () => (
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
               <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />
-              <Route path="/dashboard/tenders" element={<FeatureGate feature="tender_intelligence"><Tenders /></FeatureGate>} />
-              <Route path="/dashboard/countries" element={<FeatureGate feature="country_intelligence"><Countries /></FeatureGate>} />
-              <Route path="/dashboard/countries/:country" element={<FeatureGate feature="country_intelligence"><CountryDetail /></FeatureGate>} />
-              <Route path="/dashboard/compare" element={<FeatureGate feature="compare_projects"><Compare /></FeatureGate>} />
-              <Route path="/dashboard/pipeline" element={<FeatureGate feature="pipeline_view"><Pipeline /></FeatureGate>} />
-              <Route path="/dashboard/calendar" element={<FeatureGate feature="tender_calendar"><TenderCalendar /></FeatureGate>} />
+              <Route path="/dashboard/tenders" element={<Tenders />} />
+              <Route path="/dashboard/countries" element={<Countries />} />
+              <Route path="/dashboard/countries/:country" element={<CountryDetail />} />
+              <Route path="/dashboard/compare" element={<Compare />} />
+              <Route path="/dashboard/pipeline" element={<Pipeline />} />
+              <Route path="/dashboard/calendar" element={<TenderCalendar />} />
               <Route path="/dashboard/chat" element={<FeatureGate feature="portfolio_chat"><PortfolioChat /></FeatureGate>} />
-              <Route path="/dashboard/stakeholders" element={<FeatureGate feature="stakeholder_intel"><StakeholderIntel /></FeatureGate>} />
-              <Route path="/dashboard/contractors" element={<FeatureGate feature="stakeholder_intel"><Contractors /></FeatureGate>} />
+              <Route path="/dashboard/stakeholders" element={<StakeholderIntel />} />
+              <Route path="/dashboard/contractors" element={<Contractors />} />
               <Route path="/dashboard/billing/audit" element={<BillingAuditLog />} />
               <Route path="/dashboard/traction" element={<RoleGuard requiredRole="admin"><Traction /></RoleGuard>} />
               <Route path="/dashboard/bd-pipeline" element={<RoleGuard requiredRole="admin"><BDPipeline /></RoleGuard>} />

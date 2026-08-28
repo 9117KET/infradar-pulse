@@ -52,8 +52,8 @@ const NAV_GROUPS: NavGroup[] = [
         icon: FolderSearch,
         tourId: 'nav-projects',
         children: [
-          { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline', feature: 'pipeline_view' },
-          { title: 'Compare', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare', feature: 'compare_projects' },
+          { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline' },
+          { title: 'Compare', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare' },
         ],
       },
       {
@@ -76,7 +76,7 @@ const NAV_GROUPS: NavGroup[] = [
         icon: Globe,
         tourId: 'nav-geo',
         children: [
-          { title: 'Countries', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries', feature: 'country_intelligence' },
+          { title: 'Countries', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries' },
         ],
       },
       {
@@ -84,9 +84,8 @@ const NAV_GROUPS: NavGroup[] = [
         url: '/dashboard/tenders',
         icon: Award,
         tourId: 'nav-tenders',
-        feature: 'tender_intelligence',
         children: [
-          { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar', feature: 'tender_calendar' },
+          { title: 'Tender Calendar', url: '/dashboard/calendar', icon: CalendarDays, tourId: 'nav-calendar' },
         ],
       },
       {
@@ -94,9 +93,8 @@ const NAV_GROUPS: NavGroup[] = [
         url: '/dashboard/stakeholders',
         icon: Users2,
         tourId: 'nav-stakeholders',
-        feature: 'stakeholder_intel',
         children: [
-          { title: 'Contractors', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors', feature: 'stakeholder_intel' },
+          { title: 'Contractors', url: '/dashboard/contractors', icon: HardHat, tourId: 'nav-contractors' },
         ],
       },
     ],
