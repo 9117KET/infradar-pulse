@@ -30,6 +30,35 @@ const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max,
  * the ">90 days old" tier: an unknown age must not outrank a known-recent
  * record, but is not as damning as a known-ancient one. Tune here, once.
  */
+/**
+ * Component weights. Must sum to 1.
+ *
+ * Rationale for the split, so the next person to touch it knows what was
+ * traded against what:
+ *   source       what published it - the strongest single trust signal
+ *   evidence     corroboration across documents
+ *   freshness    whether the record is still TRUE. For live infrastructure
+ *                pipelines this is nearly as load-bearing as provenance:
+ *                a perfectly sourced, well-evidenced capital figure from
+ *                2024 is not a usable citation in 2026.
+ *   completeness how many fields are filled - a proxy for effort, not truth.
+ *                A sparse correct record beats a complete stale one.
+ *   confidence   the extractor's own self-report, and therefore the least
+ *                independent signal in the set.
+ *
+ * Freshness was 0.10 - the lowest of the five - in a product whose value
+ * proposition is currency of information. It was funded up to 0.22 out of
+ * completeness and confidence, the two weakest trust signals.
+ */
+export const QUALITY_WEIGHTS = {
+  source: 0.30,
+  evidence: 0.25,
+  freshness: 0.22,
+  completeness: 0.13,
+  confidence: 0.10,
+} as const;
+
+/** Score used when a record's age cannot be established (the ">90 days" tier). */
 const UNKNOWN_FRESHNESS_SCORE = 45;
 
 /** Clock skew allowance before a future timestamp is treated as a data error. */
@@ -103,7 +132,13 @@ export function calculateIntelligenceQuality(input: QualityInput): QualityScoreB
   }
 
   const confidence_score = clamp(input.confidence ?? 0);
-  let total_score = Math.round(source_score * 0.3 + evidence_score * 0.25 + completeness_score * 0.2 + freshness_score * 0.1 + confidence_score * 0.15);
+  let total_score = Math.round(
+    source_score * QUALITY_WEIGHTS.source +
+    evidence_score * QUALITY_WEIGHTS.evidence +
+    completeness_score * QUALITY_WEIGHTS.completeness +
+    freshness_score * QUALITY_WEIGHTS.freshness +
+    confidence_score * QUALITY_WEIGHTS.confidence,
+  );
   if (!isValidEvidenceUrl(input.sourceUrl)) total_score = Math.min(total_score, 30);
 
   const recommendation = total_score >= 85 && evidenceCount >= 2 && (input.officialSourceCount ?? 0) > 0

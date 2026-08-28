@@ -25,6 +25,35 @@ export interface QualityScoreBreakdown {
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 
+/**
+ * Component weights. Must sum to 1.
+ *
+ * Rationale for the split, so the next person to touch it knows what was
+ * traded against what:
+ *   source       what published it - the strongest single trust signal
+ *   evidence     corroboration across documents
+ *   freshness    whether the record is still TRUE. For live infrastructure
+ *                pipelines this is nearly as load-bearing as provenance:
+ *                a perfectly sourced, well-evidenced capital figure from
+ *                2024 is not a usable citation in 2026.
+ *   completeness how many fields are filled - a proxy for effort, not truth.
+ *                A sparse correct record beats a complete stale one.
+ *   confidence   the extractor's own self-report, and therefore the least
+ *                independent signal in the set.
+ *
+ * Freshness was 0.10 - the lowest of the five - in a product whose value
+ * proposition is currency of information. It was funded up to 0.22 out of
+ * completeness and confidence, the two weakest trust signals.
+ */
+/** Mirrors QUALITY_WEIGHTS in _shared/intelligenceQuality.ts. */
+export const QUALITY_WEIGHTS = {
+  source: 0.30,
+  evidence: 0.25,
+  freshness: 0.22,
+  completeness: 0.13,
+  confidence: 0.10,
+} as const;
+
 /** Mirrors UNKNOWN_FRESHNESS_SCORE in _shared/intelligenceQuality.ts. */
 const UNKNOWN_FRESHNESS_SCORE = 45;
 
@@ -103,7 +132,11 @@ export function calculateIntelligenceQuality(input: QualityInput): QualityScoreB
 
   const confidenceScore = clamp(input.confidence ?? 0);
   let totalScore = Math.round(
-    sourceScore * 0.3 + evidenceScore * 0.25 + completenessScore * 0.2 + freshnessScore * 0.1 + confidenceScore * 0.15,
+    sourceScore * QUALITY_WEIGHTS.source +
+    evidenceScore * QUALITY_WEIGHTS.evidence +
+    completenessScore * QUALITY_WEIGHTS.completeness +
+    freshnessScore * QUALITY_WEIGHTS.freshness +
+    confidenceScore * QUALITY_WEIGHTS.confidence,
   );
 
   if (!isValidEvidenceUrl(input.sourceUrl)) totalScore = Math.min(totalScore, 30);
