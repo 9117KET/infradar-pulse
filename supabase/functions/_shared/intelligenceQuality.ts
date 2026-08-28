@@ -25,6 +25,16 @@ export interface QualityScoreBreakdown {
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
 
+/**
+ * Score used when a record's age cannot be established. Deliberately equal to
+ * the ">90 days old" tier: an unknown age must not outrank a known-recent
+ * record, but is not as damning as a known-ancient one. Tune here, once.
+ */
+const UNKNOWN_FRESHNESS_SCORE = 45;
+
+/** Clock skew allowance before a future timestamp is treated as a data error. */
+const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
+
 export function isValidEvidenceUrl(url?: string | null) {
   const value = (url ?? '').trim();
   return value.startsWith('http') && value !== '#';
@@ -65,14 +75,32 @@ export function calculateIntelligenceQuality(input: QualityInput): QualityScoreB
     flags.push('weak_geospatial_precision');
   }
 
-  const lastUpdated = input.lastUpdated ? new Date(input.lastUpdated).getTime() : Date.now();
-  const ageDays = Math.max(0, Math.floor((Date.now() - lastUpdated) / 86_400_000));
-  let freshness_score = 100;
-  if (ageDays > 180) {
-    freshness_score = 20;
-    flags.push('stale_record');
-  } else if (ageDays > 90) freshness_score = 45;
-  else if (ageDays > 30) freshness_score = 70;
+  // Freshness is the only component that changes without anyone touching the
+  // record, so every path that cannot establish a real age must fail toward
+  // "unknown", never toward "fresh". Three paths previously scored a full 100:
+  // a missing lastUpdated (defaulted to Date.now()), an unparseable date
+  // (NaN, which fails every > comparison below), and a future date (clamped to
+  // age 0). All three now land on UNKNOWN_FRESHNESS_SCORE and raise a flag.
+  const lastUpdatedMs = input.lastUpdated ? new Date(input.lastUpdated).getTime() : NaN;
+  let freshness_score: number;
+
+  if (!Number.isFinite(lastUpdatedMs)) {
+    freshness_score = UNKNOWN_FRESHNESS_SCORE;
+    flags.push(input.lastUpdated ? 'unparseable_last_updated' : 'unknown_freshness');
+  } else if (lastUpdatedMs > Date.now() + FUTURE_TOLERANCE_MS) {
+    // A record that claims to be updated in the future is a source or parsing
+    // bug. Treat it as unknown rather than rewarding it with a perfect score.
+    freshness_score = UNKNOWN_FRESHNESS_SCORE;
+    flags.push('future_last_updated');
+  } else {
+    const ageDays = Math.max(0, Math.floor((Date.now() - lastUpdatedMs) / 86_400_000));
+    freshness_score = 100;
+    if (ageDays > 180) {
+      freshness_score = 20;
+      flags.push('stale_record');
+    } else if (ageDays > 90) freshness_score = 45;
+    else if (ageDays > 30) freshness_score = 70;
+  }
 
   const confidence_score = clamp(input.confidence ?? 0);
   let total_score = Math.round(source_score * 0.3 + evidence_score * 0.25 + completeness_score * 0.2 + freshness_score * 0.1 + confidence_score * 0.15);
