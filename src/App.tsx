@@ -144,8 +144,8 @@ const App = () => (
               <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
               <Route path="/dashboard/monitoring" element={<Navigate to="/dashboard/agents" replace />} />
               <Route path="/dashboard/risk" element={<Navigate to="/dashboard/projects?tab=risk" replace />} />
-              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentMonitoring /></RoleGuard>} />
-              <Route path="/dashboard/agent-health" element={<RoleGuard requiredRole="researcher"><AgentHealth /></RoleGuard>} />
+              <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentsHub /></RoleGuard>} />
+              <Route path="/dashboard/agent-health" element={<Navigate to="/dashboard/agents?tab=health" replace />} />
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
               <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />
