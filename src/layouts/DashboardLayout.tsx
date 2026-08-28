@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Flag, Layers, GitCompare, Columns, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Layers, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -50,11 +50,9 @@ const NAV_GROUPS: NavGroup[] = [
         title: 'Projects',
         url: '/dashboard/projects',
         icon: FolderSearch,
+        // Pipeline, Compare and Countries are tabs on this page now, not
+        // separate destinations. They read the same useProjects() data.
         tourId: 'nav-projects',
-        children: [
-          { title: 'Pipeline View', url: '/dashboard/pipeline', icon: Columns, tourId: 'nav-pipeline' },
-          { title: 'Compare', url: '/dashboard/compare', icon: GitCompare, tourId: 'nav-compare' },
-        ],
       },
       {
         title: 'My Portfolio',
@@ -75,9 +73,6 @@ const NAV_GROUPS: NavGroup[] = [
         url: '/dashboard/geo',
         icon: Globe,
         tourId: 'nav-geo',
-        children: [
-          { title: 'Countries', url: '/dashboard/countries', icon: Flag, tourId: 'nav-countries' },
-        ],
       },
       {
         title: 'Tenders & Awards',

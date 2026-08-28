@@ -104,9 +104,12 @@ export default function Countries() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Flag className="h-5 w-5 text-primary" /> Country Intelligence
-        </h1>
+      {/* Rendered as a tab inside Projects, which supplies the page
+          heading. The standalone <h1> that lived here would otherwise
+          duplicate it. */}
+        <p className="text-sm font-medium flex items-center gap-2">
+          <Flag className="h-4 w-4 text-primary" /> Country Intelligence
+        </p>
         <p className="text-sm text-muted-foreground mt-1">
           Infrastructure pipeline and risk overview by country.
         </p>

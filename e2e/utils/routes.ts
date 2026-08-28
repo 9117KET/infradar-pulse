@@ -47,6 +47,8 @@ export const USER_ROUTES: string[] = [
   "/dashboard/analytics-reports",
   "/dashboard/intelligence-summaries",
   "/dashboard/tenders",
+  // Now redirects onto /dashboard/projects tabs. Kept so old links stay
+  // covered by the crawl; see e2e/projects-tabs.spec.ts.
   "/dashboard/countries",
   "/dashboard/compare",
   "/dashboard/pipeline",
