@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getUserFromBearer } from "./auth.ts";
 import { hasStaffBypass } from "./entitlementCheck.ts";
+import { isCronRequest } from "./cronAuth.ts";
 
 type AdminClient = ReturnType<typeof createClient<any, "public", any>>;
 
@@ -35,6 +36,12 @@ export async function requireStaffOrRespond(req: Request): Promise<
   // formats: a signed JWT (legacy) and an opaque `sb_secret_...` string (new
   // signing-keys system). Both are valid; do not require a JWT shape here, or
   // cron-driven agent runs silently 401 forever after a project rotates keys.
+  // Scheduler path: a matching x-cron-secret is authoritative and, unlike the
+  // service-role key, is unaffected by project key rotation.
+  if (isCronRequest(req)) {
+    return { userId: null, supabaseAdmin: createClient(supabaseUrl, serviceKey) };
+  }
+
   const rawAuth = req.headers.get("Authorization") ?? "";
   const bearerToken = rawAuth.startsWith("Bearer ") ? rawAuth.slice(7) : "";
   if (bearerToken && bearerToken === serviceKey) {

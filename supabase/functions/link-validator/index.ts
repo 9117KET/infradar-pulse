@@ -13,6 +13,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isCronRequest } from "../_shared/cronAuth.ts";
 import { isReachable, isPlausibleSourceUrl } from "../_shared/urlHygiene.ts";
 
 const corsHeaders = {
@@ -94,15 +95,15 @@ serve(async (req) => {
 
   // Staff guard — also allow direct service-role invocation from pg_cron
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
+  if (!authHeader && !isCronRequest(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  const isServiceRole = bearerToken === serviceKey;
+  const isServiceRole = bearerToken === serviceKey || isCronRequest(req);
 
   if (!isServiceRole) {
-    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader ?? "" } } });
     const { data: userData } = await userClient.auth.getUser();
     const userId = userData?.user?.id;
     if (!userId) {
