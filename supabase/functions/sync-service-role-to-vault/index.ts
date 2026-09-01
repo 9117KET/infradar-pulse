@@ -2,6 +2,7 @@
 // into the vault secret `email_queue_service_role_key` so pg_cron jobs can
 // authenticate when invoking edge functions.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { isCronRequest } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,6 +27,11 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Scheduled self-heal: the nightly pg_cron job authenticates with the
+    // rotation-proof scheduler secret and re-copies the live service-role key
+    // into vault, so a platform key rotation can never silence the agents.
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    if (!isCronRequest(req)) {
     // Verify caller is an admin
     const authHeader = req.headers.get("Authorization") ?? "";
     const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -38,7 +44,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
     const { data: isAdmin } = await admin.rpc("has_role", {
       _user_id: userData.user.id,
       _role: "admin",
@@ -48,6 +53,7 @@ Deno.serve(async (req) => {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
     }
 
     // Upsert the vault secret via SECURITY DEFINER RPC
