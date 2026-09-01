@@ -66,7 +66,7 @@ describe('still records real changes', () => {
     ['completeness_score', { completeness_score: 100 }],
     ['freshness_score', { freshness_score: 70 }],
     ['confidence_score', { confidence_score: 90 }],
-    ['recommendation', { recommendation: 'approve' }],
+    ['recommendation', { recommendation: 'approve' as const }],
   ])('detects a change in %s', (_label, patch) => {
     expect(isSameQualityScore(stored, { ...computed, ...patch })).toBe(false);
   });
