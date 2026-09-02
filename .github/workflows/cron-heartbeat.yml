@@ -40,6 +40,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           CRON_HEARTBEAT_SECRET: ${{ secrets.CRON_HEARTBEAT_SECRET }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AGENT_CRON_SECRET: ${{ secrets.AGENT_CRON_SECRET }}
         run: |
           set -uo pipefail
 
