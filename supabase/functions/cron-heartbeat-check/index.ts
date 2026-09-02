@@ -35,11 +35,12 @@
  * a misconfigured server is distinguishable from a bad caller token.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isCronRequest } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const STALE_THRESHOLD_HOURS = 2;
