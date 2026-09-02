@@ -35,11 +35,12 @@
  * a misconfigured server is distinguishable from a bad caller token.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { isCronRequest } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
 
 const STALE_THRESHOLD_HOURS = 2;
@@ -77,10 +78,12 @@ Deno.serve(async (req) => {
 
   const cronSecret = Deno.env.get("CRON_HEARTBEAT_SECRET") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const cronHeaderOk = isCronRequest(req);
 
   // Echoed on auth failures so the caller's log says which side is misconfigured.
   // Names only - never values.
   const accepts: string[] = [];
+  if (Deno.env.get("AGENT_CRON_SECRET")) accepts.push("AGENT_CRON_SECRET (x-cron-secret header)");
   if (cronSecret) accepts.push("CRON_HEARTBEAT_SECRET");
   if (serviceKey) accepts.push("SUPABASE_SERVICE_ROLE_KEY");
 
@@ -88,23 +91,24 @@ Deno.serve(async (req) => {
     return json({
       error: "Heartbeat auth is not configured on the server",
       hint:
-        "Set CRON_HEARTBEAT_SECRET in Supabase -> Edge Functions -> Secrets, then set the matching GitHub repository secret.",
+        "Set AGENT_CRON_SECRET (preferred) or CRON_HEARTBEAT_SECRET as an Edge Function secret, then set the matching GitHub repository secret.",
     }, 503);
   }
 
-  const rawAuth = req.headers.get("Authorization") ?? "";
-  const bearerToken = rawAuth.startsWith("Bearer ") ? rawAuth.slice(7).trim() : "";
-  if (!bearerToken) {
-    return json({ error: "Missing bearer token", accepts }, 401);
-  }
+  let authorized = cronHeaderOk;
 
-  const presented = await sha256(bearerToken);
-  let authorized = false;
-  for (const candidate of [cronSecret, serviceKey]) {
-    if (!candidate) continue;
-    if (constantTimeEqual(presented, await sha256(candidate))) {
-      authorized = true;
-      break;
+  if (!authorized) {
+    const rawAuth = req.headers.get("Authorization") ?? "";
+    const bearerToken = rawAuth.startsWith("Bearer ") ? rawAuth.slice(7).trim() : "";
+    if (bearerToken) {
+      const presented = await sha256(bearerToken);
+      for (const candidate of [cronSecret, serviceKey]) {
+        if (!candidate) continue;
+        if (constantTimeEqual(presented, await sha256(candidate))) {
+          authorized = true;
+          break;
+        }
+      }
     }
   }
   if (!authorized) {

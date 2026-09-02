@@ -40,6 +40,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           CRON_HEARTBEAT_SECRET: ${{ secrets.CRON_HEARTBEAT_SECRET }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AGENT_CRON_SECRET: ${{ secrets.AGENT_CRON_SECRET }}
         run: |
           set -uo pipefail
 
@@ -59,11 +60,18 @@ jobs:
 
           ENDPOINT="${SUPABASE_URL%/}/functions/v1/cron-heartbeat-check"
 
+          # Build headers: bearer token (legacy) + x-cron-secret (rotation-proof).
+          CURL_HEADERS=(-H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/json')
+          if [ -n "${AGENT_CRON_SECRET:-}" ]; then
+            CURL_HEADERS+=(-H "x-cron-secret: ${AGENT_CRON_SECRET}")
+          else
+            echo "::warning::AGENT_CRON_SECRET repo secret not set - relying on bearer token only, which breaks on key rotation."
+          fi
+
           HTTP_STATUS=$(curl -sS -o /tmp/response.json -w '%{http_code}' \
             --max-time 30 --retry 2 --retry-delay 5 --retry-connrefused \
             -X POST \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H 'Content-Type: application/json' \
+            "${CURL_HEADERS[@]}" \
             "$ENDPOINT") || HTTP_STATUS=000
 
           BODY=$(cat /tmp/response.json 2>/dev/null || true)
