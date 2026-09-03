@@ -173,6 +173,7 @@ export type Database = {
         Row: {
           agent_function: string
           agent_type: string
+          attempts: number
           completed_at: string | null
           consecutive_errors: number
           created_at: string
@@ -181,6 +182,8 @@ export type Database = {
           id: string
           last_error: string | null
           last_run_at: string | null
+          last_success_at: string | null
+          lease_until: string | null
           page_size: number
           params: Json
           priority: number
@@ -192,6 +195,7 @@ export type Database = {
         Insert: {
           agent_function: string
           agent_type: string
+          attempts?: number
           completed_at?: string | null
           consecutive_errors?: number
           created_at?: string
@@ -200,6 +204,8 @@ export type Database = {
           id?: string
           last_error?: string | null
           last_run_at?: string | null
+          last_success_at?: string | null
+          lease_until?: string | null
           page_size?: number
           params?: Json
           priority?: number
@@ -211,6 +217,7 @@ export type Database = {
         Update: {
           agent_function?: string
           agent_type?: string
+          attempts?: number
           completed_at?: string | null
           consecutive_errors?: number
           created_at?: string
@@ -219,12 +226,35 @@ export type Database = {
           id?: string
           last_error?: string | null
           last_run_at?: string | null
+          last_success_at?: string | null
+          lease_until?: string | null
           page_size?: number
           params?: Json
           priority?: number
           source_key?: string
           state?: string
           total_estimate?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      backfill_runner_locks: {
+        Row: {
+          holder: string | null
+          lease_until: string | null
+          lock_name: string
+          updated_at: string
+        }
+        Insert: {
+          holder?: string | null
+          lease_until?: string | null
+          lock_name: string
+          updated_at?: string
+        }
+        Update: {
+          holder?: string | null
+          lease_until?: string | null
+          lock_name?: string
           updated_at?: string
         }
         Relationships: []
