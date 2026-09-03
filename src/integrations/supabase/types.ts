@@ -110,6 +110,39 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_run_events: {
+        Row: {
+          agent_type: string
+          counters: Json
+          created_at: string
+          event_type: string
+          id: string
+          message: string
+          metadata: Json
+          task_id: string | null
+        }
+        Insert: {
+          agent_type: string
+          counters?: Json
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string
+          metadata?: Json
+          task_id?: string | null
+        }
+        Update: {
+          agent_type?: string
+          counters?: Json
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string
+          metadata?: Json
+          task_id?: string | null
+        }
+        Relationships: []
+      }
       alert_rules: {
         Row: {
           created_at: string
