@@ -195,7 +195,23 @@ serve(async (req) => {
       }
     }
 
-    // Step 3: Try known direct ADB CSV download paths when CKAN discovery fails
+    // The ADB portal is protected by Cloudflare in server-side environments.
+    // d-portal mirrors ADB's official IATI publication and exposes a stable,
+    // keyless CSV export with offset pagination. Keep the CKAN/direct probes
+    // above as a fallback for continuity if the mirror ever has an outage.
+    const iatiLimit = Math.min(totalLimit, 500);
+    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
+    discoveryAttempts.push(iatiUrl);
+    try {
+      const probe = await fetch(iatiUrl, { headers: { "Accept": "text/csv" } });
+      if (probe.ok && (probe.headers.get("content-type") || "").includes("text/csv")) {
+        csvUrl = iatiUrl;
+      }
+    } catch (e) {
+      console.error("ADB IATI mirror probe failed:", e);
+    }
+
+    // Step 3: Try known direct ADB CSV download paths when CKAN and IATI fail
     if (!csvUrl) {
       const directUrls = [
         "https://data.adb.org/media/81/download",
@@ -233,7 +249,7 @@ serve(async (req) => {
     }
 
     if (!csvUrl) {
-      const result = { success: false, error: "Could not locate ADB CSV dataset from current ADB endpoints.", attempts: discoveryAttempts };
+      const result = { success: false, error: "Could not locate ADB project data from the ADB portal or official IATI mirror.", attempts: discoveryAttempts };
       if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed", error: result.error, result, completed_at: new Date().toISOString(),
