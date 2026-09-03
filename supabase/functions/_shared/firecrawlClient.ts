@@ -75,7 +75,17 @@ export async function firecrawlSearch(
       return [];
     }
     const data = await res.json();
-    const items = data?.data ?? data?.web?.results ?? [];
+    // v2 returns { data: { web: [...], news: [...], images: [...] } }, older
+    // shapes return a flat array or { web: { results: [...] } }.
+    const payload = data?.data ?? data;
+    const items: Record<string, unknown>[] = Array.isArray(payload)
+      ? payload
+      : [
+          ...(Array.isArray(payload?.web) ? payload.web : []),
+          ...(Array.isArray(payload?.web?.results) ? payload.web.results : []),
+          ...(Array.isArray(payload?.news) ? payload.news : []),
+          ...(Array.isArray(payload?.results) ? payload.results : []),
+        ];
     return items.map((it: Record<string, unknown>) => ({
       url: String(it.url ?? ""),
       title: it.title as string | undefined,
