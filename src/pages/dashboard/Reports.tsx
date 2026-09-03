@@ -106,7 +106,7 @@ export default function Reports() {
   const shareReport = async (id: string) => {
     const { data, error } = await (supabase.rpc as any)('create_report_share', { p_report_run_id: id });
     if (error) toast.error(error.message); else {
-      await navigator.clipboard.writeText(`${window.location.origin}/shared-report/${data}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/r/${data}`);
       toast.success('Share link copied');
     }
   };
