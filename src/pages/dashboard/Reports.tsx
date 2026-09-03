@@ -77,7 +77,7 @@ export default function Reports() {
     report_type: reportType, depth, days: Number(days) || 30,
     country: country || undefined, region: region || undefined, sector: sector || undefined,
     stage: stage || undefined, question: reportType === 'custom_brief' ? question : undefined,
-    tracked_only: trackedOnly,
+    tracked_only: trackedOnly, saved_search_id: savedSearchId === 'none' ? undefined : savedSearchId,
   });
 
   const runReport = async () => {
