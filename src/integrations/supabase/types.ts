@@ -17,6 +17,7 @@ export type Database = {
       agent_config: {
         Row: {
           agent_type: string
+          contact_canonicalization_completed_at: string | null
           contact_cursor_contact_created_at: string | null
           contact_cursor_contact_id: string | null
           contact_cursor_created_at: string | null
@@ -32,6 +33,7 @@ export type Database = {
         }
         Insert: {
           agent_type: string
+          contact_canonicalization_completed_at?: string | null
           contact_cursor_contact_created_at?: string | null
           contact_cursor_contact_id?: string | null
           contact_cursor_created_at?: string | null
@@ -47,6 +49,7 @@ export type Database = {
         }
         Update: {
           agent_type?: string
+          contact_canonicalization_completed_at?: string | null
           contact_cursor_contact_created_at?: string | null
           contact_cursor_contact_id?: string | null
           contact_cursor_created_at?: string | null
