@@ -103,14 +103,28 @@ serve(async (req) => {
   const depthKey = typeof peek?.depth === "string" && DEPTH_PROFILES[peek.depth] ? peek.depth : "standard";
   const depth = DEPTH_PROFILES[depthKey];
 
-  const gate = depth.minPlan === "free"
-    ? await requireAiEntitlementOrRespond(req)
-    : await requirePlanAndAiOrRespond(req, depth.minPlan);
-  if (gate instanceof Response) return gate;
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: corsHeaders });
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Scheduled runs are dispatched by report-scheduler for a specific owner.
+  // Interactive runs must pass the normal user entitlement and quota gate.
+  const scheduledUserId = typeof peek?.user_id === "string" ? peek.user_id : null;
+  let gate: { userId: string; supabaseAdmin: typeof supabase } | Response;
+  if (scheduledUserId && isCronRequest(req)) {
+    const verified = await requireVerifiedEmail(supabase, scheduledUserId);
+    const entitlement = await getEntitlementForUser(supabase, scheduledUserId, "live");
+    if (!verified.ok || (!entitlement.bypass && !planMeetsMinimum(entitlement.plan, depth.minPlan))) {
+      return new Response(JSON.stringify({ error: "Scheduled report owner is not eligible for this report depth." }), { status: 403, headers: corsHeaders });
+    }
+    gate = { userId: scheduledUserId, supabaseAdmin: supabase };
+  } else {
+    gate = depth.minPlan === "free"
+      ? await requireAiEntitlementOrRespond(req)
+      : await requirePlanAndAiOrRespond(req, depth.minPlan);
+  }
+  if (gate instanceof Response) return gate;
 
   let taskId: string | undefined;
   let runStartedAt = new Date();
