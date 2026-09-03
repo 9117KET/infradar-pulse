@@ -1,84 +1,64 @@
-# Clean broken sources & restore grounded research
+# Scale to competitor-grade data volume
 
-## Problem
+Target parity with MEED-class datasets: ~70k projects, ~40k companies, ~66k contacts — built entirely from free, public, citable sources so every record keeps its evidence trail.
 
-Since all agent research moved onto Lovable AI (`_shared/webResearch.ts` + `_shared/agentResearch.ts`), the models have no real web grounding and are inventing plausible-looking URLs. The database now has ~1,615 unique source URLs in `evidence_sources`, plus `projects.source_url` and `project_contacts.source_url`, many of which are broken or fabricated.
+## Where we are today
 
-Public MDB ingest agents (World Bank, IFC, ADB, AfDB, AIIB, EBRD, IADB) still work — they hit real APIs. The breakage is concentrated in agents that go through `runResearchPrompt` / `fetchAgentResearch`: research-agent, regulatory-monitor, supply-chain-monitor, stakeholder-intel, market-intel, sentiment-analyzer, esg-social-monitor, security-resilience, corporate-ma-monitor, tender-award-monitor, funding-tracker, contact-finder, generate-insight, user-research.
-
-## Plan
-
-### Phase 1 — Audit & quarantine broken links
-
-1. **New edge function `link-validator`** (admin-only, schedulable). Walks `evidence_sources.url`, `projects.source_url`, `project_contacts.source_url`, and `insights.sources[].url` in batches. For each unique URL: HEAD with 8s timeout, follow redirects, fall back to GET on 405. Classify as `ok` / `broken` / `skipped`.
-2. **New table `source_link_checks`** stores last check per URL (`url`, `status`, `http_code`, `checked_at`, `error`). Idempotent; lets us re-run cheaply.
-3. **Cleanup function `public.cleanup_broken_sources(dry_run boolean)`**:
-   - Delete `evidence_sources` rows whose URL is broken AND `added_by = 'ai'` AND not linked from a verified project. Keep human-added rows but flip `verified = false`.
-   - Null out `projects.source_url` and `project_contacts.source_url` when broken+AI-sourced; cap-downgrade `projects.confidence` by 10 when its only source is removed.
-   - Strip broken entries from `insights.sources` JSON; if that empties the array, set `insights.published = false`.
-4. **Admin UI** — new "Source Health" tab on `/dashboard/review`: summary counts, "Re-run validator" button, broken-URL table with project/insight backlinks. Destructive cleanup only via edge function with explicit confirm.
-
-### Phase 2 — Reintegrate grounded research (Perplexity primary + Firecrawl specialist)
-
-Replace the Lovable-only path in `_shared/webResearch.ts` and `_shared/agentResearch.ts` with a provider router (`_shared/researchRouter.ts`).
-
-**Routing table:**
-
-| Agent type | Primary | Fallback |
+| Entity | Now | Target |
 |---|---|---|
-| Monitoring (regulatory, ESG, M&A, sentiment, supply-chain, security, market-intel, tender-monitor, funding-tracker) | Perplexity `sonar` | Firecrawl search |
-| Deep research (research-agent, user-research, generate-insight) | Perplexity `sonar-pro` | Firecrawl search + scrape |
-| Page extraction (contact-finder, data-enrichment, source-ingest) | Firecrawl scrape | Perplexity URL-targeted query |
-| MDB ingest agents | Public APIs (unchanged) | — |
-| Last-resort if both providers fail | Lovable AI narrative | confidence capped at 40, **no URLs written** |
+| Projects | 3,089 | 70,000 |
+| Companies | 15 (`contractors`) | 40,000 |
+| Contacts | 6,926 (`project_contacts`) | 66,000 |
 
-**Why this split:** Perplexity returns real `citations[]` in one call → fixes hallucinated URLs cheaply for monitoring. Firecrawl gives full page text + structured JSON → required for contact/email extraction where snippets aren't enough.
+The blocker is not the pipeline — it is throughput. The MDB ingest agents run **weekly** with a default page size of 200 records. World Bank alone publishes ~20k projects; we are sampling a fraction of it and never walking the full archive.
 
-**Public datasets first:** before any LLM call, research helpers query our own ingested MDB rows (`projects` + `raw_evidence` with `kind = 'mdb'`) and pass that as grounded context. Reduces hallucination and biases the model toward citing our verified URLs.
+## Strategy
 
-**URL hygiene at write time:** new `_shared/urlHygiene.ts` exports `assertValidSourceUrl()` that:
-- Rejects non-http schemes, bare domains, `example.com`, placeholder patterns.
-- Live HEAD check (on by default for agent writes, behind a flag).
-- Logs rejections to `source_link_checks` so we can see which agent/model is producing junk.
+Three phases: bulk backfill (volume), entity extraction (companies), contact harvesting (people). Deterministic parsing does the bulk work; AI is used only for enrichment and disambiguation so cost stays flat as volume grows.
 
-Every insert into `evidence_sources`, `projects.source_url`, `project_contacts.source_url` goes through this helper.
+### Phase 1 — Bulk project backfill (3k → 70k)
 
-### Phase 3 — Operationalize
+- Add a **backfill mode** to every ingest agent: cursor-driven pagination that walks the entire upstream archive (not just Active/Pipeline — include Closed/Completed for historical company + contact extraction).
+- Introduce a `backfill_jobs` table (source, cursor, total, fetched, state) and a `backfill-runner` agent that runs every 15 minutes while jobs are pending, then idles. Once caught up, agents drop back to their normal incremental schedule.
+- Raise per-run page budgets (500–1000 records) with upsert-by-external-id so re-runs are idempotent.
+- Add missing high-volume public sources:
+  - **TED / EU tenders** (already scaffolded — expand to full archive; ~500k notices/yr)
+  - **OCDS / Open Contracting** national portals (UK Contracts Finder, India CPPP, Ukraine Prozorro, Colombia SECOP)
+  - **USASpending / FPDS** federal infrastructure awards
+  - **UNGM**, **UN Procurement**, plus the remaining MDBs (IsDB, CAF, NDB, AIIB expansion)
+  - **GEM** (Global Energy Monitor) trackers for power, LNG, steel, pipelines
 
-- **Schedule `link-validator`** via pg_cron weekly; only re-checks URLs older than 7 days or previously broken.
-- **Agent Health dashboard** gets a "Source quality" panel: broken-link rate per agent over last 7 days. Catches provider regressions early.
-- **Provider switch** behind `RESEARCH_PROVIDER` env var (`auto` | `perplexity` | `firecrawl` | `lovable`) so we can pin/disable a provider without redeploying logic.
+### Phase 2 — Companies (15 → 40k)
 
-## Technical details
+- New `companies` table (name, normalized_name, country, type: contractor/developer/financier/consultant/supplier, website, registry ids, source urls, confidence) plus `company_project_roles` join table.
+- **Company extraction agent**: every ingested project/tender/award already names borrowers, implementing agencies, winning bidders and consultants. Parse those party fields deterministically into companies at ingest time — this alone yields tens of thousands of organisations.
+- **Normalization + dedup**: `pg_trgm` similarity on normalized names (strip Ltd/GmbH/S.A./JSC), country-scoped blocking, merge candidates surfaced in the existing review queue rather than auto-merged.
+- Enrich the top-N companies (by project value) with website, HQ, sector focus via the existing research agents — not all 40k.
 
-**Files to add**
-- `supabase/functions/link-validator/index.ts`
-- `supabase/functions/_shared/urlHygiene.ts`
-- `supabase/functions/_shared/researchRouter.ts` (Perplexity → Firecrawl → Lovable AI)
-- `supabase/functions/_shared/firecrawlClient.ts` (search + scrape wrappers via gateway)
-- Migration: `source_link_checks` table + RLS (staff read, service-role write) + GRANTs
-- Migration: `public.cleanup_broken_sources(dry_run boolean)` returning counts
-- `src/pages/dashboard/SourceHealth.tsx` + route + researcher nav entry
+### Phase 3 — Contacts (7k → 66k)
 
-**Files to change**
-- `supabase/functions/_shared/webResearch.ts` → delegate to `researchRouter`
-- `supabase/functions/_shared/agentResearch.ts` → return real `citations` from Perplexity instead of `[]`
-- `supabase/functions/_shared/perplexity.ts` → restore real Perplexity calls (currently a shim into Lovable AI)
-- All ~14 research-using agents → call `assertValidSourceUrl` before inserting any source URL
-- `src/lib/api/agents.ts` → add `runLinkValidator`
+- Extend `project_contacts` into an entity-level `contacts` table linked to companies and projects (role, email, phone, source url, verified_at).
+- Harvest only from lawful public sources: tender notice contact points, MDB project task-team leads, agency staff directories, company "contact/leadership" pages, regulatory filings. No scraping of gated networks, no email guessing.
+- Contact discovery agent runs per-company in batches, gated by the existing link validator so dead contacts decay in confidence over time.
 
-**Connectors / secrets**
-- Link Perplexity and Firecrawl via `standard_connectors--connect` — both gateway-enabled, no manual key entry.
-- Keep `LOVABLE_API_KEY` for fallback narrative + extraction tasks.
+### Cross-cutting
 
-**Out of scope**
-- Re-running every agent to refill evidence after cleanup. Agents refill naturally on next scheduled run.
-- Migrating MDB ingest agents (already correct).
-- Removing Lovable AI (stays as fallback + for extraction/classification/summarization).
+- **Quality gates stay on**: every record keeps `evidence_sources`; unverified records remain capped at 30% confidence and never auto-publish above the bar.
+- **Cost control**: bulk ingest is pure HTTP + deterministic mapping (no LLM). AI is reserved for dedup adjudication, enrichment and summarisation.
+- **Monitoring**: backfill progress (per source: fetched / total / ETA) surfaced as a new tab in the Agents Hub, with stall alerts through the existing `agent_health_alerts` pipeline.
+- **Dashboard counters** switch to live totals so the marketing numbers track reality.
 
-## Risk / rollout
+## Technical notes
 
-1. Phase 1 dry-run: validator writes to `source_link_checks` only. `cleanup_broken_sources(dry_run := true)` reports counts. Review with user.
-2. Run cleanup for real once counts look sane.
-3. Phase 2 ships with `RESEARCH_PROVIDER=auto`. If Perplexity 429s spike, flip to `firecrawl`. If both providers fail, `lovable` keeps agents alive but produces no URLs (better than hallucinations).
-4. Phase 3 cron scheduled only after a clean weekly validator run.
+- Reuse `_shared/pipelineIngest.ts` and `_shared/ingestCursor.ts`; backfill is an extension of the existing cursor, not a parallel path.
+- All new public tables get GRANTs + RLS in the same migration; companies/contacts are readable by authenticated users, writable by service role only.
+- Rate limiting per upstream host with exponential backoff; each source's terms of use recorded in `source_registry`.
+- Edge Function CPU limits mean each run must checkpoint its cursor after every page, so an interrupted run resumes without data loss.
+
+## Suggested order
+
+1. `backfill_jobs` + runner + Agents Hub progress tab
+2. World Bank / IFC / ADB / AfDB / EBRD / IADB / AIIB full backfill
+3. `companies` + extraction + dedup
+4. TED + OCDS + USASpending high-volume sources
+5. `contacts` entity + harvesting agent
