@@ -163,7 +163,7 @@ serve(async (req) => {
     const statusFilter: string = (body.status as string) || "Active,Pipeline";
     // World Bank rows require several evidence/quality writes each; keep each
     // invocation below the edge CPU budget and let the queue call us again.
-    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 150, 1), 150);
+    const totalLimit: number = Math.min(Math.max(Number(body.limit) || 50, 1), 50);
     const startOffset: number = Math.max(Number(body.offset) || 0, 0);
     const backfill = body.mode === "backfill";
 
@@ -191,7 +191,7 @@ serve(async (req) => {
     let updatesProposed = 0;
     let skipped = 0;
     let fetched = 0;
-    const pageSize = 50;
+    const pageSize = 25;
     const statuses = statusFilter.split(",").map((s) => s.trim());
 
     for (const status of statuses) {
