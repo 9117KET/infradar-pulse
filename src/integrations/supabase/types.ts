@@ -110,6 +110,39 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_run_events: {
+        Row: {
+          agent_type: string
+          counters: Json
+          created_at: string
+          event_type: string
+          id: string
+          message: string
+          metadata: Json
+          task_id: string | null
+        }
+        Insert: {
+          agent_type: string
+          counters?: Json
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string
+          metadata?: Json
+          task_id?: string | null
+        }
+        Update: {
+          agent_type?: string
+          counters?: Json
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string
+          metadata?: Json
+          task_id?: string | null
+        }
+        Relationships: []
+      }
       alert_rules: {
         Row: {
           created_at: string
@@ -1947,6 +1980,7 @@ export type Database = {
           health_signals: Json | null
           id: string
           key_risks: string | null
+          last_contact_scan_at: string | null
           last_updated: string
           lat: number
           lng: number
@@ -1981,6 +2015,7 @@ export type Database = {
           health_signals?: Json | null
           id?: string
           key_risks?: string | null
+          last_contact_scan_at?: string | null
           last_updated?: string
           lat: number
           lng: number
@@ -2015,6 +2050,7 @@ export type Database = {
           health_signals?: Json | null
           id?: string
           key_risks?: string | null
+          last_contact_scan_at?: string | null
           last_updated?: string
           lat?: number
           lng?: number
@@ -3168,6 +3204,7 @@ export type Database = {
         Args: { p_reason?: string; p_update_proposal_id: string }
         Returns: string
       }
+      attach_org_contacts: { Args: { p_limit?: number }; Returns: Json }
       auto_promote_official_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
         Returns: Json
@@ -3221,6 +3258,18 @@ export type Database = {
           reason: string
           used_day: number
           used_hour: number
+        }[]
+      }
+      contact_discovery_queue: {
+        Args: { p_cooldown_hours?: number; p_limit?: number }
+        Returns: {
+          country: string
+          id: string
+          name: string
+          region: string
+          sector: string
+          source_url: string
+          value_usd: number
         }[]
       }
       create_report_share: {
@@ -3303,6 +3352,7 @@ export type Database = {
           task_type: string
         }[]
       }
+      get_contact_coverage_summary: { Args: never; Returns: Json }
       get_existing_project_recheck_summary: { Args: never; Returns: Json }
       get_paywall_dropoff: { Args: { p_days?: number }; Returns: Json }
       get_pilot_access_summary: {
