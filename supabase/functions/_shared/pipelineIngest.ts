@@ -300,8 +300,11 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     });
   }
 
-  // Machine promotion for deterministic official registries. On any failure
-  // the candidate simply stays in the human review queue.
+  // Machine promotion. Official registries keep their dedicated quality bar;
+  // every other source is auto-published when the database-side eligibility
+  // rule (working source URL, evidence trail, complete core fields, decent
+  // confidence, resolvable location) passes. Anything else stays in the human
+  // review queue.
   const blockingFlags = quality.flags.filter((f) =>
     (AUTO_PUBLISH_BLOCKING_FLAGS as readonly string[]).includes(f)
   );
@@ -314,20 +317,30 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
     );
   }
 
-  if (
-    input.autoPublish && candidate?.id &&
+  const officialAutoPublish = Boolean(input.autoPublish) &&
     quality.total_score >= AUTO_PUBLISH_MIN_QUALITY &&
-    isHttpUrl(input.sourceUrl) &&
-    blockingFlags.length === 0
-  ) {
-    const { data: promoted, error: promoteError } = await supabase.rpc("auto_promote_official_candidate", {
-      p_candidate_id: candidate.id,
-      p_reason: `Auto-published from ${input.sourceName} (quality ${quality.total_score})`,
-    });
-    if (promoteError) {
-      console.error(`auto_promote_official_candidate failed for ${input.name}:`, promoteError.message ?? promoteError);
-    } else if (promoted?.project_id) {
-      return { outcome: "auto_published" as const, projectId: promoted.project_id as string };
+    blockingFlags.length === 0;
+
+  if (candidate?.id && isHttpUrl(input.sourceUrl)) {
+    let eligible = officialAutoPublish;
+    if (!eligible) {
+      const { data: check } = await supabase.rpc("candidate_is_auto_approvable", {
+        p_candidate_id: candidate.id,
+      });
+      eligible = check === true;
+    }
+
+    if (eligible) {
+      const { data: promoted, error: promoteError } = await supabase.rpc("auto_promote_official_candidate", {
+        p_candidate_id: candidate.id,
+        p_reason: `Auto-published from ${input.sourceName} (quality ${quality.total_score})`,
+        p_provenance: input.autoPublish ? "official_registry" : "ai_agent",
+      });
+      if (promoteError) {
+        console.error(`auto_promote_official_candidate failed for ${input.name}:`, promoteError.message ?? promoteError);
+      } else if (promoted?.project_id) {
+        return { outcome: "auto_published" as const, projectId: promoted.project_id as string };
+      }
     }
   }
 
