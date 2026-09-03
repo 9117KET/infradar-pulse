@@ -2316,6 +2316,48 @@ export type Database = {
         }
         Relationships: []
       }
+      report_schedules: {
+        Row: {
+          cadence: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          name: string
+          next_run_at: string
+          parameters: Json
+          report_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cadence?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string
+          parameters?: Json
+          report_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cadence?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string
+          parameters?: Json
+          report_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       report_shares: {
         Row: {
           created_at: string
