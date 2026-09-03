@@ -1,0 +1,1 @@
+ALTER TABLE public.backfill_jobs DROP COLUMN IF EXISTS source_status;
