@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AgentMonitoring from './AgentMonitoring';
 import AgentHealth from './AgentHealth';
 import BackfillProgress from './BackfillProgress';
+import ContactCoveragePanel from '@/components/dashboard/ContactCoveragePanel';
 
 /** Single staff-facing surface for agent operations, health, and backfill progress. */
 export default function AgentsHub() {
