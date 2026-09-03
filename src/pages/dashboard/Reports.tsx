@@ -13,6 +13,7 @@ import jsPDF from 'jspdf';
 import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { useSavedSearches } from '@/hooks/use-saved-searches';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
 import { trackUsage } from '@/lib/billing/trackUsage';
 import { useState } from 'react';

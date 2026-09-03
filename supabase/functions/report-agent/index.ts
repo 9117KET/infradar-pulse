@@ -8,12 +8,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { requireAiEntitlementOrRespond, requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
+import { getEntitlementForUser, requireVerifiedEmail } from "../_shared/entitlementCheck.ts";
+import { planMeetsMinimum } from "../_shared/billing.ts";
+import { isCronRequest } from "../_shared/cronAuth.ts";
 import { finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Content-Type": "application/json",
 };
 
