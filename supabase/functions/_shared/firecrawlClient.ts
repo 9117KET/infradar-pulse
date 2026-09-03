@@ -1,11 +1,17 @@
 /**
- * Firecrawl client — search + scrape via the Lovable connector gateway.
+ * Firecrawl client — search + scrape.
  *
- * Used as a fallback to Perplexity for monitoring/research, and as the
- * primary for page extraction (contact-finder, data-enrichment).
+ * Supports BOTH connection modes:
+ *   - direct API  (FIRECRAWL_API_KEY starts with "fc-") → https://api.firecrawl.dev/v2
+ *   - gateway     (Lovable connection key, "lovc_")     → connector gateway
+ *
+ * The project's Firecrawl connection is direct-API; calling the gateway with an
+ * `fc-` key returns 401 "Credential not found", which silently disabled every
+ * scrape-based contact/evidence discovery path.
  */
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/firecrawl";
+const DIRECT_URL = "https://api.firecrawl.dev";
 
 export type FirecrawlSearchResult = {
   url: string;
@@ -14,25 +20,37 @@ export type FirecrawlSearchResult = {
   markdown?: string;
 };
 
-function requireKeys(): { lovable: string; firecrawl: string } {
-  const lovable = Deno.env.get("LOVABLE_API_KEY");
-  const firecrawl = Deno.env.get("FIRECRAWL_API_KEY");
-  if (!lovable) throw new Error("LOVABLE_API_KEY missing");
-  if (!firecrawl) throw new Error("FIRECRAWL_API_KEY missing");
-  return { lovable, firecrawl };
+function firecrawlKey(): string {
+  return (Deno.env.get("FIRECRAWL_API_KEY") ?? "").trim();
 }
 
-function headers() {
-  const { lovable, firecrawl } = requireKeys();
-  return {
-    Authorization: `Bearer ${lovable}`,
-    "X-Connection-Api-Key": firecrawl,
-    "Content-Type": "application/json",
-  };
+/** Direct provider key (fc-*) → call Firecrawl directly, never the gateway. */
+function isDirectMode(): boolean {
+  return firecrawlKey().startsWith("fc-");
 }
 
 export function isFirecrawlConfigured(): boolean {
-  return Boolean(Deno.env.get("LOVABLE_API_KEY") && Deno.env.get("FIRECRAWL_API_KEY"));
+  const key = firecrawlKey();
+  if (!key) return false;
+  return isDirectMode() || Boolean(Deno.env.get("LOVABLE_API_KEY"));
+}
+
+function baseUrl(): string {
+  return isDirectMode() ? `${DIRECT_URL}/v2` : `${GATEWAY_URL}/v2`;
+}
+
+function headers(): Record<string, string> {
+  const key = firecrawlKey();
+  if (isDirectMode()) {
+    return { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  }
+  const lovable = Deno.env.get("LOVABLE_API_KEY");
+  if (!lovable) throw new Error("LOVABLE_API_KEY missing");
+  return {
+    Authorization: `Bearer ${lovable}`,
+    "X-Connection-Api-Key": key,
+    "Content-Type": "application/json",
+  };
 }
 
 /** Web search with optional content scrape. Returns up to `limit` results. */
@@ -42,7 +60,7 @@ export async function firecrawlSearch(
 ): Promise<FirecrawlSearchResult[]> {
   if (!isFirecrawlConfigured()) return [];
   try {
-    const res = await fetch(`${GATEWAY_URL}/v2/search`, {
+    const res = await fetch(`${baseUrl()}/search`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
@@ -70,14 +88,14 @@ export async function firecrawlSearch(
   }
 }
 
-/** Scrape a single URL. Returns markdown + metadata or null. */
+/** Scrape a single URL. Returns markdown, outbound links and metadata, or null. */
 export async function firecrawlScrape(
   url: string,
   opts: { formats?: string[]; onlyMainContent?: boolean } = {},
-): Promise<{ url: string; markdown?: string; title?: string } | null> {
+): Promise<{ url: string; markdown?: string; title?: string; links?: string[] } | null> {
   if (!isFirecrawlConfigured()) return null;
   try {
-    const res = await fetch(`${GATEWAY_URL}/v2/scrape`, {
+    const res = await fetch(`${baseUrl()}/scrape`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
@@ -96,6 +114,7 @@ export async function firecrawlScrape(
       url,
       markdown: doc?.markdown,
       title: doc?.metadata?.title,
+      links: Array.isArray(doc?.links) ? doc.links.filter((l: unknown) => typeof l === "string") : undefined,
     };
   } catch (e) {
     console.error("firecrawl scrape error", e);
