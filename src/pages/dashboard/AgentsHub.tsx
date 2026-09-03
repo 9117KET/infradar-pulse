@@ -27,7 +27,10 @@ export default function AgentsHub() {
         <TabsTrigger value="backfill">Backfill</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="operations"><AgentMonitoring /></TabsContent>
+      <TabsContent value="operations" className="space-y-4">
+        <ContactCoveragePanel />
+        <AgentMonitoring />
+      </TabsContent>
       <TabsContent value="health"><AgentHealth /></TabsContent>
       <TabsContent value="backfill"><BackfillProgress /></TabsContent>
     </Tabs>
