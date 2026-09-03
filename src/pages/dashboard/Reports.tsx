@@ -146,10 +146,11 @@ export default function Reports() {
     </div>
 
     <Card className="glass-panel border-border"><CardHeader><CardTitle className="text-sm flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Build a report</CardTitle></CardHeader><CardContent className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1"><label className="text-xs text-muted-foreground">Report type</label><Select value={reportType} onValueChange={setReportType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{REPORT_TYPES.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}</SelectContent></Select></div>
         <div className="space-y-1"><label className="text-xs text-muted-foreground">Depth</label><Select value={depth} onValueChange={(v) => setDepth(v as typeof depth)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="brief">Brief · 700–1,200 words</SelectItem><SelectItem value="standard">Standard · 1,800–3,000 words</SelectItem><SelectItem value="deep">Deep dive · Pro</SelectItem></SelectContent></Select></div>
         <div className="space-y-1"><label className="text-xs text-muted-foreground">Lookback window</label><Input type="number" min="1" max="365" value={days} onChange={(e) => setDays(e.target.value)} /></div>
+        <div className="space-y-1"><label className="text-xs text-muted-foreground">Saved scope</label><Select value={savedSearchId} onValueChange={setSavedSearchId}><SelectTrigger><SelectValue placeholder="No saved scope" /></SelectTrigger><SelectContent><SelectItem value="none">No saved scope</SelectItem>{savedSearches.map((search) => <SelectItem key={search.id} value={search.id}>{search.name}</SelectItem>)}</SelectContent></Select></div>
         <label className="flex items-center gap-2 text-sm pt-6"><input type="checkbox" checked={trackedOnly} onChange={(e) => setTrackedOnly(e.target.checked)} className="accent-primary" /> My tracked projects only</label>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Input placeholder="Country" value={country} onChange={(e) => setCountry(e.target.value)} /><Input placeholder="Region" value={region} onChange={(e) => setRegion(e.target.value)} /><Input placeholder="Sector" value={sector} onChange={(e) => setSector(e.target.value)} /><Input placeholder="Stage" value={stage} onChange={(e) => setStage(e.target.value)} /></div>
