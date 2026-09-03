@@ -12,6 +12,10 @@
  * source URLs.
  *
  * Override via env: RESEARCH_PROVIDER=auto|perplexity|firecrawl|lovable
+ *
+ * CURRENT DEFAULT: firecrawl-only. Perplexity stays fully wired but is skipped
+ * unless RESEARCH_PROVIDER is explicitly set to "perplexity" or "auto"
+ * (re-enabling it later is a single env-var change, no code edit).
  */
 
 import { callPerplexity, isPerplexityConfigured } from "./perplexityClient.ts";
@@ -28,10 +32,14 @@ export type ResearchResult = {
   degraded: boolean;
 };
 
+const DEFAULT_PROVIDER = "firecrawl";
+
 function preferredProvider(): "auto" | "perplexity" | "firecrawl" | "lovable" {
-  const v = (Deno.env.get("RESEARCH_PROVIDER") ?? "auto").toLowerCase();
-  if (v === "perplexity" || v === "firecrawl" || v === "lovable") return v;
-  return "auto";
+  const v = (Deno.env.get("RESEARCH_PROVIDER") ?? DEFAULT_PROVIDER).toLowerCase();
+  if (v === "perplexity" || v === "firecrawl" || v === "lovable" || v === "auto") {
+    return v as "auto" | "perplexity" | "firecrawl" | "lovable";
+  }
+  return DEFAULT_PROVIDER;
 }
 
 export async function research(params: {
@@ -44,10 +52,12 @@ export async function research(params: {
   const pref = preferredProvider();
 
   const tryPerplexity = pref === "auto" || pref === "perplexity";
-  const tryFirecrawl = pref === "auto" || pref === "firecrawl";
+  // Firecrawl is the default engine and also the fallback whenever Perplexity
+  // is preferred but unavailable / out of credits.
+  const tryFirecrawl = pref !== "lovable";
 
-  // 1. Perplexity (grounded citations in a single call)
-  if (tryPerplexity && isPerplexityConfigured() && pref !== "firecrawl" && pref !== "lovable") {
+  // 1. Perplexity (grounded citations in a single call) — opt-in only
+  if (tryPerplexity && isPerplexityConfigured()) {
     const model = mode === "deep" ? "sonar-pro" : "sonar";
     const r = await callPerplexity({
       systemPrompt: params.systemPrompt,
