@@ -967,6 +967,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ingest_cursors: {
+        Row: {
+          agent_key: string
+          exhausted_at: string | null
+          next_offset: number
+          updated_at: string
+        }
+        Insert: {
+          agent_key: string
+          exhausted_at?: string | null
+          next_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_key?: string
+          exhausted_at?: string | null
+          next_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       insights: {
         Row: {
           ai_generated: boolean
