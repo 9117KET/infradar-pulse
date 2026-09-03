@@ -55,6 +55,10 @@ export const agentApi = {
     region?: string;
     sector?: string;
     stage?: string;
+    depth?: 'brief' | 'standard' | 'deep';
+    question?: string;
+    tracked_only?: boolean;
+    saved_search_id?: string;
   }) => invokeAgentWithBody('report-agent', { ...(opts ?? {}) }),
   runSourceIngest: (opts: { url: string; source_key?: string }) => invokeAgentWithBody('source-ingest-agent', opts),
   /** Backfill `sources` on insights: extract URLs from text, merge legacy `source_url`, AI only if still empty. */
