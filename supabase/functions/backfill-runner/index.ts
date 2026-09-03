@@ -158,9 +158,13 @@ Deno.serve(async (req) => {
     }
 
     const fetched = Number(result.fetched ?? result.total ?? 0);
-    const explicitOffset = Number(result.next_offset ?? result.offset);
-    const nextOffset = Number.isFinite(explicitOffset) && explicitOffset >= 0
-      ? explicitOffset
+    // `offset` is the starting position returned by several legacy agents;
+    // only `next_offset` is a cursor. If an agent omits it, advance by the
+    // number of records fetched rather than treating its start offset as the
+    // next cursor.
+    const explicitNextOffset = Number(result.next_offset);
+    const nextOffset = Number.isFinite(explicitNextOffset) && explicitNextOffset >= 0
+      ? explicitNextOffset
       : job.cursor_offset + Math.max(fetched, 0);
     const exhausted = result.exhausted === true || (result.mode === "backfill" && fetched === 0);
     const completed = exhausted || (job.total_estimate !== null && nextOffset >= job.total_estimate);
