@@ -3026,6 +3026,10 @@ export type Database = {
         Args: { p: string }
         Returns: Database["public"]["Enums"]["project_status"]
       }
+      acquire_backfill_runner_lock: {
+        Args: { p_holder: string; p_lease_minutes?: number }
+        Returns: boolean
+      }
       admin_grant_lifetime_access: {
         Args: { p_environment?: string; p_user_id: string }
         Returns: Json
@@ -3306,6 +3310,10 @@ export type Database = {
       reject_project_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
         Returns: Json
+      }
+      release_backfill_runner_lock: {
+        Args: { p_holder: string }
+        Returns: boolean
       }
       reset_stuck_agent_task: { Args: { p_agent_type: string }; Returns: Json }
       resolve_agent_auth_alerts: {
