@@ -17,6 +17,8 @@ export type Database = {
       agent_config: {
         Row: {
           agent_type: string
+          contact_cursor_created_at: string | null
+          contact_cursor_project_id: string | null
           description: string | null
           enabled: boolean
           failure_count: number
@@ -28,6 +30,8 @@ export type Database = {
         }
         Insert: {
           agent_type: string
+          contact_cursor_created_at?: string | null
+          contact_cursor_project_id?: string | null
           description?: string | null
           enabled?: boolean
           failure_count?: number
@@ -39,6 +43,8 @@ export type Database = {
         }
         Update: {
           agent_type?: string
+          contact_cursor_created_at?: string | null
+          contact_cursor_project_id?: string | null
           description?: string | null
           enabled?: boolean
           failure_count?: number
@@ -3394,6 +3400,24 @@ export type Database = {
           used_hour: number
         }[]
       }
+      upsert_canonical_contact: {
+        Args: {
+          p_company_id?: string
+          p_confidence?: number
+          p_contact_type?: string
+          p_country?: string
+          p_discovered_by?: string
+          p_email?: string
+          p_name: string
+          p_organization?: string
+          p_phone?: string
+          p_project_id?: string
+          p_source?: string
+          p_source_url?: string
+          p_title?: string
+        }
+        Returns: string
+      }
       upsert_company: {
         Args: {
           p_country?: string
@@ -3403,6 +3427,20 @@ export type Database = {
           p_sector?: string
           p_source_url?: string
           p_type?: string
+        }
+        Returns: string
+      }
+      upsert_company_project_role: {
+        Args: {
+          p_awarded_at?: string
+          p_candidate_id?: string
+          p_company_id: string
+          p_project_id?: string
+          p_project_name?: string
+          p_role?: string
+          p_source_key?: string
+          p_source_url?: string
+          p_value_usd?: number
         }
         Returns: string
       }
