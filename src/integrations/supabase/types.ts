@@ -188,7 +188,6 @@ export type Database = {
           params: Json
           priority: number
           source_key: string
-          source_status: string | null
           state: string
           total_estimate: number | null
           updated_at: string
@@ -211,7 +210,6 @@ export type Database = {
           params?: Json
           priority?: number
           source_key: string
-          source_status?: string | null
           state?: string
           total_estimate?: number | null
           updated_at?: string
@@ -234,7 +232,6 @@ export type Database = {
           params?: Json
           priority?: number
           source_key?: string
-          source_status?: string | null
           state?: string
           total_estimate?: number | null
           updated_at?: string
