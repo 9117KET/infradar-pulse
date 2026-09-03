@@ -334,7 +334,7 @@ serve(async (req) => {
     } catch { /* scheduled invocation has an empty body */ }
   }
 
-  const lock = await beginAgentTask(supabase, AGENT_TYPE, bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Canonical indexing, organisation reuse and contact discovery", gate.userId);
+  const lock = await beginAgentTask(supabase, AGENT_TYPE, bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Canonical indexing, organisation reuse and contact discovery", gate.userId ?? undefined);
   if (lock.alreadyRunning) return alreadyRunningResponse(AGENT_TYPE);
   const taskId = lock.taskId;
   const startedAt = new Date();
