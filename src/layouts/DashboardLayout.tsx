@@ -99,10 +99,11 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         title: 'Reports',
-        url: '/dashboard/intelligence-summaries',
+        url: '/dashboard/reports',
         icon: Layers,
         tourId: 'nav-summaries',
         children: [
+          { title: 'Report Studio', url: '/dashboard/reports', icon: FileText, tourId: 'nav-report-studio' },
           { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
           { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
         ],

@@ -297,18 +297,18 @@ serve(async (req) => {
         {
           role: "system",
           content:
-            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Every report must include: Executive summary, market/pipeline overview, sector or stage breakdown, key projects/stakeholders, tender or award outlook if relevant, risk and alert signals, recommended actions, data quality/confidence notes, and source citations. If data is sparse, say so and explain what can still be inferred.",
+            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Every report must include: Executive summary, market/pipeline overview, sector or stage breakdown, key projects/stakeholders, tender or award outlook if relevant, risk and alert signals, recommended actions, data quality/confidence notes, and source citations. For a custom brief, answer the user's question first and organize the report around the decision it supports. Never invent facts, contacts, citations, or project details. If data is sparse, say so and explain what can still be inferred.",
         },
         {
           role: "user",
           content:
-            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\n\n` +
+            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\nDepth: ${depth.label} (${depth.words})\nTracked only: ${trackedOnly}\nSaved search: ${savedSearchId ?? "none"}\nUser question: ${question ?? "none"}\n\n` +
             `Aggregate metrics:\n${JSON.stringify(metrics)}\n\n` +
             `Recent alerts:\n${JSON.stringify(alertRows.slice(0, 120))}\n\n` +
             `Project updates:\n${JSON.stringify(updateRows.slice(0, 120))}\n\n` +
             `Matching projects:\n${JSON.stringify(projectRows.slice(0, 80))}\n\n` +
             `Recent internal insights:\n${JSON.stringify(insightRows)}\n\n` +
-            `Known citations:\n${JSON.stringify(seedCitations)}\n`,
+            `Known citations (use only these URLs):\n${JSON.stringify(seedCitations)}\n`,
         },
       ],
       tools: [
