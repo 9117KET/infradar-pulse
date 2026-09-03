@@ -1,10 +1,10 @@
 /**
  * backfill-runner
  *
- * Bounded dispatcher for the public-data archive queue. It claims one job with
- * a short lease, invokes exactly one source agent, and persists the returned
- * cursor/progress. A failed provider call is recorded and the job is paused
- * after repeated failures instead of being retried in a tight loop.
+ * Bounded dispatcher for the public-data archive queue. It acquires a database
+ * lease, claims one source job, invokes exactly one source agent, and persists
+ * the returned cursor/progress. Failures are parked instead of retried in a
+ * tight loop.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
@@ -16,7 +16,6 @@ const corsHeaders = {
   "Content-Type": "application/json",
 };
 
-const MAX_JOBS_PER_RUN = 1;
 const LEASE_MINUTES = 20;
 const MAX_CONSECUTIVE_ERRORS = 3;
 const ALLOWED_FUNCTIONS = new Set([
@@ -61,24 +60,32 @@ function isTerminalProviderError(message: string): boolean {
 }
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
+  const now = new Date().toISOString();
   const { data, error } = await supabase
     .from("backfill_jobs")
     .select("*")
     .in("state", ["pending", "running"])
-    .or(`last_run_at.is.null,last_run_at.lt.${new Date(Date.now() - LEASE_MINUTES * 60_000).toISOString()}`)
+    .or(`lease_until.is.null,lease_until.lt.${now}`)
     .order("priority", { ascending: true })
     .order("updated_at", { ascending: true })
-    .limit(MAX_JOBS_PER_RUN)
+    .limit(1)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
-  const leaseTime = new Date().toISOString();
+  const leaseUntil = new Date(Date.now() + LEASE_MINUTES * 60_000).toISOString();
   const { data: claimed, error: claimError } = await supabase
     .from("backfill_jobs")
-    .update({ state: "running", last_run_at: leaseTime, last_error: null })
+    .update({
+      state: "running",
+      lease_until: leaseUntil,
+      last_run_at: now,
+      attempts: (data.attempts ?? 0) + 1,
+      last_error: null,
+    })
     .eq("id", data.id)
     .in("state", ["pending", "running"])
+    .or(`lease_until.is.null,lease_until.lt.${now}`)
     .select("*")
     .maybeSingle();
   if (claimError) throw claimError;
@@ -95,25 +102,37 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return json({ error: "Server configuration error" }, 500);
   const supabase = createClient(supabaseUrl, serviceKey);
+  const holder = crypto.randomUUID();
+  let job: BackfillJob | null = null;
 
   if (!await isAgentEnabled(supabase, "backfill-runner")) return pausedResponse("backfill-runner");
 
-  let job: BackfillJob | null = null;
+  const { data: lockAcquired, error: lockError } = await supabase.rpc("acquire_backfill_runner_lock", {
+    p_holder: holder,
+    p_lease_minutes: LEASE_MINUTES,
+  });
+  if (lockError) {
+    console.error("backfill-runner lock acquisition failed", lockError.message);
+    return json({ success: false, error: "Backfill runner lock unavailable." }, 503);
+  }
+  if (lockAcquired !== true) return json({ success: true, skipped: true, reason: "runner_locked" });
+
   try {
     job = await claimNextJob(supabase);
     if (!job) return json({ success: true, idle: true, message: "No backfill work is currently pending." });
     if (!ALLOWED_FUNCTIONS.has(job.agent_function)) {
-      await supabase.from("backfill_jobs").update({ state: "paused", last_error: "Agent function is not allow-listed." }).eq("id", job.id);
+      await supabase.from("backfill_jobs").update({ state: "paused", lease_until: null, last_error: "Agent function is not allow-listed." }).eq("id", job.id);
       return json({ success: false, paused: true, error: "Backfill source is not allow-listed." }, 400);
     }
 
     const params = { ...job.params, mode: "backfill", limit: job.page_size };
+    const cronSecret = Deno.env.get("AGENT_CRON_SECRET");
     const response = await fetch(`${supabaseUrl}/functions/v1/${job.agent_function}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${serviceKey}`,
-        ...(Deno.env.get("AGENT_CRON_SECRET") ? { "x-cron-secret": Deno.env.get("AGENT_CRON_SECRET") as string } : {}),
+        ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
       },
       body: JSON.stringify(params),
     });
@@ -127,6 +146,7 @@ Deno.serve(async (req) => {
       const paused = isTerminalProviderError(`${response.status} ${message}`) || nextErrors >= MAX_CONSECUTIVE_ERRORS;
       await supabase.from("backfill_jobs").update({
         state: paused ? "paused" : "pending",
+        lease_until: null,
         consecutive_errors: nextErrors,
         last_error: message.slice(0, 2000),
       }).eq("id", job.id);
@@ -143,10 +163,12 @@ Deno.serve(async (req) => {
 
     await supabase.from("backfill_jobs").update({
       state: completed ? "completed" : "pending",
+      lease_until: null,
       cursor_offset: nextOffset,
       fetched_count: (job.fetched_count ?? 0) + Math.max(fetched, 0),
       consecutive_errors: 0,
       last_error: null,
+      last_success_at: new Date().toISOString(),
       completed_at: completed ? new Date().toISOString() : null,
     }).eq("id", job.id);
 
@@ -154,9 +176,17 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (job) {
-      await supabase.from("backfill_jobs").update({ state: "paused", last_error: message.slice(0, 2000), consecutive_errors: (job.consecutive_errors ?? 0) + 1 }).eq("id", job.id);
+      await supabase.from("backfill_jobs").update({
+        state: "paused",
+        lease_until: null,
+        last_error: message.slice(0, 2000),
+        consecutive_errors: (job.consecutive_errors ?? 0) + 1,
+      }).eq("id", job.id);
     }
     console.error("backfill-runner error", message);
     return json({ success: false, paused: Boolean(job), error: "Backfill runner failed." }, 500);
+  } finally {
+    const { error } = await supabase.rpc("release_backfill_runner_lock", { p_holder: holder });
+    if (error) console.error("backfill-runner lock release failed", error.message);
   }
 });
