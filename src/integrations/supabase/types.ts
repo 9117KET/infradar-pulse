@@ -967,6 +967,27 @@ export type Database = {
         }
         Relationships: []
       }
+      ingest_cursors: {
+        Row: {
+          agent_key: string
+          exhausted_at: string | null
+          next_offset: number
+          updated_at: string
+        }
+        Insert: {
+          agent_key: string
+          exhausted_at?: string | null
+          next_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_key?: string
+          exhausted_at?: string | null
+          next_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       insights: {
         Row: {
           ai_generated: boolean
@@ -1435,6 +1456,7 @@ export type Database = {
         Row: {
           canonical_project_id: string | null
           confidence: number
+          coord_precision: string | null
           country: string | null
           created_at: string
           description: string | null
@@ -1463,6 +1485,7 @@ export type Database = {
         Insert: {
           canonical_project_id?: string | null
           confidence?: number
+          coord_precision?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
@@ -1491,6 +1514,7 @@ export type Database = {
         Update: {
           canonical_project_id?: string | null
           confidence?: number
+          coord_precision?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
@@ -1895,6 +1919,7 @@ export type Database = {
           ai_generated: boolean
           approved: boolean
           confidence: number
+          coord_precision: string | null
           country: string
           created_at: string
           delay_probability: number | null
@@ -1927,6 +1952,7 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
+          coord_precision?: string | null
           country: string
           created_at?: string
           delay_probability?: number | null
@@ -1959,6 +1985,7 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
+          coord_precision?: string | null
           country?: string
           created_at?: string
           delay_probability?: number | null
@@ -3064,6 +3091,10 @@ export type Database = {
       apply_update_proposal: {
         Args: { p_reason?: string; p_update_proposal_id: string }
         Returns: string
+      }
+      auto_promote_official_candidate: {
+        Args: { p_candidate_id: string; p_reason?: string }
+        Returns: Json
       }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }

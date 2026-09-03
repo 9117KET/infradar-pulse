@@ -61,11 +61,15 @@ function isTerminalProviderError(message: string): boolean {
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
   const now = new Date().toISOString();
+  // Prefer the least-recently attempted source within priority bands. This
+  // prevents a large first-priority dataset from starving every other source
+  // while retaining deterministic priority ordering for fresh queues.
   const { data, error } = await supabase
     .from("backfill_jobs")
     .select("*")
     .in("state", ["pending", "running"])
     .or(`lease_until.is.null,lease_until.lt.${now}`)
+    .order("last_run_at", { ascending: true, nullsFirst: true })
     .order("priority", { ascending: true })
     .order("updated_at", { ascending: true })
     .limit(1)
@@ -154,9 +158,13 @@ Deno.serve(async (req) => {
     }
 
     const fetched = Number(result.fetched ?? result.total ?? 0);
-    const explicitOffset = Number(result.next_offset ?? result.offset);
-    const nextOffset = Number.isFinite(explicitOffset) && explicitOffset >= 0
-      ? explicitOffset
+    // `offset` is the starting position returned by several legacy agents;
+    // only `next_offset` is a cursor. If an agent omits it, advance by the
+    // number of records fetched rather than treating its start offset as the
+    // next cursor.
+    const explicitNextOffset = Number(result.next_offset);
+    const nextOffset = Number.isFinite(explicitNextOffset) && explicitNextOffset >= 0
+      ? explicitNextOffset
       : job.cursor_offset + Math.max(fetched, 0);
     const exhausted = result.exhausted === true || (result.mode === "backfill" && fetched === 0);
     const completed = exhausted || (job.total_estimate !== null && nextOffset >= job.total_estimate);

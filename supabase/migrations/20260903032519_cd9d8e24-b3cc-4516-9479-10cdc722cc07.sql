@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.auto_promote_official_candidate(uuid, text) TO service_role;
