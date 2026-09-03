@@ -3092,6 +3092,10 @@ export type Database = {
         Args: { p_reason?: string; p_update_proposal_id: string }
         Returns: string
       }
+      auto_promote_official_candidate: {
+        Args: { p_candidate_id: string; p_reason?: string }
+        Returns: Json
+      }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
         Returns: Json
