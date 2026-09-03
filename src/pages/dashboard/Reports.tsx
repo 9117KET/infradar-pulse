@@ -62,6 +62,7 @@ export default function Reports() {
       if (error) throw error;
       return (data ?? []) as ReportRun[];
     },
+    refetchInterval: (query) => query.state.data?.some((run) => run.status === 'running') ? 5000 : false,
   });
 
   const { data: schedules, refetch: refetchSchedules } = useQuery({

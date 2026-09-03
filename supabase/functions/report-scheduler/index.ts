@@ -71,9 +71,13 @@ serve(async (req) => {
       const responseBody = await response.json().catch(() => ({}));
       if (response.ok) {
         await admin.from("report_schedules").update({ last_run_at: new Date().toISOString() }).eq("id", schedule.id);
+      } else if (response.status === 402 || response.status === 403) {
+        // Credit and policy denials are terminal until the owner takes action;
+        // disable this schedule instead of creating a repeating failure loop.
+        await admin.from("report_schedules").update({ enabled: false }).eq("id", schedule.id);
       } else {
-        // Make a failed run eligible on the next scheduler tick rather than
-        // silently waiting a full week or month for another attempt.
+        // Transient failures become eligible on the next scheduler tick rather
+        // than silently waiting a full week or month for another attempt.
         await admin.from("report_schedules").update({ next_run_at: new Date().toISOString() }).eq("id", schedule.id);
       }
       results.push({ id: schedule.id, status: response.status, response: responseBody });
