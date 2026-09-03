@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.touch_backfill_runner_lock() FROM PUBLIC, anon, authenticated;
