@@ -79,7 +79,6 @@ Deno.serve(async (req) => {
   const cronSecret = Deno.env.get("CRON_HEARTBEAT_SECRET") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   const agentCronSecret = Deno.env.get("AGENT_CRON_SECRET") ?? "";
-  console.log("heartbeat auth env lengths:", { cronSecretLen: cronSecret.length, serviceKeyLen: serviceKey.length, agentCronSecretLen: agentCronSecret.length });
   const cronHeaderOk = isCronRequest(req);
 
   // Echoed on auth failures so the caller's log says which side is misconfigured.
