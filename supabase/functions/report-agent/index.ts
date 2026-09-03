@@ -95,7 +95,14 @@ function uniqueCitations(items: Array<{ label?: string | null; url?: string | nu
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireStaffOrRespond(req);
+  // Peek at the requested depth before gating: deep dives are a paid tier.
+  const peek = req.method === "POST" ? await req.clone().json().catch(() => ({})) : {};
+  const depthKey = typeof peek?.depth === "string" && DEPTH_PROFILES[peek.depth] ? peek.depth : "standard";
+  const depth = DEPTH_PROFILES[depthKey];
+
+  const gate = depth.minPlan === "free"
+    ? await requireAiEntitlementOrRespond(req)
+    : await requirePlanAndAiOrRespond(req, depth.minPlan);
   if (gate instanceof Response) return gate;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -115,20 +122,75 @@ serve(async (req) => {
     const region = cleanText(body?.region);
     const sector = cleanText(body?.sector);
     const stage = cleanText(body?.stage);
+    const question = cleanText(body?.question, 500);
+    const trackedOnly = body?.tracked_only === true;
+    const savedSearchId = cleanText(body?.saved_search_id, 60);
     const template = REPORT_TEMPLATES[reportType];
 
-    const scopeParts = [country, region, sector, stage].filter(Boolean);
+    // Resolve "my tracked projects" / a saved search into concrete filters.
+    let trackedIds: string[] = [];
+    let savedFilters: Record<string, unknown> | null = null;
+    if (trackedOnly) {
+      const { data } = await supabase
+        .from("tracked_projects")
+        .select("project_id")
+        .eq("user_id", gate.userId)
+        .limit(500);
+      trackedIds = (data ?? []).map((r: { project_id: string }) => r.project_id).filter(Boolean);
+    }
+    if (savedSearchId) {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("filters, name")
+        .eq("id", savedSearchId)
+        .eq("user_id", gate.userId)
+        .maybeSingle();
+      savedFilters = (data?.filters ?? null) as Record<string, unknown> | null;
+    }
+
+    const effCountry = country ?? cleanText(savedFilters?.country);
+    const effRegion = region ?? cleanText(savedFilters?.region);
+    const effSector = sector ?? cleanText(savedFilters?.sector);
+    const effStage = stage ?? cleanText(savedFilters?.stage);
+
+    const scopeParts = [effCountry, effRegion, effSector, effStage].filter(Boolean);
+    if (trackedOnly) scopeParts.unshift("My tracked projects");
     const scopeLabel = scopeParts.length ? scopeParts.join(" · ") : "Global infrastructure coverage";
 
     if (!await isAgentEnabled(supabase, "report-agent")) return pausedResponse("report-agent");
-    const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${scopeLabel}:${days}d`, gate.userId);
-    if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
-    taskId = lock.taskId;
+
+    // No global concurrency lock: reports are user-initiated and quota-gated,
+    // so one user's run must never block another's.
+    const { data: taskRow } = await supabase
+      .from("research_tasks")
+      .insert({
+        task_type: "report-agent",
+        query: `${reportType}:${scopeLabel}:${days}d:${depthKey}`,
+        status: "running",
+        requested_by: gate.userId,
+      })
+      .select("id")
+      .single();
+    taskId = taskRow?.id as string | undefined;
     runStartedAt = new Date();
 
-    const parameters = { days, country, region, sector, stage, scope_label: scopeLabel, template: template.label };
+    const parameters = {
+      days,
+      country: effCountry,
+      region: effRegion,
+      sector: effSector,
+      stage: effStage,
+      tracked_only: trackedOnly,
+      saved_search_id: savedSearchId,
+      question,
+      depth: depthKey,
+      depth_label: depth.label,
+      scope_label: scopeLabel,
+      template: template.label,
+    };
 
     const updateTask = async (patch: Record<string, unknown>) => {
+      if (!taskId) return;
       await supabase.from("research_tasks").update({ result: patch }).eq("id", taskId);
     };
 
@@ -155,20 +217,23 @@ serve(async (req) => {
       .select("id, name, country, region, sector, stage, status, confidence, risk_score, value_usd, value_label, source_url, last_updated, description, key_risks, funding_sources, political_context")
       .eq("approved", true)
       .order("value_usd", { ascending: false })
-      .limit(150);
-    if (country) projectsQuery = projectsQuery.ilike("country", country);
-    if (region) projectsQuery = projectsQuery.eq("region", region);
-    if (sector) projectsQuery = projectsQuery.eq("sector", sector);
-    if (stage) projectsQuery = projectsQuery.eq("stage", stage);
+      .limit(depth.projects);
+    if (effCountry) projectsQuery = projectsQuery.ilike("country", effCountry);
+    if (effRegion) projectsQuery = projectsQuery.eq("region", effRegion);
+    if (effSector) projectsQuery = projectsQuery.eq("sector", effSector);
+    if (effStage) projectsQuery = projectsQuery.eq("stage", effStage);
+    if (trackedOnly) projectsQuery = projectsQuery.in("id", trackedIds.length ? trackedIds : ["00000000-0000-0000-0000-000000000000"]);
 
     let alertsQuery = supabase
       .from("alerts")
       .select("message, severity, category, project_id, project_name, source_url, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(200);
-    if (country) alertsQuery = alertsQuery.ilike("project_name", `%${country}%`);
-    if (sector && reportType === "tender_awards_outlook") alertsQuery = alertsQuery.in("category", ["construction", "market", "financial", "regulatory"]);
+      .limit(depth.alerts);
+    if (trackedOnly && trackedIds.length) alertsQuery = alertsQuery.in("project_id", trackedIds);
+    else if (effCountry) alertsQuery = alertsQuery.ilike("project_name", `%${effCountry}%`);
+    if (effSector && reportType === "tender_awards_outlook") alertsQuery = alertsQuery.in("category", ["construction", "market", "financial", "regulatory"]);
+
 
     const [{ data: projects }, { data: alerts }, { data: updates }, { data: insights }] = await Promise.all([
       projectsQuery,
