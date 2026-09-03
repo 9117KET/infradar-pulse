@@ -17,6 +17,8 @@ export type Database = {
       agent_config: {
         Row: {
           agent_type: string
+          contact_cursor_contact_created_at: string | null
+          contact_cursor_contact_id: string | null
           contact_cursor_created_at: string | null
           contact_cursor_project_id: string | null
           description: string | null
@@ -30,6 +32,8 @@ export type Database = {
         }
         Insert: {
           agent_type: string
+          contact_cursor_contact_created_at?: string | null
+          contact_cursor_contact_id?: string | null
           contact_cursor_created_at?: string | null
           contact_cursor_project_id?: string | null
           description?: string | null
@@ -43,6 +47,8 @@ export type Database = {
         }
         Update: {
           agent_type?: string
+          contact_cursor_contact_created_at?: string | null
+          contact_cursor_contact_id?: string | null
           contact_cursor_created_at?: string | null
           contact_cursor_project_id?: string | null
           description?: string | null
@@ -3104,6 +3110,14 @@ export type Database = {
       }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
+        Returns: Json
+      }
+      canonicalize_contact_batch: {
+        Args: {
+          p_after_created_at?: string
+          p_after_id?: string
+          p_limit?: number
+        }
         Returns: Json
       }
       check_trial_eligible: {
