@@ -159,7 +159,7 @@ const App = () => (
               <Route path="/dashboard/feedback" element={<RoleGuard requiredRole="admin"><FeedbackInbox /></RoleGuard>} />
               {/* Redirects for consolidated/old routes */}
               <Route path="/dashboard/digests" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
-              <Route path="/dashboard/reports" element={<Navigate to="/dashboard/intelligence-summaries" replace />} />
+              <Route path="/dashboard/reports" element={<Reports />} />
               <Route path="/dashboard/analytics" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/reporting" element={<Navigate to="/dashboard/projects?tab=analytics" replace />} />
               <Route path="/dashboard/satellite" element={<Navigate to="/dashboard/evidence" replace />} />

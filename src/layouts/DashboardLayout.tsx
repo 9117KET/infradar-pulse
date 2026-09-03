@@ -7,7 +7,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
-import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Layers, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity } from 'lucide-react';
+import { LayoutDashboard, FolderSearch, Bell, Users, Settings, LogOut, ClipboardCheck, AlertTriangle, Search, X, ListChecks, BookOpen, Globe, ShieldCheck, Bot, User, Shield, ChevronDown, Database, Briefcase, Award, Layers, CalendarDays, MessageSquare, Users2, Sparkles, Lock, TrendingUp, Handshake, HardHat, Send, Activity, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GuidedTour } from '@/components/GuidedTour';
 import { useAlerts } from '@/hooks/use-alerts';
@@ -99,10 +99,11 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         title: 'Reports',
-        url: '/dashboard/intelligence-summaries',
+        url: '/dashboard/reports',
         icon: Layers,
         tourId: 'nav-summaries',
         children: [
+          { title: 'Report Studio', url: '/dashboard/reports', icon: FileText, tourId: 'nav-report-studio' },
           { title: 'Insights', url: '/dashboard/insights', icon: BookOpen, tourId: 'nav-insights', minRole: 'researcher' as AppRole },
           { title: 'Datasets', url: '/dashboard/datasets', icon: Database, tourId: 'nav-datasets', minRole: 'admin' as AppRole },
         ],

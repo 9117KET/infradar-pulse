@@ -7,13 +7,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
-import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { requireAiEntitlementOrRespond, requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
+import { getEntitlementForUser, requireVerifiedEmail } from "../_shared/entitlementCheck.ts";
+import { planMeetsMinimum } from "../_shared/billing.ts";
+import { isCronRequest } from "../_shared/cronAuth.ts";
+import { finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Content-Type": "application/json",
 };
 
@@ -38,13 +41,41 @@ const REPORT_TEMPLATES: Record<string, { label: string; focus: string }> = {
     label: "Weekly Market Snapshot",
     focus: "recent market movements, project changes, alerts, and executive takeaways",
   },
+  custom_brief: {
+    label: "Custom Intelligence Brief",
+    focus: "the user's own question, answered strictly from platform evidence with explicit uncertainty notes",
+  },
 };
+
+/** Depth controls how much evidence is loaded and how long the output should be. */
+const DEPTH_PROFILES: Record<string, { label: string; projects: number; alerts: number; words: string; minPlan: "free" | "starter" | "pro" }> = {
+  brief:    { label: "Brief",     projects: 60,  alerts: 60,  words: "700-1,200 words",   minPlan: "free" },
+  standard: { label: "Standard",  projects: 150, alerts: 200, words: "1,800-3,000 words", minPlan: "free" },
+  deep:     { label: "Deep dive", projects: 300, alerts: 400, words: "4,000-6,000 words", minPlan: "pro" },
+};
+
 
 function cleanText(value: unknown, max = 120): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed || trimmed === "all") return null;
   return trimmed.slice(0, max);
+}
+
+function firstFilterValue(filters: Record<string, unknown> | null, keys: string[]): string | null {
+  if (!filters) return null;
+  for (const key of keys) {
+    const value = filters[key];
+    if (typeof value === "string") {
+      const result = cleanText(value);
+      if (result) return result;
+    }
+    if (Array.isArray(value)) {
+      const result = cleanText(value.find((item): item is string => typeof item === "string"));
+      if (result) return result;
+    }
+  }
+  return null;
 }
 
 function countBy<T extends Record<string, unknown>>(rows: T[], key: keyof T): Record<string, number> {
@@ -83,40 +114,120 @@ function uniqueCitations(items: Array<{ label?: string | null; url?: string | nu
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const gate = await requireStaffOrRespond(req);
-  if (gate instanceof Response) return gate;
+  // Parse once before entitlement checks so invalid requests do not consume quota.
+  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+  const depthKey = typeof body?.depth === "string" && DEPTH_PROFILES[body.depth] ? body.depth : "standard";
+  const depth = DEPTH_PROFILES[depthKey];
+  const requestedReportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
+    ? body.report_type
+    : "weekly_market_snapshot";
+  const requestedQuestion = cleanText(body?.question, 500);
+  if (requestedReportType === "custom_brief" && !requestedQuestion) {
+    return new Response(JSON.stringify({ error: "A custom intelligence brief requires a question." }), { status: 400, headers: corsHeaders });
+  }
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: corsHeaders });
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Scheduled runs are dispatched by report-scheduler for a specific owner.
+  // Interactive runs must pass the normal user entitlement and quota gate.
+  const scheduledUserId = typeof body?.user_id === "string" ? body.user_id : null;
+  let gate: { userId: string; supabaseAdmin: typeof supabase } | Response;
+  if (scheduledUserId && isCronRequest(req)) {
+    const verified = await requireVerifiedEmail(supabase, scheduledUserId);
+    const entitlement = await getEntitlementForUser(supabase, scheduledUserId, "live");
+    if (!verified.ok || (!entitlement.bypass && !planMeetsMinimum(entitlement.plan, depth.minPlan))) {
+      return new Response(JSON.stringify({ error: "Scheduled report owner is not eligible for this report depth." }), { status: 403, headers: corsHeaders });
+    }
+    gate = { userId: scheduledUserId, supabaseAdmin: supabase };
+  } else {
+    gate = depth.minPlan === "free"
+      ? await requireAiEntitlementOrRespond(req)
+      : await requirePlanAndAiOrRespond(req, depth.minPlan);
+  }
+  if (gate instanceof Response) return gate;
 
   let taskId: string | undefined;
   let runStartedAt = new Date();
   try {
-    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const reportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
-      ? body.report_type
-      : "weekly_market_snapshot";
+    const reportType = requestedReportType;
     const daysRaw = Number(body?.days);
     const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.round(daysRaw), 1), 365) : 30;
     const country = cleanText(body?.country);
     const region = cleanText(body?.region);
     const sector = cleanText(body?.sector);
     const stage = cleanText(body?.stage);
+    const question = cleanText(body?.question, 500);
+    const trackedOnly = body?.tracked_only === true;
+    const savedSearchId = cleanText(body?.saved_search_id, 60);
     const template = REPORT_TEMPLATES[reportType];
 
-    const scopeParts = [country, region, sector, stage].filter(Boolean);
+    // Resolve "my tracked projects" / a saved search into concrete filters.
+    let trackedIds: string[] = [];
+    let savedFilters: Record<string, unknown> | null = null;
+    if (trackedOnly) {
+      const { data } = await supabase
+        .from("tracked_projects")
+        .select("project_id")
+        .eq("user_id", gate.userId)
+        .limit(500);
+      trackedIds = (data ?? []).map((r: { project_id: string }) => r.project_id).filter(Boolean);
+    }
+    if (savedSearchId) {
+      const { data } = await supabase
+        .from("saved_searches")
+        .select("filters, name")
+        .eq("id", savedSearchId)
+        .eq("user_id", gate.userId)
+        .maybeSingle();
+      savedFilters = (data?.filters ?? null) as Record<string, unknown> | null;
+    }
+
+    const effCountry = country ?? firstFilterValue(savedFilters, ["country", "countries"]);
+    const effRegion = region ?? firstFilterValue(savedFilters, ["region", "regions"]);
+    const effSector = sector ?? firstFilterValue(savedFilters, ["sector", "sectors"]);
+    const effStage = stage ?? firstFilterValue(savedFilters, ["stage", "stages"]);
+
+    const scopeParts = [effCountry, effRegion, effSector, effStage].filter(Boolean);
+    if (trackedOnly) scopeParts.unshift("My tracked projects");
     const scopeLabel = scopeParts.length ? scopeParts.join(" · ") : "Global infrastructure coverage";
 
     if (!await isAgentEnabled(supabase, "report-agent")) return pausedResponse("report-agent");
-    const lock = await beginAgentTask(supabase, "report-agent", `${reportType}:${scopeLabel}:${days}d`, gate.userId);
-    if (lock.alreadyRunning) return alreadyRunningResponse("report-agent");
-    taskId = lock.taskId;
+
+    // No global concurrency lock: reports are user-initiated and quota-gated,
+    // so one user's run must never block another's.
+    const { data: taskRow } = await supabase
+      .from("research_tasks")
+      .insert({
+        task_type: "report-agent",
+        query: `${reportType}:${scopeLabel}:${days}d:${depthKey}`,
+        status: "running",
+        requested_by: gate.userId,
+      })
+      .select("id")
+      .single();
+    taskId = taskRow?.id as string | undefined;
     runStartedAt = new Date();
 
-    const parameters = { days, country, region, sector, stage, scope_label: scopeLabel, template: template.label };
+    const parameters = {
+      days,
+      country: effCountry,
+      region: effRegion,
+      sector: effSector,
+      stage: effStage,
+      tracked_only: trackedOnly,
+      saved_search_id: savedSearchId,
+      question,
+      depth: depthKey,
+      depth_label: depth.label,
+      scope_label: scopeLabel,
+      template: template.label,
+    };
 
     const updateTask = async (patch: Record<string, unknown>) => {
+      if (!taskId) return;
       await supabase.from("research_tasks").update({ result: patch }).eq("id", taskId);
     };
 
@@ -143,20 +254,23 @@ serve(async (req) => {
       .select("id, name, country, region, sector, stage, status, confidence, risk_score, value_usd, value_label, source_url, last_updated, description, key_risks, funding_sources, political_context")
       .eq("approved", true)
       .order("value_usd", { ascending: false })
-      .limit(150);
-    if (country) projectsQuery = projectsQuery.ilike("country", country);
-    if (region) projectsQuery = projectsQuery.eq("region", region);
-    if (sector) projectsQuery = projectsQuery.eq("sector", sector);
-    if (stage) projectsQuery = projectsQuery.eq("stage", stage);
+      .limit(depth.projects);
+    if (effCountry) projectsQuery = projectsQuery.ilike("country", effCountry);
+    if (effRegion) projectsQuery = projectsQuery.eq("region", effRegion);
+    if (effSector) projectsQuery = projectsQuery.eq("sector", effSector);
+    if (effStage) projectsQuery = projectsQuery.eq("stage", effStage);
+    if (trackedOnly) projectsQuery = projectsQuery.in("id", trackedIds.length ? trackedIds : ["00000000-0000-0000-0000-000000000000"]);
 
     let alertsQuery = supabase
       .from("alerts")
       .select("message, severity, category, project_id, project_name, source_url, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(200);
-    if (country) alertsQuery = alertsQuery.ilike("project_name", `%${country}%`);
-    if (sector && reportType === "tender_awards_outlook") alertsQuery = alertsQuery.in("category", ["construction", "market", "financial", "regulatory"]);
+      .limit(depth.alerts);
+    if (trackedOnly && trackedIds.length) alertsQuery = alertsQuery.in("project_id", trackedIds);
+    else if (effCountry) alertsQuery = alertsQuery.ilike("project_name", `%${effCountry}%`);
+    if (effSector && reportType === "tender_awards_outlook") alertsQuery = alertsQuery.in("category", ["construction", "market", "financial", "regulatory"]);
+
 
     const [{ data: projects }, { data: alerts }, { data: updates }, { data: insights }] = await Promise.all([
       projectsQuery,
@@ -220,18 +334,18 @@ serve(async (req) => {
         {
           role: "system",
           content:
-            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Every report must include: Executive summary, market/pipeline overview, sector or stage breakdown, key projects/stakeholders, tender or award outlook if relevant, risk and alert signals, recommended actions, data quality/confidence notes, and source citations. If data is sparse, say so and explain what can still be inferred.",
+            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Every report must include: Executive summary, market/pipeline overview, sector or stage breakdown, key projects/stakeholders, tender or award outlook if relevant, risk and alert signals, recommended actions, data quality/confidence notes, and source citations. For a custom brief, answer the user's question first and organize the report around the decision it supports. Never invent facts, contacts, citations, or project details. If data is sparse, say so and explain what can still be inferred.",
         },
         {
           role: "user",
           content:
-            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\n\n` +
+            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\nDepth: ${depth.label} (${depth.words})\nTracked only: ${trackedOnly}\nSaved search: ${savedSearchId ?? "none"}\nUser question: ${question ?? "none"}\n\n` +
             `Aggregate metrics:\n${JSON.stringify(metrics)}\n\n` +
             `Recent alerts:\n${JSON.stringify(alertRows.slice(0, 120))}\n\n` +
             `Project updates:\n${JSON.stringify(updateRows.slice(0, 120))}\n\n` +
             `Matching projects:\n${JSON.stringify(projectRows.slice(0, 80))}\n\n` +
             `Recent internal insights:\n${JSON.stringify(insightRows)}\n\n` +
-            `Known citations:\n${JSON.stringify(seedCitations)}\n`,
+            `Known citations (use only these URLs):\n${JSON.stringify(seedCitations)}\n`,
         },
       ],
       tools: [
@@ -267,7 +381,7 @@ serve(async (req) => {
       await supabase.from("report_runs").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", reportRunId);
       await supabase.from("research_tasks").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", taskId);
       await finishAgentRun(supabase, "report-agent", "failed", runStartedAt);
-      return new Response(JSON.stringify({ success: false, error: "AI report generation failed" }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ success: false, error: errText || "AI report generation failed" }), { status: aiRes.status, headers: corsHeaders });
     }
 
     const aiData = await aiRes.json();
@@ -282,7 +396,13 @@ serve(async (req) => {
     const title = report.title ?? `${template.label}: ${scopeLabel}`;
     const summary = report.summary ?? `${metrics.project_count} projects, ${metrics.total_value_label} pipeline value, ${metrics.critical_alerts} critical alerts.`;
     const markdown = report.markdown ?? "";
-    const citations = uniqueCitations([...(report.citations ?? []), ...seedCitations]);
+    // Only persist citations that were present in platform data; model-provided URLs
+    // are treated as untrusted even when the prompt asks for known sources only.
+    const knownUrls = new Set(seedCitations.map((citation) => citation.url));
+    const citations = uniqueCitations([
+      ...(report.citations ?? []).filter((citation) => knownUrls.has(citation.url)),
+      ...seedCitations,
+    ]);
 
     await supabase
       .from("report_runs")
