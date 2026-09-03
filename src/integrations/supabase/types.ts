@@ -169,6 +169,66 @@ export type Database = {
           },
         ]
       }
+      backfill_jobs: {
+        Row: {
+          agent_function: string
+          agent_type: string
+          completed_at: string | null
+          consecutive_errors: number
+          created_at: string
+          cursor_offset: number
+          fetched_count: number
+          id: string
+          last_error: string | null
+          last_run_at: string | null
+          page_size: number
+          params: Json
+          priority: number
+          source_key: string
+          state: string
+          total_estimate: number | null
+          updated_at: string
+        }
+        Insert: {
+          agent_function: string
+          agent_type: string
+          completed_at?: string | null
+          consecutive_errors?: number
+          created_at?: string
+          cursor_offset?: number
+          fetched_count?: number
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          page_size?: number
+          params?: Json
+          priority?: number
+          source_key: string
+          state?: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agent_function?: string
+          agent_type?: string
+          completed_at?: string | null
+          consecutive_errors?: number
+          created_at?: string
+          cursor_offset?: number
+          fetched_count?: number
+          id?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          page_size?: number
+          params?: Json
+          priority?: number
+          source_key?: string
+          state?: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_events: {
         Row: {
           created_at: string
@@ -253,6 +313,144 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          company_type: string
+          confidence: number
+          country: string | null
+          created_at: string
+          description: string | null
+          discovered_by: string
+          enriched_at: string | null
+          id: string
+          merged_into: string | null
+          name: string
+          normalized_name: string
+          project_count: number
+          region: string | null
+          registry_ids: Json
+          sectors: string[]
+          source_urls: string[]
+          total_value_usd: number
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          company_type?: string
+          confidence?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          discovered_by?: string
+          enriched_at?: string | null
+          id?: string
+          merged_into?: string | null
+          name: string
+          normalized_name: string
+          project_count?: number
+          region?: string | null
+          registry_ids?: Json
+          sectors?: string[]
+          source_urls?: string[]
+          total_value_usd?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          company_type?: string
+          confidence?: number
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          discovered_by?: string
+          enriched_at?: string | null
+          id?: string
+          merged_into?: string | null
+          name?: string
+          normalized_name?: string
+          project_count?: number
+          region?: string | null
+          registry_ids?: Json
+          sectors?: string[]
+          source_urls?: string[]
+          total_value_usd?: number
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_merged_into_fkey"
+            columns: ["merged_into"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_project_roles: {
+        Row: {
+          awarded_at: string | null
+          candidate_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          project_id: string | null
+          project_name: string
+          role: string
+          source_key: string | null
+          source_url: string | null
+          value_usd: number | null
+        }
+        Insert: {
+          awarded_at?: string | null
+          candidate_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          project_name: string
+          role?: string
+          source_key?: string | null
+          source_url?: string | null
+          value_usd?: number | null
+        }
+        Update: {
+          awarded_at?: string | null
+          candidate_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          project_id?: string | null
+          project_name?: string
+          role?: string
+          source_key?: string | null
+          source_url?: string | null
+          value_usd?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_project_roles_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_project_roles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_project_roles_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           company: string | null
@@ -291,6 +489,90 @@ export type Database = {
           user_agent?: string | null
         }
         Relationships: []
+      }
+      contacts: {
+        Row: {
+          company_id: string | null
+          confidence: number
+          contact_type: string
+          country: string | null
+          created_at: string
+          discovered_by: string
+          email: string | null
+          id: string
+          link_status: string
+          name: string
+          normalized_name: string
+          organization: string | null
+          phone: string | null
+          project_id: string | null
+          source: string
+          source_url: string | null
+          title: string | null
+          updated_at: string
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          confidence?: number
+          contact_type?: string
+          country?: string | null
+          created_at?: string
+          discovered_by?: string
+          email?: string | null
+          id?: string
+          link_status?: string
+          name: string
+          normalized_name: string
+          organization?: string | null
+          phone?: string | null
+          project_id?: string | null
+          source?: string
+          source_url?: string | null
+          title?: string | null
+          updated_at?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          confidence?: number
+          contact_type?: string
+          country?: string | null
+          created_at?: string
+          discovered_by?: string
+          email?: string | null
+          id?: string
+          link_status?: string
+          name?: string
+          normalized_name?: string
+          organization?: string | null
+          phone?: string | null
+          project_id?: string | null
+          source?: string
+          source_url?: string | null
+          title?: string | null
+          updated_at?: string
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contractor_awards: {
         Row: {
@@ -2962,6 +3244,7 @@ export type Database = {
           welcome_bonus: number
         }[]
       }
+      normalize_company_name: { Args: { p_name: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
       promote_project_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
@@ -3041,6 +3324,18 @@ export type Database = {
           used_day: number
           used_hour: number
         }[]
+      }
+      upsert_company: {
+        Args: {
+          p_country?: string
+          p_discovered_by?: string
+          p_name: string
+          p_region?: string
+          p_sector?: string
+          p_source_url?: string
+          p_type?: string
+        }
+        Returns: string
       }
       upsert_vault_secret: {
         Args: { p_name: string; p_secret: string }
