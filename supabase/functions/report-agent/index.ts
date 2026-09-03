@@ -7,8 +7,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
-import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
-import { beginAgentTask, alreadyRunningResponse, finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { requireAiEntitlementOrRespond, requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
+import { finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,7 +38,19 @@ const REPORT_TEMPLATES: Record<string, { label: string; focus: string }> = {
     label: "Weekly Market Snapshot",
     focus: "recent market movements, project changes, alerts, and executive takeaways",
   },
+  custom_brief: {
+    label: "Custom Intelligence Brief",
+    focus: "the user's own question, answered strictly from platform evidence with explicit uncertainty notes",
+  },
 };
+
+/** Depth controls how much evidence is loaded and how long the output should be. */
+const DEPTH_PROFILES: Record<string, { label: string; projects: number; alerts: number; words: string; minPlan: "free" | "starter" | "pro" }> = {
+  brief:    { label: "Brief",     projects: 60,  alerts: 60,  words: "700-1,200 words",   minPlan: "free" },
+  standard: { label: "Standard",  projects: 150, alerts: 200, words: "1,800-3,000 words", minPlan: "free" },
+  deep:     { label: "Deep dive", projects: 300, alerts: 400, words: "4,000-6,000 words", minPlan: "pro" },
+};
+
 
 function cleanText(value: unknown, max = 120): string | null {
   if (typeof value !== "string") return null;
