@@ -311,7 +311,7 @@ serve(async (req) => {
     const processLimit = Math.min(rows.length, totalLimit);
 
     for (let i = 0; i < processLimit; i++) {
-      const row = rows[startOffset + i];
+      const row = rows[i];
       try {
         // Support both the legacy ADB export and d-portal's official IATI fields.
         const name = (
@@ -321,7 +321,7 @@ serve(async (req) => {
 
         const country = mapAdbCountry(row["Country"] || row["country"] || row["DMC"] || row["slug"] || "");
         const adbRegion = (row["Region"] || row["region"] || row["ADB Region"] || "").trim();
-        const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || "").trim();
+        const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || row["sector_name"] || "").trim();
         const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || row["status_code"] || "").trim();
         const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || row["aid"] || "").trim();
         const rawCommitment = row["commitment"] || row["Commitment"] || "";
@@ -334,8 +334,8 @@ serve(async (req) => {
           : Math.round(parseFloat(totalCostStr || "0") * 1_000_000) || 0;
 
         const projectUrl = projectId
-          ? `https://www.adb.org/projects/${projectId}/main`
-          : "https://data.adb.org";
+          ? `https://d-portal.org/q.html?aid=${encodeURIComponent(projectId)}`
+          : "https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004";
 
         const { stage, infraStatus } = mapAdbStatus(statusRaw);
         const sector = mapAdbSector(sectorRaw);
@@ -352,7 +352,7 @@ serve(async (req) => {
         else valueLabel = "Value TBD";
 
         const confidence = infraStatus === "Verified" ? 82 : 65;
-        const description = `ADB-financed ${sectorRaw || "infrastructure"} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`;
+        const description = (row["description"] || `ADB-financed ${sectorRaw || "infrastructure"} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`).trim();
         const staged = await stagePipelineProject(supabase!, {
           sourceId: sourceRow?.id ?? null,
           sourceKey: "adb-projects",
