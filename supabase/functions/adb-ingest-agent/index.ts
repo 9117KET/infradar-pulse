@@ -388,9 +388,10 @@ serve(async (req) => {
     }
 
     if (backfill) {
+      const exhausted = rows.length === 0 || rows.length < iatiLimit;
       await saveIngestCursor(supabase, "adb-ingest", {
         nextOffset: startOffset + processLimit,
-        exhausted: startOffset + processLimit >= rows.length,
+        exhausted,
       });
     }
 
