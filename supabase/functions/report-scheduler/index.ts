@@ -71,14 +71,14 @@ serve(async (req) => {
       const responseBody = await response.json().catch(() => ({}));
       if (response.ok) {
         await admin.from("report_schedules").update({ last_run_at: new Date().toISOString() }).eq("id", schedule.id);
-      } else if (response.status === 402 || response.status === 403) {
-        // Credit and policy denials are terminal until the owner takes action;
-        // disable this schedule instead of creating a repeating failure loop.
-        await admin.from("report_schedules").update({ enabled: false }).eq("id", schedule.id);
-      } else {
-        // Transient failures become eligible on the next scheduler tick rather
-        // than silently waiting a full week or month for another attempt.
+      } else if (response.status === 429 || response.status >= 500) {
+        // Only rate limits and upstream/server failures retry. A retry becomes
+        // eligible on the next scheduler tick with no tight loop.
         await admin.from("report_schedules").update({ next_run_at: new Date().toISOString() }).eq("id", schedule.id);
+      } else {
+        // Invalid requests, auth, credit, and policy failures are terminal until
+        // the owner fixes the schedule or entitlement; do not repeat them.
+        await admin.from("report_schedules").update({ enabled: false }).eq("id", schedule.id);
       }
       results.push({ id: schedule.id, status: response.status, response: responseBody });
     } catch (error) {
