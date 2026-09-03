@@ -23,7 +23,7 @@ const corsHeaders = {
 
 const AGENT_TYPE = "contact-finder";
 const CANONICAL_BATCH_SIZE = 500;
-const DISCOVERY_BATCH_SIZE = 8;
+const DISCOVERY_BATCH_SIZE = 25;
 const ORG_REUSE_BATCH = 400;
 const TIME_BUDGET_MS = 150_000;
 const CANONICAL_BUDGET_MS = 60_000;
