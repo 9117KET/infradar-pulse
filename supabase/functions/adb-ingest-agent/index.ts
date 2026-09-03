@@ -63,11 +63,37 @@ function mapAdbSector(sector: string): string {
 
 function mapAdbStatus(status: string): { stage: string; infraStatus: string } {
   const s = (status || "").toLowerCase();
-  if (s.includes("active") || s.includes("ongoing") || s.includes("implementation")) return { stage: "Construction", infraStatus: "Verified" };
+  // IATI status codes: 2=implementation, 3=completed, 4=post-completion.
+  if (s === "3" || s === "4" || s.includes("closed") || s.includes("completed") || s.includes("pcr")) {
+    return { stage: "Completed", infraStatus: "Stable" };
+  }
+  if (s === "2" || s.includes("active") || s.includes("ongoing") || s.includes("implementation")) {
+    return { stage: "Construction", infraStatus: "Verified" };
+  }
   if (s.includes("proposed") || s.includes("pipeline") || s.includes("concept")) return { stage: "Planned", infraStatus: "Pending" };
   if (s.includes("approved") || s.includes("loan") || s.includes("grant")) return { stage: "Financing", infraStatus: "Verified" };
-  if (s.includes("closed") || s.includes("completed") || s.includes("pcr")) return { stage: "Completed", infraStatus: "Stable" };
   return { stage: "Construction", infraStatus: "Pending" };
+}
+
+const ADB_COUNTRY_CODES: Record<string, string> = {
+  af: "Afghanistan", bd: "Bangladesh", bt: "Bhutan", cn: "China", fj: "Fiji", ge: "Georgia",
+  id: "Indonesia", in: "India", kz: "Kazakhstan", kg: "Kyrgyzstan", la: "Laos", mn: "Mongolia",
+  mv: "Maldives", mm: "Myanmar", np: "Nepal", pk: "Pakistan", pg: "Papua New Guinea",
+  ph: "Philippines", lk: "Sri Lanka", tj: "Tajikistan", th: "Thailand", tm: "Turkmenistan",
+  uz: "Uzbekistan", vn: "Vietnam", ws: "Samoa",
+};
+
+function mapAdbCountry(value: string): string {
+  const raw = (value || "").trim();
+  const code = raw.match(/(?:^|-)([a-z]{2})$/i)?.[1]?.toLowerCase();
+  return (code && ADB_COUNTRY_CODES[code]) || raw;
+}
+
+function iatiDateToYear(value: string): string {
+  const days = Number(value);
+  if (!Number.isFinite(days) || days <= 0) return "";
+  const date = new Date(Date.UTC(1970, 0, 1) + days * 86_400_000);
+  return String(date.getUTCFullYear());
 }
 
 /** Simple CSV parser — handles quoted fields with embedded commas */
@@ -195,7 +221,23 @@ serve(async (req) => {
       }
     }
 
-    // Step 3: Try known direct ADB CSV download paths when CKAN discovery fails
+    // The ADB portal is protected by Cloudflare in server-side environments.
+    // d-portal mirrors ADB's official IATI publication and exposes a stable,
+    // keyless CSV export with offset pagination. Keep the CKAN/direct probes
+    // above as a fallback for continuity if the mirror ever has an outage.
+    const iatiLimit = Math.min(totalLimit, 500);
+    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
+    discoveryAttempts.push(iatiUrl);
+    try {
+      const probe = await fetch(iatiUrl, { headers: { "Accept": "text/csv" } });
+      if (probe.ok && (probe.headers.get("content-type") || "").includes("text/csv")) {
+        csvUrl = iatiUrl;
+      }
+    } catch (e) {
+      console.error("ADB IATI mirror probe failed:", e);
+    }
+
+    // Step 3: Try known direct ADB CSV download paths when CKAN and IATI fail
     if (!csvUrl) {
       const directUrls = [
         "https://data.adb.org/media/81/download",
@@ -233,7 +275,7 @@ serve(async (req) => {
     }
 
     if (!csvUrl) {
-      const result = { success: false, error: "Could not locate ADB CSV dataset from current ADB endpoints.", attempts: discoveryAttempts };
+      const result = { success: false, error: "Could not locate ADB project data from the ADB portal or official IATI mirror.", attempts: discoveryAttempts };
       if (taskId) {
         await supabase.from("research_tasks").update({
           status: "failed", error: result.error, result, completed_at: new Date().toISOString(),
@@ -265,31 +307,35 @@ serve(async (req) => {
     let candidatesUpdated = 0;
     let updatesProposed = 0;
     let skipped = 0;
-    const processLimit = Math.min(Math.max(rows.length - startOffset, 0), totalLimit);
+    // The IATI export is already paginated by offset; rows contains only this page.
+    const processLimit = Math.min(rows.length, totalLimit);
 
     for (let i = 0; i < processLimit; i++) {
-      const row = rows[startOffset + i];
+      const row = rows[i];
       try {
-        // ADB CSV columns vary; try multiple possible column names
+        // Support both the legacy ADB export and d-portal's official IATI fields.
         const name = (
-          row["Project Title"] || row["project_title"] || row["Project Name"] || row["project_name"] || ""
+          row["Project Title"] || row["project_title"] || row["Project Name"] || row["project_name"] || row["title"] || ""
         ).trim();
         if (!name) { skipped++; continue; }
 
-        const country = (row["Country"] || row["country"] || row["DMC"] || "").trim();
+        const country = mapAdbCountry(row["Country"] || row["country"] || row["DMC"] || row["slug"] || "");
         const adbRegion = (row["Region"] || row["region"] || row["ADB Region"] || "").trim();
-        const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || "").trim();
-        const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || "").trim();
-        const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || "").trim();
-        const totalCostStr = (row["Total Project Cost ($ million)"] || row["total_project_cost"] || row["Total Cost"] || row["Amount"] || "0").replace(/,/g, "");
-        const approvalYear = (row["Approval Year"] || row["approval_year"] || row["Year of Approval"] || "").trim();
-        const closingYear = (row["Closing Year"] || row["closing_year"] || row["Expected Completion"] || "").trim();
+        const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || row["sector_name"] || "").trim();
+        const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || row["status_code"] || "").trim();
+        const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || row["aid"] || "").trim();
+        const rawCommitment = row["commitment"] || row["Commitment"] || "";
+        const totalCostStr = (row["Total Project Cost ($ million)"] || row["total_project_cost"] || row["Total Cost"] || row["Amount"] || rawCommitment || "0").replace(/,/g, "");
+        const approvalYear = (row["Approval Year"] || row["approval_year"] || row["Year of Approval"] || iatiDateToYear(row["day_start"] || "")).trim();
+        const closingYear = (row["Closing Year"] || row["closing_year"] || row["Expected Completion"] || iatiDateToYear(row["day_end"] || "")).trim();
 
-        const totalAmt = Math.round(parseFloat(totalCostStr || "0") * 1_000_000) || 0;
+        const totalAmt = rawCommitment
+          ? Math.round(parseFloat(totalCostStr || "0")) || 0
+          : Math.round(parseFloat(totalCostStr || "0") * 1_000_000) || 0;
 
         const projectUrl = projectId
-          ? `https://www.adb.org/projects/${projectId}/main`
-          : "https://data.adb.org";
+          ? `https://d-portal.org/q.html?aid=${encodeURIComponent(projectId)}`
+          : "https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004";
 
         const { stage, infraStatus } = mapAdbStatus(statusRaw);
         const sector = mapAdbSector(sectorRaw);
@@ -306,7 +352,7 @@ serve(async (req) => {
         else valueLabel = "Value TBD";
 
         const confidence = infraStatus === "Verified" ? 82 : 65;
-        const description = `ADB-financed ${sectorRaw || "infrastructure"} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`;
+        const description = (row["description"] || `ADB-financed ${sectorRaw || "infrastructure"} project in ${country}${approvalYear ? ` (approved ${approvalYear})` : ""}.`).trim();
         const staged = await stagePipelineProject(supabase!, {
           sourceId: sourceRow?.id ?? null,
           sourceKey: "adb-projects",
@@ -342,9 +388,10 @@ serve(async (req) => {
     }
 
     if (backfill) {
+      const exhausted = rows.length === 0 || rows.length < iatiLimit;
       await saveIngestCursor(supabase, "adb-ingest", {
         nextOffset: startOffset + processLimit,
-        exhausted: startOffset + processLimit >= rows.length,
+        exhausted,
       });
     }
 
