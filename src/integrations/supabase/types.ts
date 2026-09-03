@@ -3284,6 +3284,13 @@ export type Database = {
           value_usd: number
         }[]
       }
+      country_fallback_coords: {
+        Args: { p_country: string }
+        Returns: {
+          lat: number
+          lng: number
+        }[]
+      }
       create_report_share: {
         Args: { p_report_run_id: string }
         Returns: string
