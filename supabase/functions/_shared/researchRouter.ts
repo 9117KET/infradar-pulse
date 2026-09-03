@@ -52,10 +52,12 @@ export async function research(params: {
   const pref = preferredProvider();
 
   const tryPerplexity = pref === "auto" || pref === "perplexity";
-  const tryFirecrawl = pref === "auto" || pref === "firecrawl";
+  // Firecrawl is the default engine and also the fallback whenever Perplexity
+  // is preferred but unavailable / out of credits.
+  const tryFirecrawl = pref !== "lovable";
 
-  // 1. Perplexity (grounded citations in a single call)
-  if (tryPerplexity && isPerplexityConfigured() && pref !== "firecrawl" && pref !== "lovable") {
+  // 1. Perplexity (grounded citations in a single call) — opt-in only
+  if (tryPerplexity && isPerplexityConfigured()) {
     const model = mode === "deep" ? "sonar-pro" : "sonar";
     const r = await callPerplexity({
       systemPrompt: params.systemPrompt,
