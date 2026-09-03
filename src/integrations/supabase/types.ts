@@ -1456,6 +1456,7 @@ export type Database = {
         Row: {
           canonical_project_id: string | null
           confidence: number
+          coord_precision: string | null
           country: string | null
           created_at: string
           description: string | null
@@ -1484,6 +1485,7 @@ export type Database = {
         Insert: {
           canonical_project_id?: string | null
           confidence?: number
+          coord_precision?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
@@ -1512,6 +1514,7 @@ export type Database = {
         Update: {
           canonical_project_id?: string | null
           confidence?: number
+          coord_precision?: string | null
           country?: string | null
           created_at?: string
           description?: string | null
@@ -1916,6 +1919,7 @@ export type Database = {
           ai_generated: boolean
           approved: boolean
           confidence: number
+          coord_precision: string | null
           country: string
           created_at: string
           delay_probability: number | null
@@ -1948,6 +1952,7 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
+          coord_precision?: string | null
           country: string
           created_at?: string
           delay_probability?: number | null
@@ -1980,6 +1985,7 @@ export type Database = {
           ai_generated?: boolean
           approved?: boolean
           confidence?: number
+          coord_precision?: string | null
           country?: string
           created_at?: string
           delay_probability?: number | null

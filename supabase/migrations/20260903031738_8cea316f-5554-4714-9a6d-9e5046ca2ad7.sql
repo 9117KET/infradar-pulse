@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN IF NOT EXISTS coord_precision text CHECK (coord_precision IS NULL OR coord_precision IN ('exact', 'country'));
