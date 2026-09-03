@@ -61,11 +61,15 @@ function isTerminalProviderError(message: string): boolean {
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
   const now = new Date().toISOString();
+  // Prefer the least-recently attempted source within priority bands. This
+  // prevents a large first-priority dataset from starving every other source
+  // while retaining deterministic priority ordering for fresh queues.
   const { data, error } = await supabase
     .from("backfill_jobs")
     .select("*")
     .in("state", ["pending", "running"])
     .or(`lease_until.is.null,lease_until.lt.${now}`)
+    .order("last_run_at", { ascending: true, nullsFirst: true })
     .order("priority", { ascending: true })
     .order("updated_at", { ascending: true })
     .limit(1)
