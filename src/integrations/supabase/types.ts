@@ -1952,6 +1952,7 @@ export type Database = {
           lng: number
           name: string
           political_context: string | null
+          provenance: string | null
           region: Database["public"]["Enums"]["project_region"]
           risk_score: number
           sector: Database["public"]["Enums"]["project_sector"]
@@ -1985,6 +1986,7 @@ export type Database = {
           lng: number
           name: string
           political_context?: string | null
+          provenance?: string | null
           region: Database["public"]["Enums"]["project_region"]
           risk_score?: number
           sector: Database["public"]["Enums"]["project_sector"]
@@ -2018,6 +2020,7 @@ export type Database = {
           lng?: number
           name?: string
           political_context?: string | null
+          provenance?: string | null
           region?: Database["public"]["Enums"]["project_region"]
           risk_score?: number
           sector?: Database["public"]["Enums"]["project_sector"]
@@ -2033,9 +2036,11 @@ export type Database = {
       }
       quality_scores: {
         Row: {
+          calculated_at: string
           candidate_id: string
           completeness_score: number
           confidence_score: number
+          contradiction_penalty: number
           created_at: string
           details: Json
           evidence_score: number
@@ -2043,14 +2048,17 @@ export type Database = {
           freshness_score: number
           id: string
           missing_fields: string[]
+          project_id: string | null
           recommendation: string
           source_score: number
           total_score: number
         }
         Insert: {
+          calculated_at?: string
           candidate_id: string
           completeness_score?: number
           confidence_score?: number
+          contradiction_penalty?: number
           created_at?: string
           details?: Json
           evidence_score?: number
@@ -2058,14 +2066,17 @@ export type Database = {
           freshness_score?: number
           id?: string
           missing_fields?: string[]
+          project_id?: string | null
           recommendation?: string
           source_score?: number
           total_score?: number
         }
         Update: {
+          calculated_at?: string
           candidate_id?: string
           completeness_score?: number
           confidence_score?: number
+          contradiction_penalty?: number
           created_at?: string
           details?: Json
           evidence_score?: number
@@ -2073,6 +2084,7 @@ export type Database = {
           freshness_score?: number
           id?: string
           missing_fields?: string[]
+          project_id?: string | null
           recommendation?: string
           source_score?: number
           total_score?: number
@@ -2083,6 +2095,13 @@ export type Database = {
             columns: ["candidate_id"]
             isOneToOne: false
             referencedRelation: "project_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_scores_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
