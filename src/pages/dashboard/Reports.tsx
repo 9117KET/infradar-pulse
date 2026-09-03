@@ -38,6 +38,7 @@ const REPORT_TYPES = [
 export default function Reports() {
   const { user } = useAuth();
   const { canExportPdf, plan, refresh: refreshEntitlements } = useEntitlements();
+  const { savedSearches } = useSavedSearches();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [reportType, setReportType] = useState('weekly_market_snapshot');
   const [depth, setDepth] = useState<'brief' | 'standard' | 'deep'>('standard');
@@ -48,6 +49,7 @@ export default function Reports() {
   const [stage, setStage] = useState('');
   const [question, setQuestion] = useState('');
   const [trackedOnly, setTrackedOnly] = useState(false);
+  const [savedSearchId, setSavedSearchId] = useState('none');
   const [generating, setGenerating] = useState(false);
   const [scheduleCadence, setScheduleCadence] = useState('monthly');
 
