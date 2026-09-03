@@ -286,22 +286,25 @@ serve(async (req) => {
     for (let i = 0; i < processLimit; i++) {
       const row = rows[startOffset + i];
       try {
-        // ADB CSV columns vary; try multiple possible column names
+        // Support both the legacy ADB export and d-portal's official IATI fields.
         const name = (
-          row["Project Title"] || row["project_title"] || row["Project Name"] || row["project_name"] || ""
+          row["Project Title"] || row["project_title"] || row["Project Name"] || row["project_name"] || row["title"] || ""
         ).trim();
         if (!name) { skipped++; continue; }
 
-        const country = (row["Country"] || row["country"] || row["DMC"] || "").trim();
+        const country = (row["Country"] || row["country"] || row["DMC"] || row["slug"] || "").trim();
         const adbRegion = (row["Region"] || row["region"] || row["ADB Region"] || "").trim();
         const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || "").trim();
-        const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || "").trim();
-        const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || "").trim();
-        const totalCostStr = (row["Total Project Cost ($ million)"] || row["total_project_cost"] || row["Total Cost"] || row["Amount"] || "0").replace(/,/g, "");
+        const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || row["status_code"] || "").trim();
+        const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || row["aid"] || "").trim();
+        const rawCommitment = row["commitment"] || row["Commitment"] || "";
+        const totalCostStr = (row["Total Project Cost ($ million)"] || row["total_project_cost"] || row["Total Cost"] || row["Amount"] || rawCommitment || "0").replace(/,/g, "");
         const approvalYear = (row["Approval Year"] || row["approval_year"] || row["Year of Approval"] || "").trim();
         const closingYear = (row["Closing Year"] || row["closing_year"] || row["Expected Completion"] || "").trim();
 
-        const totalAmt = Math.round(parseFloat(totalCostStr || "0") * 1_000_000) || 0;
+        const totalAmt = rawCommitment
+          ? Math.round(parseFloat(totalCostStr || "0")) || 0
+          : Math.round(parseFloat(totalCostStr || "0") * 1_000_000) || 0;
 
         const projectUrl = projectId
           ? `https://www.adb.org/projects/${projectId}/main`
