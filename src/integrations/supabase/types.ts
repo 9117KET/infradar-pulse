@@ -3205,13 +3205,25 @@ export type Database = {
         Returns: string
       }
       attach_org_contacts: { Args: { p_limit?: number }; Returns: Json }
+      auto_approve_candidate_backlog: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       auto_promote_official_candidate: {
-        Args: { p_candidate_id: string; p_reason?: string }
+        Args: {
+          p_candidate_id: string
+          p_provenance?: string
+          p_reason?: string
+        }
         Returns: Json
       }
       begin_agent_task: {
         Args: { p_query: string; p_requested_by?: string; p_task_type: string }
         Returns: Json
+      }
+      candidate_is_auto_approvable: {
+        Args: { p_candidate_id: string }
+        Returns: boolean
       }
       canonicalize_contact_batch: {
         Args: {
