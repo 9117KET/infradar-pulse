@@ -1,0 +1,1 @@
+ALTER TABLE public.backfill_jobs ADD COLUMN IF NOT EXISTS source_status text;
