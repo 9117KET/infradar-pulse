@@ -63,11 +63,37 @@ function mapAdbSector(sector: string): string {
 
 function mapAdbStatus(status: string): { stage: string; infraStatus: string } {
   const s = (status || "").toLowerCase();
-  if (s.includes("active") || s.includes("ongoing") || s.includes("implementation")) return { stage: "Construction", infraStatus: "Verified" };
+  // IATI status codes: 2=implementation, 3=completed, 4=post-completion.
+  if (s === "3" || s === "4" || s.includes("closed") || s.includes("completed") || s.includes("pcr")) {
+    return { stage: "Completed", infraStatus: "Stable" };
+  }
+  if (s === "2" || s.includes("active") || s.includes("ongoing") || s.includes("implementation")) {
+    return { stage: "Construction", infraStatus: "Verified" };
+  }
   if (s.includes("proposed") || s.includes("pipeline") || s.includes("concept")) return { stage: "Planned", infraStatus: "Pending" };
   if (s.includes("approved") || s.includes("loan") || s.includes("grant")) return { stage: "Financing", infraStatus: "Verified" };
-  if (s.includes("closed") || s.includes("completed") || s.includes("pcr")) return { stage: "Completed", infraStatus: "Stable" };
   return { stage: "Construction", infraStatus: "Pending" };
+}
+
+const ADB_COUNTRY_CODES: Record<string, string> = {
+  af: "Afghanistan", bd: "Bangladesh", bt: "Bhutan", cn: "China", fj: "Fiji", ge: "Georgia",
+  id: "Indonesia", in: "India", kz: "Kazakhstan", kg: "Kyrgyzstan", la: "Laos", mn: "Mongolia",
+  mv: "Maldives", mm: "Myanmar", np: "Nepal", pk: "Pakistan", pg: "Papua New Guinea",
+  ph: "Philippines", lk: "Sri Lanka", tj: "Tajikistan", th: "Thailand", tm: "Turkmenistan",
+  uz: "Uzbekistan", vn: "Vietnam", ws: "Samoa",
+};
+
+function mapAdbCountry(value: string): string {
+  const raw = (value || "").trim();
+  const code = raw.match(/(?:^|-)([a-z]{2})$/i)?.[1]?.toLowerCase();
+  return (code && ADB_COUNTRY_CODES[code]) || raw;
+}
+
+function iatiDateToYear(value: string): string {
+  const days = Number(value);
+  if (!Number.isFinite(days) || days <= 0) return "";
+  const date = new Date(Date.UTC(1970, 0, 1) + days * 86_400_000);
+  return String(date.getUTCFullYear());
 }
 
 /** Simple CSV parser — handles quoted fields with embedded commas */
@@ -281,7 +307,8 @@ serve(async (req) => {
     let candidatesUpdated = 0;
     let updatesProposed = 0;
     let skipped = 0;
-    const processLimit = Math.min(Math.max(rows.length - startOffset, 0), totalLimit);
+    // The IATI export is already paginated by offset; rows contains only this page.
+    const processLimit = Math.min(rows.length, totalLimit);
 
     for (let i = 0; i < processLimit; i++) {
       const row = rows[startOffset + i];
@@ -292,15 +319,15 @@ serve(async (req) => {
         ).trim();
         if (!name) { skipped++; continue; }
 
-        const country = (row["Country"] || row["country"] || row["DMC"] || row["slug"] || "").trim();
+        const country = mapAdbCountry(row["Country"] || row["country"] || row["DMC"] || row["slug"] || "");
         const adbRegion = (row["Region"] || row["region"] || row["ADB Region"] || "").trim();
         const sectorRaw = (row["Sector"] || row["sector"] || row["Project Sector"] || "").trim();
         const statusRaw = (row["Project Status"] || row["project_status"] || row["Status"] || row["status"] || row["status_code"] || "").trim();
         const projectId = (row["Project Number"] || row["project_number"] || row["ID"] || row["id"] || row["aid"] || "").trim();
         const rawCommitment = row["commitment"] || row["Commitment"] || "";
         const totalCostStr = (row["Total Project Cost ($ million)"] || row["total_project_cost"] || row["Total Cost"] || row["Amount"] || rawCommitment || "0").replace(/,/g, "");
-        const approvalYear = (row["Approval Year"] || row["approval_year"] || row["Year of Approval"] || "").trim();
-        const closingYear = (row["Closing Year"] || row["closing_year"] || row["Expected Completion"] || "").trim();
+        const approvalYear = (row["Approval Year"] || row["approval_year"] || row["Year of Approval"] || iatiDateToYear(row["day_start"] || "")).trim();
+        const closingYear = (row["Closing Year"] || row["closing_year"] || row["Expected Completion"] || iatiDateToYear(row["day_end"] || "")).trim();
 
         const totalAmt = rawCommitment
           ? Math.round(parseFloat(totalCostStr || "0")) || 0
