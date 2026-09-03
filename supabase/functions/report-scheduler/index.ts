@@ -42,22 +42,45 @@ serve(async (req) => {
   const results: Array<Record<string, unknown>> = [];
   for (const schedule of schedules ?? []) {
     const parameters = (schedule.parameters ?? {}) as Record<string, unknown>;
-    const response = await fetch(`${supabaseUrl}/functions/v1/report-agent`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-        ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
-      },
-      body: JSON.stringify({ ...parameters, report_type: schedule.report_type, user_id: schedule.user_id, scheduled: true }),
-    });
-    const responseBody = await response.json().catch(() => ({}));
-    const now = new Date();
-    await admin.from("report_schedules").update({
-      last_run_at: now.toISOString(),
-      next_run_at: nextRun(schedule.cadence, now),
-    }).eq("id", schedule.id);
-    results.push({ id: schedule.id, status: response.status, response: responseBody });
+    const claimedNextRun = nextRun(schedule.cadence);
+    const { data: claim, error: claimError } = await admin
+      .from("report_schedules")
+      .update({ next_run_at: claimedNextRun })
+      .eq("id", schedule.id)
+      .eq("next_run_at", schedule.next_run_at)
+      .select("id")
+      .maybeSingle();
+
+    // Two scheduler invocations can overlap at the 15-minute boundary. Only the
+    // invocation that successfully claims the due row may generate the report.
+    if (claimError || !claim) {
+      results.push({ id: schedule.id, status: "skipped", reason: claimError?.message ?? "already claimed" });
+      continue;
+    }
+
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/report-agent`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+          ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
+        },
+        body: JSON.stringify({ ...parameters, report_type: schedule.report_type, user_id: schedule.user_id, scheduled: true }),
+      });
+      const responseBody = await response.json().catch(() => ({}));
+      if (response.ok) {
+        await admin.from("report_schedules").update({ last_run_at: new Date().toISOString() }).eq("id", schedule.id);
+      } else {
+        // Make a failed run eligible on the next scheduler tick rather than
+        // silently waiting a full week or month for another attempt.
+        await admin.from("report_schedules").update({ next_run_at: new Date().toISOString() }).eq("id", schedule.id);
+      }
+      results.push({ id: schedule.id, status: response.status, response: responseBody });
+    } catch (error) {
+      await admin.from("report_schedules").update({ next_run_at: new Date().toISOString() }).eq("id", schedule.id);
+      results.push({ id: schedule.id, status: 500, response: { error: error instanceof Error ? error.message : "Report dispatch failed" } });
+    }
   }
 
   return new Response(JSON.stringify({ success: true, processed: results.length, results }), { headers: corsHeaders });

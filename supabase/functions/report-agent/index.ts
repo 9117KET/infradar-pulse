@@ -62,6 +62,22 @@ function cleanText(value: unknown, max = 120): string | null {
   return trimmed.slice(0, max);
 }
 
+function firstFilterValue(filters: Record<string, unknown> | null, keys: string[]): string | null {
+  if (!filters) return null;
+  for (const key of keys) {
+    const value = filters[key];
+    if (typeof value === "string") {
+      const result = cleanText(value);
+      if (result) return result;
+    }
+    if (Array.isArray(value)) {
+      const result = cleanText(value.find((item): item is string => typeof item === "string"));
+      if (result) return result;
+    }
+  }
+  return null;
+}
+
 function countBy<T extends Record<string, unknown>>(rows: T[], key: keyof T): Record<string, number> {
   return rows.reduce((acc, row) => {
     const value = String(row[key] ?? "Unknown");
@@ -98,10 +114,17 @@ function uniqueCitations(items: Array<{ label?: string | null; url?: string | nu
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Peek at the requested depth before gating: deep dives are a paid tier.
-  const peek = req.method === "POST" ? await req.clone().json().catch(() => ({})) : {};
-  const depthKey = typeof peek?.depth === "string" && DEPTH_PROFILES[peek.depth] ? peek.depth : "standard";
+  // Parse once before entitlement checks so invalid requests do not consume quota.
+  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+  const depthKey = typeof body?.depth === "string" && DEPTH_PROFILES[body.depth] ? body.depth : "standard";
   const depth = DEPTH_PROFILES[depthKey];
+  const requestedReportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
+    ? body.report_type
+    : "weekly_market_snapshot";
+  const requestedQuestion = cleanText(body?.question, 500);
+  if (requestedReportType === "custom_brief" && !requestedQuestion) {
+    return new Response(JSON.stringify({ error: "A custom intelligence brief requires a question." }), { status: 400, headers: corsHeaders });
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -110,7 +133,7 @@ serve(async (req) => {
 
   // Scheduled runs are dispatched by report-scheduler for a specific owner.
   // Interactive runs must pass the normal user entitlement and quota gate.
-  const scheduledUserId = typeof peek?.user_id === "string" ? peek.user_id : null;
+  const scheduledUserId = typeof body?.user_id === "string" ? body.user_id : null;
   let gate: { userId: string; supabaseAdmin: typeof supabase } | Response;
   if (scheduledUserId && isCronRequest(req)) {
     const verified = await requireVerifiedEmail(supabase, scheduledUserId);
@@ -129,10 +152,7 @@ serve(async (req) => {
   let taskId: string | undefined;
   let runStartedAt = new Date();
   try {
-    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const reportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
-      ? body.report_type
-      : "weekly_market_snapshot";
+    const reportType = requestedReportType;
     const daysRaw = Number(body?.days);
     const days = Number.isFinite(daysRaw) ? Math.min(Math.max(Math.round(daysRaw), 1), 365) : 30;
     const country = cleanText(body?.country);
@@ -165,10 +185,10 @@ serve(async (req) => {
       savedFilters = (data?.filters ?? null) as Record<string, unknown> | null;
     }
 
-    const effCountry = country ?? cleanText(savedFilters?.country);
-    const effRegion = region ?? cleanText(savedFilters?.region);
-    const effSector = sector ?? cleanText(savedFilters?.sector);
-    const effStage = stage ?? cleanText(savedFilters?.stage);
+    const effCountry = country ?? firstFilterValue(savedFilters, ["country", "countries"]);
+    const effRegion = region ?? firstFilterValue(savedFilters, ["region", "regions"]);
+    const effSector = sector ?? firstFilterValue(savedFilters, ["sector", "sectors"]);
+    const effStage = stage ?? firstFilterValue(savedFilters, ["stage", "stages"]);
 
     const scopeParts = [effCountry, effRegion, effSector, effStage].filter(Boolean);
     if (trackedOnly) scopeParts.unshift("My tracked projects");
@@ -361,7 +381,7 @@ serve(async (req) => {
       await supabase.from("report_runs").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", reportRunId);
       await supabase.from("research_tasks").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", taskId);
       await finishAgentRun(supabase, "report-agent", "failed", runStartedAt);
-      return new Response(JSON.stringify({ success: false, error: "AI report generation failed" }), { status: 500, headers: corsHeaders });
+      return new Response(JSON.stringify({ success: false, error: errText || "AI report generation failed" }), { status: aiRes.status, headers: corsHeaders });
     }
 
     const aiData = await aiRes.json();
@@ -376,7 +396,13 @@ serve(async (req) => {
     const title = report.title ?? `${template.label}: ${scopeLabel}`;
     const summary = report.summary ?? `${metrics.project_count} projects, ${metrics.total_value_label} pipeline value, ${metrics.critical_alerts} critical alerts.`;
     const markdown = report.markdown ?? "";
-    const citations = uniqueCitations([...(report.citations ?? []), ...seedCitations]);
+    // Only persist citations that were present in platform data; model-provided URLs
+    // are treated as untrusted even when the prompt asks for known sources only.
+    const knownUrls = new Set(seedCitations.map((citation) => citation.url));
+    const citations = uniqueCitations([
+      ...(report.citations ?? []).filter((citation) => knownUrls.has(citation.url)),
+      ...seedCitations,
+    ]);
 
     await supabase
       .from("report_runs")
