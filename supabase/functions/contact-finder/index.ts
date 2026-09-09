@@ -25,8 +25,12 @@ const AGENT_TYPE = "contact-finder";
 const CANONICAL_BATCH_SIZE = 500;
 const DISCOVERY_BATCH_SIZE = 25;
 const ORG_REUSE_BATCH = 400;
-const TIME_BUDGET_MS = 150_000;
-const CANONICAL_BUDGET_MS = 60_000;
+// Stay well under the edge wall-clock limit so the run always winds down
+// gracefully (task marked completed, lock released) instead of being killed.
+const TIME_BUDGET_MS = 90_000;
+const CANONICAL_BUDGET_MS = 30_000;
+const PROJECT_BUDGET_MS = 25_000;
+const STEP_TIMEOUT_MS = 20_000;
 const HTTP_URL = /^https?:\/\//i;
 const CONTACT_TYPES = new Set(["contractor", "government", "financier", "consultant", "owner", "general"]);
 
