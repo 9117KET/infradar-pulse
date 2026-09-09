@@ -3386,6 +3386,7 @@ export type Database = {
         Args: { p_environment?: string }
         Returns: Json
       }
+      get_public_platform_counts: { Args: never; Returns: Json }
       get_shared_report: {
         Args: { p_token: string }
         Returns: {
