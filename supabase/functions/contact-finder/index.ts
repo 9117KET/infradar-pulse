@@ -262,6 +262,38 @@ async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ co
   return { contacts: inserted, links };
 }
 
+/**
+ * Turn provider output (search snippets or model prose) into contact objects.
+ * Cited URLs are the only permitted sources, so nothing unsupported is kept.
+ */
+async function extractContactsFromText(
+  project: Project,
+  raw: string,
+  citations: string[],
+): Promise<ContactCandidate[]> {
+  const direct = parseContacts(raw);
+  if (direct.length || !raw.trim() || !isLlmConfigured()) return direct;
+
+  const res = await chatCompletions({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Extract contacts that literally appear in the supplied research text. Never invent names, emails, phone numbers, organizations or URLs. Return ONLY a JSON array of objects with name, role, organization, phone, email, contact_type (contractor|government|financier|consultant|owner|general) and source_url. source_url MUST be one of the allowed URLs given. Omit any contact without a verbatim email or phone. Return [] when there are none.",
+      },
+      {
+        role: "user",
+        content: `Project: ${project.name} (${project.country ?? "unknown"}, ${project.sector ?? "unknown"}).\nAllowed source URLs:\n${citations.join("\n")}\n\nResearch text:\n${raw.slice(0, 24_000)}`,
+      },
+    ],
+    temperature: 0,
+  }).catch(() => null);
+  if (!res || !res.ok) return [];
+  const body = await res.json().catch(() => null);
+  const content = body?.choices?.[0]?.message?.content;
+  return typeof content === "string" ? parseContacts(content) : [];
+}
+
 /** Step B — cited web research when the project's own page yields nothing. */
 async function researchContacts(supabase: any, project: Project, taskId: string): Promise<{ contacts: number; citations: string[] }> {
   const { data: stakeholderRows } = await supabase
