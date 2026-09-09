@@ -427,12 +427,13 @@ serve(async (req) => {
       for (const project of projects) {
         if (Date.now() - startedAt.getTime() >= TIME_BUDGET_MS) break;
         projectsScanned++;
+        const projectStart = Date.now();
         try {
-          const scraped = await harvestFromOwnPage(supabase, project);
+          const scraped = await withTimeout(harvestFromOwnPage(supabase, project), STEP_TIMEOUT_MS, "page scrape");
           contactsAdded += scraped.contacts;
           let citations: string[] = [];
-          if (!scraped.contacts) {
-            const researched = await researchContacts(supabase, project, taskId);
+          if (!scraped.contacts && Date.now() - projectStart < PROJECT_BUDGET_MS) {
+            const researched = await withTimeout(researchContacts(supabase, project, taskId), STEP_TIMEOUT_MS, "contact research");
             contactsAdded += researched.contacts;
             citations = researched.citations;
           }
