@@ -291,7 +291,10 @@ async function researchContacts(supabase: any, project: Project, taskId: string)
   }
 
   const allowed = new Set(research.citations.map((url) => url.toLowerCase()));
-  const rows = normalizeRows(project, parseContacts(research.text), allowed);
+  // The search provider returns snippets, not JSON. Run one grounded extraction
+  // pass so contacts are actually parsed out of the research text.
+  const candidates = await extractContactsFromText(project, research.text, research.citations);
+  const rows = normalizeRows(project, candidates, allowed);
   const inserted = await insertContacts(supabase, rows);
   if (inserted) {
     await recordAgentEvent(supabase, AGENT_TYPE, "contacts_discovered", `${inserted} cited contact(s) added`, taskId, { contacts_added: inserted }, { project_id: project.id });
