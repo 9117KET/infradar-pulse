@@ -384,6 +384,11 @@ serve(async (req) => {
     } catch { /* scheduled invocation has an empty body */ }
   }
 
+  // Release locks left behind by a previous run the platform killed mid-way.
+  try {
+    await supabase.rpc("reap_stuck_research_tasks");
+  } catch { /* best-effort */ }
+
   const lock = await beginAgentTask(supabase, AGENT_TYPE, bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Canonical indexing, organisation reuse and contact discovery", gate.userId ?? undefined);
   if (lock.alreadyRunning) return alreadyRunningResponse(AGENT_TYPE);
   const taskId = lock.taskId;
