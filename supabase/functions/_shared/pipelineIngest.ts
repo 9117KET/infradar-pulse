@@ -323,7 +323,9 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
 
   if (candidate?.id && isHttpUrl(input.sourceUrl)) {
     let eligible = officialAutoPublish;
-    if (!eligible) {
+    // Blocking quality flags (stale / unparseable / future dates) veto BOTH
+    // paths — the looser DB eligibility rule must never overrule them.
+    if (!eligible && blockingFlags.length === 0) {
       const { data: check } = await supabase.rpc("candidate_is_auto_approvable", {
         p_candidate_id: candidate.id,
       });

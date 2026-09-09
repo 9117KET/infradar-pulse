@@ -25,8 +25,12 @@ const AGENT_TYPE = "contact-finder";
 const CANONICAL_BATCH_SIZE = 500;
 const DISCOVERY_BATCH_SIZE = 25;
 const ORG_REUSE_BATCH = 400;
-const TIME_BUDGET_MS = 150_000;
-const CANONICAL_BUDGET_MS = 60_000;
+// Stay well under the edge wall-clock limit so the run always winds down
+// gracefully (task marked completed, lock released) instead of being killed.
+const TIME_BUDGET_MS = 90_000;
+const CANONICAL_BUDGET_MS = 30_000;
+const PROJECT_BUDGET_MS = 25_000;
+const STEP_TIMEOUT_MS = 20_000;
 const HTTP_URL = /^https?:\/\//i;
 const CONTACT_TYPES = new Set(["contractor", "government", "financier", "consultant", "owner", "general"]);
 
@@ -63,6 +67,17 @@ function describeError(error: unknown): string {
     }
   }
   return String(error);
+}
+
+/** Bound any awaited step so one slow scrape/LLM call cannot blow the budget. */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); },
+    );
+  });
 }
 
 function text(value: unknown): string {
@@ -247,6 +262,38 @@ async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ co
   return { contacts: inserted, links };
 }
 
+/**
+ * Turn provider output (search snippets or model prose) into contact objects.
+ * Cited URLs are the only permitted sources, so nothing unsupported is kept.
+ */
+async function extractContactsFromText(
+  project: Project,
+  raw: string,
+  citations: string[],
+): Promise<ContactCandidate[]> {
+  const direct = parseContacts(raw);
+  if (direct.length || !raw.trim() || !isLlmConfigured()) return direct;
+
+  const res = await chatCompletions({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Extract contacts that literally appear in the supplied research text. Never invent names, emails, phone numbers, organizations or URLs. Return ONLY a JSON array of objects with name, role, organization, phone, email, contact_type (contractor|government|financier|consultant|owner|general) and source_url. source_url MUST be one of the allowed URLs given. Omit any contact without a verbatim email or phone. Return [] when there are none.",
+      },
+      {
+        role: "user",
+        content: `Project: ${project.name} (${project.country ?? "unknown"}, ${project.sector ?? "unknown"}).\nAllowed source URLs:\n${citations.join("\n")}\n\nResearch text:\n${raw.slice(0, 24_000)}`,
+      },
+    ],
+    temperature: 0,
+  }).catch(() => null);
+  if (!res || !res.ok) return [];
+  const body = await res.json().catch(() => null);
+  const content = body?.choices?.[0]?.message?.content;
+  return typeof content === "string" ? parseContacts(content) : [];
+}
+
 /** Step B — cited web research when the project's own page yields nothing. */
 async function researchContacts(supabase: any, project: Project, taskId: string): Promise<{ contacts: number; citations: string[] }> {
   const { data: stakeholderRows } = await supabase
@@ -276,7 +323,10 @@ async function researchContacts(supabase: any, project: Project, taskId: string)
   }
 
   const allowed = new Set(research.citations.map((url) => url.toLowerCase()));
-  const rows = normalizeRows(project, parseContacts(research.text), allowed);
+  // The search provider returns snippets, not JSON. Run one grounded extraction
+  // pass so contacts are actually parsed out of the research text.
+  const candidates = await extractContactsFromText(project, research.text, research.citations);
+  const rows = normalizeRows(project, candidates, allowed);
   const inserted = await insertContacts(supabase, rows);
   if (inserted) {
     await recordAgentEvent(supabase, AGENT_TYPE, "contacts_discovered", `${inserted} cited contact(s) added`, taskId, { contacts_added: inserted }, { project_id: project.id });
@@ -334,6 +384,11 @@ serve(async (req) => {
     } catch { /* scheduled invocation has an empty body */ }
   }
 
+  // Release locks left behind by a previous run the platform killed mid-way.
+  try {
+    await supabase.rpc("reap_stuck_research_tasks");
+  } catch { /* best-effort */ }
+
   const lock = await beginAgentTask(supabase, AGENT_TYPE, bodyProjectId ? `Contact finder: ${bodyProjectId}` : "Canonical indexing, organisation reuse and contact discovery", gate.userId ?? undefined);
   if (lock.alreadyRunning) return alreadyRunningResponse(AGENT_TYPE);
   const taskId = lock.taskId;
@@ -372,12 +427,13 @@ serve(async (req) => {
       for (const project of projects) {
         if (Date.now() - startedAt.getTime() >= TIME_BUDGET_MS) break;
         projectsScanned++;
+        const projectStart = Date.now();
         try {
-          const scraped = await harvestFromOwnPage(supabase, project);
+          const scraped = await withTimeout(harvestFromOwnPage(supabase, project), STEP_TIMEOUT_MS, "page scrape");
           contactsAdded += scraped.contacts;
           let citations: string[] = [];
-          if (!scraped.contacts) {
-            const researched = await researchContacts(supabase, project, taskId);
+          if (!scraped.contacts && Date.now() - projectStart < PROJECT_BUDGET_MS) {
+            const researched = await withTimeout(researchContacts(supabase, project, taskId), STEP_TIMEOUT_MS, "contact research");
             contactsAdded += researched.contacts;
             citations = researched.citations;
           }
