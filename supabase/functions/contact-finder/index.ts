@@ -247,7 +247,7 @@ async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ co
     ],
     temperature: 0,
   });
-  if (!res.ok) return { contacts: 0, links: [] };
+  if (!res.ok) { noteAiBlocked(res.status); return { contacts: 0, links: [] }; }
   const body = await res.json().catch(() => null);
   const content = body?.choices?.[0]?.message?.content;
   if (typeof content !== "string") return { contacts: 0, links: [] };
@@ -288,7 +288,7 @@ async function extractContactsFromText(
     ],
     temperature: 0,
   }).catch(() => null);
-  if (!res || !res.ok) return [];
+  if (!res || !res.ok) { if (res) noteAiBlocked(res.status); return []; }
   const body = await res.json().catch(() => null);
   const content = body?.choices?.[0]?.message?.content;
   return typeof content === "string" ? parseContacts(content) : [];
