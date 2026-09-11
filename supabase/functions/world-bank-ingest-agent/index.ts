@@ -35,6 +35,8 @@ const corsHeaders = {
 /** World Bank sector label → InfraRadar sector enum */
 function mapSector(wbSector: string): string {
   const s = (wbSector || "").toLowerCase();
+  const frontier = detectFrontierSector(s);
+  if (frontier) return frontier;
   if (s.includes("transport") || s.includes("road") || s.includes("rail") || s.includes("port") || s.includes("airport")) return "Transport";
   if (s.includes("energy") || s.includes("power") || s.includes("electricity") || s.includes("hydropower")) return "Energy";
   if (s.includes("renewable") || s.includes("solar") || s.includes("wind") || s.includes("geothermal")) return "Renewable Energy";
