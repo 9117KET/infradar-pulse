@@ -25,6 +25,9 @@ async function invokeAgentWithBody(functionName: string, body: Record<string, un
 
 export const agentApi = {
   runResearchAgent: () => invokeAgent('research-agent'),
+  /** Emerging/frontier sectors: AI compute, chips, batteries, nuclear, hydrogen, space. */
+  runFrontierIntelAgent: (opts?: { themes?: number }) =>
+    invokeAgentWithBody('frontier-intel-agent', { ...(opts ?? {}) }),
   runUpdateChecker: () => invokeAgent('update-checker'),
   runRiskScorer: () => invokeAgent('risk-scorer'),
   runHealthScoreAgent: () => invokeAgent('health-score-agent'),
