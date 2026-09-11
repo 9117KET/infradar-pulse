@@ -18,6 +18,7 @@ import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse,
 import { registerPipelineSource, stagePipelineProject, slugifyProjectName } from "../_shared/pipelineIngest.ts";
 import { resolveCountryCoords } from "../_shared/countryCentroids.ts";
 import { getIngestCursor, saveIngestCursor } from "../_shared/ingestCursor.ts";
+import { detectFrontierSector } from "../_shared/sectors.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
