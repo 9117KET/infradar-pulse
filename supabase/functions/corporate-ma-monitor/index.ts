@@ -3,7 +3,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { chatCompletions } from "../_shared/llm.ts";
+import { chatCompletions, gatewayFailure } from "../_shared/llm.ts";
 import { recordAiUsage } from "../_shared/requireAi.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { beginAgentTask, alreadyRunningResponse, finishAgentRun, setTaskStep, isAgentEnabled, pausedResponse, failAgentTask } from "../_shared/agentGate.ts";
@@ -100,8 +100,13 @@ serve(async (req) => {
     });
 
     if (!aiRes.ok) {
-      const errText = await aiRes.text().catch(() => "");
-      throw new Error(`AI extraction failed: ${aiRes.status} ${errText.slice(0, 300)}`);
+      const gwErr = await gatewayFailure(aiRes, "AI extraction failed");
+      if (gwErr.endRunGracefully) {
+        if (taskId) await supabase.from("research_tasks").update({ status: "failed", error: gwErr.message, completed_at: new Date().toISOString() }).eq("id", taskId);
+        await finishAgentRun(supabase, "corporate-ma-monitor", "failed", runStartedAt);
+        return new Response(JSON.stringify({ success: false, code: "ai_unavailable", status: gwErr.status, error: gwErr.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      throw gwErr;
     }
 
     let events: Array<Record<string, string>> = [];
