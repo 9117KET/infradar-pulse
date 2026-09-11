@@ -152,13 +152,31 @@ serve(async (req) => {
       const groupNames = [...new Set(RESEARCH_QUERIES.map((q) => q.group))];
       // Cycle offset based on current time so successive runs hit different groups
       const cycleOffset = Math.floor(Date.now() / 1000) % groupNames.length;
-      const selectedGroups = Array.from({ length: 6 }, (_, i) =>
+      const rotatingGroups = Array.from({ length: 4 }, (_, i) =>
         groupNames[(cycleOffset + i) % groupNames.length]
       );
 
-      for (const group of selectedGroups) {
-        const queriesInGroup = RESEARCH_QUERIES.filter((q) => q.group === group);
-        const chosen = queriesInGroup[Math.floor(Math.random() * queriesInGroup.length)];
+      // Frontier sectors (AI compute, chips, batteries, nuclear, hydrogen, space)
+      // are ALWAYS covered — they used to be missed by the rotation.
+      const frontierThemes = [...new Set(FRONTIER_QUERIES.map((q) => q.theme))];
+      const frontierOffset = Math.floor(Date.now() / 1000) % frontierThemes.length;
+      const selectedFrontier = Array.from({ length: 3 }, (_, i) =>
+        frontierThemes[(frontierOffset + i) % frontierThemes.length]
+      );
+
+      const plan: { group: string; query: string }[] = [
+        ...selectedFrontier.map((theme) => {
+          const pool = FRONTIER_QUERIES.filter((q) => q.theme === theme);
+          return { group: `frontier:${theme}`, query: pool[Math.floor(Math.random() * pool.length)].query };
+        }),
+        ...rotatingGroups.map((group) => {
+          const pool = RESEARCH_QUERIES.filter((q) => q.group === group);
+          return { group, query: pool[Math.floor(Math.random() * pool.length)].query };
+        }),
+      ];
+
+      for (const { group, query } of plan) {
+        const chosen = { query };
         try {
           const aiResearch = await chatCompletions({
             messages: [
