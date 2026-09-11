@@ -109,19 +109,36 @@ export interface Project {
 export const REGIONS: Region[] = ['MENA', 'East Africa', 'West Africa', 'Southern Africa', 'Central Africa', 'North America', 'South America', 'Europe', 'Central Asia', 'South Asia', 'East Asia', 'Southeast Asia', 'Oceania', 'Caribbean'];
 export const SECTORS: Sector[] = [
   'AI Infrastructure',
+  'Battery & Storage',
   'Building Construction',
   'Chemical',
   'Data Centers',
+  'Defence & Security',
   'Digital Infrastructure',
   'Energy',
+  'Hydrogen',
   'Industrial',
   'Infrastructure',
   'Mining',
+  'Nuclear',
   'Oil & Gas',
   'Renewable Energy',
+  'Semiconductors',
+  'Space & Satellite',
   'Transport',
   'Urban Development',
   'Water',
+];
+
+/** Newer, fast-growing sectors we actively hunt for. */
+export const FRONTIER_SECTORS: Sector[] = [
+  'AI Infrastructure',
+  'Data Centers',
+  'Semiconductors',
+  'Battery & Storage',
+  'Nuclear',
+  'Hydrogen',
+  'Space & Satellite',
 ];
 export const STAGES: ProjectStage[] = ['Planned', 'Tender', 'Awarded', 'Financing', 'Construction', 'Completed', 'Cancelled', 'Stopped'];
 

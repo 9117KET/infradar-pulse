@@ -21,9 +21,11 @@ import { Seo } from '@/components/Seo';
 const PREVIEW_LIMIT = 20;
 
 const SECTORS = [
-  'AI Infrastructure', 'Building Construction', 'Chemical', 'Data Centers',
-  'Digital Infrastructure', 'Energy', 'Industrial', 'Infrastructure',
-  'Mining', 'Oil & Gas', 'Renewable Energy', 'Transport', 'Urban Development', 'Water',
+  'AI Infrastructure', 'Battery & Storage', 'Building Construction', 'Chemical',
+  'Data Centers', 'Defence & Security', 'Digital Infrastructure', 'Energy',
+  'Hydrogen', 'Industrial', 'Infrastructure', 'Mining', 'Nuclear', 'Oil & Gas',
+  'Renewable Energy', 'Semiconductors', 'Space & Satellite', 'Transport',
+  'Urban Development', 'Water',
 ];
 
 function riskBadge(score: number) {

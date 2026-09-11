@@ -39,6 +39,8 @@ const SECTOR_ICONS: Record<string, LucideIcon> = {
   'Industrial': Factory, 'Infrastructure': Landmark, 'Mining': Mountain,
   'Oil & Gas': Fuel, 'Renewable Energy': Sun, 'Transport': Train,
   'Urban Development': Building2, 'Water': Droplets,
+  'Semiconductors': Cpu, 'Battery & Storage': Zap, 'Nuclear': Hexagon,
+  'Hydrogen': Droplets, 'Space & Satellite': Wifi, 'Defence & Security': Landmark,
 };
 
 function formatValue(v: number) {
