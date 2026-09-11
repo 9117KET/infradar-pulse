@@ -21,6 +21,12 @@ const SECTOR_COLORS: Record<string, string> = {
   'Transport': 'hsl(38 92% 50%)',
   'Urban Development': 'hsl(217 91% 60%)',
   'Water': 'hsl(188 78% 41%)',
+  'Semiconductors': 'hsl(280 70% 65%)',
+  'Battery & Storage': 'hsl(140 70% 45%)',
+  'Nuclear': 'hsl(55 90% 50%)',
+  'Hydrogen': 'hsl(195 90% 55%)',
+  'Space & Satellite': 'hsl(230 70% 65%)',
+  'Defence & Security': 'hsl(0 0% 60%)',
 };
 
 interface SectorStat {

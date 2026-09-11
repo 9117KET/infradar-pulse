@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart, HardHat } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart, HardHat, Cpu } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
@@ -23,6 +23,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, 
 
 const AGENTS = [
   { type: 'discovery', name: 'Research Agent', icon: Search, schedule: 'Every 30 min', scheduleMinutes: 30, fn: agentApi.runResearchAgent },
+  { type: 'frontier-intel', name: 'Frontier Sectors', icon: Cpu, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: () => agentApi.runFrontierIntelAgent({ themes: 4 }) },
   { type: 'world-bank-ingest', name: 'World Bank Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runWorldBankIngest({ status: 'Active,Pipeline', limit: 200 }) },
   { type: 'ifc-ingest', name: 'IFC Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runIfcIngest({ status: 'Active,Pipeline', limit: 200 }) },
   { type: 'adb-ingest', name: 'ADB Ingest', icon: Globe, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runAdbIngest({ limit: 300 }) },

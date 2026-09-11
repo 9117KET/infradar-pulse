@@ -3656,6 +3656,12 @@ export type Database = {
         | "Data Centers"
         | "Building Construction"
         | "Chemical"
+        | "Semiconductors"
+        | "Battery & Storage"
+        | "Nuclear"
+        | "Hydrogen"
+        | "Space & Satellite"
+        | "Defence & Security"
       project_stage:
         | "Planned"
         | "Tender"
@@ -3861,6 +3867,12 @@ export const Constants = {
         "Data Centers",
         "Building Construction",
         "Chemical",
+        "Semiconductors",
+        "Battery & Storage",
+        "Nuclear",
+        "Hydrogen",
+        "Space & Satellite",
+        "Defence & Security",
       ],
       project_stage: [
         "Planned",

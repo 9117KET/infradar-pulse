@@ -39,9 +39,11 @@ const REGIONS = [
   "East Asia", "Southeast Asia", "Oceania", "Caribbean",
 ];
 const SECTORS = [
-  "AI Infrastructure", "Building Construction", "Chemical", "Data Centers",
-  "Digital Infrastructure", "Energy", "Industrial", "Infrastructure", "Mining",
-  "Oil & Gas", "Renewable Energy", "Transport", "Urban Development", "Water",
+  "AI Infrastructure", "Battery & Storage", "Building Construction", "Chemical",
+  "Data Centers", "Defence & Security", "Digital Infrastructure", "Energy",
+  "Hydrogen", "Industrial", "Infrastructure", "Mining", "Nuclear", "Oil & Gas",
+  "Renewable Energy", "Semiconductors", "Space & Satellite", "Transport",
+  "Urban Development", "Water",
 ];
 const STAGES = [
   "Planned", "Tender", "Awarded", "Financing", "Construction",
