@@ -1,15 +1,8 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, MapPin, DollarSign, ShieldCheck, FileSearch, Building2 } from 'lucide-react';
+import { Globe, MapPin, Building2, Users } from 'lucide-react';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import { usePlatformCounts } from '@/hooks/use-platform-counts';
-
-
-function formatBillions(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(0)}B`;
-  return `$${(value / 1e6).toFixed(0)}M`;
-}
 
 interface StatItemProps {
   icon: React.ElementType;
@@ -39,7 +32,7 @@ export function TrustStrip() {
     projects: counts?.projects ?? locations.length,
     countries: counts?.countries ?? new Set(locations.map(p => p.country)).size,
     companies: counts?.companies ?? 0,
-    pipeline: locations.reduce((s, p) => s + (p.value_usd ?? 0), 0),
+    contacts: counts?.contacts ?? 0,
   }), [locations, counts]);
 
   if (loading) return null;
@@ -50,53 +43,29 @@ export function TrustStrip() {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className="border-y border-border/30 bg-muted/20 py-5"
+      className="border-y border-border/30 bg-muted/20 py-8"
     >
       <div className="section-fluid">
-        <div className="flex flex-nowrap items-center justify-center gap-8 sm:gap-12 lg:gap-16 overflow-x-auto">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           <StatItem
             icon={Globe}
             value={stats.projects.toLocaleString()}
             label="approved projects"
           />
-          <div className="hidden sm:block h-8 w-px bg-border/40" />
           <StatItem
             icon={MapPin}
             value={`${stats.countries} countries`}
             label="global coverage"
           />
-          <div className="hidden sm:block h-8 w-px bg-border/40" />
-          {stats.companies > 0 && (
-            <>
-              <StatItem
-                icon={Building2}
-                value={stats.companies.toLocaleString()}
-                label="companies tracked"
-              />
-              <div className="hidden sm:block h-8 w-px bg-border/40" />
-            </>
-          )}
-
-          {stats.pipeline > 0 && (
-            <>
-              <StatItem
-                icon={DollarSign}
-                value={formatBillions(stats.pipeline)}
-                label="tracked pipeline value"
-              />
-              <div className="hidden sm:block h-8 w-px bg-border/40" />
-            </>
-          )}
           <StatItem
-            icon={ShieldCheck}
-            value="Analyst-verified"
-            label="before publication"
+            icon={Building2}
+            value={stats.companies.toLocaleString()}
+            label="companies tracked"
           />
-          <div className="hidden sm:block h-8 w-px bg-border/40" />
           <StatItem
-            icon={FileSearch}
-            value="Evidence cited"
-            label="on every project"
+            icon={Users}
+            value={stats.contacts.toLocaleString()}
+            label="contacts"
           />
         </div>
       </div>
