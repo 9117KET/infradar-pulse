@@ -224,7 +224,18 @@ async function insertContacts(supabase: any, rows: Record<string, unknown>[]): P
   return rows.length;
 }
 
+/**
+ * Set when the AI gateway refuses calls for reasons a retry cannot fix
+ * (402 credits exhausted, 403 policy). The run then stops scanning instead of
+ * marking projects as scanned with zero contacts found.
+ */
+let aiBlockedStatus: number | null = null;
+function noteAiBlocked(status: number): void {
+  if (status === 402 || status === 403) aiBlockedStatus = status;
+}
+
 /** Step A — read the project's own registry/official page and extract contacts from it. */
+
 async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ contacts: number; links: string[] }> {
   const pageUrl = httpUrl(project.source_url);
   if (!pageUrl || !isFirecrawlConfigured() || !isLlmConfigured()) return { contacts: 0, links: [] };
