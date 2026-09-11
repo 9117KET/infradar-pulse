@@ -25,22 +25,7 @@ const NEWS_SOURCES = [
 ];
 
 /** Must match public.project_sector (additive; legacy + coverage sectors). */
-const PROJECT_SECTORS = [
-  "AI Infrastructure",
-  "Building Construction",
-  "Chemical",
-  "Data Centers",
-  "Digital Infrastructure",
-  "Energy",
-  "Industrial",
-  "Infrastructure",
-  "Mining",
-  "Oil & Gas",
-  "Renewable Energy",
-  "Transport",
-  "Urban Development",
-  "Water",
-] as const;
+import { PROJECT_SECTORS, FRONTIER_QUERIES } from "../_shared/sectors.ts";
 
 const RESEARCH_QUERIES: { query: string; group: string }[] = [
   // --- core: current year new announcements ---
