@@ -33,12 +33,14 @@ function StatItem({ icon: Icon, value, label }: StatItemProps) {
 
 export function TrustStrip() {
   const { locations, loading } = usePublicProjectLocations();
+  const { counts } = usePlatformCounts();
 
   const stats = useMemo(() => ({
-    projects: locations.length,
-    countries: new Set(locations.map(p => p.country)).size,
+    projects: counts?.projects ?? locations.length,
+    countries: counts?.countries ?? new Set(locations.map(p => p.country)).size,
+    companies: counts?.companies ?? 0,
     pipeline: locations.reduce((s, p) => s + (p.value_usd ?? 0), 0),
-  }), [locations]);
+  }), [locations, counts]);
 
   if (loading) return null;
 
@@ -64,6 +66,17 @@ export function TrustStrip() {
             label="global coverage"
           />
           <div className="hidden sm:block h-8 w-px bg-border/40" />
+          {stats.companies > 0 && (
+            <>
+              <StatItem
+                icon={Building2}
+                value={stats.companies.toLocaleString()}
+                label="companies tracked"
+              />
+              <div className="hidden sm:block h-8 w-px bg-border/40" />
+            </>
+          )}
+
           {stats.pipeline > 0 && (
             <>
               <StatItem
