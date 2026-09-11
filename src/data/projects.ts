@@ -3,16 +3,22 @@ export type ProjectStatus = 'Verified' | 'Stable' | 'Pending' | 'At Risk';
 export type Region = 'MENA' | 'East Africa' | 'West Africa' | 'Southern Africa' | 'Central Africa' | 'North America' | 'South America' | 'Europe' | 'Central Asia' | 'South Asia' | 'East Asia' | 'Southeast Asia' | 'Oceania' | 'Caribbean';
 export type Sector =
   | 'AI Infrastructure'
+  | 'Battery & Storage'
   | 'Building Construction'
   | 'Chemical'
   | 'Data Centers'
+  | 'Defence & Security'
   | 'Digital Infrastructure'
   | 'Energy'
+  | 'Hydrogen'
   | 'Industrial'
   | 'Infrastructure'
   | 'Mining'
+  | 'Nuclear'
   | 'Oil & Gas'
   | 'Renewable Energy'
+  | 'Semiconductors'
+  | 'Space & Satellite'
   | 'Transport'
   | 'Urban Development'
   | 'Water';
