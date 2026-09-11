@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Globe, MapPin, DollarSign, ShieldCheck, FileSearch } from 'lucide-react';
+import { Globe, MapPin, DollarSign, ShieldCheck, FileSearch, Building2 } from 'lucide-react';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
+import { usePlatformCounts } from '@/hooks/use-platform-counts';
+
 
 function formatBillions(value: number): string {
   if (value >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
