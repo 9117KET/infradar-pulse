@@ -433,17 +433,19 @@ serve(async (req) => {
     let evidenceAdded = 0;
     let projectsScanned = 0;
     if (Date.now() - startedAt.getTime() < TIME_BUDGET_MS) {
+      aiBlockedStatus = null;
       await setTaskStep(supabase, taskId, "Discovering contacts and evidence");
       const projects = await loadDiscoveryQueue(supabase, bodyProjectId);
       for (const project of projects) {
         if (Date.now() - startedAt.getTime() >= TIME_BUDGET_MS) break;
+        if (aiBlockedStatus) break;
         projectsScanned++;
         const projectStart = Date.now();
         try {
           const scraped = await withTimeout(harvestFromOwnPage(supabase, project), STEP_TIMEOUT_MS, "page scrape");
           contactsAdded += scraped.contacts;
           let citations: string[] = [];
-          if (!scraped.contacts && Date.now() - projectStart < PROJECT_BUDGET_MS) {
+          if (!scraped.contacts && !aiBlockedStatus && Date.now() - projectStart < PROJECT_BUDGET_MS) {
             const researched = await withTimeout(researchContacts(supabase, project, taskId), STEP_TIMEOUT_MS, "contact research");
             contactsAdded += researched.contacts;
             citations = researched.citations;
@@ -452,7 +454,18 @@ serve(async (req) => {
         } catch (projectError) {
           await recordAgentEvent(supabase, AGENT_TYPE, "project_scan_failed", describeError(projectError), taskId, {}, { project_id: project.id });
         }
-        await supabase.from("projects").update({ last_contact_scan_at: new Date().toISOString() }).eq("id", project.id);
+        // Only mark the project as scanned when AI was actually available;
+        // otherwise it would be skipped for a full cycle after credits return.
+        if (!aiBlockedStatus) {
+          await supabase.from("projects").update({ last_contact_scan_at: new Date().toISOString() }).eq("id", project.id);
+        }
+      }
+      if (aiBlockedStatus) {
+        const reason = aiBlockedStatus === 402
+          ? "AI credits exhausted — contact discovery paused until credits are added."
+          : "AI access blocked by workspace policy — contact discovery paused.";
+        summary.ai_blocked = reason;
+        await recordAgentEvent(supabase, AGENT_TYPE, "ai_unavailable", reason, taskId, { status: aiBlockedStatus }, {});
       }
       summary.discovery = {
         projects_scanned: projectsScanned,
@@ -462,6 +475,7 @@ serve(async (req) => {
       };
       (summary.phases as string[]).push("discovery");
     }
+
 
     await updateTask(supabase, taskId, summary);
     await finishAgentRun(supabase, AGENT_TYPE, "completed", startedAt);
