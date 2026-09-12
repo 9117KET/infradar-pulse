@@ -350,18 +350,21 @@ serve(async (req) => {
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
-    console.error("AIIB ingest error:", e);
+    // Staff/service-role only endpoint: surface the concrete reason so the
+    // backfill job's last_error is actionable instead of a generic string.
+    const reason = (e instanceof Error ? e.message : String(e)).slice(0, 500);
+    console.error("AIIB ingest error:", reason, e);
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
-          status: "failed", error: "An internal error occurred. Please try again.",
+          status: "failed", error: reason,
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
-        await recordAgentEvent(supabase, "aiib-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        await recordAgentEvent(supabase, "aiib-ingest", "failed", reason, taskId);
         if (runStartedAt) await finishAgentRun(supabase, "aiib-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
-    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+    return new Response(JSON.stringify({ error: `AIIB ingest failed: ${reason}` }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
