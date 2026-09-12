@@ -191,15 +191,34 @@ serve(async (req) => {
     });
 
     console.log(`Fetching AIIB data file: ${AIIB_DATA_URL}`);
-    const res = await fetch(AIIB_DATA_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
-        "Accept": "application/javascript,text/javascript,*/*",
-        "Referer": AIIB_LIST_URL,
-      },
-    });
-    if (!res.ok) throw new Error(`AIIB data fetch failed: ${res.status}`);
-    const jsBody = await res.text();
+    // The AIIB portal intermittently returns 5xx / drops the connection, which
+    // previously failed the whole run and pushed the backfill job towards a
+    // pause. Retry with short backoff before giving up.
+    let jsBody = "";
+    let fetchError = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(AIIB_DATA_URL, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
+            "Accept": "application/javascript,text/javascript,*/*",
+            "Referer": AIIB_LIST_URL,
+          },
+        });
+        if (!res.ok) {
+          fetchError = `AIIB data fetch failed: HTTP ${res.status}`;
+        } else {
+          jsBody = await res.text();
+          fetchError = "";
+          break;
+        }
+      } catch (e) {
+        fetchError = `AIIB data fetch error: ${e instanceof Error ? e.message : String(e)}`;
+      }
+      console.warn(`AIIB fetch attempt ${attempt} failed: ${fetchError}`);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 750));
+    }
+    if (fetchError || !jsBody) throw new Error(fetchError || "AIIB data fetch returned an empty body");
     const rows = parseAiibDataFile(jsBody);
     console.log(`Parsed ${rows.length} AIIB project rows from official data file`);
 
@@ -331,18 +350,21 @@ serve(async (req) => {
     return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e) {
-    console.error("AIIB ingest error:", e);
+    // Staff/service-role only endpoint: surface the concrete reason so the
+    // backfill job's last_error is actionable instead of a generic string.
+    const reason = (e instanceof Error ? e.message : String(e)).slice(0, 500);
+    console.error("AIIB ingest error:", reason, e);
     if (taskId && supabase) {
       try {
         await supabase.from("research_tasks").update({
-          status: "failed", error: "An internal error occurred. Please try again.",
+          status: "failed", error: reason,
           completed_at: new Date().toISOString(),
         }).eq("id", taskId);
-        await recordAgentEvent(supabase, "aiib-ingest", "failed", e instanceof Error ? e.message : "Unknown error", taskId);
+        await recordAgentEvent(supabase, "aiib-ingest", "failed", reason, taskId);
         if (runStartedAt) await finishAgentRun(supabase, "aiib-ingest", "failed", runStartedAt);
       } catch { /* best-effort */ }
     }
-    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
+    return new Response(JSON.stringify({ error: `AIIB ingest failed: ${reason}` }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
