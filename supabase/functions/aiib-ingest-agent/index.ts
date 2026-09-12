@@ -191,15 +191,34 @@ serve(async (req) => {
     });
 
     console.log(`Fetching AIIB data file: ${AIIB_DATA_URL}`);
-    const res = await fetch(AIIB_DATA_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
-        "Accept": "application/javascript,text/javascript,*/*",
-        "Referer": AIIB_LIST_URL,
-      },
-    });
-    if (!res.ok) throw new Error(`AIIB data fetch failed: ${res.status}`);
-    const jsBody = await res.text();
+    // The AIIB portal intermittently returns 5xx / drops the connection, which
+    // previously failed the whole run and pushed the backfill job towards a
+    // pause. Retry with short backoff before giving up.
+    let jsBody = "";
+    let fetchError = "";
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(AIIB_DATA_URL, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
+            "Accept": "application/javascript,text/javascript,*/*",
+            "Referer": AIIB_LIST_URL,
+          },
+        });
+        if (!res.ok) {
+          fetchError = `AIIB data fetch failed: HTTP ${res.status}`;
+        } else {
+          jsBody = await res.text();
+          fetchError = "";
+          break;
+        }
+      } catch (e) {
+        fetchError = `AIIB data fetch error: ${e instanceof Error ? e.message : String(e)}`;
+      }
+      console.warn(`AIIB fetch attempt ${attempt} failed: ${fetchError}`);
+      if (attempt < 3) await new Promise((r) => setTimeout(r, attempt * 750));
+    }
+    if (fetchError || !jsBody) throw new Error(fetchError || "AIIB data fetch returned an empty body");
     const rows = parseAiibDataFile(jsBody);
     console.log(`Parsed ${rows.length} AIIB project rows from official data file`);
 
