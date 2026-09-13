@@ -155,15 +155,32 @@ Deno.serve(async (req) => {
 
     if (!response.ok || result.error && result.success === false) {
       const message = result.error || `Source agent returned HTTP ${response.status}`;
+      const signature = `${response.status} ${message}`;
+      const transient = !isTerminalProviderError(signature) && isTransientError(signature);
       const nextErrors = (job.consecutive_errors ?? 0) + 1;
-      const paused = isTerminalProviderError(`${response.status} ${message}`) || nextErrors >= MAX_CONSECUTIVE_ERRORS;
+      const paused = isTerminalProviderError(signature)
+        || (transient ? nextErrors >= MAX_TRANSIENT_ERRORS : nextErrors >= MAX_CONSECUTIVE_ERRORS);
+
+      // Preserve any progress the agent reported before failing so a partial
+      // page is never re-fetched from the previous cursor position.
+      const partialFetched = Math.max(Number(result.fetched ?? 0) || 0, 0);
+      const partialNext = Number(result.next_offset);
+      const progress = Number.isFinite(partialNext) && partialNext > job.cursor_offset
+        ? { cursor_offset: partialNext, fetched_count: (job.fetched_count ?? 0) + partialFetched }
+        : partialFetched > 0
+          ? { cursor_offset: job.cursor_offset + partialFetched, fetched_count: (job.fetched_count ?? 0) + partialFetched }
+          : {};
+
       await supabase.from("backfill_jobs").update({
         state: paused ? "paused" : "pending",
         lease_until: null,
         consecutive_errors: nextErrors,
         last_error: message.slice(0, 2000),
+        ...progress,
       }).eq("id", job.id);
-      return json({ success: false, job_id: job.id, paused, status: response.status, error: message }, response.status >= 400 ? response.status : 500);
+      return json({
+        success: false, job_id: job.id, paused, transient, status: response.status, error: message,
+      }, response.status >= 400 ? response.status : 500);
     }
 
     const fetched = Number(result.fetched ?? result.total ?? 0);
