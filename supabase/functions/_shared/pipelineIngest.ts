@@ -1,6 +1,7 @@
 import { calculateIntelligenceQuality } from "./intelligenceQuality.ts";
 import { sanitizeConfidence, sanitizeValueUsd } from "./sanitizeProjectFacts.ts";
 import { recordQualityScore } from "./qualityScoreHistory.ts";
+import { escalateToHuman } from "./escalate.ts";
 
 type SupabaseAdmin = any;
 
@@ -340,6 +341,18 @@ export async function stagePipelineProject(supabase: SupabaseAdmin, input: Stage
       });
       if (promoteError) {
         console.error(`auto_promote_official_candidate failed for ${input.name}:`, promoteError.message ?? promoteError);
+        // Publishing passed every check but still failed: a person must look.
+        await escalateToHuman(supabase, {
+          process: "pipeline_ingest",
+          reasonCode: "publish_failed",
+          detail: `"${input.name}" from ${input.sourceName} passed every quality check but could not be published: ${
+            String(promoteError.message ?? promoteError).slice(0, 300)
+          }`,
+          severity: "high",
+          subjectType: "candidate",
+          subjectId: candidate.id,
+          metadata: { source_key: input.sourceKey, quality: quality.total_score },
+        });
       } else if (promoted?.project_id) {
         return { outcome: "auto_published" as const, projectId: promoted.project_id as string };
       }

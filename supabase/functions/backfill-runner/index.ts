@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { escalateToHuman } from "../_shared/escalate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -178,6 +179,18 @@ Deno.serve(async (req) => {
         last_error: message.slice(0, 2000),
         ...progress,
       }).eq("id", job.id);
+      if (paused) {
+        // The queue stops itself here; a person has to decide what happens next.
+        await escalateToHuman(supabase, {
+          process: "backfill_runner",
+          reasonCode: transient ? "source_paused_after_retries" : "source_paused",
+          detail: `Data import for "${job.source_key}" paused after ${nextErrors} failed attempts: ${message.slice(0, 300)}`,
+          severity: "high",
+          subjectType: "backfill_job",
+          subjectId: job.id,
+          metadata: { source_key: job.source_key, status: response.status, transient },
+        });
+      }
       return json({
         success: false, job_id: job.id, paused, transient, status: response.status, error: message,
       }, response.status >= 400 ? response.status : 500);
@@ -221,6 +234,17 @@ Deno.serve(async (req) => {
         last_error: message.slice(0, 2000),
         consecutive_errors: nextErrors,
       }).eq("id", job.id);
+      if (paused) {
+        await escalateToHuman(supabase, {
+          process: "backfill_runner",
+          reasonCode: "source_paused",
+          detail: `Data import for "${job.source_key}" paused after an unexpected failure: ${message.slice(0, 300)}`,
+          severity: "high",
+          subjectType: "backfill_job",
+          subjectId: job.id,
+          metadata: { source_key: job.source_key },
+        });
+      }
     }
     console.error("backfill-runner error", message);
     return json({ success: false, paused, error: "Backfill runner failed." }, 500);

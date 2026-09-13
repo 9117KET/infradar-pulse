@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
 import { firecrawlScrape, getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
+import { escalateToHuman } from "../_shared/escalate.ts";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { isPlausibleSourceUrl } from "../_shared/urlHygiene.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
@@ -481,6 +482,15 @@ serve(async (req) => {
           : "AI access blocked by workspace policy — contact discovery paused.";
         summary.ai_blocked = reason;
         await recordAgentEvent(supabase, AGENT_TYPE, "ai_unavailable", reason, taskId, { status: aiBlockedStatus }, {});
+        // Only the account owner can unblock this, so ask for a person.
+        await escalateToHuman(supabase, {
+          process: "contact_finder",
+          reasonCode: aiBlockedStatus === 402 ? "ai_credits_exhausted" : "ai_access_blocked",
+          detail: reason,
+          severity: "high",
+          subjectType: "agent",
+          metadata: { status: aiBlockedStatus },
+        });
       }
       summary.discovery = {
         projects_scanned: projectsScanned,

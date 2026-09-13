@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SourceHealth from './SourceHealth';
+import { EscalationsPanel } from '@/components/dashboard/EscalationsPanel';
 import { useToast } from '@/hooks/use-toast';
 import { calculateIntelligenceQuality } from '@/lib/intelligence-quality';
 import {
@@ -81,6 +82,19 @@ export default function ReviewQueue() {
   const [duplicatePage, setDuplicatePage] = useState(0);
   const [sourceIssuePage, setSourceIssuePage] = useState(0);
   const [officialPage, setOfficialPage] = useState(0);
+
+  // Count of items the automated checks refused to decide on their own.
+  const { data: escalationCount = 0 } = useQuery({
+    queryKey: ['agent-escalations-count'],
+    queryFn: async () => {
+      const { count, error } = await (supabase as any)
+        .from('agent_escalations')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['open', 'acknowledged']);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
 
   const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
     queryKey: ['pending-projects', legacyPage],
@@ -490,7 +504,8 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-8 bg-muted/60">
+          <TabsTrigger value="escalations">Needs a human ({escalationCount})</TabsTrigger>
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
@@ -967,6 +982,11 @@ export default function ReviewQueue() {
             Source Issues, which reports the problems it fixes. */}
         <TabsContent value="source-health" className="space-y-3">
           <SourceHealth />
+        </TabsContent>
+
+        {/* Anything an automated step refuses to decide lands here. */}
+        <TabsContent value="escalations" className="space-y-3">
+          <EscalationsPanel />
         </TabsContent>
       </Tabs>
 

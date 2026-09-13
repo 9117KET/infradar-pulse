@@ -65,6 +65,74 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_escalations: {
+        Row: {
+          created_at: string
+          detail: string
+          id: string
+          last_seen_at: string
+          metadata: Json
+          occurrences: number
+          process: string
+          project_id: string | null
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          subject_id: string | null
+          subject_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          occurrences?: number
+          process: string
+          project_id?: string | null
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          occurrences?: number
+          process?: string
+          project_id?: string | null
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_escalations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_health_alerts: {
         Row: {
           alert_type: string
@@ -3165,6 +3233,14 @@ export type Database = {
         Args: { p: string }
         Returns: Database["public"]["Enums"]["project_status"]
       }
+      _stage_rank: {
+        Args: { p_stage: Database["public"]["Enums"]["project_stage"] }
+        Returns: number
+      }
+      _status_rank: {
+        Args: { p_status: Database["public"]["Enums"]["project_status"] }
+        Returns: number
+      }
       acquire_backfill_runner_lock: {
         Args: { p_holder: string; p_lease_minutes?: number }
         Returns: boolean
@@ -3205,6 +3281,14 @@ export type Database = {
         Returns: string
       }
       attach_org_contacts: { Args: { p_limit?: number }; Returns: Json }
+      auto_apply_pending_update_proposals: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      auto_apply_update_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
       auto_approve_candidate_backlog: {
         Args: { p_limit?: number }
         Returns: Json
@@ -3324,6 +3408,19 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      escalate_to_human: {
+        Args: {
+          p_detail?: string
+          p_metadata?: Json
+          p_process: string
+          p_project_id?: string
+          p_reason_code: string
+          p_severity?: string
+          p_subject_id?: string
+          p_subject_type?: string
+        }
+        Returns: string
+      }
       finish_agent_run: {
         Args: { p_agent_type: string; p_duration_ms?: number; p_status: string }
         Returns: undefined
@@ -3441,9 +3538,26 @@ export type Database = {
           user_id: string
         }[]
       }
+      map_proposed_stage: {
+        Args: { p_value: string }
+        Returns: Database["public"]["Enums"]["project_stage"]
+      }
+      map_proposed_status: {
+        Args: { p_value: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
       mark_referral_qualified: {
         Args: { p_referred_user_id: string }
         Returns: undefined
+      }
+      merge_duplicate_projects: { Args: { p_limit?: number }; Returns: Json }
+      merge_duplicate_projects_by_source: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      merge_project_pair: {
+        Args: { p_duplicate_id: string; p_keep_id: string; p_reason?: string }
+        Returns: Json
       }
       move_to_dlq: {
         Args: {
@@ -3465,6 +3579,7 @@ export type Database = {
       }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
+      normalize_project_key: { Args: { p_name: string }; Returns: string }
       promote_project_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
         Returns: Json
@@ -3504,6 +3619,10 @@ export type Database = {
       resolve_agent_auth_alerts: {
         Args: { p_job_name: string }
         Returns: number
+      }
+      resolve_escalation: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: Json
       }
       revoke_report_share: {
         Args: { p_report_run_id: string }
@@ -3547,6 +3666,10 @@ export type Database = {
           used_day: number
           used_hour: number
         }[]
+      }
+      update_proposal_auto_decision: {
+        Args: { p_proposal_id: string }
+        Returns: Json
       }
       upsert_canonical_contact: {
         Args: {
