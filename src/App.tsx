@@ -135,7 +135,7 @@ const App = () => (
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
               <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
-              <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
+              <Route path="/dashboard/evidence" element={<RoleGuard requiredRole="researcher"><EvidenceVerification /></RoleGuard>} />
               <Route path="/dashboard/monitoring" element={<Navigate to="/dashboard/agents" replace />} />
               <Route path="/dashboard/risk" element={<Navigate to="/dashboard/projects?tab=risk" replace />} />
               <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentsHub /></RoleGuard>} />
