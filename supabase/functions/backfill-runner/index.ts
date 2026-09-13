@@ -63,6 +63,11 @@ function isTerminalProviderError(message: string): boolean {
   return /\b(402|403)\b|credits|forbidden|disabled/i.test(message);
 }
 
+function isTransientError(message: string): boolean {
+  return /\b(408|425|429|500|502|503|504)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
+    .test(message);
+}
+
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
   const now = new Date().toISOString();
   // Prefer the least-recently attempted source within priority bands. This
