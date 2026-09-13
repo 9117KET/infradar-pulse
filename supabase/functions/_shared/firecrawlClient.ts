@@ -171,19 +171,12 @@ export async function firecrawlScrape(
 ): Promise<{ url: string; markdown?: string; title?: string; links?: string[] } | null> {
   if (!isFirecrawlConfigured()) return null;
   try {
-    const res = await fetch(`${baseUrl()}/scrape`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({
-        url,
-        formats: opts.formats ?? ["markdown"],
-        onlyMainContent: opts.onlyMainContent ?? true,
-      }),
-    });
-    if (!res.ok) {
-      console.error("firecrawl scrape", res.status, (await res.text()).slice(0, 200));
-      return null;
-    }
+    const res = await firecrawlRequest("/scrape", {
+      url,
+      formats: opts.formats ?? ["markdown"],
+      onlyMainContent: opts.onlyMainContent ?? true,
+    }, url);
+    if (!res) return null;
     const data = await res.json();
     const doc = data?.data ?? data;
     return {
