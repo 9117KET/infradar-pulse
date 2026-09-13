@@ -491,7 +491,8 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 bg-muted/60">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-8 bg-muted/60">
+          <TabsTrigger value="escalations">Needs a human ({escalationCount})</TabsTrigger>
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates ({duplicatePageResult.total})</TabsTrigger>
