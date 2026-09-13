@@ -83,6 +83,19 @@ export default function ReviewQueue() {
   const [sourceIssuePage, setSourceIssuePage] = useState(0);
   const [officialPage, setOfficialPage] = useState(0);
 
+  // Count of items the automated checks refused to decide on their own.
+  const { data: escalationCount = 0 } = useQuery({
+    queryKey: ['agent-escalations-count'],
+    queryFn: async () => {
+      const { count, error } = await (supabase as any)
+        .from('agent_escalations')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['open', 'acknowledged']);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const { data: pendingPageResult = { rows: [], total: 0 }, isLoading } = useQuery({
     queryKey: ['pending-projects', legacyPage],
     queryFn: async () => {
