@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Activity, Layers } from 'lucide-react';
-import { HeroMap } from './HeroMap';
-import { PublicProjectDrawer } from './PublicProjectDrawer';
+// Leaflet is ~150KB; only pull it in once the map area is actually near the viewport.
+const HeroMap = lazy(() => import('./HeroMap').then((m) => ({ default: m.HeroMap })));
+const PublicProjectDrawer = lazy(() =>
+  import('./PublicProjectDrawer').then((m) => ({ default: m.PublicProjectDrawer })),
+);
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
 
