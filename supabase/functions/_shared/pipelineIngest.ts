@@ -1,6 +1,7 @@
 import { calculateIntelligenceQuality } from "./intelligenceQuality.ts";
 import { sanitizeConfidence, sanitizeValueUsd } from "./sanitizeProjectFacts.ts";
 import { recordQualityScore } from "./qualityScoreHistory.ts";
+import { escalateToHuman } from "./escalate.ts";
 
 type SupabaseAdmin = any;
 
