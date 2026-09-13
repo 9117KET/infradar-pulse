@@ -9,6 +9,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { escalateToHuman } from "../_shared/escalate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
