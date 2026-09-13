@@ -233,6 +233,17 @@ Deno.serve(async (req) => {
         last_error: message.slice(0, 2000),
         consecutive_errors: nextErrors,
       }).eq("id", job.id);
+      if (paused) {
+        await escalateToHuman(supabase, {
+          process: "backfill_runner",
+          reasonCode: "source_paused",
+          detail: `Data import for "${job.source_key}" paused after an unexpected failure: ${message.slice(0, 300)}`,
+          severity: "high",
+          subjectType: "backfill_job",
+          subjectId: job.id,
+          metadata: { source_key: job.source_key },
+        });
+      }
     }
     console.error("backfill-runner error", message);
     return json({ success: false, paused, error: "Backfill runner failed." }, 500);
