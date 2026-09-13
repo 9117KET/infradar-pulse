@@ -3538,6 +3538,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      map_proposed_stage: {
+        Args: { p_value: string }
+        Returns: Database["public"]["Enums"]["project_stage"]
+      }
+      map_proposed_status: {
+        Args: { p_value: string }
+        Returns: Database["public"]["Enums"]["project_status"]
+      }
       mark_referral_qualified: {
         Args: { p_referred_user_id: string }
         Returns: undefined
