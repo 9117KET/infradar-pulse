@@ -241,6 +241,21 @@ async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ co
   if (!pageUrl || !isFirecrawlConfigured() || !isLlmConfigured()) return { contacts: 0, links: [] };
 
   const page = await firecrawlScrape(pageUrl, { formats: ["markdown", "links"], onlyMainContent: true });
+  if (!page) {
+    // Distinguish a scrape failure (rate limit / site error, retried already)
+    // from a page that genuinely lists no contacts.
+    const failure = getLastFirecrawlFailure();
+    await recordAgentEvent(
+      supabase,
+      AGENT_TYPE,
+      "scrape_failed",
+      `Scrape failed for ${pageUrl}${failure ? ` (status ${failure.status})` : ""}`,
+      null,
+      { status: failure?.status ?? 0, detail: failure?.detail ?? null },
+      { project_id: project.id },
+    );
+    return { contacts: 0, links: [] };
+  }
   const markdown = page?.markdown;
   if (!markdown || markdown.length < 200) return { contacts: 0, links: [] };
 
