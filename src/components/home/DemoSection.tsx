@@ -117,12 +117,19 @@ export function DemoSection() {
           transition={{ duration: 0.35 }}
           className="glass-panel rounded-xl overflow-hidden relative"
           style={{ height: 560 }}
+          ref={mapRef}
         >
-          <HeroMap
-            projects={filtered}
-            className="w-full h-full"
-            onProjectClick={setSelectedProject}
-          />
+          {mapVisible ? (
+            <Suspense fallback={<div className="w-full h-full bg-background/40" />}>
+              <HeroMap
+                projects={filtered}
+                className="w-full h-full"
+                onProjectClick={setSelectedProject}
+              />
+            </Suspense>
+          ) : (
+            <div className="w-full h-full bg-background/40" />
+          )}
           {/* Risk legend */}
           <div className="absolute bottom-4 left-4 z-[400] flex flex-wrap gap-3 text-[10px] text-foreground/90 bg-background/70 backdrop-blur-md border border-border/50 rounded-lg px-3 py-2">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#6bd8cb]" />Low</span>
