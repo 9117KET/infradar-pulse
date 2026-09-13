@@ -3064,6 +3064,176 @@ export type Database = {
         }
         Relationships: []
       }
+      user_agent_briefings: {
+        Row: {
+          agent_id: string | null
+          body: string | null
+          created_at: string
+          emailed_at: string | null
+          feedback: number | null
+          id: string
+          kind: string
+          metadata: Json
+          question_id: string | null
+          read_at: string | null
+          sources: Json
+          summary: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          body?: string | null
+          created_at?: string
+          emailed_at?: string | null
+          feedback?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          question_id?: string | null
+          read_at?: string | null
+          sources?: Json
+          summary?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          body?: string | null
+          created_at?: string
+          emailed_at?: string | null
+          feedback?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          question_id?: string | null
+          read_at?: string | null
+          sources?: Json
+          summary?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_agent_briefings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "user_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_agent_briefings_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "user_agent_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_agent_questions: {
+        Row: {
+          agent_id: string
+          created_at: string
+          enabled: boolean
+          id: string
+          last_answered_at: string | null
+          question: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_answered_at?: string | null
+          question: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_answered_at?: string | null
+          question?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_agent_questions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "user_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_agents: {
+        Row: {
+          cadence: string
+          channels: string[]
+          countries: string[]
+          created_at: string
+          enabled: boolean
+          id: string
+          include_report: boolean
+          last_run_at: string | null
+          min_value_usd: number | null
+          name: string
+          next_run_at: string
+          regions: string[]
+          run_state: Json
+          sectors: string[]
+          stages: string[]
+          tracked_only: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cadence?: string
+          channels?: string[]
+          countries?: string[]
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          include_report?: boolean
+          last_run_at?: string | null
+          min_value_usd?: number | null
+          name?: string
+          next_run_at?: string
+          regions?: string[]
+          run_state?: Json
+          sectors?: string[]
+          stages?: string[]
+          tracked_only?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cadence?: string
+          channels?: string[]
+          countries?: string[]
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          include_report?: boolean
+          last_run_at?: string | null
+          min_value_usd?: number | null
+          name?: string
+          next_run_at?: string
+          regions?: string[]
+          run_state?: Json
+          sectors?: string[]
+          stages?: string[]
+          tracked_only?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_events: {
         Row: {
           anonymous_id: string | null
@@ -3402,6 +3572,35 @@ export type Database = {
       detect_silent_agent_stoppage: {
         Args: { p_hours?: number }
         Returns: Json
+      }
+      due_user_agents: {
+        Args: { p_limit?: number }
+        Returns: {
+          cadence: string
+          channels: string[]
+          countries: string[]
+          created_at: string
+          enabled: boolean
+          id: string
+          include_report: boolean
+          last_run_at: string | null
+          min_value_usd: number | null
+          name: string
+          next_run_at: string
+          regions: string[]
+          run_state: Json
+          sectors: string[]
+          stages: string[]
+          tracked_only: boolean
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_agents"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
