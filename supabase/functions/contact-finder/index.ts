@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
-import { firecrawlScrape, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
+import { firecrawlScrape, getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { isPlausibleSourceUrl } from "../_shared/urlHygiene.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
