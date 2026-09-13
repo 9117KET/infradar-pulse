@@ -65,6 +65,74 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_escalations: {
+        Row: {
+          created_at: string
+          detail: string
+          id: string
+          last_seen_at: string
+          metadata: Json
+          occurrences: number
+          process: string
+          project_id: string | null
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          subject_id: string | null
+          subject_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          occurrences?: number
+          process: string
+          project_id?: string | null
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string
+          id?: string
+          last_seen_at?: string
+          metadata?: Json
+          occurrences?: number
+          process?: string
+          project_id?: string | null
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_escalations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_health_alerts: {
         Row: {
           alert_type: string
@@ -3340,6 +3408,19 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      escalate_to_human: {
+        Args: {
+          p_detail?: string
+          p_metadata?: Json
+          p_process: string
+          p_project_id?: string
+          p_reason_code: string
+          p_severity?: string
+          p_subject_id?: string
+          p_subject_type?: string
+        }
+        Returns: string
+      }
       finish_agent_run: {
         Args: { p_agent_type: string; p_duration_ms?: number; p_status: string }
         Returns: undefined
@@ -3486,6 +3567,7 @@ export type Database = {
       }
       normalize_company_name: { Args: { p_name: string }; Returns: string }
       normalize_email: { Args: { p_email: string }; Returns: string }
+      normalize_project_key: { Args: { p_name: string }; Returns: string }
       promote_project_candidate: {
         Args: { p_candidate_id: string; p_reason?: string }
         Returns: Json
@@ -3525,6 +3607,10 @@ export type Database = {
       resolve_agent_auth_alerts: {
         Args: { p_job_name: string }
         Returns: number
+      }
+      resolve_escalation: {
+        Args: { p_id: string; p_note?: string; p_status: string }
+        Returns: Json
       }
       revoke_report_share: {
         Args: { p_report_run_id: string }
