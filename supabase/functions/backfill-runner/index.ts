@@ -64,7 +64,7 @@ function isTerminalProviderError(message: string): boolean {
 }
 
 function isTransientError(message: string): boolean {
-  return /\b(408|425|429|500|502|503|504)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
+  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
     .test(message);
 }
 
