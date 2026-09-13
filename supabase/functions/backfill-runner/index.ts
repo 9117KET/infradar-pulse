@@ -18,6 +18,10 @@ const corsHeaders = {
 
 const LEASE_MINUTES = 20;
 const MAX_CONSECUTIVE_ERRORS = 3;
+// Transient upstream failures (rate limits, gateway hiccups, timeouts) must not
+// park a source queue after a few blips — they get a much higher tolerance and
+// always stay `pending` so the next runner tick resumes from the saved cursor.
+const MAX_TRANSIENT_ERRORS = 12;
 const ALLOWED_FUNCTIONS = new Set([
   "world-bank-ingest-agent", "ifc-ingest-agent", "adb-ingest-agent", "iadb-ingest-agent",
   "aiib-ingest-agent", "gem-ingest-agent", "eib-ingest-agent",
