@@ -481,6 +481,15 @@ serve(async (req) => {
           : "AI access blocked by workspace policy — contact discovery paused.";
         summary.ai_blocked = reason;
         await recordAgentEvent(supabase, AGENT_TYPE, "ai_unavailable", reason, taskId, { status: aiBlockedStatus }, {});
+        // Only the account owner can unblock this, so ask for a person.
+        await escalateToHuman(supabase, {
+          process: "contact_finder",
+          reasonCode: aiBlockedStatus === 402 ? "ai_credits_exhausted" : "ai_access_blocked",
+          detail: reason,
+          severity: "high",
+          subjectType: "agent",
+          metadata: { status: aiBlockedStatus },
+        });
       }
       summary.discovery = {
         projects_scanned: projectsScanned,
