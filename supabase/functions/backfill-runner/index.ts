@@ -18,6 +18,10 @@ const corsHeaders = {
 
 const LEASE_MINUTES = 20;
 const MAX_CONSECUTIVE_ERRORS = 3;
+// Transient upstream failures (rate limits, gateway hiccups, timeouts) must not
+// park a source queue after a few blips — they get a much higher tolerance and
+// always stay `pending` so the next runner tick resumes from the saved cursor.
+const MAX_TRANSIENT_ERRORS = 12;
 const ALLOWED_FUNCTIONS = new Set([
   "world-bank-ingest-agent", "ifc-ingest-agent", "adb-ingest-agent", "iadb-ingest-agent",
   "aiib-ingest-agent", "gem-ingest-agent", "eib-ingest-agent",
@@ -57,6 +61,11 @@ function json(body: Record<string, unknown>, status = 200) {
 
 function isTerminalProviderError(message: string): boolean {
   return /\b(402|403)\b|credits|forbidden|disabled/i.test(message);
+}
+
+function isTransientError(message: string): boolean {
+  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
+    .test(message);
 }
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
@@ -146,15 +155,32 @@ Deno.serve(async (req) => {
 
     if (!response.ok || result.error && result.success === false) {
       const message = result.error || `Source agent returned HTTP ${response.status}`;
+      const signature = `${response.status} ${message}`;
+      const transient = !isTerminalProviderError(signature) && isTransientError(signature);
       const nextErrors = (job.consecutive_errors ?? 0) + 1;
-      const paused = isTerminalProviderError(`${response.status} ${message}`) || nextErrors >= MAX_CONSECUTIVE_ERRORS;
+      const paused = isTerminalProviderError(signature)
+        || (transient ? nextErrors >= MAX_TRANSIENT_ERRORS : nextErrors >= MAX_CONSECUTIVE_ERRORS);
+
+      // Preserve any progress the agent reported before failing so a partial
+      // page is never re-fetched from the previous cursor position.
+      const partialFetched = Math.max(Number(result.fetched ?? 0) || 0, 0);
+      const partialNext = Number(result.next_offset);
+      const progress = Number.isFinite(partialNext) && partialNext > job.cursor_offset
+        ? { cursor_offset: partialNext, fetched_count: (job.fetched_count ?? 0) + partialFetched }
+        : partialFetched > 0
+          ? { cursor_offset: job.cursor_offset + partialFetched, fetched_count: (job.fetched_count ?? 0) + partialFetched }
+          : {};
+
       await supabase.from("backfill_jobs").update({
         state: paused ? "paused" : "pending",
         lease_until: null,
         consecutive_errors: nextErrors,
         last_error: message.slice(0, 2000),
+        ...progress,
       }).eq("id", job.id);
-      return json({ success: false, job_id: job.id, paused, status: response.status, error: message }, response.status >= 400 ? response.status : 500);
+      return json({
+        success: false, job_id: job.id, paused, transient, status: response.status, error: message,
+      }, response.status >= 400 ? response.status : 500);
     }
 
     const fetched = Number(result.fetched ?? result.total ?? 0);
@@ -183,16 +209,21 @@ Deno.serve(async (req) => {
     return json({ success: true, job_id: job.id, source_key: job.source_key, fetched, next_offset: nextOffset, completed });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    let paused = Boolean(job);
     if (job) {
+      const nextErrors = (job.consecutive_errors ?? 0) + 1;
+      const transient = !isTerminalProviderError(message) && isTransientError(message);
+      paused = isTerminalProviderError(message)
+        || (transient ? nextErrors >= MAX_TRANSIENT_ERRORS : nextErrors >= MAX_CONSECUTIVE_ERRORS);
       await supabase.from("backfill_jobs").update({
-        state: "paused",
+        state: paused ? "paused" : "pending",
         lease_until: null,
         last_error: message.slice(0, 2000),
-        consecutive_errors: (job.consecutive_errors ?? 0) + 1,
+        consecutive_errors: nextErrors,
       }).eq("id", job.id);
     }
     console.error("backfill-runner error", message);
-    return json({ success: false, paused: Boolean(job), error: "Backfill runner failed." }, 500);
+    return json({ success: false, paused, error: "Backfill runner failed." }, 500);
   } finally {
     const { error } = await supabase.rpc("release_backfill_runner_lock", { p_holder: holder });
     if (error) console.error("backfill-runner lock release failed", error.message);

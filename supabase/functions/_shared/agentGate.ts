@@ -31,17 +31,28 @@ export async function isAgentEnabled(
   supabase: SupabaseClient,
   agentType: string
 ): Promise<boolean> {
-  try {
-    const { data } = await supabase
-      .from("agent_config")
-      .select("enabled")
-      .eq("agent_type", agentType)
-      .maybeSingle();
-    if (data === null) return true; // no row → default enabled
-    return data.enabled !== false;
-  } catch {
-    return true; // never block an agent due to config lookup failure
+  // The pause switch must not fall open: a failed lookup previously let a
+  // paused agent run. We retry once, then treat the agent as paused so an
+  // operator "off" is always honoured. Cron re-invokes on the next tick.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from("agent_config")
+        .select("enabled")
+        .eq("agent_type", agentType)
+        .maybeSingle();
+      if (error) throw error;
+      if (data === null) return true; // no row → default enabled
+      return data.enabled !== false;
+    } catch (e) {
+      if (attempt === 1) {
+        console.error(`isAgentEnabled(${agentType}) lookup failed; treating as paused:`, e);
+        return false;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
   }
+  return false;
 }
 
 /**
@@ -72,30 +83,29 @@ export async function beginAgentTask(
   query: string,
   requestedBy?: string,
 ): Promise<{ alreadyRunning: true } | { alreadyRunning: false; taskId: string }> {
-  try {
-    const { data, error } = await supabase.rpc("begin_agent_task", {
-      p_task_type: taskType,
-      p_query: query,
-      p_requested_by: requestedBy ?? null,
-    });
-    if (error) throw error;
-    if (data?.already_running) return { alreadyRunning: true };
-    return { alreadyRunning: false, taskId: data.id as string };
-  } catch (e) {
-    // Fallback: if the RPC is unavailable, insert directly (no lock).
-    console.warn("begin_agent_task RPC failed, falling back to direct insert:", e);
-    const { data: task } = await supabase
-      .from("research_tasks")
-      .insert({
-        task_type: taskType,
-        query,
-        status: "running",
-        requested_by: requestedBy && requestedBy !== "service_role" ? requestedBy : null,
-      })
-      .select("id")
-      .single();
-    return { alreadyRunning: false, taskId: task?.id ?? "unknown" };
+  // The single-run lock must not fall open: an unlocked fallback insert allowed
+  // two copies of the same agent to run concurrently. Retry once, then skip the
+  // run so cron simply tries again on the next tick.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await supabase.rpc("begin_agent_task", {
+        p_task_type: taskType,
+        p_query: query,
+        p_requested_by: requestedBy ?? null,
+      });
+      if (error) throw error;
+      if (data?.already_running) return { alreadyRunning: true };
+      if (!data?.id) throw new Error("begin_agent_task returned no task id");
+      return { alreadyRunning: false, taskId: data.id as string };
+    } catch (e) {
+      if (attempt === 1) {
+        console.error(`begin_agent_task failed for "${taskType}"; skipping run to protect the lock:`, e);
+        return { alreadyRunning: true };
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
   }
+  return { alreadyRunning: true };
 }
 
 /**
