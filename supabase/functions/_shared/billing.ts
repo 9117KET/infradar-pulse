@@ -62,3 +62,23 @@ export const EXPORT_ROW_CAPS: Record<PlanKey, number> = {
   enterprise: 0,
   lifetime:   0,
 };
+
+/**
+ * Personal analyst caps (sync with src/lib/billing/limits.ts).
+ * Everyone gets an analyst; the plan decides how often it may run, how many
+ * standing questions it tracks, and whether it drafts a full report.
+ */
+export type AnalystCap = { maxQuestions: number; allowDaily: boolean; autoReport: boolean };
+
+export const ANALYST_CAPS: Record<PlanKey, AnalystCap> = {
+  free:       { maxQuestions: 2,  allowDaily: false, autoReport: false },
+  trialing:   { maxQuestions: 3,  allowDaily: true,  autoReport: false },
+  starter:    { maxQuestions: 5,  allowDaily: true,  autoReport: true },
+  pro:        { maxQuestions: 15, allowDaily: true,  autoReport: true },
+  enterprise: { maxQuestions: 50, allowDaily: true,  autoReport: true },
+  lifetime:   { maxQuestions: 50, allowDaily: true,  autoReport: true },
+};
+
+export function getAnalystCap(plan: PlanKey): AnalystCap {
+  return ANALYST_CAPS[plan] ?? ANALYST_CAPS.free;
+}
