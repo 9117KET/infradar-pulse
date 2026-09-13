@@ -983,6 +983,11 @@ export default function ReviewQueue() {
         <TabsContent value="source-health" className="space-y-3">
           <SourceHealth />
         </TabsContent>
+
+        {/* Anything an automated step refuses to decide lands here. */}
+        <TabsContent value="escalations" className="space-y-3">
+          <EscalationsPanel />
+        </TabsContent>
       </Tabs>
 
       <AlertDialog open={approveGuardOpen} onOpenChange={setApproveGuardOpen}>
