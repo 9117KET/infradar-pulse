@@ -40,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { title: 'Overview', url: '/dashboard', icon: LayoutDashboard, tourId: 'nav-overview' },
       { title: 'Ask AI', url: '/dashboard/ask', icon: Sparkles, tourId: 'nav-ask' },
+      { title: 'Your Analyst', url: '/dashboard/analyst', icon: Bot, tourId: 'nav-analyst' },
       { title: 'Alerts', url: '/dashboard/alerts', icon: Bell, tourId: 'nav-alerts' },
     ],
   },

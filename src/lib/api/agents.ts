@@ -28,6 +28,9 @@ export const agentApi = {
   /** Emerging/frontier sectors: AI compute, chips, batteries, nuclear, hydrogen, space. */
   runFrontierIntelAgent: (opts?: { themes?: number }) =>
     invokeAgentWithBody('frontier-intel-agent', { ...(opts ?? {}) }),
+  /** Per-user standing AI analyst (brief, watch, standing answers, report). */
+  runPersonalAnalyst: (opts?: { include_report?: boolean }) =>
+    invokeAgentWithBody('personal-analyst', { mode: 'run', ...(opts ?? {}) }),
   runUpdateChecker: () => invokeAgent('update-checker'),
   runRiskScorer: () => invokeAgent('risk-scorer'),
   runHealthScoreAgent: () => invokeAgent('health-score-agent'),

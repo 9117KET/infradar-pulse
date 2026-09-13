@@ -55,6 +55,7 @@ const Research = lazy(() => import("./pages/dashboard/Research"));
 const Datasets = lazy(() => import("./pages/dashboard/Datasets"));
 const Reports = lazy(() => import("./pages/dashboard/Reports"));
 const Portfolio = lazy(() => import("./pages/dashboard/Portfolio"));
+const AnalystPage = lazy(() => import("./pages/dashboard/Analyst"));
 const IntelligenceSummaries = lazy(() => import("./pages/dashboard/IntelligenceSummaries"));
 const Tenders = lazy(() => import("./pages/dashboard/Tenders"));
 const CountryDetail = lazy(() => import("./pages/dashboard/CountryDetail"));
@@ -134,13 +135,14 @@ const App = () => (
               <Route path="/dashboard/subscribers" element={<RoleGuard requiredRole="admin"><SubscriberManagement /></RoleGuard>} />
               <Route path="/dashboard/insights" element={<RoleGuard requiredRole="researcher"><InsightsManagement /></RoleGuard>} />
               <Route path="/dashboard/geo" element={<GeoIntelligence />} />
-              <Route path="/dashboard/evidence" element={<EvidenceVerification />} />
+              <Route path="/dashboard/evidence" element={<RoleGuard requiredRole="researcher"><EvidenceVerification /></RoleGuard>} />
               <Route path="/dashboard/monitoring" element={<Navigate to="/dashboard/agents" replace />} />
               <Route path="/dashboard/risk" element={<Navigate to="/dashboard/projects?tab=risk" replace />} />
               <Route path="/dashboard/agents" element={<RoleGuard requiredRole="researcher"><AgentsHub /></RoleGuard>} />
               <Route path="/dashboard/agent-health" element={<Navigate to="/dashboard/agents?tab=health" replace />} />
               {/* New pages */}
               <Route path="/dashboard/portfolio" element={<Portfolio />} />
+              <Route path="/dashboard/analyst" element={<AnalystPage />} />
               <Route path="/dashboard/intelligence-summaries" element={<FeatureGate feature="intelligence_summaries"><IntelligenceSummaries /></FeatureGate>} />
               <Route path="/dashboard/tenders" element={<Tenders />} />
               {/* Pipeline, Compare and Countries are now Projects tabs. Redirects keep old links working. */}

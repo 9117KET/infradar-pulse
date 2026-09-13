@@ -40,7 +40,7 @@ export const USER_ROUTES: string[] = [
   "/dashboard/alerts",
   "/dashboard/settings",
   "/dashboard/geo",
-  "/dashboard/evidence",
+  "/dashboard/analyst",
   "/dashboard/portfolio",
   "/dashboard/billing/audit",
   // Feature-gated — should render the gate, not crash:
@@ -61,6 +61,7 @@ export const USER_ROUTES: string[] = [
 /** Routes behind <RoleGuard> — reachable as staff (researcher/admin). */
 export const STAFF_ROUTES: string[] = [
   "/dashboard/research",
+  "/dashboard/evidence",
   "/dashboard/datasets",
   "/dashboard/users",
   "/dashboard/review",
