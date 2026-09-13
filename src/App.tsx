@@ -49,7 +49,7 @@ const InsightsManagement = lazy(() => import("./pages/dashboard/InsightsManageme
 const GeoIntelligence = lazy(() => import("./pages/dashboard/GeoIntelligence"));
 const EvidenceVerification = lazy(() => import("./pages/dashboard/EvidenceVerification"));
 const AnalyticsReports = lazy(() => import("./pages/dashboard/AnalyticsReports"));
-const RiskAnomalySignals = lazy(() => import("./pages/dashboard/RiskAnomalySignals"));
+
 const AgentsHub = lazy(() => import("./pages/dashboard/AgentsHub"));
 const Research = lazy(() => import("./pages/dashboard/Research"));
 const Datasets = lazy(() => import("./pages/dashboard/Datasets"));
