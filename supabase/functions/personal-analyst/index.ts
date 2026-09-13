@@ -116,7 +116,7 @@ async function matchingProjects(supabase: SupabaseClient, agent: AnalystRow) {
   let q = supabase
     .from("projects")
     .select("id, name, country, region, sector, stage, status, value_usd, risk_score, confidence, source_url, last_updated")
-    .eq("approval_status", "approved")
+    .eq("approved", true)
     .order("last_updated", { ascending: false })
     .limit(60);
 
