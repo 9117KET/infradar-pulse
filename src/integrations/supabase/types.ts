@@ -3551,6 +3551,10 @@ export type Database = {
         Returns: undefined
       }
       merge_duplicate_projects: { Args: { p_limit?: number }; Returns: Json }
+      merge_duplicate_projects_by_source: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       merge_project_pair: {
         Args: { p_duplicate_id: string; p_keep_id: string; p_reason?: string }
         Returns: Json
