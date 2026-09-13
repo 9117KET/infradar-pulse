@@ -209,16 +209,21 @@ Deno.serve(async (req) => {
     return json({ success: true, job_id: job.id, source_key: job.source_key, fetched, next_offset: nextOffset, completed });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    let paused = Boolean(job);
     if (job) {
+      const nextErrors = (job.consecutive_errors ?? 0) + 1;
+      const transient = !isTerminalProviderError(message) && isTransientError(message);
+      paused = isTerminalProviderError(message)
+        || (transient ? nextErrors >= MAX_TRANSIENT_ERRORS : nextErrors >= MAX_CONSECUTIVE_ERRORS);
       await supabase.from("backfill_jobs").update({
-        state: "paused",
+        state: paused ? "paused" : "pending",
         lease_until: null,
         last_error: message.slice(0, 2000),
-        consecutive_errors: (job.consecutive_errors ?? 0) + 1,
+        consecutive_errors: nextErrors,
       }).eq("id", job.id);
     }
     console.error("backfill-runner error", message);
-    return json({ success: false, paused: Boolean(job), error: "Backfill runner failed." }, 500);
+    return json({ success: false, paused, error: "Backfill runner failed." }, 500);
   } finally {
     const { error } = await supabase.rpc("release_backfill_runner_lock", { p_holder: holder });
     if (error) console.error("backfill-runner lock release failed", error.message);
