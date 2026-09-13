@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
-import { firecrawlScrape, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
+import { firecrawlScrape, getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { isPlausibleSourceUrl } from "../_shared/urlHygiene.ts";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
@@ -241,6 +241,21 @@ async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ co
   if (!pageUrl || !isFirecrawlConfigured() || !isLlmConfigured()) return { contacts: 0, links: [] };
 
   const page = await firecrawlScrape(pageUrl, { formats: ["markdown", "links"], onlyMainContent: true });
+  if (!page) {
+    // Distinguish a scrape failure (rate limit / site error, retried already)
+    // from a page that genuinely lists no contacts.
+    const failure = getLastFirecrawlFailure();
+    await recordAgentEvent(
+      supabase,
+      AGENT_TYPE,
+      "scrape_failed",
+      `Scrape failed for ${pageUrl}${failure ? ` (status ${failure.status})` : ""}`,
+      null,
+      { status: failure?.status ?? 0, detail: failure?.detail ?? null },
+      { project_id: project.id },
+    );
+    return { contacts: 0, links: [] };
+  }
   const markdown = page?.markdown;
   if (!markdown || markdown.length < 200) return { contacts: 0, links: [] };
 
