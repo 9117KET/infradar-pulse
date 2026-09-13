@@ -2,10 +2,15 @@ import { HeroSection } from '@/components/home/HeroSection';
 import { TrustStrip } from '@/components/home/TrustStrip';
 import { ProblemSection } from '@/components/home/ProblemSection';
 import { DemoSection } from '@/components/home/DemoSection';
-import { SectorSnapshotSection } from '@/components/home/SectorSnapshotSection';
 import { PipelineSection } from '@/components/home/PipelineSection';
 import { EngagementSection } from '@/components/home/EngagementSection';
 import { Seo } from '@/components/Seo';
+import { Suspense, lazy } from 'react';
+
+// Recharts is ~420KB; keep it out of the landing page's initial download.
+const SectorSnapshotSection = lazy(() =>
+  import('@/components/home/SectorSnapshotSection').then((m) => ({ default: m.SectorSnapshotSection })),
+);
 // Capabilities, Coverage, Personas, and UseCase sections moved to /services to keep
 // the homepage scannable; they were also previously duplicated there. See Services.tsx.
 
@@ -28,7 +33,9 @@ const Index = () => (
     <TrustStrip />
     <ProblemSection showFlaws={false} />
     <DemoSection />
-    <SectorSnapshotSection />
+    <Suspense fallback={<div className="h-[420px]" />}>
+      <SectorSnapshotSection />
+    </Suspense>
     <PipelineSection showFeatures={false} />
     <EngagementSection />
   </>

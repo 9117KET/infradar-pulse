@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Activity, Layers } from 'lucide-react';
-import { HeroMap } from './HeroMap';
-import { PublicProjectDrawer } from './PublicProjectDrawer';
+// Leaflet is ~150KB; only pull it in once the map area is actually near the viewport.
+const HeroMap = lazy(() => import('./HeroMap').then((m) => ({ default: m.HeroMap })));
+const PublicProjectDrawer = lazy(() =>
+  import('./PublicProjectDrawer').then((m) => ({ default: m.PublicProjectDrawer })),
+);
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
 import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
 
@@ -18,6 +21,29 @@ export function DemoSection() {
   const [selectedProject, setSelectedProject] = useState<PublicProjectLocation | null>(null);
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const { locations, loading } = usePublicProjectLocations();
+  // Only load Leaflet once the map container approaches the viewport.
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el || mapVisible) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setMapVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setMapVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mapVisible]);
 
   const sectors = useMemo(
     () => [...new Set(locations.map(p => p.sector).filter(Boolean))].sort(),
@@ -114,12 +140,19 @@ export function DemoSection() {
           transition={{ duration: 0.35 }}
           className="glass-panel rounded-xl overflow-hidden relative"
           style={{ height: 560 }}
+          ref={mapRef}
         >
-          <HeroMap
-            projects={filtered}
-            className="w-full h-full"
-            onProjectClick={setSelectedProject}
-          />
+          {mapVisible ? (
+            <Suspense fallback={<div className="w-full h-full bg-background/40" />}>
+              <HeroMap
+                projects={filtered}
+                className="w-full h-full"
+                onProjectClick={setSelectedProject}
+              />
+            </Suspense>
+          ) : (
+            <div className="w-full h-full bg-background/40" />
+          )}
           {/* Risk legend */}
           <div className="absolute bottom-4 left-4 z-[400] flex flex-wrap gap-3 text-[10px] text-foreground/90 bg-background/70 backdrop-blur-md border border-border/50 rounded-lg px-3 py-2">
             <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#6bd8cb]" />Low</span>
@@ -136,10 +169,14 @@ export function DemoSection() {
         </motion.div>
       </div>
 
-      <PublicProjectDrawer
-        project={selectedProject}
-        onClose={() => setSelectedProject(null)}
-      />
+      {selectedProject && (
+        <Suspense fallback={null}>
+          <PublicProjectDrawer
+            project={selectedProject}
+            onClose={() => setSelectedProject(null)}
+          />
+        </Suspense>
+      )}
     </section>
   );
 }
