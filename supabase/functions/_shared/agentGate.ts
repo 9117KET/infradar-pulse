@@ -31,17 +31,28 @@ export async function isAgentEnabled(
   supabase: SupabaseClient,
   agentType: string
 ): Promise<boolean> {
-  try {
-    const { data } = await supabase
-      .from("agent_config")
-      .select("enabled")
-      .eq("agent_type", agentType)
-      .maybeSingle();
-    if (data === null) return true; // no row → default enabled
-    return data.enabled !== false;
-  } catch {
-    return true; // never block an agent due to config lookup failure
+  // The pause switch must not fall open: a failed lookup previously let a
+  // paused agent run. We retry once, then treat the agent as paused so an
+  // operator "off" is always honoured. Cron re-invokes on the next tick.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await supabase
+        .from("agent_config")
+        .select("enabled")
+        .eq("agent_type", agentType)
+        .maybeSingle();
+      if (error) throw error;
+      if (data === null) return true; // no row → default enabled
+      return data.enabled !== false;
+    } catch (e) {
+      if (attempt === 1) {
+        console.error(`isAgentEnabled(${agentType}) lookup failed; treating as paused:`, e);
+        return false;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
   }
+  return false;
 }
 
 /**
