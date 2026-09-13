@@ -3165,6 +3165,14 @@ export type Database = {
         Args: { p: string }
         Returns: Database["public"]["Enums"]["project_status"]
       }
+      _stage_rank: {
+        Args: { p_stage: Database["public"]["Enums"]["project_stage"] }
+        Returns: number
+      }
+      _status_rank: {
+        Args: { p_status: Database["public"]["Enums"]["project_status"] }
+        Returns: number
+      }
       acquire_backfill_runner_lock: {
         Args: { p_holder: string; p_lease_minutes?: number }
         Returns: boolean
@@ -3205,6 +3213,14 @@ export type Database = {
         Returns: string
       }
       attach_org_contacts: { Args: { p_limit?: number }; Returns: Json }
+      auto_apply_pending_update_proposals: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      auto_apply_update_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
       auto_approve_candidate_backlog: {
         Args: { p_limit?: number }
         Returns: Json
@@ -3445,6 +3461,11 @@ export type Database = {
         Args: { p_referred_user_id: string }
         Returns: undefined
       }
+      merge_duplicate_projects: { Args: { p_limit?: number }; Returns: Json }
+      merge_project_pair: {
+        Args: { p_duplicate_id: string; p_keep_id: string; p_reason?: string }
+        Returns: Json
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -3547,6 +3568,10 @@ export type Database = {
           used_day: number
           used_hour: number
         }[]
+      }
+      update_proposal_auto_decision: {
+        Args: { p_proposal_id: string }
+        Returns: Json
       }
       upsert_canonical_contact: {
         Args: {
