@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SourceHealth from './SourceHealth';
+import { EscalationsPanel } from '@/components/dashboard/EscalationsPanel';
 import { useToast } from '@/hooks/use-toast';
 import { calculateIntelligenceQuality } from '@/lib/intelligence-quality';
 import {
