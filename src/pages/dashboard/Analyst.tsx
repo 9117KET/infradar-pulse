@@ -222,6 +222,7 @@ export default function AnalystPage() {
       <Seo
         title="Your Analyst | Standing AI intelligence"
         description="A personal AI analyst that watches your regions, sectors and tracked projects and delivers cited intelligence briefings."
+        path="/dashboard/analyst"
       />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
