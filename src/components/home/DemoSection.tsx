@@ -169,10 +169,14 @@ export function DemoSection() {
         </motion.div>
       </div>
 
-      <PublicProjectDrawer
-        project={selectedProject}
-        onClose={() => setSelectedProject(null)}
-      />
+      {selectedProject && (
+        <Suspense fallback={null}>
+          <PublicProjectDrawer
+            project={selectedProject}
+            onClose={() => setSelectedProject(null)}
+          />
+        </Suspense>
+      )}
     </section>
   );
 }
