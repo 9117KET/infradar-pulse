@@ -21,6 +21,29 @@ export function DemoSection() {
   const [selectedProject, setSelectedProject] = useState<PublicProjectLocation | null>(null);
   const [activeSector, setActiveSector] = useState<string | null>(null);
   const { locations, loading } = usePublicProjectLocations();
+  // Only load Leaflet once the map container approaches the viewport.
+  const mapRef = useRef<HTMLDivElement | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el || mapVisible) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setMapVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setMapVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [mapVisible]);
 
   const sectors = useMemo(
     () => [...new Set(locations.map(p => p.sector).filter(Boolean))].sort(),
