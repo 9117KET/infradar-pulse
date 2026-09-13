@@ -133,20 +133,13 @@ export async function firecrawlSearch(
 ): Promise<FirecrawlSearchResult[]> {
   if (!isFirecrawlConfigured()) return [];
   try {
-    const res = await fetch(`${baseUrl()}/search`, {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({
-        query,
-        limit: opts.limit ?? 5,
-        tbs: opts.tbs,
-        scrapeOptions: opts.scrape ? { formats: ["markdown"] } : undefined,
-      }),
-    });
-    if (!res.ok) {
-      console.error("firecrawl search", res.status, (await res.text()).slice(0, 200));
-      return [];
-    }
+    const res = await firecrawlRequest("/search", {
+      query,
+      limit: opts.limit ?? 5,
+      tbs: opts.tbs,
+      scrapeOptions: opts.scrape ? { formats: ["markdown"] } : undefined,
+    }, `search:${query.slice(0, 80)}`);
+    if (!res) return [];
     const data = await res.json();
     // v2 returns { data: { web: [...], news: [...], images: [...] } }, older
     // shapes return a flat array or { web: { results: [...] } }.
