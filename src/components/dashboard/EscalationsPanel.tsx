@@ -55,7 +55,7 @@ export function EscalationsPanel() {
   const resolveMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'resolved' | 'dismissed' }) => {
       const { error } = await (supabase as any).rpc('resolve_escalation', {
-        p_escalation_id: id,
+        p_id: id,
         p_status: status,
         p_note: status === 'resolved' ? 'Handled by reviewer' : 'Dismissed by reviewer',
       });

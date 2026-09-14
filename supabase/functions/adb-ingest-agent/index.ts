@@ -132,7 +132,29 @@ function splitCsvLine(line: string): string[] {
   return result;
 }
 
+/**
+ * Every upstream call is bounded: without an explicit timeout a single slow
+ * probe can consume the whole edge-function wall clock and the platform kills
+ * the run with HTTP 546 before any progress is saved.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Leave headroom inside the edge-function budget so progress and the cursor are
+// always persisted instead of the run being killed mid-page.
+const ROW_BUDGET_MS = 90_000;
+const PROBE_TIMEOUT_MS = 8_000;
+const DOWNLOAD_TIMEOUT_MS = 25_000;
+
 serve(async (req) => {
+  const runDeadline = Date.now() + ROW_BUDGET_MS;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const gate = await requireStaffOrRespond(req);
