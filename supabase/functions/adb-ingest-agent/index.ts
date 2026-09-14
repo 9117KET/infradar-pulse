@@ -196,37 +196,53 @@ serve(async (req) => {
       supportsApi: true,
     });
 
-    // Step 1: Discover available project datasets via CKAN package list
     await setTaskStep(supabase, taskId, "Searching");
-    console.log("Fetching ADB dataset catalog...");
     let csvUrl: string | null = null;
     const discoveryAttempts: string[] = [];
 
+    // Step 1: the d-portal mirror of ADB's official IATI publication is the
+    // primary source — stable, keyless and offset-paginated. Trying it first
+    // keeps the common path down to a single upstream call; the Cloudflare-
+    // protected ADB portal probes below only run when the mirror is unavailable.
+    // Page size stays modest so one run always fits the edge-function budget.
+    const iatiLimit = Math.min(totalLimit, 200);
+    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
+    discoveryAttempts.push(iatiUrl);
     try {
-      // Try the well-known sovereign operations dataset first
-      const packageRes = await fetch(
-        "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-projects",
-        { headers: { "Accept": "application/json" } }
-      );
-      if (packageRes.ok) {
-        const pkg = await packageRes.json();
-        const resources = pkg?.result?.resources || [];
-        // Find a CSV resource
-        const csvResource = resources.find(
-          (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
-        );
-        if (csvResource?.url) csvUrl = csvResource.url;
-      }
+      const probe = await fetchWithTimeout(iatiUrl, { method: "HEAD", headers: { "Accept": "text/csv" } }, PROBE_TIMEOUT_MS);
+      if (probe.ok) csvUrl = iatiUrl;
+      await probe.body?.cancel();
     } catch (e) {
-      console.error("CKAN package lookup failed:", e);
+      console.error("ADB IATI mirror probe failed:", e);
     }
 
-    // Step 2: If CKAN didn't yield a URL, try a broader package search
+    // Step 2: CKAN catalog lookup (fallback only)
     if (!csvUrl) {
       try {
-        const searchRes = await fetch(
+        const packageRes = await fetchWithTimeout(
+          "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-projects",
+          { headers: { "Accept": "application/json" } },
+          PROBE_TIMEOUT_MS,
+        );
+        if (packageRes.ok) {
+          const pkg = await packageRes.json();
+          const resources = pkg?.result?.resources || [];
+          const csvResource = resources.find(
+            (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
+          );
+          if (csvResource?.url) csvUrl = csvResource.url;
+        }
+      } catch (e) {
+        console.error("CKAN package lookup failed:", e);
+      }
+    }
+
+    if (!csvUrl) {
+      try {
+        const searchRes = await fetchWithTimeout(
           "https://data.adb.org/api/3/action/package_search?q=adb+sovereign+projects&rows=10",
-          { headers: { "Accept": "application/json" } }
+          { headers: { "Accept": "application/json" } },
+          PROBE_TIMEOUT_MS,
         );
         if (searchRes.ok) {
           const searchData = await searchRes.json();
@@ -241,22 +257,6 @@ serve(async (req) => {
       } catch (e) {
         console.error("CKAN search failed:", e);
       }
-    }
-
-    // The ADB portal is protected by Cloudflare in server-side environments.
-    // d-portal mirrors ADB's official IATI publication and exposes a stable,
-    // keyless CSV export with offset pagination. Keep the CKAN/direct probes
-    // above as a fallback for continuity if the mirror ever has an outage.
-    const iatiLimit = Math.min(totalLimit, 500);
-    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
-    discoveryAttempts.push(iatiUrl);
-    try {
-      const probe = await fetch(iatiUrl, { headers: { "Accept": "text/csv" } });
-      if (probe.ok && (probe.headers.get("content-type") || "").includes("text/csv")) {
-        csvUrl = iatiUrl;
-      }
-    } catch (e) {
-      console.error("ADB IATI mirror probe failed:", e);
     }
 
     // Step 3: Try known direct ADB CSV download paths when CKAN and IATI fail
