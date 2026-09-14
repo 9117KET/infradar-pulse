@@ -132,7 +132,29 @@ function splitCsvLine(line: string): string[] {
   return result;
 }
 
+/**
+ * Every upstream call is bounded: without an explicit timeout a single slow
+ * probe can consume the whole edge-function wall clock and the platform kills
+ * the run with HTTP 546 before any progress is saved.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Leave headroom inside the edge-function budget so progress and the cursor are
+// always persisted instead of the run being killed mid-page.
+const ROW_BUDGET_MS = 90_000;
+const PROBE_TIMEOUT_MS = 8_000;
+const DOWNLOAD_TIMEOUT_MS = 25_000;
+
 serve(async (req) => {
+  const runDeadline = Date.now() + ROW_BUDGET_MS;
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const gate = await requireStaffOrRespond(req);
@@ -174,37 +196,53 @@ serve(async (req) => {
       supportsApi: true,
     });
 
-    // Step 1: Discover available project datasets via CKAN package list
     await setTaskStep(supabase, taskId, "Searching");
-    console.log("Fetching ADB dataset catalog...");
     let csvUrl: string | null = null;
     const discoveryAttempts: string[] = [];
 
+    // Step 1: the d-portal mirror of ADB's official IATI publication is the
+    // primary source — stable, keyless and offset-paginated. Trying it first
+    // keeps the common path down to a single upstream call; the Cloudflare-
+    // protected ADB portal probes below only run when the mirror is unavailable.
+    // Page size stays modest so one run always fits the edge-function budget.
+    const iatiLimit = Math.min(totalLimit, 200);
+    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
+    discoveryAttempts.push(iatiUrl);
     try {
-      // Try the well-known sovereign operations dataset first
-      const packageRes = await fetch(
-        "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-projects",
-        { headers: { "Accept": "application/json" } }
-      );
-      if (packageRes.ok) {
-        const pkg = await packageRes.json();
-        const resources = pkg?.result?.resources || [];
-        // Find a CSV resource
-        const csvResource = resources.find(
-          (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
-        );
-        if (csvResource?.url) csvUrl = csvResource.url;
-      }
+      const probe = await fetchWithTimeout(iatiUrl, { method: "HEAD", headers: { "Accept": "text/csv" } }, PROBE_TIMEOUT_MS);
+      if (probe.ok) csvUrl = iatiUrl;
+      await probe.body?.cancel();
     } catch (e) {
-      console.error("CKAN package lookup failed:", e);
+      console.error("ADB IATI mirror probe failed:", e);
     }
 
-    // Step 2: If CKAN didn't yield a URL, try a broader package search
+    // Step 2: CKAN catalog lookup (fallback only)
     if (!csvUrl) {
       try {
-        const searchRes = await fetch(
+        const packageRes = await fetchWithTimeout(
+          "https://data.adb.org/api/3/action/package_show?id=adb-sovereign-projects",
+          { headers: { "Accept": "application/json" } },
+          PROBE_TIMEOUT_MS,
+        );
+        if (packageRes.ok) {
+          const pkg = await packageRes.json();
+          const resources = pkg?.result?.resources || [];
+          const csvResource = resources.find(
+            (r: any) => [r.format, r.mimetype, r.name, r.url].some((v) => String(v || "").toLowerCase().includes("csv"))
+          );
+          if (csvResource?.url) csvUrl = csvResource.url;
+        }
+      } catch (e) {
+        console.error("CKAN package lookup failed:", e);
+      }
+    }
+
+    if (!csvUrl) {
+      try {
+        const searchRes = await fetchWithTimeout(
           "https://data.adb.org/api/3/action/package_search?q=adb+sovereign+projects&rows=10",
-          { headers: { "Accept": "application/json" } }
+          { headers: { "Accept": "application/json" } },
+          PROBE_TIMEOUT_MS,
         );
         if (searchRes.ok) {
           const searchData = await searchRes.json();
@@ -221,22 +259,6 @@ serve(async (req) => {
       }
     }
 
-    // The ADB portal is protected by Cloudflare in server-side environments.
-    // d-portal mirrors ADB's official IATI publication and exposes a stable,
-    // keyless CSV export with offset pagination. Keep the CKAN/direct probes
-    // above as a fallback for continuity if the mirror ever has an outage.
-    const iatiLimit = Math.min(totalLimit, 500);
-    const iatiUrl = `https://d-portal.org/q.csv?reporting_ref=XM-DAC-46004&limit=${iatiLimit}&offset=${startOffset}`;
-    discoveryAttempts.push(iatiUrl);
-    try {
-      const probe = await fetch(iatiUrl, { headers: { "Accept": "text/csv" } });
-      if (probe.ok && (probe.headers.get("content-type") || "").includes("text/csv")) {
-        csvUrl = iatiUrl;
-      }
-    } catch (e) {
-      console.error("ADB IATI mirror probe failed:", e);
-    }
-
     // Step 3: Try known direct ADB CSV download paths when CKAN and IATI fail
     if (!csvUrl) {
       const directUrls = [
@@ -250,13 +272,13 @@ serve(async (req) => {
       for (const url of directUrls) {
         discoveryAttempts.push(url);
         try {
-          const probe = await fetch(url, {
+          const probe = await fetchWithTimeout(url, {
             headers: {
               "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
               "Accept": "text/csv,application/vnd.ms-excel,text/html,*/*",
               "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
             },
-          });
+          }, PROBE_TIMEOUT_MS);
           if (!probe.ok) continue;
           const sample = await probe.clone().text();
           const mediaMatch = sample.match(/https:\/\/data\.adb\.org\/media\/\d+\/download[^"\)\s]*/i);
@@ -288,13 +310,13 @@ serve(async (req) => {
     // Step 3: Download and parse the CSV
     await setTaskStep(supabase, taskId, "Extracting");
     console.log(`Downloading ADB CSV: ${csvUrl}`);
-    const csvRes = await fetch(csvUrl, {
+    const csvRes = await fetchWithTimeout(csvUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
         "Accept": "text/csv,application/vnd.ms-excel,*/*",
         "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
       },
-    });
+    }, DOWNLOAD_TIMEOUT_MS);
     if (!csvRes.ok) throw new Error(`CSV download failed: ${csvRes.status}`);
 
     const csvText = await csvRes.text();
@@ -310,7 +332,14 @@ serve(async (req) => {
     // The IATI export is already paginated by offset; rows contains only this page.
     const processLimit = Math.min(rows.length, totalLimit);
 
+    let processed = 0;
+    let budgetExhausted = false;
+
     for (let i = 0; i < processLimit; i++) {
+      // Stop before the platform kills the run so the cursor keeps the progress
+      // made so far and the next tick resumes from exactly here.
+      if (Date.now() > runDeadline) { budgetExhausted = true; break; }
+      processed = i + 1;
       const row = rows[i];
       try {
         // Support both the legacy ADB export and d-portal's official IATI fields.
@@ -388,15 +417,15 @@ serve(async (req) => {
     }
 
     if (backfill) {
-      const exhausted = rows.length === 0 || rows.length < iatiLimit;
+      const exhausted = !budgetExhausted && (rows.length === 0 || rows.length < iatiLimit);
       await saveIngestCursor(supabase, "adb-ingest", {
-        nextOffset: startOffset + processLimit,
+        nextOffset: startOffset + processed,
         exhausted,
       });
     }
 
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, fetched: processLimit, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset, mode: backfill ? "backfill" : "standard" };
+    const result = { success: true, fetched: processed, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset, next_offset: startOffset + processed, partial: budgetExhausted, mode: backfill ? "backfill" : "standard" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),

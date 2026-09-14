@@ -65,9 +65,13 @@ function isTerminalProviderError(message: string): boolean {
 }
 
 function isTransientError(message: string): boolean {
-  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
+  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|abort|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
     .test(message);
 }
+
+// A source agent that never answers must not hold the runner open until the
+// platform kills it — bound the call and treat the cut-off as transient.
+const AGENT_CALL_TIMEOUT_MS = 120_000;
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
   const now = new Date().toISOString();
@@ -141,16 +145,25 @@ Deno.serve(async (req) => {
 
     const params = { ...job.params, mode: "backfill", limit: job.page_size };
     const cronSecret = Deno.env.get("AGENT_CRON_SECRET");
-    const response = await fetch(`${supabaseUrl}/functions/v1/${job.agent_function}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-        ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
-      },
-      body: JSON.stringify(params),
-    });
-    const raw = await response.text();
+    const abort = new AbortController();
+    const abortTimer = setTimeout(() => abort.abort(), AGENT_CALL_TIMEOUT_MS);
+    let response: Response;
+    let raw: string;
+    try {
+      response = await fetch(`${supabaseUrl}/functions/v1/${job.agent_function}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+          ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
+        },
+        body: JSON.stringify(params),
+        signal: abort.signal,
+      });
+      raw = await response.text();
+    } finally {
+      clearTimeout(abortTimer);
+    }
     let result: AgentResult = {};
     try { result = JSON.parse(raw) as AgentResult; } catch { result = { error: raw.slice(0, 1000) }; }
 
