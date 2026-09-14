@@ -272,13 +272,13 @@ serve(async (req) => {
       for (const url of directUrls) {
         discoveryAttempts.push(url);
         try {
-          const probe = await fetch(url, {
+          const probe = await fetchWithTimeout(url, {
             headers: {
               "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
               "Accept": "text/csv,application/vnd.ms-excel,text/html,*/*",
               "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
             },
-          });
+          }, PROBE_TIMEOUT_MS);
           if (!probe.ok) continue;
           const sample = await probe.clone().text();
           const mediaMatch = sample.match(/https:\/\/data\.adb\.org\/media\/\d+\/download[^"\)\s]*/i);
@@ -310,13 +310,13 @@ serve(async (req) => {
     // Step 3: Download and parse the CSV
     await setTaskStep(supabase, taskId, "Extracting");
     console.log(`Downloading ADB CSV: ${csvUrl}`);
-    const csvRes = await fetch(csvUrl, {
+    const csvRes = await fetchWithTimeout(csvUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 InfraRadarBot/1.0",
         "Accept": "text/csv,application/vnd.ms-excel,*/*",
         "Referer": "https://data.adb.org/dataset/adb-sovereign-projects",
       },
-    });
+    }, DOWNLOAD_TIMEOUT_MS);
     if (!csvRes.ok) throw new Error(`CSV download failed: ${csvRes.status}`);
 
     const csvText = await csvRes.text();
