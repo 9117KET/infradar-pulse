@@ -332,7 +332,14 @@ serve(async (req) => {
     // The IATI export is already paginated by offset; rows contains only this page.
     const processLimit = Math.min(rows.length, totalLimit);
 
+    let processed = 0;
+    let budgetExhausted = false;
+
     for (let i = 0; i < processLimit; i++) {
+      // Stop before the platform kills the run so the cursor keeps the progress
+      // made so far and the next tick resumes from exactly here.
+      if (Date.now() > runDeadline) { budgetExhausted = true; break; }
+      processed = i + 1;
       const row = rows[i];
       try {
         // Support both the legacy ADB export and d-portal's official IATI fields.
@@ -410,15 +417,15 @@ serve(async (req) => {
     }
 
     if (backfill) {
-      const exhausted = rows.length === 0 || rows.length < iatiLimit;
+      const exhausted = !budgetExhausted && (rows.length === 0 || rows.length < iatiLimit);
       await saveIngestCursor(supabase, "adb-ingest", {
-        nextOffset: startOffset + processLimit,
+        nextOffset: startOffset + processed,
         exhausted,
       });
     }
 
     await setTaskStep(supabase, taskId, "Saving");
-    const result = { success: true, fetched: processLimit, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset, mode: backfill ? "backfill" : "standard" };
+    const result = { success: true, fetched: processed, auto_published: autoPublished, candidates_created: candidatesWritten, candidates_updated: candidatesUpdated, update_proposals_created: updatesProposed, skipped, source: "ADB", sourceUrl: csvUrl, offset: startOffset, next_offset: startOffset + processed, partial: budgetExhausted, mode: backfill ? "backfill" : "standard" };
     if (taskId) {
       await supabase.from("research_tasks").update({
         status: "completed", result, completed_at: new Date().toISOString(),
