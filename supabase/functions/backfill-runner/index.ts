@@ -65,9 +65,13 @@ function isTerminalProviderError(message: string): boolean {
 }
 
 function isTransientError(message: string): boolean {
-  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
+  return /\b(408|425|429|500|502|503|504|546)\b|rate limit|too many requests|timeout|timed out|temporarily|abort|ECONNRESET|connection (reset|closed|refused)|network|fetch failed|dns/i
     .test(message);
 }
+
+// A source agent that never answers must not hold the runner open until the
+// platform kills it — bound the call and treat the cut-off as transient.
+const AGENT_CALL_TIMEOUT_MS = 120_000;
 
 async function claimNextJob(supabase: ReturnType<typeof createClient>): Promise<BackfillJob | null> {
   const now = new Date().toISOString();
