@@ -145,16 +145,25 @@ Deno.serve(async (req) => {
 
     const params = { ...job.params, mode: "backfill", limit: job.page_size };
     const cronSecret = Deno.env.get("AGENT_CRON_SECRET");
-    const response = await fetch(`${supabaseUrl}/functions/v1/${job.agent_function}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${serviceKey}`,
-        ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
-      },
-      body: JSON.stringify(params),
-    });
-    const raw = await response.text();
+    const abort = new AbortController();
+    const abortTimer = setTimeout(() => abort.abort(), AGENT_CALL_TIMEOUT_MS);
+    let response: Response;
+    let raw: string;
+    try {
+      response = await fetch(`${supabaseUrl}/functions/v1/${job.agent_function}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+          ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
+        },
+        body: JSON.stringify(params),
+        signal: abort.signal,
+      });
+      raw = await response.text();
+    } finally {
+      clearTimeout(abortTimer);
+    }
     let result: AgentResult = {};
     try { result = JSON.parse(raw) as AgentResult; } catch { result = { error: raw.slice(0, 1000) }; }
 
