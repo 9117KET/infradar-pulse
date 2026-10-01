@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
 // DORMANT: import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
-import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/lemonSqueezy';
+import { isLiveCheckoutEnabled, isPaymentsLive, isTestCheckoutEnabled } from '@/lib/lemonSqueezy';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { trackEvent } from '@/lib/analytics';
@@ -69,7 +69,8 @@ export function UpgradeDialog({
   const { openFoundingAccess } = useFoundingAccess();
   const { toast } = useToast();
   const { plan } = useEntitlements();
-  const paymentsLive = isPaymentsLive();
+  // Test checkout (pre-launch sandbox round-trip) shows the real checkout UI too.
+  const paymentsLive = isPaymentsLive() || isTestCheckoutEnabled();
   const { locations } = usePublicProjectLocations();
   const { title, description } = COPY[reason] ?? COPY.default;
   const projectCount = locations.length;

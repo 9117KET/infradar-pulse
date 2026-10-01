@@ -10,7 +10,7 @@ import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppEnvironment } from '@/lib/billing/environment';
 // DORMANT: import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
-import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/lemonSqueezy';
+import { isLiveCheckoutEnabled, isPaymentsLive, isTestCheckoutEnabled } from '@/lib/lemonSqueezy';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { cn } from '@/lib/utils';
 import { Seo } from '@/components/Seo';
@@ -50,7 +50,8 @@ export default function Pricing() {
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();
   const navigate = useNavigate();
-  const paymentsLive = isPaymentsLive();
+  // Test checkout (pre-launch sandbox round-trip) shows the real checkout UI too.
+  const paymentsLive = isPaymentsLive() || isTestCheckoutEnabled();
 
   // Pre-launch: capture demand instead of charging.
   const reserve = (planKey: string, planLabel: string, billingCycle: string) =>

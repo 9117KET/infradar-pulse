@@ -8,7 +8,7 @@
 // query param — Lemon Squeezy has one store with a test-mode toggle, not a
 // separate sandbox/live account pair like Paddle.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { verifyWebhook, lsEnvFromTestMode, type LsEnv } from '../_shared/lemonsqueezy.ts';
+import { verifyWebhook, lsEnvFromTestMode, lsFetch, type LsEnv } from '../_shared/lemonsqueezy.ts';
 import { variantIdToPlanKey, isLifetimeVariant } from '../_shared/lemonsqueezyPlans.ts';
 
 const supabase = createClient(
@@ -89,16 +89,18 @@ Deno.serve(async (req) => {
         await upsertSubscription(event);
         await logBillingEvent(event);
         break;
+      // Payment events carry a subscription-INVOICE, not a subscription: its id
+      // is an invoice id and it has no variant. Upserting it as a subscription
+      // created a bogus newest row (plan 'starter', status 'paid'), and since
+      // entitlements read the newest row, a paying customer lost their plan.
+      // Re-read the real subscription instead. A failed payment also arrives
+      // as subscription_updated → status past_due, which Settings surfaces.
       case 'subscription_payment_success':
-        await upsertSubscription(event);
+      case 'subscription_payment_recovered':
+      case 'subscription_payment_failed':
+        await refreshSubscriptionFromInvoice(event);
         await logBillingEvent(event);
         break;
-      case 'subscription_payment_failed': {
-        await logBillingEvent(event);
-        const env = lsEnvFromTestMode(event.data.attributes.test_mode as boolean);
-        await emitPastDueAlert(event, env);
-        break;
-      }
       case 'order_created':
         await maybeGrantLifetime(event);
         await logBillingEvent(event);
@@ -210,7 +212,8 @@ async function logBillingEvent(event: any) {
     const { data, meta } = event;
     const attrs = data.attributes ?? {};
     const env = lsEnvFromTestMode(attrs.test_mode);
-    const isSub = String(data.type ?? '').startsWith('subscription');
+    // Exact match: 'subscription-invoices' also starts with 'subscription'.
+    const isSub = data.type === 'subscriptions';
     const lsSubscriptionId = isSub ? data.id : attrs.subscription_id ?? null;
     const lsOrderId = data.type === 'orders' ? data.id : attrs.order_id ?? null;
     const lsCustomerId = attrs.customer_id != null ? String(attrs.customer_id) : null;
@@ -241,23 +244,26 @@ async function logBillingEvent(event: any) {
   }
 }
 
-// On payment failure, drop a row into the public alerts table so it surfaces
-// on the dashboard — same pattern as the (dormant) Paddle webhook. Do NOT
-// embed the user's email/PII; the alerts table is broadly readable.
+/**
+ * For subscription-invoice events: fetch the parent subscription from the
+ * Lemon Squeezy API and upsert it, keeping the invoice event's custom_data so
+ * the user still resolves. No-op (logged) if the API call fails; the
+ * accompanying subscription_updated event carries the same state.
+ */
 // deno-lint-ignore no-explicit-any
-async function emitPastDueAlert(event: any, env: LsEnv) {
+async function refreshSubscriptionFromInvoice(event: any) {
+  const subscriptionId = event.data?.attributes?.subscription_id;
+  if (subscriptionId == null) return;
   try {
-    const { data, meta } = event;
-    const userId = await resolveUserId(meta?.custom_data, data.id, env);
-    if (!userId) return;
-    await supabase.from('alerts').insert({
-      project_name: 'Billing',
-      message: 'Your last payment failed for your account. Update your payment method in Settings → Billing to keep access.',
-      severity: 'high',
-      category: 'financial',
-    });
+    const res = await lsFetch(`/subscriptions/${subscriptionId}`);
+    if (!res.ok) {
+      console.error('refreshSubscriptionFromInvoice: LS API', res.status, await res.text().catch(() => ''));
+      return;
+    }
+    const sub = await res.json();
+    await upsertSubscription({ meta: event.meta, data: sub.data });
   } catch (err) {
-    console.error('emitPastDueAlert failed (non-fatal):', err);
+    console.error('refreshSubscriptionFromInvoice failed (non-fatal):', err);
   }
 }
 

@@ -22,6 +22,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { isAgentEnabled, pausedResponse, beginAgentTask, alreadyRunningResponse, finishAgentRun, recordAgentEvent } from "../_shared/agentGate.ts";
+import {
+  fetchFeedJson, insertNewTenderEvents, sectorFromCpv, severityFor, toUsd as toUsdRaw, valueLabel,
+  type TenderEventInsert,
+} from "../_shared/tenderIngest.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,11 +36,6 @@ const corsHeaders = {
 const AGENT = "uk-fts-ingest";
 const FTS_API = "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages";
 const NOTICE_URL = "https://www.find-tender.service.gov.uk/Notice/";
-// FTS answers 403 to Deno's default User-Agent (which Supabase Edge sends), so identify ourselves.
-const FTS_HEADERS = { Accept: "application/json", "User-Agent": "InfraRadarBot/1.0 (+https://infradarai.com)" };
-
-// Rough FX to USD for currencies seen on FTS.
-const FX_TO_USD: Record<string, number> = { GBP: 1.27, EUR: 1.08, USD: 1 };
 
 type OcdsValue = { amount?: number; currency?: string } | null | undefined;
 type OcdsRelease = {
@@ -61,20 +60,8 @@ function cpvCodes(r: OcdsRelease): string[] {
   return [main ?? "", ...extra].filter(Boolean);
 }
 
-// CPV prefix → platform sector (mirrors ted-ingest-agent).
-function mapCpvSector(cpvs: string[]): string {
-  const joined = cpvs.join(",");
-  if (/(^|,)4523/.test(joined)) return "Transport";
-  if (/(^|,)4525/.test(joined)) return "Energy";
-  if (/(^|,)4524/.test(joined)) return "Water";
-  if (/(^|,)4522[34]/.test(joined)) return "Infrastructure";
-  return "Building Construction";
-}
-
 function toUsd(v: OcdsValue): number {
-  const amount = Number(v?.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return 0;
-  return Math.round(amount * (FX_TO_USD[String(v?.currency ?? "GBP").toUpperCase()] ?? 1));
+  return toUsdRaw(v?.amount, v?.currency ?? "GBP");
 }
 
 /** Best stated value: award → contract → tender → sum of lots. */
@@ -101,7 +88,8 @@ serve(async (req) => {
   if (gate instanceof Response) return gate;
 
   let taskId: string | null = null;
-  let supabase: ReturnType<typeof createClient> | null = null;
+  // deno-lint-ignore no-explicit-any
+  let supabase: any = null;
   let runStartedAt: Date | null = null;
 
   try {
@@ -120,7 +108,7 @@ serve(async (req) => {
     const maxPages = Math.min(Math.max(Number(body.max_pages) || 40, 1), 150);
     const minValueUsd = Math.max(Number(body.min_value_usd ?? 1_000_000) || 0, 0);
 
-    const lock = await beginAgentTask(supabase, AGENT, `UK Find a Tender notices — last ${days}d, CPV 45*`, gate.userId);
+    const lock = await beginAgentTask(supabase, AGENT, `UK Find a Tender notices — last ${days}d, CPV 45*`, gate.userId ?? undefined);
     if (lock.alreadyRunning) return alreadyRunningResponse(AGENT);
     taskId = lock.taskId;
     runStartedAt = new Date();
@@ -142,16 +130,14 @@ serve(async (req) => {
     for (const { stage, eventType } of stages) {
       let next: string | null = `${FTS_API}?stages=${stage}&limit=100&updatedFrom=${updatedFrom}`;
       for (let page = 0; next && page < maxPages; page++) {
-        const res = await fetch(next, { headers: FTS_HEADERS });
-        if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) {
-          console.error(`FTS API error (${stage}): ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`);
-          break;
-        }
-        const json = await res.json();
+        // FTS 403s Deno's default User-Agent; fetchFeedJson identifies us.
+        const json = await fetchFeedJson(next, `FTS ${stage}`);
+        if (!json) break;
         pagesRead++;
         const releases: OcdsRelease[] = Array.isArray(json?.releases) ? json.releases : [];
         fetched += releases.length;
-        next = typeof json?.links?.next === "string" && releases.length > 0 ? json.links.next : null;
+        const nextLink = (json.links as { next?: unknown } | undefined)?.next;
+        next = typeof nextLink === "string" && releases.length > 0 ? nextLink : null;
 
         const isAward = eventType === "award";
         const rows = releases
@@ -169,52 +155,36 @@ serve(async (req) => {
               winner: [...new Set(winners)].join(", "),
               deadline: r.tender?.tenderPeriod?.endDate?.slice(0, 10) ?? null,
               valueUsd: releaseValueUsd(r, isAward),
-              sector: mapCpvSector(cpvCodes(r)),
+              sector: sectorFromCpv(cpvCodes(r)),
             };
           });
         inScope += rows.length;
         if (rows.length === 0) continue;
 
-        const { data: existing } = await supabase
-          .from("tender_events")
-          .select("source_url")
-          .in("source_url", rows.map((r) => r.sourceUrl));
-        const existingSet = new Set((existing ?? []).map((e: { source_url: string }) => e.source_url));
-
-        const inserts = [];
+        const inserts: TenderEventInsert[] = [];
         for (const r of rows) {
-          if (existingSet.has(r.sourceUrl)) { duplicates++; continue; }
           if (minValueUsd > 0 && r.valueUsd > 0 && r.valueUsd < minValueUsd) { belowThreshold++; continue; }
-          existingSet.add(r.sourceUrl); // a notice can appear in several pages of one window
-          const severity = r.valueUsd >= 1_000_000_000 ? "critical" : r.valueUsd >= 100_000_000 ? "high" : "medium";
-          const valueLabel = r.valueUsd >= 1_000_000_000
-            ? `$${(r.valueUsd / 1_000_000_000).toFixed(1)}B` : r.valueUsd >= 1_000_000
-            ? `$${(r.valueUsd / 1_000_000).toFixed(0)}M` : "value undisclosed";
-          // Framework values are spend ceilings across many call-offs, not a single contract.
-          const valueNote = /framework/i.test(r.title) && r.valueUsd > 0 ? `${valueLabel} framework ceiling` : valueLabel;
+          const label = valueLabel(r.valueUsd, r.title);
           inserts.push({
-            project_name: r.title.slice(0, 300),
+            project_name: r.title,
             country: "United Kingdom",
             region: "Europe",
             sector: r.sector,
             event_type: eventType,
-            severity,
+            severity: severityFor(r.valueUsd),
             summary: isAward
-              ? `Contract awarded${r.winner ? ` to ${r.winner}` : ""} by ${r.buyer || "public buyer"} in the United Kingdom (${valueNote}). Source: Find a Tender ${r.noticeId}.`
-              : `Open tender by ${r.buyer || "public buyer"} in the United Kingdom (${valueNote})${r.deadline ? `, bids due ${r.deadline}` : ""}. Source: Find a Tender ${r.noticeId}.`,
+              ? `Contract awarded${r.winner ? ` to ${r.winner}` : ""} by ${r.buyer || "public buyer"} in the United Kingdom (${label}). Source: Find a Tender ${r.noticeId}.`
+              : `Open tender by ${r.buyer || "public buyer"} in the United Kingdom (${label})${r.deadline ? `, bids due ${r.deadline}` : ""}. Source: Find a Tender ${r.noticeId}.`,
             award_value_usd: r.valueUsd > 0 ? r.valueUsd : null,
-            contractor_name: isAward && r.winner ? r.winner.slice(0, 200) : null,
+            contractor_name: isAward && r.winner ? r.winner : null,
             deadline: isAward ? null : r.deadline,
-            agency: r.buyer ? r.buyer.slice(0, 200) : null,
+            agency: r.buyer || null,
             source_url: r.sourceUrl,
           });
         }
-
-        if (inserts.length > 0) {
-          const { error: insertError } = await supabase.from("tender_events").insert(inserts);
-          if (insertError) throw insertError;
-          inserted += inserts.length;
-        }
+        const counts = await insertNewTenderEvents(supabase, inserts);
+        inserted += counts.inserted;
+        duplicates += counts.duplicates;
       }
     }
 

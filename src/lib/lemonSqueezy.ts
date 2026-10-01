@@ -29,13 +29,24 @@ export function getLemonSqueezyEnvironment(): 'sandbox' | 'live' {
   return getAppEnvironment();
 }
 
+/**
+ * Opens checkout while the app stays in the 'sandbox' environment, so a Lemon
+ * Squeezy test-mode purchase (webhook writes environment='sandbox') unlocks the
+ * plan end-to-end. Set VITE_PAYMENTS_TEST_CHECKOUT=true on a local/preview
+ * build with the store in test mode; never on production.
+ */
+export function isTestCheckoutEnabled(): boolean {
+  return !isPaymentsLive() && (import.meta.env.VITE_PAYMENTS_TEST_CHECKOUT as string | undefined) === 'true';
+}
+
 export function isLiveCheckoutEnabled(): boolean {
   // Real checkout should open only when the go-live switch is on AND a store is
   // configured. This was inverted (`=== 'sandbox'`): it returned true while
   // still pre-launch (causing openCheckout to throw "Payments are not
   // configured yet") and false the moment VITE_PAYMENTS_LIVE flipped to true,
   // which redirected every buyer to /contact instead of opening checkout.
-  return isPaymentsLive() && isLemonSqueezyConfigured();
+  // The test-checkout switch opens it pre-launch for a sandbox round-trip.
+  return (isPaymentsLive() || isTestCheckoutEnabled()) && isLemonSqueezyConfigured();
 }
 
 export async function initializeLemonSqueezy(): Promise<void> {

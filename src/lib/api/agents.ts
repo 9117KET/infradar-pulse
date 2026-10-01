@@ -96,6 +96,12 @@ export const agentApi = {
     invokeAgentWithBody('ted-ingest-agent', { ...(opts ?? {}) }),
   runUkFtsIngest: (opts?: { days?: number; max_pages?: number; min_value_usd?: number }) =>
     invokeAgentWithBody('uk-fts-ingest-agent', { ...(opts ?? {}) }),
+  runWbProcurementIngest: (opts?: { days?: number; max_rows?: number; min_value_usd?: number }) =>
+    invokeAgentWithBody('wb-procurement-ingest-agent', { ...(opts ?? {}) }),
+  runZaEtendersIngest: (opts?: { days?: number; max_pages?: number }) =>
+    invokeAgentWithBody('za-etenders-ingest-agent', { ...(opts ?? {}) }),
+  runProjectNewsMonitor: (opts?: { limit?: number; timespan?: string }) =>
+    invokeAgentWithBody('project-news-monitor', { ...(opts ?? {}) }),
   runEntityDedup: () => invokeAgent('entity-dedup'),
   runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
   runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),
