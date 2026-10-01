@@ -11,6 +11,7 @@ import { getStoredReferralCode } from '@/lib/utm';
 import { trackEvent } from '@/lib/analytics';
 import { ShieldCheck, Sparkles, Globe } from 'lucide-react';
 
+import { PRICES } from '@/lib/billing/pricing';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -151,7 +152,7 @@ export default function Login() {
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-              <span>AI Q&A from $29/mo - ask anything about the pipeline</span>
+              <span>AI Q&A from ${PRICES.starter.monthly}/mo - ask anything about the pipeline</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-primary flex-shrink-0" />

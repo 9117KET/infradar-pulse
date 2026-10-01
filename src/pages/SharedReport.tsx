@@ -7,6 +7,7 @@ import { InfradarLogo } from '@/components/InfradarLogo';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2 } from 'lucide-react';
 
+import { PRICES } from '@/lib/billing/pricing';
 type SharedReport = {
   title: string | null;
   markdown: string | null;
@@ -98,7 +99,7 @@ export default function SharedReport() {
             )}
 
             <div className="mt-10 rounded-lg border border-primary/20 bg-primary/5 p-5 text-center">
-              <p className="text-sm font-medium">Verified, real-time infrastructure intelligence — from $29/mo.</p>
+              <p className="text-sm font-medium">Verified, real-time infrastructure intelligence — from ${PRICES.starter.monthly}/mo.</p>
               <p className="text-xs text-muted-foreground mt-1">
                 30+ AI agents track 1,600+ projects across 7 MDBs and 140 countries.
               </p>

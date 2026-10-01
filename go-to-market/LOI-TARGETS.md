@@ -149,7 +149,7 @@ Hi [Name],
 
 I noticed you [reference specific work - TTL on [Project], spoke at [Conference], manage [Region/Fund]].
 
-I'm building InfraRadar - a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, and EBRD into one AI-scored dashboard. It replaces the $3k-$200k/year incumbent platforms at $199/month.
+I'm building InfraRadar - a platform that aggregates real-time intelligence from the World Bank, IFC, ADB, AfDB, and EBRD into one AI-scored dashboard. It replaces the $3k-$200k/year incumbent platforms at $79/month.
 
 Given your work on [specific domain], I think it could cut [specific workflow] significantly.
 

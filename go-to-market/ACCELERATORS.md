@@ -75,13 +75,13 @@ All filled-out application documents are in `go-to-market/applications/`:
 > All numerical claims below should be re-verified against the live `public-stats` RPC on the day of submission.
 
 ### One-line description (140 chars)
-> InfraRadarAI replaces $5K–$200K/yr infrastructure intelligence reports with verified, real-time AI agents from $29/mo — 7 MDBs, 14 regions, 30+ agents.
+> InfraRadarAI replaces $5K–$200K/yr infrastructure intelligence reports with verified, real-time AI agents from $19/mo — 7 MDBs, 14 regions, 30+ agents.
 
 ### Problem statement
 Infrastructure investors, EPC contractors, project finance banks and DFI staff need real-time intelligence on trillions of dollars in active and planned infrastructure. The market is dominated by incumbents (MEED, GlobalData, Wood Mackenzie, IJGlobal and regional publishers) charging $3,000–$200,000/year for quarterly PDF reports written by human analysts. The reports are slow, static, generic, unverifiable and priced beyond most participants.
 
 ### Solution
-InfraRadarAI aggregates real-time project data from 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals; runs 30+ specialised AI agents to score, alert, verify and research each project; and delivers personalized intelligence from $29/month. Every record is source-linked. Unverified records are capped at 30% confidence and routed through a human-in-the-loop review queue with mandatory audit reasons. Live surfaces include AI alerts across 9 risk categories, country/sector/tender/portfolio AI report builder, satellite verification, contractor intelligence, delay prediction & early warning, geospatial map, plain-English Ask, and portfolio chat.
+InfraRadarAI aggregates real-time project data from 7 multilateral development banks (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals; runs 30+ specialised AI agents to score, alert, verify and research each project; and delivers personalized intelligence from $19/month. Every record is source-linked. Unverified records are capped at 30% confidence and routed through a human-in-the-loop review queue with mandatory audit reasons. Live surfaces include AI alerts across 9 risk categories, country/sector/tender/portfolio AI report builder, satellite verification, contractor intelligence, delay prediction & early warning, geospatial map, plain-English Ask, and portfolio chat.
 
 ### Market size
 The addressable market is infrastructure intelligence and project data: MEED alone generates $50M+/year at $5–15K/seat. GlobalData's infrastructure segment exceeds $200M/year. Total addressable market for infrastructure data and intelligence is estimated at $2–4B globally. InfraRadarAI enters at the mass-market segment currently unserved by incumbents (teams who need intelligence but cannot justify $50K+/year).
@@ -93,7 +93,7 @@ The addressable market is infrastructure intelligence and project data: MEED alo
 - 1,671 verified projects across 140 countries.
 - 5,657 classified alerts across 9 risk categories.
 - $246B+ pipeline value indexed.
-- Paddle billing live across Free / Starter $29 / Pro $199 / Enterprise / Founders Lifetime $1,499 (100 seats).
+- Paddle billing live across Free / Starter $19 / Pro $79 / Enterprise / Founders Lifetime $999 (100 seats).
 - Card-free 3-day trial; 14-day refund window; pilot-access counter live on pricing page.
 
 ### Why now
@@ -104,10 +104,10 @@ Two drivers: (1) 2026-era frontier models (Gemini 3 / GPT-5 class) make real-tim
 
 ### Revenue model
 - Free — public project discovery (no card)
-- Starter — $29/mo
-- Pro — $199/mo (delay risk, contractor intel, country/sector/tender PDFs)
+- Starter — $19/mo
+- Pro — $79/mo (delay risk, contractor intel, country/sector/tender PDFs)
 - Enterprise — custom (API, SSO/SAML, white-label, SLA)
-- Founders Lifetime — $1,499 one-time, capped at 100 seats
+- Founders Lifetime — $999 one-time, capped at 100 seats
 
 ### Competition and differentiation
 | Incumbent category | Typical price | InfraRadarAI advantage |

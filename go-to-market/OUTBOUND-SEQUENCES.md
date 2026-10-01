@@ -33,7 +33,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 >
 > Quick one. I run InfraRadarAI — verified, source-linked infrastructure intelligence across all 7 MDBs (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals. ~1,600 projects, $246B+ pipeline indexed today.
 >
-> For a fund like {Company}, the wedge is sourcing deals 6–18 months before they hit IJGlobal — with delay-risk, contractor distress and co-financing signals already attached to every project. $199/mo per origination seat replaces ~$30–50K of incumbent stack.
+> For a fund like {Company}, the wedge is sourcing deals 6–18 months before they hit IJGlobal — with delay-risk, contractor distress and co-financing signals already attached to every project. $79/mo per origination seat replaces ~$30–50K of incumbent stack.
 >
 > Open to a 10-min walkthrough this week? Or I can drop you a card-free trial link.
 >
@@ -67,7 +67,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 >
 > Right now we have {N} {Sector} projects in {Region} indexed, with contractor intelligence on each (who else is bidding, recent awards, delay risk).
 >
-> $199/mo per BD seat. Pilot one country team for a quarter — if you don't surface a winnable tender 60 days early, we refund.
+> $79/mo per BD seat. Pilot one country team for a quarter — if you don't surface a winnable tender 60 days early, we refund.
 >
 > Want a {Region} walkthrough?
 >
@@ -99,7 +99,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 >
 > Cuts the typical 2-week analyst cycle and gives the EM a defensible artefact for the client deck.
 >
-> $199/mo per seat — chargeable to the engagement. Want me to generate a sample report on {Country} and send it back to you?
+> $79/mo per seat — chargeable to the engagement. Want me to generate a sample report on {Country} and send it back to you?
 >
 > — {YourName}
 
@@ -111,7 +111,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 > {FirstName} — quick walkthrough of the report builder + Ask in plain English. 10 min, Wed or Thu?
 
 ### Touch 5 — Close-the-loop (Day 14)
-> Closing the file. Founders Lifetime is $1,499 one-time if you want personal access without an engagement-line: infradarai.com/pricing.
+> Closing the file. Founders Lifetime is $999 one-time if you want personal access without an engagement-line: infradarai.com/pricing.
 
 ---
 
@@ -128,7 +128,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 >
 > Useful 6–18 months before financial close — the window where syndication origination actually happens.
 >
-> $199/mo per origination seat to start, Enterprise (API + SSO) once the desk is on it. Open to a 10-min walkthrough?
+> $79/mo per origination seat to start, Enterprise (API + SSO) once the desk is on it. Open to a 10-min walkthrough?
 >
 > — {YourName}
 
@@ -164,7 +164,7 @@ Stop sequence on any reply, calendar booking, or trial signup.
 > — {YourName}
 
 ### Touch 3 — LinkedIn DM (Day 5)
-> {FirstName} — happy to send you a Founders Lifetime ($1,499 → free for first 25 DFI TTLs we approach) so you can use it personally without procurement. Worth a 10-min look?
+> {FirstName} — happy to send you a Founders Lifetime ($999 → free for first 25 DFI TTLs we approach) so you can use it personally without procurement. Worth a 10-min look?
 
 ### Touch 4 — Email (Day 9)
 **Subject:** 10 min + (maybe) one-line LOI?
@@ -179,6 +179,6 @@ Stop sequence on any reply, calendar booking, or trial signup.
 
 - **Always personalise {Country} / {Sector} / {N projects} / {$X B}** from the live dashboard before sending. Generic = ignored.
 - **Lead with verification**, not features — "every claim is source-linked" is the wedge.
-- **Anchor the price** ($199 vs $5K–$200K) in touch 2 of every revenue persona.
+- **Anchor the price** ($79 vs $5K–$200K) in touch 2 of every revenue persona.
 - **Founders Lifetime** is the personal-champion hook for individual decision-makers; never use it for institutional Enterprise conversations.
 - **Stop on any reply or trial signup.** Move into demo / playbook flow from `PERSONA-PLAYBOOKS.md`.

@@ -8,7 +8,7 @@
 ## One-Liners
 
 **140 chars:**
-InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $199/month - 7 MDBs, 14 regions, 50+ agents.
+InfraRadar replaces $200k/year infrastructure intelligence reports with real-time AI agents at $79/month - 7 MDBs, 14 regions, 50+ agents.
 
 **50 chars:**
 AI infrastructure intelligence, 100x cheaper
@@ -28,6 +28,20 @@ AI infrastructure intelligence, 100x cheaper
 
 ---
 
+## Pricing position (updated 1 Oct 2026)
+
+| Plan | Price | Positioned against |
+|---|---|---|
+| Free | $0 | Free portals + Google Alerts |
+| Starter | $19/mo · $180/yr | Entry funding-database plans (~€229/yr) |
+| Pro | $79/mo · $756/yr | Development-funding databases ($1,199/yr per user for the market leader); MEED Projects from $350/user/mo |
+| Founders Lifetime | $999 one-time, 100 seats | ~13 months of Pro |
+| Enterprise | Custom | Team seats, API, SSO |
+
+**Line to use:** "Pro costs less than a development-funding database seat, and a fraction of a project-database
+licence, and it's built only for infrastructure, with award winners and prices attached."
+Source of truth in code: `src/lib/billing/pricing.ts` (must match the Lemon Squeezy variants).
+
 ## Problem Statement
 
 Infrastructure investors, EPC contractors, and project finance teams need real-time intelligence on trillions of dollars in globally planned and active infrastructure projects. Today, they pay $3,000 to $200,000 per year to incumbents like MEED, GlobalData, and Wood Mackenzie for quarterly PDF reports written by human analysts. These reports are slow, static, generic, and priced out of reach for most market participants.
@@ -38,7 +52,7 @@ The underlying data is entirely public - published by the World Bank, IFC, ADB, 
 
 ## Solution
 
-InfraRadar Pulse is an AI-native intelligence platform. We aggregate real-time project data from 7 multilateral development banks, run 50+ AI agents to score, alert on, and research each project, and deliver personalized intelligence via a self-service dashboard at $199/month.
+InfraRadar Pulse is an AI-native intelligence platform. We aggregate real-time project data from 7 multilateral development banks, run 50+ AI agents to score, alert on, and research each project, and deliver personalized intelligence via a self-service dashboard at $79/month.
 
 **AI infrastructure:** The platform runs on the Lovable AI Gateway (Gemini-based). No separate OpenAI, Perplexity, or Firecrawl API keys are required - all AI inference is handled through a single managed gateway at near-zero marginal cost per query.
 
@@ -104,10 +118,10 @@ Tech stack: React/TypeScript + Supabase + Lovable AI Gateway (Gemini) + Paddle +
 |---|---|---|---|
 | Free | $0 | - | 2 AI calls/day, 1 export/day |
 | Trial | $0 | - | 3-day no-card trial, 5 AI calls/day |
-| Starter | $29/mo | $278/yr (20% off) | 20 AI calls/day, 20 exports/day |
-| Pro | $199/mo | $1,910/yr (20% off) | 100 AI calls/day, full platform |
+| Starter | $19/mo | $180/yr (20% off) | 20 AI calls/day, 20 exports/day |
+| Pro | $79/mo | $756/yr (20% off) | 100 AI calls/day, full platform |
 | Enterprise | Custom | Custom | Unlimited, API access, white-label |
-| Lifetime | $1,499 one-time | - | Limited to 100 seats |
+| Lifetime | $999 one-time | - | Limited to 100 seats |
 
 ---
 

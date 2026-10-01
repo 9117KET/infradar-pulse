@@ -28,6 +28,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCheckoutCompletion } from '@/hooks/useCheckoutCompletion';
 import { Progress } from '@/components/ui/progress';
 
+import { PRICES } from '@/lib/billing/pricing';
 interface NotifSettings {
   emailAlerts: boolean;
   weeklyDigest: boolean;
@@ -526,11 +527,11 @@ function BillingTab() {
               )}
               <Button className="teal-glow" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('starter_monthly', 'starter')}>
                 {busy === 'starter' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Subscribe Starter — $29/mo
+                Subscribe Starter — ${PRICES.starter.monthly}/mo
               </Button>
               <Button variant="outline" disabled={!!busy || checkoutLoading} onClick={() => void upgrade('pro_monthly', 'pro')}>
                 {busy === 'pro' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Subscribe Pro — $199/mo
+                Subscribe Pro — ${PRICES.pro.monthly}/mo
               </Button>
             </div>
           </>

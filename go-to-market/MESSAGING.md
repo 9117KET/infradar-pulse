@@ -9,19 +9,19 @@
 
 ## 1. One-liner (140 chars)
 
-> InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $29/month.
+> InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $19/month.
 
 (139 chars.)
 
 ## 2. 25-word pitch
 
-> InfraRadarAI is verified, real-time infrastructure intelligence: 30+ AI agents track 1,600+ projects across 7 MDBs and 140 countries — from $29/month.
+> InfraRadarAI is verified, real-time infrastructure intelligence: 30+ AI agents track 1,600+ projects across 7 MDBs and 140 countries — from $19/month.
 
 ## 3. 100-word pitch
 
 > Infrastructure BD teams, EPC contractors, lenders and consultants spend $5K–$200K a year on quarterly PDFs from MEED, GlobalData and Wood Mackenzie. The underlying data is public.
 > InfraRadarAI is the AI-native replacement: 30+ specialised agents continuously ingest 7 MDB pipelines (World Bank, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals, score every project for delay risk and confidence, and let users ask plain-English questions or generate report-quality briefs in seconds. Every record is source-linked; unverified projects are capped at 30% confidence and routed through a human review queue.
-> Live platform, Paddle billing, plans from $29/mo.
+> Live platform, Paddle billing, plans from $19/mo.
 
 ## 4. 250-word pitch
 
@@ -33,7 +33,7 @@
 >
 > Every claim is source-linked. Unverified records are capped at 30% confidence and held in a human-in-the-loop review queue with mandatory verification reasons. Three-tier RBAC, role-specific onboarding, full audit trail.
 >
-> **Pricing is the wedge.** Free tier with no credit card. Starter $29/mo, Pro $199/mo (delay scores, contractor intel, country/sector/tender PDF reports), Enterprise with API + SSO. Founders Lifetime $1,499 one-time, capped at 100 seats. Pilot access (limited free Pro window) live now.
+> **Pricing is the wedge.** Free tier with no credit card. Starter $19/mo, Pro $79/mo (delay scores, contractor intel, country/sector/tender PDF reports), Enterprise with API + SSO. Founders Lifetime $999 one-time, capped at 100 seats. Pilot access (limited free Pro window) live now.
 >
 > Live at infradarai.com.
 
@@ -57,7 +57,7 @@ The data is public, structured-enough, and updated daily, but spread across 7 MD
 
 ## 6. Solution statement
 
-InfraRadarAI is a verified-intelligence command center for global infrastructure. 30+ AI agents discover, enrich, score and monitor projects across 7 MDBs, 20+ procurement portals and 9 risk-signal categories. Every record carries a source URL and a confidence score; unverified records are capped at 30% confidence and routed through a human review queue with mandatory audit reasons. Users explore via filters, a Leaflet-based geospatial map, plain-English Ask, portfolio chat, country/sector/tender/portfolio AI report builders, and a tracked-project portfolio with custom alert rules. Free, Starter ($29/mo), Pro ($199/mo), Enterprise tiers; card-free trial; Founders Lifetime $1,499.
+InfraRadarAI is a verified-intelligence command center for global infrastructure. 30+ AI agents discover, enrich, score and monitor projects across 7 MDBs, 20+ procurement portals and 9 risk-signal categories. Every record carries a source URL and a confidence score; unverified records are capped at 30% confidence and routed through a human review queue with mandatory audit reasons. Users explore via filters, a Leaflet-based geospatial map, plain-English Ask, portfolio chat, country/sector/tender/portfolio AI report builders, and a tracked-project portfolio with custom alert rules. Free, Starter ($19/mo), Pro ($79/mo), Enterprise tiers; card-free trial; Founders Lifetime $999.
 
 ---
 
@@ -84,7 +84,7 @@ InfraRadarAI is a verified-intelligence command center for global infrastructure
 - **20+** procurement portals automated
 - **9** risk-signal categories tracked: Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security
 - **10** product modules live (monitoring, satellite verification, multi-source validation, geospatial intel, delay prediction, contractor intel, risk/anomaly signals, procurement monitoring, AI market reports, Ask in plain English)
-- **Live billing** via Paddle: Free, Starter $29/mo, Pro $199/mo, Enterprise custom, Founders Lifetime $1,499 (cap 100 seats)
+- **Live billing** via Paddle: Free, Starter $19/mo, Pro $79/mo, Enterprise custom, Founders Lifetime $999 (cap 100 seats)
 - **Card-free 3-day trial** + pilot-access counter (first N signups → Pro for N days, no card)
 - **3-tier RBAC** (User / Researcher / Admin), interactive 6-step onboarding, mandatory verification audit trail
 - **[VERIFY] paid conversions to date** — pull from `subscriptions` table before quoting publicly
@@ -95,7 +95,7 @@ InfraRadarAI is a verified-intelligence command center for global infrastructure
 
 | Incumbent category | Typical price | Cadence | Where InfraRadarAI wins |
 |---|---|---|---|
-| Regional intelligence publisher (e.g. MEED) | $5K–$15K/yr | Quarterly PDF | Real-time, 7 MDBs not 1, plain-English Ask, $29 entry |
+| Regional intelligence publisher (e.g. MEED) | $5K–$15K/yr | Quarterly PDF | Real-time, 7 MDBs not 1, plain-English Ask, $19 entry |
 | Global market research (e.g. GlobalData) | $10K–$50K/yr | Static reports | Live data + on-demand AI report builder vs static |
 | Energy / commodity research (e.g. Wood Mackenzie) | $50K–$200K/yr | Annual research | 100x cheaper, infrastructure-specific, verified sources |
 | Project finance terminal (e.g. IJGlobal) | $20K–$100K/yr | Financial feeds | Adds delay prediction, contractor intel, satellite verification |
@@ -124,7 +124,7 @@ InfraRadarAI is a verified-intelligence command center for global infrastructure
 |---|---|---|---|
 | 1 | "How is this different from MEED / GlobalData?" | They sell a quarterly PDF written by humans. We sell a live platform: 7 MDBs aggregated, plain-English Ask, AI report builder, alerts, satellite verification, contractor intel — at 1/100th the price. | Send pricing page + 5-min demo video |
 | 2 | "Can we trust AI-generated infrastructure data?" | Every record has a source URL. Unverified projects are capped at 30% confidence by design. A researcher must approve and supply a written verification reason before a record is trusted. Three-tier RBAC controls who can change what. | Send Verified-Intelligence page + audit trail screenshot |
-| 3 | "Our procurement / IT can't approve another SaaS." | Free tier requires no card and no procurement. Individual analyst can run a $29 Starter on a personal card. Enterprise contract with SSO/SAML, API, white-label and SLA exists when you're ready. | Free signup link + Enterprise one-pager |
+| 3 | "Our procurement / IT can't approve another SaaS." | Free tier requires no card and no procurement. Individual analyst can run a $19 Starter on a personal card. Enterprise contract with SSO/SAML, API, white-label and SLA exists when you're ready. | Free signup link + Enterprise one-pager |
 | 4 | "We already have a $30K MEED subscription." | Run InfraRadarAI Pro for one quarter ($600). If it doesn't surface 5 tenders MEED missed, keep the MEED renewal. We'll show you the gap analysis live. | Side-by-side gap-analysis demo |
 | 5 | "Is the data really real-time?" | Ingest agents run daily across 7 MDBs and 20+ procurement portals. 5,657 classified alerts in our system today; new MDB awards typically appear within 24h of public posting. Compare any tender on the platform vs the source URL — same timestamp. | Live platform + alert feed screenshot |
 
@@ -133,7 +133,7 @@ InfraRadarAI is a verified-intelligence command center for global infrastructure
 ## 12. Anchors and language to reuse verbatim
 
 - "Verified infrastructure intelligence for high-stakes decisions" (hero)
-- "Replaces $5K–$200K/year reports with real-time AI agents from $29/month"
+- "Replaces $5K–$200K/year reports with real-time AI agents from $19/month"
 - "7 MDBs · 14 regions · 30+ agents · 9 risk-signal categories"
 - "Source-linked. Confidence-scored. Human-reviewed."
 - "Ask in plain English"

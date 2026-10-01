@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Seo } from '@/components/Seo';
 
+import { PRICES } from '@/lib/billing/pricing';
 type ChipExample = {
   prompt: string;
   filters: Record<string, unknown>;
@@ -347,7 +348,7 @@ export default function AskDemo() {
                       <p className="text-sm font-medium mb-1">
                         Want to see all {result.projects.length === MAX_RESULTS ? '1,600+' : result.projects.length} results, set alerts, and export?
                       </p>
-                      <p className="text-xs text-muted-foreground mb-4">Free account gives 5 AI queries/day (earn +3/day per referral). Starter ($29/mo) gives 20/day + alert rules + exports.</p>
+                      <p className="text-xs text-muted-foreground mb-4">Free account gives 5 AI queries/day (earn +3/day per referral). Starter (${PRICES.starter.monthly}/mo) gives 20/day + alert rules + exports.</p>
                       <div className="flex flex-col sm:flex-row gap-2 justify-center">
                         <Button className="teal-glow" asChild>
                           <Link to="/login">Create free account</Link>
