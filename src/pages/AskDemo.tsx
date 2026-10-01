@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Sparkles, Search, Loader2, Info, MapPin, TrendingUp, AlertTriangle, ArrowRight, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +84,11 @@ async function describeFunctionError(fnError: unknown): Promise<Error> {
 }
 
 export default function AskDemo() {
-  const [query, setQuery] = useState('');
+  // ?q= pre-fills the box so outreach links can open on a question relevant to
+  // the recipient. It never auto-runs: email link scanners open links too, and
+  // would burn the visitor's free queries before they arrive.
+  const [searchParams] = useSearchParams();
+  const [query, setQuery] = useState(() => (searchParams.get('q') ?? '').slice(0, 300));
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DemoResult | null>(null);
   const [error, setError] = useState<string | null>(null);
