@@ -4,6 +4,9 @@
  * Supports BOTH connection modes:
  *   - direct API  (FIRECRAWL_API_KEY starts with "fc-") → https://api.firecrawl.dev/v2
  *   - gateway     (Lovable connection key, "lovc_")     → connector gateway
+ *   - self-hosted (FIRECRAWL_API_URL set, e.g. http://firecrawl:3002) → the
+ *     open-source Firecrawl server (github.com/firecrawl/firecrawl, AGPL-3.0).
+ *     No credits; the key is optional (only sent when present).
  *
  * The project's Firecrawl connection is direct-API; calling the gateway with an
  * `fc-` key returns 401 "Credential not found", which silently disabled every
@@ -24,25 +27,34 @@ function firecrawlKey(): string {
   return (Deno.env.get("FIRECRAWL_API_KEY") ?? "").trim();
 }
 
-/** Direct provider key (fc-*) → call Firecrawl directly, never the gateway. */
+/** Self-hosted Firecrawl base URL (no trailing slash), or "" when unset. */
+function selfHostedUrl(): string {
+  return (Deno.env.get("FIRECRAWL_API_URL") ?? "").trim().replace(/\/+$/, "");
+}
+
+/** Direct provider key (fc-*) or a self-hosted server → never the gateway. */
 function isDirectMode(): boolean {
-  return firecrawlKey().startsWith("fc-");
+  return Boolean(selfHostedUrl()) || firecrawlKey().startsWith("fc-");
 }
 
 export function isFirecrawlConfigured(): boolean {
+  if (selfHostedUrl()) return true;
   const key = firecrawlKey();
   if (!key) return false;
   return isDirectMode() || Boolean(Deno.env.get("LOVABLE_API_KEY"));
 }
 
 function baseUrl(): string {
+  if (selfHostedUrl()) return `${selfHostedUrl()}/v2`;
   return isDirectMode() ? `${DIRECT_URL}/v2` : `${GATEWAY_URL}/v2`;
 }
 
 function headers(): Record<string, string> {
   const key = firecrawlKey();
   if (isDirectMode()) {
-    return { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+    return key
+      ? { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }
+      : { "Content-Type": "application/json" };
   }
   const lovable = Deno.env.get("LOVABLE_API_KEY");
   if (!lovable) throw new Error("LOVABLE_API_KEY missing");
@@ -62,7 +74,12 @@ function headers(): Record<string, string> {
  * seeing transient failures as "no data found".
  * ------------------------------------------------------------------------- */
 
-const MIN_REQUEST_SPACING_MS = 5_000; // ~12 req/min
+// Default ~12 req/min (hosted free plan). Paid plans and self-hosted servers
+// can raise throughput with FIRECRAWL_MIN_SPACING_MS (e.g. 500, or 0).
+const MIN_REQUEST_SPACING_MS = (() => {
+  const v = Number(Deno.env.get("FIRECRAWL_MIN_SPACING_MS"));
+  return Number.isFinite(v) && v >= 0 ? v : 5_000;
+})();
 const MAX_ATTEMPTS = 3;
 const MAX_BACKOFF_MS = 8_000;
 
@@ -188,5 +205,65 @@ export async function firecrawlScrape(
   } catch (e) {
     console.error("firecrawl scrape error", e);
     return null;
+  }
+}
+
+/**
+ * Structured extraction from one page: Firecrawl's LLM fills `schema`
+ * (a JSON Schema object) from the page content. Use for tender notices,
+ * award pages and project fact sheets where we want typed fields rather than
+ * markdown. Returns the extracted object (plus the page markdown when
+ * `includeMarkdown`), or null.
+ */
+export async function firecrawlExtract<T = Record<string, unknown>>(
+  url: string,
+  schema: Record<string, unknown>,
+  opts: { prompt?: string; includeMarkdown?: boolean; onlyMainContent?: boolean } = {},
+): Promise<{ url: string; data: T; markdown?: string; title?: string } | null> {
+  if (!isFirecrawlConfigured()) return null;
+  try {
+    const formats: unknown[] = [{ type: "json", schema, ...(opts.prompt ? { prompt: opts.prompt } : {}) }];
+    if (opts.includeMarkdown) formats.push("markdown");
+    const res = await firecrawlRequest("/scrape", {
+      url,
+      formats,
+      onlyMainContent: opts.onlyMainContent ?? true,
+    }, `extract:${url}`);
+    if (!res) return null;
+    const body = await res.json();
+    const doc = body?.data ?? body;
+    if (!doc?.json || typeof doc.json !== "object") return null;
+    return { url, data: doc.json as T, markdown: doc?.markdown, title: doc?.metadata?.title };
+  } catch (e) {
+    console.error("firecrawl extract error", e);
+    return null;
+  }
+}
+
+/**
+ * Discover URLs on a site without scraping them (Firecrawl /map). `search`
+ * ranks results by relevance, e.g. map a procurement portal for "tender".
+ */
+export async function firecrawlMap(
+  url: string,
+  opts: { search?: string; limit?: number; includeSubdomains?: boolean } = {},
+): Promise<{ url: string; title?: string; description?: string }[]> {
+  if (!isFirecrawlConfigured()) return [];
+  try {
+    const res = await firecrawlRequest("/map", {
+      url,
+      search: opts.search,
+      limit: opts.limit ?? 100,
+      includeSubdomains: opts.includeSubdomains ?? false,
+    }, `map:${url}`);
+    if (!res) return [];
+    const body = await res.json();
+    const links: unknown[] = body?.links ?? body?.data?.links ?? [];
+    return links
+      .map((l) => (typeof l === "string" ? { url: l } : (l as { url: string; title?: string; description?: string })))
+      .filter((l) => typeof l?.url === "string" && l.url.startsWith("http"));
+  } catch (e) {
+    console.error("firecrawl map error", e);
+    return [];
   }
 }

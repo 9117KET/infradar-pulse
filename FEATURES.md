@@ -38,7 +38,7 @@ Top-5 high-leverage features identified in product review. **Full build specs (d
 
 | # | Feature | Status | Effort | Notes |
 |---|---|---|---|---|
-| 1 | Weekly Email Digest Delivery | 🔲 Todo | 2–3 days | Reuses `digest-agent` + `process-email-queue` |
+| 1 | Weekly Email Digest Delivery | ✅ Done | — | `digest-agent` (daily) and `weekly-signal-agent` send via `send-transactional-email` |
 | 2 | Natural Language Project Search | ✅ Done | 3–4 days | `/dashboard/ask` + `nl-search` edge fn (Lovable AI) |
 | 3 | Win-Probability Score per Project | 🔲 Todo | 4–5 days | New `project_scores` table + nightly agent |
 | 4 | AI Market Report Builder | ✅ Done | MVP shipped | Scoped country/sector/tender/portfolio reports from live projects, alerts and citations |
@@ -84,7 +84,7 @@ Heavier implementation or new infrastructure required.
 | **Tender Events Migration** — dedicated `tender_events` table | 🔲 Todo | `supabase/migrations/` | Replace Phase A alert-based query with proper schema |
 | **Country Intel — Phase 2** — news sentiment + political risk per country | 🔲 Todo | TBD | Requires new edge function calling external APIs |
 | **Team Collaboration** — shared workspaces for enterprise | 🔲 Todo | TBD | Requires `workspaces` table, team membership, shared project lists |
-| **Weekly Digest Email Delivery** — email opt-in for digests | 🔲 Todo | TBD | Backend generates digests; add email delivery via Resend/Postmark |
+| **Weekly Digest Email Delivery** — email opt-in for digests | ✅ Done | `supabase/functions/digest-agent`, `weekly-signal-agent` | Templates `digest-email`, `weekly-signal` |
 
 ---
 

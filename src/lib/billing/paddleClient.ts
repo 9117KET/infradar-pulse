@@ -1,6 +1,6 @@
 // Thin wrappers used by Settings → Billing for plan changes, cancel, portal,
 // and account export/delete. All call edge functions; the user must be signed in.
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { getPaddleEnvironment } from '@/lib/paddle';
 
 export async function openCustomerPortal(): Promise<void> {
@@ -51,7 +51,7 @@ export async function exportAccountData(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Sign in required');
 
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/account-export`;
+  const url = `${SUPABASE_URL}/functions/v1/account-export`;
   const res = await fetch(url, {
     method: 'GET',
     headers: { Authorization: `Bearer ${session.access_token}` },

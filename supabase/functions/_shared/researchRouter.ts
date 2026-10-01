@@ -3,8 +3,8 @@
  * BOTH narrative text and grounded citations.
  *
  * Routing:
- *   monitoring  → Perplexity sonar       (fallback: Firecrawl search)
- *   deep        → Perplexity sonar-pro   (fallback: Firecrawl search + scrape)
+ *   monitoring  → Perplexity sonar       (fallback: Firecrawl → SearXNG search)
+ *   deep        → Perplexity sonar-pro   (fallback: Firecrawl → SearXNG search + scrape)
  *   extraction  → Firecrawl scrape       (caller supplies URL)
  *
  * If both providers fail we degrade to Lovable AI narrative-only with
@@ -19,7 +19,7 @@
  */
 
 import { callPerplexity, isPerplexityConfigured } from "./perplexityClient.ts";
-import { firecrawlSearch, isFirecrawlConfigured } from "./firecrawlClient.ts";
+import { isWebSearchAvailable, webSearch } from "./scrapeRouter.ts";
 import { runResearchPrompt } from "./webResearch.ts";
 import { filterPlausibleUrls } from "./urlHygiene.ts";
 
@@ -28,7 +28,7 @@ export type ResearchMode = "monitoring" | "deep" | "extraction";
 export type ResearchResult = {
   text: string;
   citations: string[];
-  provider: "perplexity" | "firecrawl" | "lovable";
+  provider: "perplexity" | "firecrawl" | "searxng" | "lovable";
   degraded: boolean;
 };
 
@@ -75,11 +75,12 @@ export async function research(params: {
     }
   }
 
-  // 2. Firecrawl search (+ scrape for deep research)
-  if (tryFirecrawl && isFirecrawlConfigured() && pref !== "lovable") {
-    const results = await firecrawlSearch(params.userPrompt, {
+  // 2. Web search (+ scrape for deep research): Firecrawl, then SearXNG
+  if (tryFirecrawl && isWebSearchAvailable()) {
+    const results = await webSearch(params.userPrompt, {
       limit: mode === "deep" ? 6 : 4,
       scrape: mode === "deep",
+      recency: params.recency,
     });
     if (results.length > 0) {
       const narrative = results
@@ -88,7 +89,7 @@ export async function research(params: {
       return {
         text: narrative,
         citations: filterPlausibleUrls(results.map((r) => r.url)),
-        provider: "firecrawl",
+        provider: results[0].provider,
         degraded: false,
       };
     }

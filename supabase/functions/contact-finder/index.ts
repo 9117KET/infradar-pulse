@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
-import { firecrawlScrape, getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
+import { getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
+import { isScrapingAvailable, scrapeUrl } from "../_shared/scrapeRouter.ts";
 import { escalateToHuman } from "../_shared/escalate.ts";
 import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { isPlausibleSourceUrl } from "../_shared/urlHygiene.ts";
@@ -239,13 +240,14 @@ function noteAiBlocked(status: number): void {
 
 async function harvestFromOwnPage(supabase: any, project: Project): Promise<{ contacts: number; links: string[] }> {
   const pageUrl = httpUrl(project.source_url);
-  if (!pageUrl || !isFirecrawlConfigured() || !isLlmConfigured()) return { contacts: 0, links: [] };
+  if (!pageUrl || !isScrapingAvailable() || !isLlmConfigured()) return { contacts: 0, links: [] };
 
-  const page = await firecrawlScrape(pageUrl, { formats: ["markdown", "links"], onlyMainContent: true });
+  // Firecrawl first, then open-source fallbacks (Jina Reader, plain fetch).
+  const page = await scrapeUrl(pageUrl);
   if (!page) {
     // Distinguish a scrape failure (rate limit / site error, retried already)
     // from a page that genuinely lists no contacts.
-    const failure = getLastFirecrawlFailure();
+    const failure = isFirecrawlConfigured() ? getLastFirecrawlFailure() : null;
     await recordAgentEvent(
       supabase,
       AGENT_TYPE,

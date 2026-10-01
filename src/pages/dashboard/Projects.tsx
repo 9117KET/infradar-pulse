@@ -23,7 +23,7 @@ import { Search, Download, Bookmark, Plus, AlertTriangle, Activity, ShieldCheck,
 import { useToast } from '@/hooks/use-toast';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel, downloadXlsx } from '@/lib/billing/exportCaps';
+import { applyExportCap, buildCsvHeaderComment, csvCell, buildWatermarkLabel, downloadXlsx } from '@/lib/billing/exportCaps';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   PieChart, Pie, Cell, BarChart, Bar,
@@ -219,7 +219,7 @@ export default function Projects() {
     const rows = capped.rows.map(p => [p.name, p.country, p.region, p.sector, p.stage, p.valueLabel, `${p.confidence}%`, p.status, p.healthScore ?? '', p.delayProbability != null ? `${Math.round(p.delayProbability * 100)}%` : '', p.lastUpdated]);
     const preamble = buildCsvHeaderComment(watermark, capped);
     const csv = [...preamble, headers, ...rows].map(r =>
-      Array.isArray(r) ? r.map(c => `"${c}"`).join(',') : r,
+      Array.isArray(r) ? r.map(csvCell).join(',') : r,
     ).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);

@@ -13,6 +13,7 @@ export type PublicProjectLocation = {
   region: string | null;
   value_usd: number | null;
   stage: string | null;
+  status: string | null;
 };
 
 const QUERY_KEY = ['public-project-locations'] as const;
@@ -41,7 +42,7 @@ async function fetchLocations(): Promise<PublicProjectLocation[]> {
   for (let i = 0; i < 50; i++) {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, lat, lng, risk_score, sector, name, country, region, value_usd, stage')
+      .select('id, lat, lng, risk_score, sector, name, country, region, value_usd, stage, status')
       .eq('approved', true)
       .not('lat', 'is', null)
       .not('lng', 'is', null)

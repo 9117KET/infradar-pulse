@@ -34,6 +34,7 @@ const AGENTS = [
   { type: 'gem-ingest', name: 'GEM Power Tracker', icon: Globe, schedule: 'Hourly (backfill)', scheduleMinutes: 60, fn: () => agentApi.runGemIngest({ mode: 'backfill' }) },
   { type: 'eib-ingest', name: 'EIB Ingest', icon: Globe, schedule: 'Hourly (backfill)', scheduleMinutes: 60, fn: () => agentApi.runEibIngest({ mode: 'backfill' }) },
   { type: 'ted-ingest', name: 'TED Tenders', icon: Gavel, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runTedIngest({ days: 3 }) },
+  { type: 'uk-fts-ingest', name: 'UK Find a Tender', icon: Gavel, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runUkFtsIngest({ days: 2 }) },
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
   { type: 'health-scoring', name: 'Health Score', icon: Heart, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runHealthScoreAgent },

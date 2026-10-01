@@ -153,6 +153,7 @@ Analyze if there are meaningful changes. Return JSON with:
                       message: analysis.alert_message,
                       category: "construction",
                       source_url: null,
+                      origin: "ai_agent",
                     });
                     alertsCreated++;
                   }

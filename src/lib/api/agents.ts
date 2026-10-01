@@ -94,6 +94,8 @@ export const agentApi = {
   /** TED EU procurement notices (CPV 45*) → tender_events. */
   runTedIngest: (opts?: { days?: number; limit?: number; min_value_usd?: number }) =>
     invokeAgentWithBody('ted-ingest-agent', { ...(opts ?? {}) }),
+  runUkFtsIngest: (opts?: { days?: number; max_pages?: number; min_value_usd?: number }) =>
+    invokeAgentWithBody('uk-fts-ingest-agent', { ...(opts ?? {}) }),
   runEntityDedup: () => invokeAgent('entity-dedup'),
   runCorporateMaMonitor: () => invokeAgent('corporate-ma-monitor'),
   runEsgSocialMonitor: () => invokeAgent('esg-social-monitor'),

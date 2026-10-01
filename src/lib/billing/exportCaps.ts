@@ -34,6 +34,17 @@ export function buildWatermarkLabel(email: string | null | undefined): string {
 }
 
 /**
+ * Quote one CSV cell. Embedded quotes are doubled (RFC 4180) and values that
+ * a spreadsheet would evaluate as a formula (= + - @, tab, CR) are prefixed
+ * with a single quote so scraped project names cannot inject formulas.
+ */
+export function csvCell(value: unknown): string {
+  let s = value == null ? '' : String(value);
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+/**
  * CSV header preamble explaining the watermark. Spreadsheets ignore lines
  * starting with `#` only in some tools, so we prefix with an extra column
  * inside quotes to keep the file valid CSV everywhere.

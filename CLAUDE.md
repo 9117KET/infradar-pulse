@@ -18,6 +18,7 @@ All Edge Functions import from `supabase/functions/_shared/`. The key modules:
 | `billing.ts` | `PLAN_LIMITS`, `PlanKey`, `resolvePlanKeyFromPriceId` - source of truth for server-side limits |
 | `requireStaff.ts` / `requireAi.ts` | Auth guards that return early with 401/403 for non-staff or unconfigured AI |
 | `llm.ts` | `chatCompletions(body)` - wraps Lovable AI Gateway `/chat/completions`; reads auto-provisioned `LOVABLE_API_KEY` and optional `LLM_MODEL`/`LOVABLE_AI_MODEL` |
+| `scrapeRouter.ts` | `scrapeUrl(url)` / `webSearch(q)` - the one place agents should scrape or search. Cascades Firecrawl (hosted or self-hosted via `FIRECRAWL_API_URL`) → Jina Reader → plain fetch, and Firecrawl search → SearXNG. Fallbacks live in `openScrape.ts`. For typed fields from a page use `firecrawlExtract(url, jsonSchema)`; to discover a portal's URLs use `firecrawlMap` |
 | `webResearch.ts` / `agentResearch.ts` | Lovable AI-first research helpers for agents. MVP agents must not require Perplexity, OpenAI, Firecrawl or other external credits to complete. |
 
 **Critical:** `supabase/functions/_shared/billing.ts` and `src/lib/billing/limits.ts` define the same `PLAN_LIMITS` constants. They must stay in sync manually - there is no shared source.
@@ -55,6 +56,8 @@ Five multilateral development bank ingest agents exist for pulling project data:
 - `adb-ingest-agent` - supports `limit`
 - `afdb-ingest-agent`
 - `ebrd-ingest-agent`
+
+Procurement feeds write to `tender_events` (not `projects`): `ted-ingest-agent` (EU TED) and `uk-fts-ingest-agent` (UK Find a Tender, OCDS). FTS returns 403 to Deno's default User-Agent, so always send one.
 
 These are triggered from `AgentMonitoring` dashboard (`/dashboard/agents`) and via `agentApi.run*Ingest()`.
 
