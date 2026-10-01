@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 import { requireAiEntitlementOrRespond } from "../_shared/requireAi.ts";
 
 const corsHeaders = {
@@ -95,13 +96,9 @@ serve(async (req) => {
       evidence: (evidence ?? []).filter((e) => e.project_id === p.id).slice(0, 8),
     }));
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("AI gateway not configured");
+    if (!isLlmConfigured()) throw new Error("AI gateway not configured");
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const aiResp = await chatCompletions({
         model: "google/gemini-3-flash-preview",
         messages: [
           {
@@ -116,8 +113,7 @@ serve(async (req) => {
           ...messages,
         ],
         temperature: 0.25,
-      }),
-    });
+      });
 
     if (aiResp.status === 429) {
       return new Response(JSON.stringify({ error: "AI is rate limited. Please try again in a moment." }), {
