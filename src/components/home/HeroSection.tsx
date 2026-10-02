@@ -22,7 +22,7 @@ export function HeroSection() {
       country: p.country,
       sector: p.sector,
       stage: p.stage ?? '',
-      status: 'Verified',
+      status: p.status ?? 'Pending',
       valueUsd: p.value_usd ?? 0,
       valueLabel: p.value_usd ? formatPipelineValue(p.value_usd) : '',
       riskScore: p.risk_score,

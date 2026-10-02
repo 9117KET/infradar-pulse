@@ -280,7 +280,7 @@ Use these filter combinations for systematic outreach:
 
 ### Why These Numbers
 
-- 1 month of Pro ($199) for a referral who pays ≥1 month is break-even on month 2 — acceptable at this stage when LTV is unknown
+- 1 month of Pro ($79) for a referral who pays ≥1 month is break-even on month 2 — acceptable at this stage when LTV is unknown
 - 15% partner commission is below industry standard for B2B SaaS (20-30%) but appropriate while the product is pre-scale; revisit at $10K MRR
 
 ---
@@ -309,9 +309,9 @@ All three must be true:
 ### Standard Self-Serve (no negotiation needed)
 
 - Free: Entry point for discovery; no credit card
-- Starter: $29/mo — individual analyst or small team trial
-- Pro: $199/mo — primary target for paying DFI analysts and fund associates
-- Lifetime: $1,499 one-time — pitch to individuals who commit early; scarcity (100 seats)
+- Starter: $19/mo — individual analyst or small team trial
+- Pro: $79/mo — primary target for paying DFI analysts and fund associates
+- Lifetime: $999 one-time — pitch to individuals who commit early; scarcity (100 seats)
 
 ### BD / Enterprise Negotiation Ranges
 

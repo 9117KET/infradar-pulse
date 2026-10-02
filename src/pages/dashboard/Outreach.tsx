@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Plus, Check, X, Copy, Sparkles, Mail, Linkedin, Users, ExternalLink } from 'lucide-react';
+import { Send, Plus, Check, X, Copy, Sparkles, Mail, Linkedin, Users, ExternalLink, Upload } from 'lucide-react';
+import { parseProspectCsv, prospectKey } from '@/lib/outreach/prospectCsv';
 
 const db = supabase as any;
 
@@ -104,6 +105,7 @@ export default function Outreach() {
   const [editBody, setEditBody] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState(emptyProspect);
+  const csvInput = useRef<HTMLInputElement>(null);
 
   const { data: messages = [], isLoading: msgLoading } = useQuery<OutreachMessage[]>({
     queryKey: ['outreach-messages'],
@@ -238,6 +240,38 @@ export default function Outreach() {
       setForm(emptyProspect);
     },
     onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const importProspects = useMutation({
+    mutationFn: async (file: File) => {
+      const { rows, errors } = parseProspectCsv(await file.text());
+      // Skip anyone already in the list so a re-import never double-sequences a contact.
+      const known = new Set(prospects.map((p) => prospectKey(p)));
+      const fresh = rows.filter((r) => {
+        const k = prospectKey(r);
+        if (known.has(k)) return false;
+        known.add(k);
+        return true;
+      });
+      if (fresh.length > 0) {
+        const { error } = await db.from('outreach_prospects').insert(fresh);
+        if (error) throw error;
+      }
+      return { added: fresh.length, duplicates: rows.length - fresh.length, errors };
+    },
+    onSuccess: ({ added, duplicates, errors }) => {
+      qc.invalidateQueries({ queryKey: ['outreach-prospects'] });
+      const issues = errors.slice(0, 3).map((e) => `line ${e.line}: ${e.message}`).join('; ');
+      toast({
+        title: `Imported ${added} prospect${added === 1 ? '' : 's'}`,
+        description: [
+          duplicates ? `${duplicates} already in the list` : '',
+          errors.length ? `${errors.length} skipped (${issues}${errors.length > 3 ? '…' : ''})` : '',
+        ].filter(Boolean).join(' · ') || undefined,
+        variant: errors.length && !added ? 'destructive' : undefined,
+      });
+    },
+    onError: (e: Error) => toast({ title: 'Import failed', description: e.message, variant: 'destructive' }),
   });
 
   const copyText = (text: string) => {
@@ -375,7 +409,27 @@ export default function Outreach() {
 
         {/* ---------- Prospects ---------- */}
         <TabsContent value="prospects" className="space-y-2 mt-4">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <input
+              ref={csvInput}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) importProspects.mutate(file);
+                e.target.value = '';
+              }}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={importProspects.isPending}
+              onClick={() => csvInput.current?.click()}
+              title="Columns: name (required), org, role, email, linkedin_url, persona, wave, region, sector, source_url, notes"
+            >
+              <Upload className="h-4 w-4 mr-1" />{importProspects.isPending ? 'Importing…' : 'Import CSV'}
+            </Button>
             <Button size="sm" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" />Add prospect</Button>
           </div>
           {prospectLoading ? (

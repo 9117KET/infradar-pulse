@@ -24,10 +24,10 @@
 
 **What they buy today.** $30K–$150K/yr stack: Wood Mackenzie / GlobalData + IJGlobal + bespoke consultants + manual MDB scraping.
 
-**What we sell them.** Pro $199/mo per seat, with Enterprise upgrade for SSO + API once 5+ seats. Founders Lifetime as a hook for the first deal-team champion.
+**What we sell them.** Pro $79/mo per seat, with Enterprise upgrade for SSO + API once 5+ seats. Founders Lifetime as a hook for the first deal-team champion.
 
 **Message (cold).**
-> {FirstName} — building a verified pipeline view for infra PE that aggregates all 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals into one ranked feed, with delay-risk and contractor-distress signals on every project. ~1,600 projects, $246B+ pipeline indexed. Replaces ~$50K of incumbent stack at $199/mo. 5-min demo?
+> {FirstName} — building a verified pipeline view for infra PE that aggregates all 7 MDBs (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals into one ranked feed, with delay-risk and contractor-distress signals on every project. ~1,600 projects, $246B+ pipeline indexed. Replaces ~$50K of incumbent stack at $79/mo. 5-min demo?
 
 **Demo path (15 min).**
 1. **Geospatial map + filters** — show their target region/sector in 2 clicks.
@@ -36,7 +36,7 @@
 4. **AI Market Report Builder** — generate a country/sector report live.
 5. **Portfolio Chat** — ask "which of my tracked assets has worsening contractor signals this quarter?".
 
-**Close.** "$199/mo per seat, card-free trial, 14-day refund. Three deal-team seats covers your whole origination team. Want me to set up the trial now or send a Lifetime link first?"
+**Close.** "$79/mo per seat, card-free trial, 14-day refund. Three deal-team seats covers your whole origination team. Want me to set up the trial now or send a Lifetime link first?"
 
 **Objection map.**
 - "We already have IJGlobal." → IJGlobal records deals at financial close. We surface 6–18 months earlier from MDB pipeline + procurement.
@@ -50,7 +50,7 @@
 
 **What they buy today.** $30K–$80K MEED + tender aggregators + a paid country consultant. Mostly reactive.
 
-**What we sell them.** Pro $199/mo per BD seat, Enterprise once a country team adopts. Founders Lifetime for the first regional champion.
+**What we sell them.** Pro $79/mo per BD seat, Enterprise once a country team adopts. Founders Lifetime for the first regional champion.
 
 **Message (cold).**
 > {FirstName} — we surface MDB tenders 6–18 months before public RFP across WB, IFC, ADB, AfDB, EBRD, AIIB, IADB plus 20+ procurement portals — with contractor intelligence and delay scores attached. {Region} pipeline is {N} active projects worth ${X}B in our index right now. 10-min walkthrough?
@@ -62,7 +62,7 @@
 4. **Alert rules** — "alert me when any {sector} project in {country} moves to RFP".
 5. **Tender / Awards page** — past awards, who won, average value.
 
-**Close.** "$199/mo per BD seat. Pilot one country team for a quarter; if you don't surface a winnable tender 60 days early, we refund."
+**Close.** "$79/mo per BD seat. Pilot one country team for a quarter; if you don't surface a winnable tender 60 days early, we refund."
 
 ---
 
@@ -72,10 +72,10 @@
 
 **What they buy today.** Per-project research budget — analyst time + ad-hoc MEED / GlobalData seats + freelance research.
 
-**What we sell them.** Pro $199/mo per team seat (charged to engagement). AI Market Report Builder is the killer feature.
+**What we sell them.** Pro $79/mo per team seat (charged to engagement). AI Market Report Builder is the killer feature.
 
 **Message (cold).**
-> {FirstName} — for your {country/sector} engagements: we generate verified, source-linked country and sector reports on demand — across 7 MDBs and 20+ procurement portals, ~1,600 projects indexed. Cuts the 2-week analyst cycle to 20 minutes. $199/mo per seat, charge it to the engagement. Want a sample report on {country}?
+> {FirstName} — for your {country/sector} engagements: we generate verified, source-linked country and sector reports on demand — across 7 MDBs and 20+ procurement portals, ~1,600 projects indexed. Cuts the 2-week analyst cycle to 20 minutes. $79/mo per seat, charge it to the engagement. Want a sample report on {country}?
 
 **Demo path.**
 1. Generate a **country report PDF** live.
@@ -93,7 +93,7 @@
 
 **What they buy today.** IJGlobal + Refinitiv + sector specialists.
 
-**What we sell them.** Pro $199/mo per origination seat → Enterprise for syndication desk (API + SSO).
+**What we sell them.** Pro $79/mo per origination seat → Enterprise for syndication desk (API + SSO).
 
 **Message (cold).**
 > {FirstName} — building cross-MDB pipeline visibility for project finance: all 7 MDBs and 20+ procurement portals in one ranked feed, with co-financing and contractor signals attached. Useful for syndication origination 6–18 months before financial close. 10-min walkthrough?
@@ -114,7 +114,7 @@
 
 **Why they matter.** Long revenue cycle (institutional procurement) but **highest credibility / LOI value**. Use for testimonials, conference panels, Series A materials.
 
-**What we sell them.** Free / Starter $29 personal, Founders Lifetime as a personal tool — convert to institutional Enterprise later.
+**What we sell them.** Free / Starter $19 personal, Founders Lifetime as a personal tool — convert to institutional Enterprise later.
 
 **Message (cold).**
 > {FirstName} — we built a cross-MDB project intelligence platform that aggregates WB, IFC, ADB, AfDB, EBRD, AIIB, IADB into one verified, source-linked feed with confidence scoring and a human review queue. Useful for cross-institution co-financing and pipeline visibility. Free tier, no card. Would you take a 10-min look and share whether it would be useful in your role?
@@ -128,6 +128,6 @@
 ## Cross-persona rules
 
 - **Always lead with verification.** Source URLs + 30% unverified cap is the moat — open every demo with it.
-- **Always show the price**. Anchoring against $50K incumbents is the wedge; never hide $199.
+- **Always show the price**. Anchoring against $50K incumbents is the wedge; never hide $79.
 - **Always offer Founders Lifetime to the personal champion** before pitching the team.
 - **Card-free trial first**, demo second, when the prospect prefers self-serve.

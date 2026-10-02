@@ -116,16 +116,16 @@ Mine 50+ more named contacts at zero cost:
 ## Standard Pitch (copy-paste across all applications)
 
 **One-liner (140 chars):**
-InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $29/month.
+InfraRadarAI replaces $5K–$200K/year infrastructure intelligence reports with verified, real-time AI agents from $19/month.
 
 **Problem:**
 Infrastructure BD teams, EPC contractors, lenders and consultants pay $3K–$200K/year for quarterly PDF reports from MEED, GlobalData, Wood Mackenzie, IJGlobal and regional publishers. The underlying data is public. Incumbents hire human analysts to read it; their cost structure prevents them rebuilding AI-native without destroying their own gross margin.
 
 **Solution:**
-30+ specialised AI agents continuously ingest 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals. Every project carries a source URL and confidence score; unverified records cap at 30% and route through a human review queue. Plain-English Ask, Portfolio Chat, AI Market Report Builder, satellite-verified construction progress, contractor intelligence and 9-category risk monitoring. Self-serve SaaS from $29/mo; Enterprise with API + SSO.
+30+ specialised AI agents continuously ingest 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) and 20+ procurement portals. Every project carries a source URL and confidence score; unverified records cap at 30% and route through a human review queue. Plain-English Ask, Portfolio Chat, AI Market Report Builder, satellite-verified construction progress, contractor intelligence and 9-category risk monitoring. Self-serve SaaS from $19/mo; Enterprise with API + SSO.
 
 **Traction (May 2026):**
-1,671 verified projects, 140 countries, 5,657 classified alerts, $246B+ pipeline indexed. Platform live on Vercel + Supabase. Paddle billing live (Free, Starter $29, Pro $199, Enterprise, Founders Lifetime $1,499 capped at 100 seats). 7 MDB integrations + 30+ agents operational. Pilot access live with public seat counter. **[VERIFY]** revenue numbers before quoting.
+1,671 verified projects, 140 countries, 5,657 classified alerts, $246B+ pipeline indexed. Platform live on Vercel + Supabase. Paddle billing live (Free, Starter $29, Pro $199, Enterprise, Founders Lifetime $999 capped at 100 seats). 7 MDB integrations + 30+ agents operational. Pilot access live with public seat counter. **[VERIFY]** revenue numbers before quoting.
 
 **Market:**
 $2–4B/year infrastructure intelligence stack. MEED ~$50M/yr at $5–15K/seat; GlobalData infra ~$200M/yr; Wood Mackenzie, IJGlobal and regional publishers add billions more.

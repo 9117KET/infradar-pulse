@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY as SUPABASE_ANON_KEY } from '@/integrations/supabase/client';
 
 type State =
   | { status: 'loading' }

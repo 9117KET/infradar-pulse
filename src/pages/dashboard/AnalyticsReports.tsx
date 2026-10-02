@@ -14,7 +14,7 @@ import { trackUsage } from '@/lib/billing/trackUsage';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { applyExportCap, buildCsvHeaderComment, buildWatermarkLabel } from '@/lib/billing/exportCaps';
+import { applyExportCap, buildCsvHeaderComment, csvCell, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 
 const SECTOR_COLORS = [
   'hsl(var(--primary))', 'hsl(210, 60%, 55%)', 'hsl(40, 80%, 55%)',
@@ -70,7 +70,7 @@ export default function AnalyticsReports() {
       ]);
       const preamble = buildCsvHeaderComment(watermark, capped);
       const csv = [...preamble, headers, ...rows].map(r =>
-        Array.isArray(r) ? r.map(c => `"${c}"`).join(',') : r,
+        Array.isArray(r) ? r.map(csvCell).join(',') : r,
       ).join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);

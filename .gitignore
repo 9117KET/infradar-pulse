@@ -40,3 +40,6 @@ playwright-report/
 
 # Playwright MCP session logs
 .playwright-mcp/
+
+# Local Deno typecheck artefact
+deno.lock

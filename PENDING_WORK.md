@@ -54,15 +54,15 @@ Confirmed by the audit; scoped out of the Tier-1 PR (#4). File:line references.
 | Med | "Mark as read" is a no-op for non-staff (RLS is staff-only and `alerts.read` is global) — needs a per-user read-state table | `src/hooks/use-alerts.ts:143` |
 | Med | PDF export not gated to the Pro plan — free/Starter can download Pro-only reports | `src/hooks/useEntitlements.ts:229` |
 | Med | Companion tables (stakeholders/milestones/evidence/contacts) fetched with no `.range()`, capped at 1000 — detail vanishes past row 1000 | `src/hooks/use-projects.ts:160` |
-| Med | Email unsubscribe links broken in prod (`VITE_SUPABASE_URL` undefined in the bundle) | `src/pages/Unsubscribe.tsx:7` |
-| Med | GDPR "Export my data" downloads the marketing homepage HTML | `src/lib/billing/paddleClient.ts:54` |
+| ✅ Fixed 2026-10-01 · Med | Email unsubscribe links broken in prod (`VITE_SUPABASE_URL` undefined in the bundle) | `src/pages/Unsubscribe.tsx:7` |
+| ✅ Fixed 2026-10-01 · Med | GDPR "Export my data" downloads the marketing homepage HTML | `src/lib/billing/paddleClient.ts:54` |
 | Med | Public `/snapshot` + homepage pipeline total summed from a truncated 1000-row set | `supabase/functions/public-stats/index.ts:34` |
 | Med | Browser-only signup anti-abuse — unlimited free trial accounts / pilot-seat burn | `src/pages/Login.tsx:85` |
-| Low | CSV export writes cells unescaped — formula injection + malformed rows | `src/pages/dashboard/Projects.tsx:210` |
-| Low | Hero card hardcodes `status: 'Verified'` on every project regardless of DB status | `src/components/home/HeroSection.tsx:25` |
+| ✅ Fixed 2026-10-01 · Low | CSV export writes cells unescaped — formula injection + malformed rows | `src/pages/dashboard/Projects.tsx:210` |
+| ✅ Fixed 2026-10-01 · Low | Hero card hardcodes `status: 'Verified'` on every project regardless of DB status | `src/components/home/HeroSection.tsx:25` |
 | Low | `aiib-ingest-agent` mis-regions Azerbaijan/Georgia/Armenia as MENA; defaults unmatched to South Asia | `supabase/functions/aiib-ingest-agent/index.ts:64` |
 | Low | `track-event` accepts unauthenticated service-role inserts with no rate limit | `supabase/functions/track-event/index.ts:103` |
-| Low | Three agents insert AI alerts without `origin='ai_agent'`, so the "AI · unverified" badge never shows | `supabase/functions/update-checker/index.ts:149` |
+| ✅ Fixed 2026-10-01 · Low | Three agents insert AI alerts without `origin='ai_agent'`, so the "AI · unverified" badge never shows | `supabase/functions/update-checker/index.ts:149` |
 
 ## Done (2026-08-05)
 

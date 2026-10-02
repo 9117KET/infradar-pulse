@@ -18,6 +18,7 @@ Agents must not require Perplexity, OpenAI or Firecrawl credits to complete. Ext
 
 - `research-agent`: broad infrastructure project discovery.
 - `world-bank-ingest-agent`, `ifc-ingest-agent`, `adb-ingest-agent`, `afdb-ingest-agent`, `aiib-ingest-agent`, `ebrd-ingest-agent`, `iadb-ingest-agent`: MDB and DFI project ingestion.
+- `ted-ingest-agent`, `uk-fts-ingest-agent`: EU (TED) and UK (Find a Tender, OCDS) construction tenders and awards into `tender_events`.
 - `source-ingest-agent`, `dataset-refresh-agent`: source and dataset refresh workflows.
 
 ## Enrichment and verification
@@ -68,5 +69,7 @@ External services can be reconsidered after customer traction shows where they a
 - Firecrawl-style scraping for official portals that cannot be reached through stable APIs.
 - Specialist datasets for procurement, sanctions, corporate ownership and commodity pricing.
 - OpenAI or other model families only when a specific evaluation shows better accuracy for a defined task.
+
+Scraping is already layered this way in `_shared/scrapeRouter.ts`: Firecrawl when configured (hosted, or the open-source server via `FIRECRAWL_API_URL`), then Jina Reader, then plain fetch; search falls back from Firecrawl to a self-hosted SearXNG. Any one provider can be removed without breaking agents.
 
 When added, these integrations should be optional, observable and easy to disable without breaking core agent runs.

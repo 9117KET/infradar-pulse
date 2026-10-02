@@ -21,6 +21,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -462,18 +463,11 @@ serve(async (req) => {
         return json({ error: "Query is too long (max 300 chars for demo)" });
       }
 
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-      if (!LOVABLE_API_KEY) {
+      if (!isLlmConfigured()) {
         return json({ error: "AI gateway not configured" }, 500);
       }
 
-      const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      const aiResp = await chatCompletions({
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
@@ -481,8 +475,7 @@ serve(async (req) => {
           ],
           tools: [FILTER_TOOL],
           tool_choice: { type: "function", function: { name: "apply_filters" } },
-        }),
-      });
+        });
 
       if (aiResp.status === 429) {
         return json({ error: "AI rate limit hit. Try again in a moment." }, 429);

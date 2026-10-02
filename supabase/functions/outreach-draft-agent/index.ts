@@ -59,32 +59,32 @@ const PERSONAS: Record<string, PersonaCfg> = {
   infra_pe: {
     label: "Emerging-markets infrastructure PE",
     wedge: "a verified pre-tender pipeline across all 7 MDBs, surfacing deals 6-18 months before they hit IJGlobal, with delay-risk, contractor-distress and co-financing signals attached",
-    price: "$199/mo per origination seat replaces ~$30-50K of incumbent stack.",
+    price: "$79/mo per seat (Pro), a fraction of a project-database licence and less than a funding-database seat.",
     goal: "revenue",
   },
   epc_bd: {
     label: "EPC contractor business development",
     wedge: "MDB tenders 6-18 months before public RFP across 7 MDBs + 20+ procurement portals, with contractor intelligence (who else is bidding, recent awards, delay risk) on each project",
-    price: "$199/mo per BD seat. Pilot one country team for a quarter — if they don't surface a winnable tender 60 days early, we refund.",
+    price: "$79/mo per BD seat (Pro). Pilot one country team for a quarter — if they don't surface a winnable tender 60 days early, we refund.",
     goal: "revenue",
   },
   consultant: {
     label: "Strategy / infrastructure consultant",
     wedge: "an AI Market Report Builder that generates verified, source-linked country/sector reports across 7 MDBs in ~20 min vs the usual 2-week analyst cycle (every claim links to its source)",
-    price: "$199/mo per seat, chargeable to the engagement.",
+    price: "$79/mo per seat (Pro), chargeable to the engagement.",
     goal: "revenue",
   },
   project_finance: {
     label: "Project finance / syndication banker",
     wedge: "cross-MDB pipeline visibility — all 7 MDBs + 20+ procurement portals + a co-financing graph in one ranked feed, useful 6-18 months before financial close",
-    price: "$199/mo per origination seat to start, Enterprise (API + SSO) once the desk is on it.",
+    price: "$79/mo per seat (Pro) to start, Enterprise (API + SSO) once the desk is on it.",
     goal: "revenue",
   },
 };
 const GENERIC: PersonaCfg = {
   label: "infrastructure decision-maker",
   wedge: "one verified, source-linked feed across all 7 MDBs + 20+ procurement portals, with confidence scoring on every record",
-  price: "Free tier to start; $199/mo Pro for full research, exports and risk analytics.",
+  price: "Free tier to start; $79/mo Pro for award intelligence, exports and risk analytics.",
   goal: "revenue",
 };
 

@@ -228,6 +228,7 @@ Return concise signal_summary (max 20 words) explaining the main driver of the s
           message: `Health score ${prevHealth ?? "N/A"} → ${hs}. Delay probability: ${Math.round(dp * 100)}%. ${s.signal_summary}`,
           category: "risk",
           source_url: null,
+          origin: "ai_agent",
         });
       }
 

@@ -7,6 +7,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requirePlanAndAiOrRespond } from "../_shared/requireAi.ts";
+import { chatCompletions, isLlmConfigured } from "../_shared/llm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,8 +131,7 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    if (!isLlmConfigured()) {
       return new Response(JSON.stringify({ error: "AI gateway not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -139,13 +139,7 @@ serve(async (req) => {
     }
 
     // 1) Translate prompt → filters via Lovable AI Gateway (tool-call structured output)
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const aiResp = await chatCompletions({
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
@@ -153,8 +147,7 @@ serve(async (req) => {
         ],
         tools: [FILTER_TOOL],
         tool_choice: { type: "function", function: { name: "apply_filters" } },
-      }),
-    });
+      });
 
     if (aiResp.status === 429) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {

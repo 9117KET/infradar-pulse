@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart, HardHat, Cpu } from 'lucide-react';
+import { Bot, CheckCircle, XCircle, Clock, RefreshCw, Search, ShieldAlert, Users, DollarSign, Scale, MessageSquare, Package, TrendingUp, Loader2, Radio, Phone, AlertTriangle, Database, Zap, GitMerge, Building2, Leaf, Shield, Gavel, ScrollText, Mail, FileText, Globe, Pause, Play, AlertCircle, Heart, HardHat, Cpu, Newspaper } from 'lucide-react';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   timeAgo,
@@ -34,6 +34,10 @@ const AGENTS = [
   { type: 'gem-ingest', name: 'GEM Power Tracker', icon: Globe, schedule: 'Hourly (backfill)', scheduleMinutes: 60, fn: () => agentApi.runGemIngest({ mode: 'backfill' }) },
   { type: 'eib-ingest', name: 'EIB Ingest', icon: Globe, schedule: 'Hourly (backfill)', scheduleMinutes: 60, fn: () => agentApi.runEibIngest({ mode: 'backfill' }) },
   { type: 'ted-ingest', name: 'TED Tenders', icon: Gavel, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runTedIngest({ days: 3 }) },
+  { type: 'uk-fts-ingest', name: 'UK Find a Tender', icon: Gavel, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runUkFtsIngest({ days: 2 }) },
+  { type: 'wb-procurement-ingest', name: 'World Bank Procurement', icon: Gavel, schedule: 'Every 6h', scheduleMinutes: 360, fn: () => agentApi.runWbProcurementIngest({ days: 2 }) },
+  { type: 'za-etenders-ingest', name: 'South Africa eTenders', icon: Gavel, schedule: 'Daily', scheduleMinutes: 1440, fn: () => agentApi.runZaEtendersIngest({ days: 3 }) },
+  { type: 'project-news-monitor', name: 'Project News (GDELT)', icon: Newspaper, schedule: 'Hourly', scheduleMinutes: 60, fn: () => agentApi.runProjectNewsMonitor({ limit: 10 }) },
   { type: 'update-check', name: 'Update Checker', icon: RefreshCw, schedule: 'Every 2 hours', scheduleMinutes: 120, fn: agentApi.runUpdateChecker },
   { type: 'risk-scoring', name: 'Risk Scorer', icon: ShieldAlert, schedule: 'Every 4 hours', scheduleMinutes: 240, fn: agentApi.runRiskScorer },
   { type: 'health-scoring', name: 'Health Score', icon: Heart, schedule: 'Every 6 hours', scheduleMinutes: 360, fn: agentApi.runHealthScoreAgent },

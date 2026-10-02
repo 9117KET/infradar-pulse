@@ -8,7 +8,7 @@
 
 ## The pitch in one sentence
 
-Your BD team currently finds pre-tender signals manually across 7 MDB portals + a $30K MEED subscription. InfraRadarAI surfaces them 6–18 months before public RFP, adds **contractor intelligence on your competitors**, **delay-risk scores on the projects you're bidding on**, and **satellite verification of construction progress** — at $199/month.
+Your BD team currently finds pre-tender signals manually across 7 MDB portals + a $30K MEED subscription. InfraRadarAI surfaces them 6–18 months before public RFP, adds **contractor intelligence on your competitors**, **delay-risk scores on the projects you're bidding on**, and **satellite verification of construction progress** — at $79/month.
 
 ---
 
@@ -54,7 +54,7 @@ Hi [Name],
 
 Saw [Company] won [or bid on] [specific project / region]. I'm building InfraRadarAI: pre-tender signals from 7 MDB pipelines (WB, IFC, ADB, AfDB, EBRD, AIIB, IADB) plus 20+ procurement portals, surfaced 6–18 months before public RFP. Adds contractor intel on competitors, delay-risk scores and satellite verification of progress on active sites.
 
-Built for BD teams replacing the $30K MEED subscription with a live workflow at $199/mo. Pilot access (free Pro window, no card) is open.
+Built for BD teams replacing the $30K MEED subscription with a live workflow at $79/mo. Pilot access (free Pro window, no card) is open.
 
 Worth a quick call?
 
@@ -80,7 +80,7 @@ InfraRadarAI (infradarai.com) is what BD teams use instead of a $30K MEED subscr
 
 3. **Delay-risk scoring** + satellite verification on projects you're bidding into — so you bid the schedule that's actually deliverable.
 
-Plain-English Ask, custom alert rules by region/sector/value, AI-generated tender briefs (PDF). Pro is $199/month vs $30K/year for MEED. Pilot access is open: free Pro window, no card.
+Plain-English Ask, custom alert rules by region/sector/value, AI-generated tender briefs (PDF). Pro is $79/month vs $30K/year for MEED. Pilot access is open: free Pro window, no card.
 
 15-min walkthrough on a project relevant to [Company] this week or next?
 
@@ -172,6 +172,6 @@ Signed,
 ## ROI talk track (lead with the math)
 
 - Today: $30K MEED + analyst time + missed signals = real cost.
-- InfraRadarAI Pro: $1,910/yr (yearly) or $199/mo. Saves $28K/year vs MEED.
+- InfraRadarAI Pro: $756/yr (yearly) or $79/mo. Saves $28K/year vs MEED.
 - One additional pre-tender signal acted on at 3% win-rate × $50M tender × 5% margin = $75K margin upside per signal.
 - Pilot access is free for the first window — risk-free to test.

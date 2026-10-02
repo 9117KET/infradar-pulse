@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, Gift } from 'lucide-react';
+import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, Gift, Layers, Trophy, Link2, MessageSquare, Newspaper, BadgeCheck, CalendarCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 // DORMANT: import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
@@ -10,10 +10,11 @@ import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppEnvironment } from '@/lib/billing/environment';
 // DORMANT: import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
-import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/lemonSqueezy';
+import { isLiveCheckoutEnabled, isPaymentsLive, isTestCheckoutEnabled } from '@/lib/lemonSqueezy';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { cn } from '@/lib/utils';
 import { Seo } from '@/components/Seo';
+import { PRICES, perMonth, yearlySavingPct } from '@/lib/billing/pricing';
 
 // Competitor names are intentionally anonymized to keep the comparison
 // category-based and avoid singling out any specific vendor. The blurred
@@ -22,13 +23,26 @@ import { Seo } from '@/components/Seo';
 // research houses, project finance data terminals, and emerging regional
 // MENA/Africa intelligence platforms).
 const COMPETITOR_TABLE = [
+  { name: 'Development funding & tender database', price: '$250-$1,200 / yr per user', update: 'Daily, all aid sectors mixed', blur: true },
   { name: 'Regional intelligence publisher', price: '$5k-$15k / yr', update: 'Quarterly PDF', blur: true },
   { name: 'Global market research vendor', price: '$10k-$50k / yr', update: 'Static reports', blur: true },
   { name: 'Energy & commodity research house', price: '$50k-$200k / yr', update: 'Annual research', blur: true },
   { name: 'Project finance data terminal', price: '$20k-$100k / yr', update: 'Financial feeds', blur: true },
   { name: 'Regional MENA/Africa intel platform', price: '$3k-$12k / yr', update: 'Weekly updates', blur: true },
   { name: 'Construction & tender aggregator', price: '$4k-$20k / yr', update: 'Daily, unverified', blur: true },
-  { name: 'INFRADARAI', price: 'From $0 / mo', update: 'Real-time AI', highlight: true },
+  { name: 'INFRADARAI', price: `From $0 · Pro $${PRICES.pro.yearly} / yr`, update: 'Real-time, infrastructure-only, with award history', highlight: true },
+];
+
+// What a buyer gets that a list of tender notices doesn't give them. Keep each
+// line true of the live product: these are promises, not roadmap.
+const VALUE_POINTS = [
+  { icon: Layers, title: 'Every source in one feed', desc: '7 development-bank pipelines plus World Bank procurement, EU TED, UK Find a Tender and South Africa eTenders. Stop checking a dozen portals.' },
+  { icon: Trophy, title: 'Who won, and for how much', desc: 'Contract awards with the winning company and signed price, so you can price bids and choose partners with evidence.' },
+  { icon: Link2, title: 'Tender linked to its project', desc: 'Each notice is tied to its parent project, financier and later news, so you can see whether it is real, funded and moving.' },
+  { icon: MessageSquare, title: 'Ask in plain English', desc: 'Ask "water design-build awards in East Africa over $5M" and get instant answers, plus AI-written country, sector and tender reports.' },
+  { icon: Newspaper, title: 'News watch on your projects', desc: 'Global news monitoring flags delays, cancellations, disputes and financing on the projects you track.' },
+  { icon: BadgeCheck, title: 'Source on every record', desc: 'Every project and tender links to its official source, with a confidence score and human review behind it.' },
+  { icon: CalendarCheck, title: 'No lock-in', desc: 'Monthly plans, cancel anytime, minimum 14-day refund window, and a no-card pilot to try everything first.' },
 ];
 
 const LIFETIME_MAX_SEATS = 100;
@@ -50,7 +64,8 @@ export default function Pricing() {
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();
   const navigate = useNavigate();
-  const paymentsLive = isPaymentsLive();
+  // Test checkout (pre-launch sandbox round-trip) shows the real checkout UI too.
+  const paymentsLive = isPaymentsLive() || isTestCheckoutEnabled();
 
   // Pre-launch: capture demand instead of charging.
   const reserve = (planKey: string, planLabel: string, billingCycle: string) =>
@@ -135,24 +150,24 @@ export default function Pricing() {
 
   const isYearly = cycle === 'yearly';
 
-  // Pricing data — matches Paddle catalog. Yearly is 20% off the rounded
-  // monthly equivalent; effectiveMonthly is what we surface to users.
-  const starterMonthlyPrice = 29;
-  const starterYearlyPrice = 278; // ~$23.20/mo
-  const proMonthlyPrice = 199;
-  const proYearlyPrice = 1910; // ~$159.20/mo
+  // List prices live in src/lib/billing/pricing.ts and must match the Lemon
+  // Squeezy variants. Yearly is ~20% off twelve monthly payments.
+  const starterMonthlyPrice = PRICES.starter.monthly;
+  const starterYearlyPrice = PRICES.starter.yearly;
+  const proMonthlyPrice = PRICES.pro.monthly;
+  const proYearlyPrice = PRICES.pro.yearly;
 
   const starterPrice = isYearly ? starterYearlyPrice : starterMonthlyPrice;
   const starterUnit = isYearly ? '/yr' : '/mo';
   const starterSubtitle = isYearly
-    ? `~$${(starterYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
+    ? `~${perMonth(starterYearlyPrice)}/mo, billed yearly · save ${yearlySavingPct(PRICES.starter)}%`
     : 'Billed monthly';
   const starterPriceId: PlanPriceId = isYearly ? 'starter_yearly' : 'starter_monthly';
 
   const proPrice = isYearly ? proYearlyPrice : proMonthlyPrice;
   const proUnit = isYearly ? '/yr' : '/mo';
   const proSubtitle = isYearly
-    ? `~$${(proYearlyPrice / 12).toFixed(2)}/mo, billed yearly · save 20%`
+    ? `~${perMonth(proYearlyPrice)}/mo, billed yearly · save ${yearlySavingPct(PRICES.pro)}%`
     : 'Billed monthly';
   const proPriceId: PlanPriceId = isYearly ? 'pro_yearly' : 'pro_monthly';
 
@@ -170,7 +185,7 @@ export default function Pricing() {
     <div className="py-20">
       <Seo
         title="Pricing | InfradarAI Plans for Infrastructure Intelligence"
-        description="Transparent pricing for InfradarAI. Free tier, Starter from $29/mo, team and lifetime plans for verified global infrastructure intelligence."
+        description={`Infrastructure tenders, awards and project intelligence for less than a funding database. Free tier, Starter $${PRICES.starter.monthly}/mo, Pro $${PRICES.pro.monthly}/mo, cancel anytime.`}
         path="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -180,8 +195,9 @@ export default function Pricing() {
           brand: { '@type': 'Organization', name: 'InfradarAI' },
           offers: [
             { '@type': 'Offer', name: 'Free', price: '0', priceCurrency: 'USD', description: '5 AI queries/day (earn +3/day per referral), 3 insight reads, public project data' },
-            { '@type': 'Offer', name: 'Starter', price: '29', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '20 AI queries/day, alert rules, CSV/Excel exports, portfolio chat' },
-            { '@type': 'Offer', name: 'Pro', price: '199', priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, risk signals, real-time monitoring, stakeholder intel, AI report PDFs' },
+            { '@type': 'Offer', name: 'Starter', price: String(PRICES.starter.monthly), priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '20 AI queries/day, alert rules, CSV/Excel exports, portfolio chat' },
+            { '@type': 'Offer', name: 'Pro', price: String(PRICES.pro.monthly), priceCurrency: 'USD', priceSpecification: { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }, description: '100 AI queries/day, award winners and prices, risk signals, news monitoring, AI report PDFs' },
+            { '@type': 'Offer', name: 'Founders Lifetime', price: String(PRICES.lifetime), priceCurrency: 'USD', description: 'One-time payment for permanent Pro access, limited to 100 seats' },
           ],
         }}
       />
@@ -190,12 +206,12 @@ export default function Pricing() {
 
 
           <h1 className="font-serif text-4xl font-bold mb-4">
-            Intelligence that pays for itself
+            More infrastructure intelligence. A fraction of the price.
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-4">
-            Instead of paying thousands for a single static market report, subscribe to living project intelligence: verified data,
-            alerts, portfolio Q&amp;A, and <span className="text-foreground font-medium">AI-generated market reports</span> that update with your scope.
-            Pay for what you use, cancel anytime.
+            Tenders, contract awards, project pipelines and news from development banks and governments, in one feed you can search
+            in plain English. Pro is <span className="text-foreground font-medium">${PRICES.pro.monthly}/month</span>: less than
+            a development-funding database seat, and a fraction of a project-database licence. Cancel anytime.
           </p>
         </div>
 
@@ -304,10 +320,7 @@ export default function Pricing() {
           </div>
 
           {/* Starter */}
-          <div className="glass-panel rounded-xl p-7 border-primary/40 teal-glow relative flex flex-col">
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1 rounded-full">
-              Most popular
-            </span>
+          <div className="glass-panel rounded-xl p-7 border-border flex flex-col">
             <h2 className="font-serif text-lg font-bold mb-1 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> Starter
             </h2>
@@ -317,6 +330,7 @@ export default function Pricing() {
             </p>
             <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{starterSubtitle}. Minimum 14-day refund window.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> All tender, award and project feeds</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 50 full insight reads/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 20 exports/day - CSV &amp; Excel (.xlsx), up to 1,000 rows</li>
@@ -345,7 +359,10 @@ export default function Pricing() {
           </div>
 
           {/* Pro */}
-          <div className="glass-panel rounded-xl p-7 border-border flex flex-col">
+          <div className="glass-panel rounded-xl p-7 border-primary/40 teal-glow relative flex flex-col">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1 rounded-full whitespace-nowrap">
+              Best value for bid teams
+            </span>
             <h2 className="font-serif text-lg font-bold mb-1 flex items-center gap-2">
               <Zap className="h-4 w-4 text-primary" /> Pro
             </h2>
@@ -355,6 +372,9 @@ export default function Pricing() {
             </p>
             <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">{proSubtitle}. Minimum 14-day refund window.</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Everything in Starter</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Award winners &amp; contract prices (competitor intelligence)</li>
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> News monitoring on tracked projects</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 AI queries/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 200 full insight reads/day</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> 100 exports/day - CSV &amp; Excel (.xlsx), up to 10,000 rows</li>
@@ -367,16 +387,16 @@ export default function Pricing() {
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Permit &amp; regulatory tracker</li>
             </ul>
             {!paymentsLive ? (
-              <Button className="w-full" onClick={() => reserve('pro', 'Pro', cycle)}>
+              <Button className="w-full teal-glow" onClick={() => reserve('pro', 'Pro', cycle)}>
                 Reserve founding price
               </Button>
             ) : user ? (
-              <Button className="w-full" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
+              <Button className="w-full teal-glow" onClick={() => void goCheckout(proPriceId)} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 {checkoutEnabled ? (isYearly ? 'Subscribe yearly' : 'Subscribe') : 'Request pilot access'}
               </Button>
             ) : (
-              <Button className="w-full" asChild>
+              <Button className="w-full teal-glow" asChild>
                 <Link to={checkoutEnabled ? '/login' : '/contact?intent=pilot'}>
                   {checkoutEnabled ? 'Sign in to subscribe' : 'Request pilot access'}
                 </Link>
@@ -392,6 +412,7 @@ export default function Pricing() {
             <p className="text-3xl font-serif font-bold mb-1">Custom</p>
             <p className="text-xs text-muted-foreground mb-5 min-h-[32px]">Annual contracts, invoicing available</p>
             <ul className="space-y-2 text-sm text-muted-foreground mb-6 flex-1">
+              <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Team seats at volume pricing</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited AI, insights &amp; exports</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Unlimited CSV, Excel &amp; PDF exports (no row cap)</li>
               <li className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /> Full API access + webhooks</li>
@@ -436,9 +457,9 @@ export default function Pricing() {
                 </ul>
               </div>
               <div className="text-center md:text-right md:border-l md:border-primary/20 md:pl-8">
-                <p className="text-5xl font-serif font-bold mb-1">$1,499</p>
+                <p className="text-5xl font-serif font-bold mb-1">${PRICES.lifetime.toLocaleString('en-US')}</p>
                 <p className="text-xs text-muted-foreground mb-1">One-time · USD</p>
-                <p className="text-[11px] text-muted-foreground line-through mb-4">vs $2,388/yr on Pro</p>
+                <p className="text-[11px] text-muted-foreground line-through mb-4">vs ${(PRICES.pro.monthly * 12).toLocaleString('en-US')}/yr on Pro monthly</p>
                 {seatsRemaining !== null && (
                   <div className="inline-block mb-4 px-3 py-1.5 rounded-full bg-primary/15 border border-primary/30">
                     <span className="text-xs font-semibold text-primary">
@@ -480,14 +501,33 @@ export default function Pricing() {
           </div>
         </div>
 
+        {/* What you get */}
+        <div className="max-w-5xl mx-auto mb-12">
+          <h3 className="font-serif text-2xl font-bold text-center mb-2">What ${PRICES.pro.monthly}/month gets you</h3>
+          <p className="text-sm text-muted-foreground text-center max-w-2xl mx-auto mb-8">
+            A tender list tells you what was published. INFRADARAI tells you what it is, who funds it, who usually wins, and what is
+            happening to it, from one search box.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {VALUE_POINTS.map(({ icon: Icon, title, desc }) => (
+              <div key={title} className="glass-panel rounded-xl p-5">
+                <Icon className="h-5 w-5 text-primary mb-3" />
+                <h4 className="font-semibold text-sm mb-1">{title}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Competitor comparison */}
         <div className="glass-panel rounded-xl p-8 max-w-4xl mx-auto mb-8">
           <h3 className="font-serif text-lg font-semibold mb-1 flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" /> Why INFRADARAI vs. legacy intelligence vendors
+            <Shield className="h-5 w-5 text-primary" /> How the price compares
           </h3>
           <p className="text-sm text-muted-foreground mb-6">
-            Legacy vendors sell static PDF reports for thousands per topic. INFRADARAI turns the same job into a living workflow:
-            search the data, monitor alerts, ask AI questions, and generate fresh report-quality briefs from your selected scope.
+            Typical list prices for the tools infrastructure teams use today. Funding databases cover every aid sector and charge per
+            user; project databases sell static reports for thousands per topic. INFRADARAI focuses on infrastructure and keeps
+            the whole picture live, from tender to award to news, for less than either.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

@@ -20,7 +20,7 @@
 | Risk signal categories | **9** | Political, Financial, Regulatory, Supply Chain, Environmental, Construction, Stakeholder, Market, Security |
 | Live product modules | **10** | `CapabilitiesSection.tsx` |
 | Verification confidence cap (unverified) | **30%** | platform rule |
-| Pricing tiers | Free / Starter $29 / Pro $199 / Enterprise / Lifetime $1,499 | `src/pages/Pricing.tsx` |
+| Pricing tiers | Free / Starter $19 / Pro $79 / Enterprise / Lifetime $999 | `src/pages/Pricing.tsx` |
 | Founders Lifetime cap | **100 seats** | pricing page |
 | Trial | Card-free 3 days + 14-day refund | pricing page |
 
@@ -44,7 +44,7 @@
 - MVP agent fleet runs on the **Lovable AI gateway** (Gemini 3 / GPT-5 class).
 - **No required spend** on Perplexity, OpenAI direct, or Firecrawl for MVP agents.
 - Marginal cost per agent query = a fraction of a competitor stacking direct LLM + scraping vendors.
-- This is what lets us sell **Pro at $199/mo profitably** while incumbents are structurally trapped at $5K–$200K because their cost line is human analysts.
+- This is what lets us sell **Pro at $79/mo profitably** while incumbents are structurally trapped at $5K–$200K because their cost line is human analysts.
 
 ---
 

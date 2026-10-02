@@ -12,7 +12,8 @@
  * can degrade gracefully instead of throwing.
  */
 
-const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+import { chatCompletions, isLlmConfigured } from "./llm.ts";
+
 const DEFAULT_MODEL = "google/gemini-3-flash-preview";
 
 export type ResearchPrompt = {
@@ -30,19 +31,13 @@ export type ResearchPrompt = {
  * Caller decides what to do with `null`.
  */
 export async function runResearchPrompt(prompt: ResearchPrompt): Promise<string | null> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
-  if (!apiKey) {
-    console.error("webResearch: LOVABLE_API_KEY not configured");
+  if (!isLlmConfigured()) {
+    console.error("webResearch: no LLM provider configured");
     return null;
   }
   try {
-    const res = await fetch(GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    // chatCompletions falls back to FALLBACK_LLM_* when Lovable credits run out.
+    const res = await chatCompletions({
         model: prompt.model ?? DEFAULT_MODEL,
         messages: [
           {
@@ -53,7 +48,6 @@ export async function runResearchPrompt(prompt: ResearchPrompt): Promise<string 
           { role: "user", content: prompt.query },
         ],
         temperature: 0.4,
-      }),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
