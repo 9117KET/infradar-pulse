@@ -11,6 +11,7 @@
  * secret blocking 25+ scheduled agents with HTTP 401) visible immediately on
  * the AgentMonitoring dashboard and via email.
  */
+import { finishAgentRun } from "../_shared/agentGate.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -127,6 +128,7 @@ Deno.serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
   const windowHours = 1;
   const dedupeHours = 6; // don't re-alert for the same job within 6h
+  const runStartedAt = new Date();
 
   try {
     // 1. Detect auth failures
@@ -234,6 +236,7 @@ Deno.serve(async (req) => {
         .in("job_name", newJobs.map((j) => j.job_name));
     }
 
+    await finishAgentRun(supabase, "agent-health-monitor", "completed", runStartedAt);
     return new Response(
       JSON.stringify({
         success: true,
@@ -249,6 +252,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("agent-health-monitor failed", message);
+    await finishAgentRun(supabase, "agent-health-monitor", "failed", runStartedAt);
     return new Response(JSON.stringify({ success: false, error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

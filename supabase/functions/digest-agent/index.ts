@@ -8,7 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { chatCompletions } from "../_shared/llm.ts";
 import { requireAiEntitlementOrRespond, recordAiUsage } from "../_shared/requireAi.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { finishAgentRun, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +30,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   if (!await isAgentEnabled(supabase, "digest-agent")) return pausedResponse("digest-agent");
+  const runStartedAt = new Date();
 
   try {
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -149,6 +150,7 @@ serve(async (req) => {
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       await supabase.from("research_tasks").update({ status: "failed", error: errText, completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "digest-agent", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false, error: "AI digest generation failed" }), { status: 500, headers: corsHeaders });
     }
 
@@ -164,6 +166,7 @@ serve(async (req) => {
 
     if (!digest) {
       await supabase.from("research_tasks").update({ status: "failed", error: "Could not parse digest", completed_at: new Date().toISOString() }).eq("id", taskId);
+      await finishAgentRun(supabase, "digest-agent", "failed", runStartedAt);
       return new Response(JSON.stringify({ success: false, error: "Could not parse digest" }), { status: 500, headers: corsHeaders });
     }
 
@@ -227,6 +230,7 @@ serve(async (req) => {
       console.error("digest-agent: email delivery failed", emailErr);
     }
 
+    await finishAgentRun(supabase, "digest-agent", "completed", runStartedAt);
     return new Response(JSON.stringify({ success: true, digestId: inserted.id, taskId }), { headers: corsHeaders });
   } catch (e) {
     console.error("digest-agent error:", e);
@@ -239,6 +243,7 @@ serve(async (req) => {
         .eq("status", "running")
         .eq("requested_by", gate.userId);
     } catch { /* best-effort */ }
+    await finishAgentRun(supabase, "digest-agent", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: corsHeaders,
