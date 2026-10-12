@@ -11,7 +11,7 @@ export default function Privacy() {
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Privacy Notice</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-          <p>Last updated: April 2026</p>
+          <p>Last updated: October 2026</p>
 
           <p>
             This Privacy Notice describes how Kinlo and Glen ("Kinlo and Glen", "we", "us"), trading
@@ -28,7 +28,7 @@ export default function Privacy() {
             <li><strong>Usage and telemetry:</strong> pages visited, features used, queries run, timestamps.</li>
             <li><strong>Device and connection data:</strong> IP address, browser, operating system, device identifiers.</li>
             <li><strong>Authentication data:</strong> session tokens, email address, and abuse-prevention checks for disposable or masked email providers.</li>
-            <li><strong>Subscription and billing metadata:</strong> plan, status, renewal dates, invoice references. Card and payment details are collected and held by Paddle, not by us.</li>
+            <li><strong>Subscription and billing metadata:</strong> plan, status, renewal dates, invoice references. Card and payment details are collected and held by Lemon Squeezy, not by us.</li>
           </ul>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">2. Purposes and Legal Bases</h2>
@@ -46,11 +46,11 @@ export default function Privacy() {
           <p>We do not sell your personal data. We share it only with the following categories of recipients:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
-              <strong>Paddle (Merchant of Record).</strong> Our order process is conducted by our online
-              reseller Paddle.com Market Ltd and its affiliates ("Paddle"). Paddle is the Merchant of
+              <strong>Lemon Squeezy (Merchant of Record).</strong> Our order process is conducted by our online
+              reseller Lemon Squeezy, LLC and its affiliates ("Lemon Squeezy"). Lemon Squeezy is the Merchant of
               Record for all our orders and acts as a separate controller for payment, billing, tax,
               fraud screening, refund and chargeback processing. See{' '}
-              <a className="underline" href="https://www.paddle.com/legal/privacy" target="_blank" rel="noreferrer">paddle.com/legal/privacy</a>.
+              <a className="underline" href="https://www.lemonsqueezy.com/privacy" target="_blank" rel="noreferrer">lemonsqueezy.com/privacy</a>.
             </li>
             <li><strong>Cloud and infrastructure providers</strong> (hosting, database, storage, email delivery, error monitoring) acting as our processors.</li>
             <li><strong>Analytics and product telemetry providers</strong> acting as our processors.</li>

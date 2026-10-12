@@ -5,13 +5,13 @@ export default function Terms() {
     <div className="py-20">
       <Seo
         title="Terms of Service | InfradarAI"
-        description="The terms of service governing use of the InfradarAI platform, operated by Kinlo and Glen, with Paddle as Merchant of Record."
+        description="The terms of service governing use of the InfradarAI platform, operated by Kinlo and Glen, with Lemon Squeezy as Merchant of Record."
         path="/terms"
       />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Terms of Service</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-          <p>Last updated: April 2026</p>
+          <p>Last updated: October 2026</p>
 
           <p>
             These Terms of Service ("Terms") form a binding agreement between you and Kinlo and Glen
@@ -76,22 +76,18 @@ export default function Terms() {
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">7. Payments, Subscriptions and Merchant of Record</h2>
           <p>
-            Our order process is conducted by our online reseller Paddle.com. Paddle.com is the
-            Merchant of Record for all our orders. Paddle provides all customer service inquiries and
+            Our order process is conducted by our online reseller Lemon Squeezy. Lemon Squeezy is the
+            Merchant of Record for all our orders. Lemon Squeezy provides all customer service inquiries and
             handles returns. Payment, billing, tax, currency conversion, invoicing, cancellations,
-            refunds and chargebacks are handled by Paddle in accordance with its{' '}
-            <a className="underline" href="https://www.paddle.com/legal/checkout-buyer-terms" target="_blank" rel="noreferrer">
-              Buyer Terms
-            </a>{' '}
-            and{' '}
-            <a className="underline" href="https://www.paddle.com/legal/refund-policy" target="_blank" rel="noreferrer">
-              Refund Policy
+            refunds and chargebacks are handled by Lemon Squeezy in accordance with its{' '}
+            <a className="underline" href="https://www.lemonsqueezy.com/terms" target="_blank" rel="noreferrer">
+              Terms of Service
             </a>.
           </p>
           <p>
             Paid plans renew automatically at the end of each billing cycle (monthly or annual, as
             selected) until cancelled. You may cancel renewal at any time from your account settings or
-            via paddle.net; cancellation takes effect at the end of the current paid period. We may
+            via app.lemonsqueezy.com/my-orders; cancellation takes effect at the end of the current paid period. We may
             change prices or plan features on reasonable prior notice; changes will not apply to a
             billing cycle that has already been paid for.
           </p>
@@ -130,7 +126,7 @@ export default function Terms() {
             purpose and non-infringement. We will not be liable for any indirect, incidental, special,
             consequential or punitive damages, or for any loss of profits, revenue, data, business or
             goodwill. Our aggregate liability arising out of or in connection with the Service is
-            limited to the fees you paid to us (via Paddle) in the twelve (12) months immediately
+            limited to the fees you paid to us (via Lemon Squeezy) in the twelve (12) months immediately
             preceding the event giving rise to the liability. Nothing in these Terms limits liability
             that cannot be limited under applicable law.
           </p>
@@ -138,7 +134,7 @@ export default function Terms() {
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">12. Suspension and Termination</h2>
           <p>
             We may suspend or terminate your access to all or part of the Service, with or without
-            notice, where: (a) you materially breach these Terms; (b) any payment due via Paddle is
+            notice, where: (a) you materially breach these Terms; (b) any payment due via Lemon Squeezy is
             unpaid or reversed; (c) we reasonably believe your account is being used for fraud,
             abuse or activity that creates a security risk; or (d) we are required to do so by law.
             You may stop using and close your account at any time. On termination, your right to use
