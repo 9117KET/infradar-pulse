@@ -12,7 +12,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireStaffOrRespond } from "../_shared/requireStaff.ts";
 import { chatCompletions } from "../_shared/llm.ts";
-import { isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { finishAgentRun, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,6 +106,7 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, serviceKey);
 
   if (!await isAgentEnabled(supabase, "source-ingest")) return pausedResponse("source-ingest");
+  const runStartedAt = new Date();
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -221,12 +222,14 @@ serve(async (req) => {
       })
       .eq("id", taskId);
 
+    await finishAgentRun(supabase, "source-ingest", "completed", runStartedAt);
     return new Response(
       JSON.stringify({ success: true, taskId, url, status: res.status, contentType, extractionMethod, extractedChars: contentText.length }),
       { headers: corsHeaders },
     );
   } catch (e) {
     console.error("source-ingest-agent error:", e);
+    await finishAgentRun(supabase, "source-ingest", "failed", runStartedAt);
     return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), { status: 500, headers: corsHeaders });
   }
 });
