@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -381,11 +381,15 @@ export type Database = {
           environment: string
           event_type: string
           id: string
+          ls_customer_id: string | null
+          ls_order_id: string | null
+          ls_subscription_id: string | null
           occurred_at: string
           paddle_customer_id: string | null
           paddle_subscription_id: string | null
           payload: Json | null
           plan_key: string | null
+          provider: string
           status: string | null
           user_id: string | null
         }
@@ -394,11 +398,15 @@ export type Database = {
           environment?: string
           event_type: string
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
+          ls_subscription_id?: string | null
           occurred_at?: string
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           payload?: Json | null
           plan_key?: string | null
+          provider?: string
           status?: string | null
           user_id?: string | null
         }
@@ -407,11 +415,15 @@ export type Database = {
           environment?: string
           event_type?: string
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
+          ls_subscription_id?: string | null
           occurred_at?: string
           paddle_customer_id?: string | null
           paddle_subscription_id?: string | null
           payload?: Json | null
           plan_key?: string | null
+          provider?: string
           status?: string | null
           user_id?: string | null
         }
@@ -1168,6 +1180,8 @@ export type Database = {
           granted_at: string
           granted_by: string | null
           id: string
+          ls_customer_id: string | null
+          ls_order_id: string | null
           paddle_customer_id: string | null
           paddle_transaction_id: string | null
           seat_number: number | null
@@ -1179,6 +1193,8 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
           paddle_customer_id?: string | null
           paddle_transaction_id?: string | null
           seat_number?: number | null
@@ -1190,6 +1206,8 @@ export type Database = {
           granted_at?: string
           granted_by?: string | null
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
           paddle_customer_id?: string | null
           paddle_transaction_id?: string | null
           seat_number?: number | null
@@ -2764,12 +2782,18 @@ export type Database = {
           entitlement_plan_until: string | null
           environment: string
           id: string
+          ls_customer_id: string | null
+          ls_order_id: string | null
+          ls_product_id: string | null
+          ls_subscription_id: string | null
+          ls_variant_id: string | null
           notified_trial_ending_at: string | null
-          paddle_customer_id: string
-          paddle_subscription_id: string
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
           plan_key: string
-          price_id: string
-          product_id: string
+          price_id: string | null
+          product_id: string | null
+          provider: string
           scheduled_change_action: string | null
           scheduled_change_effective_at: string | null
           scheduled_plan_key: string | null
@@ -2788,12 +2812,18 @@ export type Database = {
           entitlement_plan_until?: string | null
           environment?: string
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
+          ls_product_id?: string | null
+          ls_subscription_id?: string | null
+          ls_variant_id?: string | null
           notified_trial_ending_at?: string | null
-          paddle_customer_id: string
-          paddle_subscription_id: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           plan_key?: string
-          price_id: string
-          product_id: string
+          price_id?: string | null
+          product_id?: string | null
+          provider?: string
           scheduled_change_action?: string | null
           scheduled_change_effective_at?: string | null
           scheduled_plan_key?: string | null
@@ -2812,12 +2842,18 @@ export type Database = {
           entitlement_plan_until?: string | null
           environment?: string
           id?: string
+          ls_customer_id?: string | null
+          ls_order_id?: string | null
+          ls_product_id?: string | null
+          ls_subscription_id?: string | null
+          ls_variant_id?: string | null
           notified_trial_ending_at?: string | null
-          paddle_customer_id?: string
-          paddle_subscription_id?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           plan_key?: string
-          price_id?: string
-          product_id?: string
+          price_id?: string | null
+          product_id?: string | null
+          provider?: string
           scheduled_change_action?: string | null
           scheduled_change_effective_at?: string | null
           scheduled_plan_key?: string | null
@@ -3403,6 +3439,10 @@ export type Database = {
         Args: { p: string }
         Returns: Database["public"]["Enums"]["project_status"]
       }
+      _lifetime_seat_lock: {
+        Args: { p_environment: string }
+        Returns: undefined
+      }
       _stage_rank: {
         Args: { p_stage: Database["public"]["Enums"]["project_stage"] }
         Returns: number
@@ -3502,6 +3542,16 @@ export type Database = {
           p_max_seats?: number
           p_paddle_customer_id: string
           p_paddle_transaction_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      claim_lifetime_seat_ls: {
+        Args: {
+          p_environment: string
+          p_ls_customer_id: string
+          p_ls_order_id: string
+          p_max_seats?: number
           p_user_id: string
         }
         Returns: number
