@@ -79,7 +79,7 @@ export default function BillingAuditLog() {
             Billing Audit Log
           </h1>
           <p className="text-muted-foreground text-sm">
-            Recent Paddle subscription and payment events on your account.
+            Recent subscription and payment events on your account.
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>

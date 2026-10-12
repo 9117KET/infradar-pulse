@@ -1,4 +1,4 @@
-// After Paddle checkout completes, the webhook lands a few seconds later.
+// After checkout completes, the webhook lands a few seconds later.
 // This hook polls the subscriptions table until either:
 //   - a subscription with status in (trialing | active | past_due) appears
 //   - the timeout elapses (TIMEOUT_MS)
