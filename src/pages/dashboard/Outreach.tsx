@@ -105,29 +105,33 @@ export default function Outreach() {
   const [editBody, setEditBody] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState(emptyProspect);
+  const [msgLimit, setMsgLimit] = useState(200);
+  const [prospectLimit, setProspectLimit] = useState(500);
   const csvInput = useRef<HTMLInputElement>(null);
 
   const { data: messages = [], isLoading: msgLoading } = useQuery<OutreachMessage[]>({
-    queryKey: ['outreach-messages'],
+    queryKey: ['outreach-messages', msgLimit],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const { data, error } = await db
         .from('outreach_messages')
         .select('id, prospect_id, channel, step, status, subject, body, created_at, prospect:outreach_prospects(id, name, org, role, email, linkedin_url, persona, region, sector, status, next_step)')
         .order('created_at', { ascending: false })
-        .limit(200);
+        .limit(msgLimit);
       if (error) throw error;
       return data as unknown as OutreachMessage[];
     },
   });
 
   const { data: prospects = [], isLoading: prospectLoading } = useQuery<Prospect[]>({
-    queryKey: ['outreach-prospects'],
+    queryKey: ['outreach-prospects', prospectLimit],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const { data, error } = await db
         .from('outreach_prospects')
         .select('*')
         .order('updated_at', { ascending: false })
-        .limit(500);
+        .limit(prospectLimit);
       if (error) throw error;
       return data as unknown as Prospect[];
     },
@@ -449,6 +453,16 @@ export default function Outreach() {
                 {p.email && <a href={`mailto:${p.email}`} className="text-xs text-primary hover:underline ml-auto">{p.email}</a>}
               </div>
             ))
+          )}
+          {prospects.length >= prospectLimit && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" onClick={() => setProspectLimit((l) => l + 500)}>Load more prospects</Button>
+            </div>
+          )}
+          {messages.length >= msgLimit && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" onClick={() => setMsgLimit((l) => l + 200)}>Load older messages</Button>
+            </div>
           )}
         </TabsContent>
       </Tabs>
