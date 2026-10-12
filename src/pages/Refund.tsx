@@ -5,17 +5,17 @@ export default function Refund() {
     <div className="py-20">
       <Seo
         title="Refund Policy | InfradarAI"
-        description="14-day refund window for InfradarAI subscriptions. How to request a refund through Paddle, cancellation rules and statutory consumer rights."
+        description="14-day refund window for InfradarAI subscriptions. How to request a refund through Lemon Squeezy, cancellation rules and statutory consumer rights."
         path="/refund"
       />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <h1 className="font-serif text-4xl font-bold mb-8">Refund Policy</h1>
         <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
-          <p>Last updated: April 2026</p>
+          <p>Last updated: October 2026</p>
 
           <p>
             This Refund Policy applies to subscriptions to the INFRADARAI platform, operated by Kinlo
-            and Glen. Our order process is conducted by our online reseller Paddle.com, which is the
+            and Glen. Our order process is conducted by our online reseller Lemon Squeezy, which is the
             Merchant of Record for all our orders and handles payments, refunds and returns.
           </p>
 
@@ -30,23 +30,23 @@ export default function Refund() {
           <p>
             Subscription renewals are covered by the same minimum 14-day refund window. If you are
             charged for a renewal you did not intend to keep, request a refund within 14 days of the
-            renewal order date through Paddle or by contacting us for assistance.
+            renewal order date through Lemon Squeezy or by contacting us for assistance.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">How to Request a Refund</h2>
           <p>
-            All refunds are processed by Paddle. To request one:
+            All refunds are processed by Lemon Squeezy. To request one:
           </p>
           <ul className="list-disc pl-5 space-y-1">
             <li>
               Visit{' '}
-              <a className="underline" href="https://paddle.net" target="_blank" rel="noreferrer">paddle.net</a>{' '}
+              <a className="underline" href="https://app.lemonsqueezy.com/my-orders" target="_blank" rel="noreferrer">app.lemonsqueezy.com/my-orders</a>{' '}
               and look up your order using the email address used at checkout, or
             </li>
             <li>
               Email us at{' '}
               <a className="underline" href="mailto:billing@infradarai.com">billing@infradarai.com</a> with
-              your order reference and we will assist with the refund through Paddle.
+              your order reference and we will assist with the refund through Lemon Squeezy.
             </li>
           </ul>
           <p>
@@ -58,7 +58,7 @@ export default function Refund() {
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Cancellations</h2>
           <p>
             You can cancel your subscription at any time from your account settings or via{' '}
-            <a className="underline" href="https://paddle.net" target="_blank" rel="noreferrer">paddle.net</a>.
+            <a className="underline" href="https://app.lemonsqueezy.com/my-orders" target="_blank" rel="noreferrer">app.lemonsqueezy.com/my-orders</a>.
             Cancellation stops future renewals and takes effect at the end of your current paid
             period; you keep access until that date. Cancelling does not, by itself, trigger a refund.
             Request one separately if eligible.
@@ -67,16 +67,16 @@ export default function Refund() {
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Chargebacks and Disputes</h2>
           <p>
             If you have a billing concern, please contact us first so we can resolve it quickly.
-            Disputes raised directly with your card issuer (chargebacks) are handled by Paddle and may
+            Disputes raised directly with your card issuer (chargebacks) are handled by Lemon Squeezy and may
             result in suspension of access while the dispute is investigated.
           </p>
 
           <h2 className="font-serif text-xl font-bold text-foreground pt-4">Statutory Rights</h2>
           <p>
             Nothing in this policy limits any statutory consumer rights you may have under your local
-            law, including any right of withdrawal applicable to digital services. Where Paddle's{' '}
-            <a className="underline" href="https://www.paddle.com/legal/refund-policy" target="_blank" rel="noreferrer">
-              Refund Policy
+            law, including any right of withdrawal applicable to digital services. Where Lemon Squeezy's{' '}
+            <a className="underline" href="https://www.lemonsqueezy.com/terms" target="_blank" rel="noreferrer">
+              Terms of Service
             </a>{' '}
             grants you stronger rights than this page, those rights apply.
           </p>
