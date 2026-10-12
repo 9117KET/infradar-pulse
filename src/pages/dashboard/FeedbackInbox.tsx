@@ -101,7 +101,7 @@ export default function FeedbackInbox() {
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={load}>Refresh</Button>
+          <Button variant="outline" onClick={() => load()}>Refresh</Button>
         </div>
       </header>
 
