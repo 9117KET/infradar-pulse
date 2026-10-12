@@ -7,7 +7,7 @@
 - [x] Step 2: record silent failures (webhook now throws on upsert error so LS retries; unresolved-user / lifetime-grant failures persisted to billing_events; ingest agents already record failures)
 - [x] Step 3: start/finish logging for digest, source-ingest, report, health-monitor agents
 - [x] Step 4: "load more" for capped lists (Stakeholders, Outreach, Feedback)
-- [ ] Step 5: remove type-check bypasses (regenerate types)
+- [ ] Step 5: remove type-check bypasses — 115→66 done; rest need hand fixes (Research, AgentMonitoring, BDPipeline, AuthContext, Digests, ProjectEditor, AgentHealth)
 - [ ] Step 6: route all server calls through shared API helper
 - [ ] Step 7: split oversized dashboard pages
 - [x] Legal pages (Terms/Privacy/Refund) updated to Lemon Squeezy as Merchant of Record
