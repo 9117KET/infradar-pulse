@@ -128,6 +128,10 @@ async function upsertSubscription(event: any) {
   const userId = await resolveUserId(meta?.custom_data, data.id, env);
   if (!userId) {
     console.error('lemonsqueezy-webhook: cannot resolve userId for sub', data.id, '(custom_data missing and no existing row)');
+    // Durable record so the lost event is visible in the billing audit log and
+    // can be reconciled manually — otherwise the subscription silently never
+    // syncs and the customer pays without getting their plan.
+    await recordWebhookFailure(event, 'webhook_user_unresolved', `subscription ${data.id}: no user_id in custom_data and no existing row`);
     return;
   }
 
@@ -155,7 +159,15 @@ async function upsertSubscription(event: any) {
     updated_at: new Date().toISOString(),
   };
 
-  await supabase.from('subscriptions').upsert(row, { onConflict: 'ls_subscription_id,environment' });
+  const { error: upsertError } = await supabase
+    .from('subscriptions')
+    .upsert(row, { onConflict: 'ls_subscription_id,environment' });
+  if (upsertError) {
+    // Throw so the outer catch returns a non-200 and Lemon Squeezy retries the
+    // event instead of the sync failing silently.
+    await recordWebhookFailure(event, 'webhook_upsert_failed', upsertError.message);
+    throw new Error(`subscriptions upsert failed: ${upsertError.message}`);
+  }
 
   if (status === 'trialing') {
     try {
@@ -202,6 +214,33 @@ async function markReferralConverted(
       .eq('converted_to_paid', false);
   } catch (err) {
     console.error('markReferralConverted failed (non-fatal):', err);
+  }
+}
+
+/**
+ * Persist a webhook processing failure into billing_events so it shows up in
+ * the billing audit log instead of vanishing into console output. Best-effort:
+ * never throws, so it can be called from error paths.
+ */
+// deno-lint-ignore no-explicit-any
+async function recordWebhookFailure(event: any, failureType: string, message: string) {
+  try {
+    const attrs = event?.data?.attributes ?? {};
+    await supabase.from('billing_events').insert({
+      user_id: null,
+      provider: 'lemonsqueezy',
+      ls_subscription_id: event?.data?.type === 'subscriptions' ? event.data.id : attrs.subscription_id ?? null,
+      ls_customer_id: attrs.customer_id != null ? String(attrs.customer_id) : null,
+      ls_order_id: event?.data?.type === 'orders' ? event.data.id : attrs.order_id ?? null,
+      event_type: failureType,
+      status: 'failed',
+      plan_key: null,
+      environment: lsEnvFromTestMode(attrs.test_mode),
+      occurred_at: new Date().toISOString(),
+      payload: { error: message, event },
+    });
+  } catch (err) {
+    console.error('recordWebhookFailure failed:', err);
   }
 }
 
@@ -286,6 +325,7 @@ async function maybeGrantLifetime(event: any) {
       ?? await userIdForCustomer(customerId, env);
     if (!userId) {
       console.error('maybeGrantLifetime: cannot resolve userId for order', data.id);
+      await recordWebhookFailure(event, 'lifetime_grant_failed', `order ${data.id}: cannot resolve userId`);
       return;
     }
 
@@ -298,10 +338,12 @@ async function maybeGrantLifetime(event: any) {
     });
     if (error) {
       console.error('claim_lifetime_seat_ls failed:', error);
+      await recordWebhookFailure(event, 'lifetime_grant_failed', `order ${data.id}: ${error.message}`);
       return;
     }
     console.log('Lifetime grant recorded for', userId, 'seat:', seat);
   } catch (err) {
     console.error('maybeGrantLifetime failed (non-fatal):', err);
+    await recordWebhookFailure(event, 'lifetime_grant_failed', err instanceof Error ? err.message : String(err));
   }
 }
