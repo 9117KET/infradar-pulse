@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { Users2, Search, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
 
 function formatValue(v: number | null) {
@@ -27,6 +28,7 @@ interface OrgGroup {
 export default function StakeholderIntel() {
   const [query, setQuery] = useState('');
   const [submitted, setSubmitted] = useState('');
+  const [limit, setLimit] = useState(200);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // Top orgs on initial load
@@ -44,28 +46,30 @@ export default function StakeholderIntel() {
 
   // Search results
   const { data: contactResults = [], isFetching: contactFetching } = useQuery({
-    queryKey: ['stakeholder-contacts', submitted],
+    queryKey: ['stakeholder-contacts', submitted, limit],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       if (!submitted) return [];
       const { data } = await supabase
         .from('project_contacts')
         .select('id, name, organization, role, project_id, projects(id, name, sector, region, value_usd, stage)')
         .ilike('organization', `%${submitted}%`)
-        .limit(200);
+        .limit(limit);
       return data ?? [];
     },
     enabled: !!submitted,
   });
 
   const { data: stakeholderResults = [], isFetching: stakeholderFetching } = useQuery({
-    queryKey: ['stakeholder-stakeholders', submitted],
+    queryKey: ['stakeholder-stakeholders', submitted, limit],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       if (!submitted) return [];
       const { data } = await supabase
         .from('project_stakeholders')
         .select('id, name, role, project_id, projects(id, name, sector, region, value_usd, stage)')
         .ilike('name', `%${submitted}%`)
-        .limit(200);
+        .limit(limit);
       return data ?? [];
     },
     enabled: !!submitted,
@@ -139,6 +143,7 @@ export default function StakeholderIntel() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setLimit(200);
     setSubmitted(query.trim());
     setExpanded(new Set());
   };
@@ -229,6 +234,11 @@ export default function StakeholderIntel() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {submitted && !isFetching && (contactResults.length >= limit || stakeholderResults.length >= limit) && (
+          <div className="flex justify-center pt-4">
+            <Button variant="outline" onClick={() => setLimit((l) => l + 200)}>Load more results</Button>
           </div>
         )}
       </div>

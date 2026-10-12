@@ -35,16 +35,17 @@ const STATUS_OPTIONS: FeedbackRow['status'][] = ['new', 'triaged', 'in_progress'
 export default function FeedbackInbox() {
   const [rows, setRows] = useState<FeedbackRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [limit, setLimit] = useState(200);
   const [filter, setFilter] = useState<'all' | FeedbackRow['status']>('new');
   const [typeFilter, setTypeFilter] = useState<'all' | FeedbackRow['type']>('all');
 
-  async function load() {
+  async function load(max = limit) {
     setLoading(true);
     const { data, error } = await supabase
       .from('feedback')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(500);
+      .limit(max);
     if (error) {
       toast.error('Could not load feedback');
     } else {
@@ -53,7 +54,7 @@ export default function FeedbackInbox() {
     setLoading(false);
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(limit); }, [limit]);
 
   const filtered = rows.filter((r) => {
     if (filter !== 'all' && r.status !== filter) return false;
@@ -100,7 +101,7 @@ export default function FeedbackInbox() {
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={load}>Refresh</Button>
+          <Button variant="outline" onClick={() => load()}>Refresh</Button>
         </div>
       </header>
 
@@ -154,6 +155,11 @@ export default function FeedbackInbox() {
               </div>
             );
           })}
+        </div>
+      )}
+      {!loading && rows.length >= limit && (
+        <div className="flex justify-center pt-4">
+          <Button variant="outline" onClick={() => setLimit((l) => l + 200)}>Load more</Button>
         </div>
       )}
     </div>
