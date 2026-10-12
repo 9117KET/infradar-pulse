@@ -12,12 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link } from 'react-router-dom';
 import { Sparkles, Loader2, Clock, Globe } from 'lucide-react';
 import { usePublicProjectLocations } from '@/hooks/use-public-project-locations';
-// DORMANT: import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
 import { useLemonSqueezyCheckout } from '@/hooks/useLemonSqueezyCheckout';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useEntitlements } from '@/hooks/useEntitlements';
-// DORMANT: import { isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
 import { isLiveCheckoutEnabled, isPaymentsLive, isTestCheckoutEnabled } from '@/lib/lemonSqueezy';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
@@ -63,7 +61,6 @@ export function UpgradeDialog({
   onOpenChange: (open: boolean) => void;
   reason?: Reason;
 }) {
-  // DORMANT: const { openCheckout, loading } = usePaddleCheckout();
   const { openCheckout, loading } = useLemonSqueezyCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();

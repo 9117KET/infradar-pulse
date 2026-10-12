@@ -4,12 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Check, Shield, Sparkles, Building2, Loader2, Zap, Globe, Crown, Infinity as InfinityIcon, Gift, Layers, Trophy, Link2, MessageSquare, Newspaper, BadgeCheck, CalendarCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-// DORMANT: import { usePaddleCheckout, type PlanPriceId } from '@/hooks/usePaddleCheckout';
 import { useLemonSqueezyCheckout, type PlanPriceId } from '@/hooks/useLemonSqueezyCheckout';
 import { useNoCardTrial } from '@/hooks/useNoCardTrial';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppEnvironment } from '@/lib/billing/environment';
-// DORMANT: import { getPaddleEnvironment, isLiveCheckoutEnabled, isPaymentsLive } from '@/lib/paddle';
 import { isLiveCheckoutEnabled, isPaymentsLive, isTestCheckoutEnabled } from '@/lib/lemonSqueezy';
 import { useFoundingAccess } from '@/components/billing/FoundingAccessProvider';
 import { cn } from '@/lib/utils';
@@ -59,7 +57,6 @@ type PilotCounter = {
 export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
-  // DORMANT: const { openCheckout, loading } = usePaddleCheckout();
   const { openCheckout, loading } = useLemonSqueezyCheckout();
   const { startTrial, loading: trialLoading } = useNoCardTrial();
   const { openFoundingAccess } = useFoundingAccess();

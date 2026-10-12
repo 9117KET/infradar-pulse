@@ -1,11 +1,9 @@
 import { useAuth } from '@/contexts/AuthContext';
-// DORMANT: const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN as string | undefined;
 import { getAppEnvironment } from '@/lib/billing/environment';
 
 export function PaymentTestModeBanner() {
   const { hasRole } = useAuth();
 
-  // DORMANT: if (!clientToken?.startsWith('test_')) return null;
   if (getAppEnvironment() !== 'sandbox') return null;
   if (!hasRole('admin') && !hasRole('researcher')) return null;
 
