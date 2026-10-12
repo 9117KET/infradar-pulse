@@ -1,14 +1,11 @@
-// Deletes the signed-in user permanently. Cancels any active Paddle
+// Deletes the signed-in user permanently. Cancels any active Lemon Squeezy
 // subscription FIRST, and only proceeds with auth deletion if the
-// cancellation succeeds. This avoids orphaned Paddle subs that keep
-// charging a deleted user.
+// cancellation succeeds, so a deleted user is never left being charged.
 //
-// Already-canceled / paused subs are skipped. If Paddle is unreachable for
-// an active sub we return 502 and the user can retry — better than silently
-// deleting the account and leaving Paddle to keep billing.
+// Already-canceled / paused subs are skipped. If the provider is unreachable
+// for an active sub we return 502 and the user can retry.
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { getPaddleClient, type PaddleEnv } from '../_shared/paddle.ts';
 import { lsFetch } from '../_shared/lemonsqueezy.ts';
 import { getUserFromBearer } from '../_shared/auth.ts';
 
@@ -34,28 +31,16 @@ serve(async (req) => {
 
     // 1. Cancel any active subscriptions. We must succeed at this step —
     //    otherwise the user is gone but the payment provider keeps billing.
-    //    Paddle is dormant (no client path can create a Paddle sub anymore)
-    //    but this loop stays in place in case any pre-dormancy Paddle subs
-    //    still exist; the Lemon Squeezy loop below handles new subs.
     const { data: subs } = await admin
       .from('subscriptions')
-      .select('paddle_subscription_id, ls_subscription_id, provider, environment, status')
+      .select('ls_subscription_id, provider, environment, status')
       .eq('user_id', user.id);
 
     const failed: { id: string; error: string }[] = [];
 
     for (const sub of subs ?? []) {
       if (['canceled', 'paused'].includes(sub.status)) continue;
-      if (sub.paddle_subscription_id) {
-        try {
-          const paddle = getPaddleClient(sub.environment as PaddleEnv);
-          await paddle.subscriptions.cancel(sub.paddle_subscription_id, { effectiveFrom: 'immediately' });
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e);
-          console.error('account-delete: failed to cancel paddle sub', sub.paddle_subscription_id, msg);
-          failed.push({ id: sub.paddle_subscription_id, error: msg });
-        }
-      } else if (sub.ls_subscription_id) {
+      if (sub.ls_subscription_id) {
         try {
           const res = await lsFetch(`/subscriptions/${sub.ls_subscription_id}`, { method: 'DELETE' });
           if (!res.ok) throw new Error(`LS API ${res.status}`);

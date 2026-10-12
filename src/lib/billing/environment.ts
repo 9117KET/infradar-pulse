@@ -2,15 +2,15 @@
 // quota tracking, agent-call tagging) — independent of which payment
 // provider is active. Tracks the same master go-live switch (VITE_PAYMENTS_LIVE)
 // already used everywhere to gate real checkout.
-//
-// This replaces getPaddleEnvironment() as the app-wide environment tag: that
-// function derived 'sandbox'/'live' from whether VITE_PAYMENTS_CLIENT_TOKEN
-// started with "test_", which silently resolves to 'live' once the token is
-// unset (Paddle is dormant) — exactly the wrong default for an app that
-// hasn't gone live yet.
-import { isPaymentsLive } from '@/lib/paddle';
 
-export { isPaymentsLive };
+/**
+ * Master switch for whether we actually charge yet. While false (pre-launch),
+ * Upgrade/Choose-plan CTAs open the founding-access modal instead of a real
+ * checkout. Flip VITE_PAYMENTS_LIVE to 'true' to go live.
+ */
+export function isPaymentsLive(): boolean {
+  return (import.meta.env.VITE_PAYMENTS_LIVE as string | undefined) === 'true';
+}
 
 export function getAppEnvironment(): 'sandbox' | 'live' {
   return isPaymentsLive() ? 'live' : 'sandbox';

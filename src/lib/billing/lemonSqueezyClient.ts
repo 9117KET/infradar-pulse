@@ -1,6 +1,6 @@
 // Thin wrappers used by Settings → Billing for plan changes, cancel, portal.
 // All call edge functions; the user must be signed in. exportAccountData/
-// deleteAccount are provider-agnostic and stay in paddleClient.ts.
+// deleteAccount are provider-agnostic and live in account.ts.
 import { supabase } from '@/integrations/supabase/client';
 import { getLemonSqueezyEnvironment } from '@/lib/lemonSqueezy';
 import type { PlanPriceId } from '@/hooks/useLemonSqueezyCheckout';
