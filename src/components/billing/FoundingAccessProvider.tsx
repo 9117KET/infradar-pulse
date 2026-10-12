@@ -78,7 +78,7 @@ export function FoundingAccessProvider({ children }: { children: ReactNode }) {
     try {
       const priceNum = expectedPrice.trim() ? Math.max(0, Math.round(Number(expectedPrice.replace(/[^0-9.]/g, '')))) : null;
       // Cast to any: plan_interest is a brand-new table not yet in generated types.
-      const { error } = await (supabase as any).from('plan_interest').insert({
+      const { error } = await supabase.from('plan_interest').insert({
         user_id: user?.id ?? null,
         email: finalEmail,
         plan_key: req.planKey,

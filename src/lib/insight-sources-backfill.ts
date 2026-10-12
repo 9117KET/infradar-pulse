@@ -97,7 +97,7 @@ export async function runClientInsightSourcesBackfill(
 
     const { error: upErr } = await supabase
       .from('insights')
-      .update({ sources: merged as unknown as Json } as any)
+      .update({ sources: merged as unknown as Json })
       .eq('id', row.id);
 
     if (upErr) {

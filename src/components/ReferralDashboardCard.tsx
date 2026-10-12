@@ -27,7 +27,7 @@ export function ReferralDashboardCard({ className }: { className?: string }) {
 
   useEffect(() => {
     if (!user) return;
-    (supabase as any)
+    supabase
       .from('referral_codes')
       .select('code')
       .eq('user_id', user.id)
@@ -44,7 +44,7 @@ export function ReferralDashboardCard({ className }: { className?: string }) {
       .map((b) => b.toString(36))
       .join('')
       .toUpperCase();
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from('referral_codes')
       .insert({ user_id: user.id, code: raw })
       .select('code')

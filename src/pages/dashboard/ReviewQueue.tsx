@@ -87,7 +87,7 @@ export default function ReviewQueue() {
   const { data: escalationCount = 0 } = useQuery({
     queryKey: ['agent-escalations-count'],
     queryFn: async () => {
-      const { count, error } = await (supabase as any)
+      const { count, error } = await supabase
         .from('agent_escalations')
         .select('id', { count: 'exact', head: true })
         .in('status', ['open', 'acknowledged']);
@@ -116,7 +116,7 @@ export default function ReviewQueue() {
     queryKey: ['project-candidates-review', candidatePage],
     queryFn: async () => {
       const from = candidatePage * REVIEW_PAGE_SIZE;
-      const { data, error, count } = await (supabase as any)
+      const { data, error, count } = await supabase
         .from('project_candidates')
         .select('*', { count: 'exact' })
         .in('review_status', ['ready_for_review', 'needs_research'])
@@ -132,7 +132,7 @@ export default function ReviewQueue() {
     queryKey: ['update-proposals-review', updatePage],
     queryFn: async () => {
       const from = updatePage * REVIEW_PAGE_SIZE;
-      const { data, error, count } = await (supabase as any)
+      const { data, error, count } = await supabase
         .from('update_proposals')
         .select('*, projects(name, country, sector, stage, status)', { count: 'exact' })
         .eq('status', 'pending')
@@ -148,7 +148,7 @@ export default function ReviewQueue() {
     queryKey: ['duplicate-candidates-review', duplicatePage],
     queryFn: async () => {
       const from = duplicatePage * REVIEW_PAGE_SIZE;
-      const { data, error, count } = await (supabase as any)
+      const { data, error, count } = await supabase
         .from('project_candidates')
         .select('*', { count: 'exact' })
         .or('duplicate_of.not.is.null,canonical_project_id.not.is.null,pipeline_status.eq.deduping')
@@ -166,7 +166,7 @@ export default function ReviewQueue() {
     queryFn: async () => {
       const staleBefore = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
       const from = sourceIssuePage * REVIEW_PAGE_SIZE;
-      const { data, error, count } = await (supabase as any)
+      const { data, error, count } = await supabase
         .from('source_registry')
         .select('*', { count: 'exact' })
         .or(`status.eq.failing,and(status.neq.active,last_success_at.lt.${staleBefore})`)
@@ -327,24 +327,24 @@ export default function ReviewQueue() {
   const duplicateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'merged' | 'not_duplicate' }) => {
       if (action === 'merged') {
-        const { error } = await (supabase as any)
+        const { error } = await supabase
           .from('project_candidates')
           .update({ pipeline_status: 'merged', review_status: 'rejected', updated_at: new Date().toISOString() })
           .eq('id', id);
         if (error) throw error;
-        const { error: logErr } = await (supabase as any)
+        const { error: logErr } = await supabase
           .from('review_actions')
           .insert({ item_type: 'duplicate', candidate_id: id, action: 'merged', reason: 'Marked as duplicate / merged from verification workbench' });
         if (logErr) throw logErr;
         return;
       }
       // not_duplicate: clear the duplicate linkage and return the candidate to the review queue.
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('project_candidates')
         .update({ duplicate_of: null, canonical_project_id: null, duplicate_confidence: null, pipeline_status: 'ready_for_review', review_status: 'ready_for_review', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
-      const { error: logErr } = await (supabase as any)
+      const { error: logErr } = await supabase
         .from('review_actions')
         .insert({ item_type: 'duplicate', candidate_id: id, action: 'note', reason: 'Confirmed not a duplicate' });
       if (logErr) throw logErr;
@@ -360,12 +360,12 @@ export default function ReviewQueue() {
   const sourceAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'retry' | 'pause' }) => {
       const status = action === 'retry' ? 'active' : 'paused';
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('source_registry')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
-      const { error: logErr } = await (supabase as any)
+      const { error: logErr } = await supabase
         .from('review_actions')
         .insert({ item_type: 'source', action: 'note', reason: action === 'retry' ? `Source re-activated for retry: ${id}` : `Source paused: ${id}` });
       if (logErr) throw logErr;
@@ -380,7 +380,7 @@ export default function ReviewQueue() {
   const candidateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' | 'requested_research' }) => {
       if (action === 'approved') {
-        const { error } = await (supabase as any).rpc('promote_project_candidate', {
+        const { error } = await supabase.rpc('promote_project_candidate', {
           p_candidate_id: id,
           p_reason: 'Approved from verification workbench',
         });
@@ -390,19 +390,19 @@ export default function ReviewQueue() {
       if (action === 'rejected') {
         // Use RPC so a rejection signature is recorded and the candidate
         // can never re-appear in the queue via future agent runs.
-        const { error } = await (supabase as any).rpc('reject_project_candidate', {
+        const { error } = await supabase.rpc('reject_project_candidate', {
           p_candidate_id: id,
           p_reason: 'Rejected from verification workbench',
         });
         if (error) throw error;
         return;
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('project_candidates')
         .update({ review_status: 'needs_research', pipeline_status: 'needs_research', updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
-      const { error: logErr } = await (supabase as any)
+      const { error: logErr } = await supabase
         .from('review_actions')
         .insert({ item_type: 'candidate', candidate_id: id, action, reason: action.replace('_', ' ') });
       if (logErr) throw logErr;
@@ -419,19 +419,19 @@ export default function ReviewQueue() {
   const updateAction = useMutation({
     mutationFn: async ({ id, action }: { id: string; action: 'approved' | 'rejected' }) => {
       if (action === 'approved') {
-        const { error } = await (supabase as any).rpc('apply_update_proposal', {
+        const { error } = await supabase.rpc('apply_update_proposal', {
           p_update_proposal_id: id,
           p_reason: 'Approved from verification workbench',
         });
         if (error) throw error;
         return;
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('update_proposals')
         .update({ status: action, reviewed_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
-      const { error: logErr } = await (supabase as any)
+      const { error: logErr } = await supabase
         .from('review_actions')
         .insert({ item_type: 'update', update_proposal_id: id, action, reason: `Update proposal ${action}` });
       if (logErr) throw logErr;

@@ -145,7 +145,7 @@ export default function Traction() {
   const updatePilotConfig = async () => {
     const maxSeats = Math.max(1, Math.floor(Number(pilotMaxSeats) || 100));
     const durationDays = Math.max(1, Math.floor(Number(pilotDurationDays) || 30));
-    const { error: updateError } = await (supabase as any)
+    const { error: updateError } = await supabase
       .from('pilot_access_config')
       .update({ enabled: pilotEnabled, max_seats: maxSeats, duration_days: durationDays })
       .eq('environment', 'live');

@@ -19,7 +19,7 @@ export function ContactCoveragePanel() {
   const { data, isLoading } = useQuery({
     queryKey: ['contact-coverage-summary'],
     queryFn: async (): Promise<Coverage | null> => {
-      const { data, error } = await supabase.rpc('get_contact_coverage_summary' as never);
+      const { data, error } = await supabase.rpc('get_contact_coverage_summary');
       if (error) throw error;
       return (data as unknown as Coverage) ?? null;
     },

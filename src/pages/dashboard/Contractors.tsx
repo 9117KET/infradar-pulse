@@ -69,7 +69,7 @@ export default function Contractors() {
   const { data: contractors = [], isLoading, refetch } = useQuery({
     queryKey: ['contractors'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('contractors')
         .select('*')
         .order('total_awards', { ascending: false })
@@ -84,7 +84,7 @@ export default function Contractors() {
     queryKey: ['contractor-awards', selected?.id],
     queryFn: async () => {
       if (!selected) return [];
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('contractor_awards')
         .select('id, project_name, award_value_usd, contract_type, award_date, source_url')
         .eq('contractor_id', selected.id)

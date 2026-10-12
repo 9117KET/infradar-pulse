@@ -102,13 +102,13 @@ export function useEntitlements() {
           .eq('period_start', todayUtc()),
         // Lifetime grant overrides everything below staff bypass.
         // Cast to any: lifetime_grants is a brand-new table not yet in generated types.
-        (supabase as any)
+        supabase
           .from('lifetime_grants')
           .select('id')
           .eq('user_id', userId)
           .eq('environment', environment)
           .maybeSingle(),
-        (supabase as any)
+        supabase
           .from('no_card_trial_grants')
           .select('starts_at, ends_at, status')
           .eq('user_id', userId)
@@ -118,7 +118,7 @@ export function useEntitlements() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        (supabase as any)
+        supabase
           .from('pilot_access_grants')
           .select('starts_at, ends_at, status, seat_number')
           .eq('user_id', userId)
@@ -130,7 +130,7 @@ export function useEntitlements() {
           .maybeSingle(),
         // Live referral summary (qualified/pending counts + earned/welcome bonus).
         // Best-effort: a failure leaves the bonus at 0, never blocks entitlements.
-        (supabase as any).rpc('my_referral_summary'),
+        supabase.rpc('my_referral_summary'),
       ]);
 
       const ref = Array.isArray(referral) ? referral[0] : referral;

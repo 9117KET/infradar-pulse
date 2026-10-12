@@ -53,8 +53,8 @@ export default function UsersPage() {
       supabase.from('profiles').select('*'),
       supabase.from('user_roles').select('*'),
       (supabase.rpc as any)('admin_list_user_emails'),
-      (supabase as any).from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live'),
-      (supabase as any).from('lifetime_grants').select('user_id, seat_number, grant_source').eq('environment', 'live'),
+      supabase.from('pilot_access_grants').select('user_id, ends_at, seat_number, status').eq('environment', 'live'),
+      supabase.from('lifetime_grants').select('user_id, seat_number, grant_source').eq('environment', 'live'),
     ]);
 
     if (profilesError) {
