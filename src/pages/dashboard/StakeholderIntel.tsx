@@ -143,6 +143,7 @@ export default function StakeholderIntel() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    setLimit(200);
     setSubmitted(query.trim());
     setExpanded(new Set());
   };
