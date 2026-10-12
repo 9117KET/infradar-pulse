@@ -36,13 +36,13 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .limit(1)
       .maybeSingle(),
     // lifetime_grants is new — generated types not yet refreshed
-    (supabase as any)
+    supabase
       .from('lifetime_grants')
       .select('id')
       .eq('user_id', user.id)
       .eq('environment', environment)
       .maybeSingle(),
-    (supabase as any)
+    supabase
       .from('pilot_access_grants')
       .select('id')
       .eq('user_id', user.id)
@@ -50,7 +50,7 @@ export async function getEntitlement(): Promise<EntitlementSnapshot | null> {
       .eq('status', 'active')
       .gt('ends_at', new Date().toISOString())
       .maybeSingle(),
-    (supabase as any)
+    supabase
       .from('no_card_trial_grants')
       .select('id')
       .eq('user_id', user.id)

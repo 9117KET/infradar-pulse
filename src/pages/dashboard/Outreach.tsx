@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Send, Plus, Check, X, Copy, Sparkles, Mail, Linkedin, Users, ExternalLink, Upload } from 'lucide-react';
 import { parseProspectCsv, prospectKey } from '@/lib/outreach/prospectCsv';
 
-const db = supabase as any;
+const db = supabase;
 
 const PERSONAS = [
   { value: 'dfi_analyst', label: 'DFI / MDB analyst (LOI)' },

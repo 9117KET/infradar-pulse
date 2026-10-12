@@ -257,7 +257,7 @@ export default function ProjectDetail() {
   };
 
   const toggleContactVerified = async (contactId: string, current: boolean) => {
-    const { error } = await supabase.from('project_contacts').update({ verified: !current } as any).eq('id', contactId);
+    const { error } = await supabase.from('project_contacts').update({ verified: !current }).eq('id', contactId);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: current ? 'Marked unverified' : 'Marked verified' });
   };
@@ -269,7 +269,7 @@ export default function ProjectDetail() {
   };
 
   const toggleVerified = async (evidenceId: string, current: boolean) => {
-    const { error } = await supabase.from('evidence_sources').update({ verified: !current } as any).eq('id', evidenceId);
+    const { error } = await supabase.from('evidence_sources').update({ verified: !current }).eq('id', evidenceId);
     if (error) { toast({ title: 'Error', description: error.message, variant: 'destructive' }); return; }
     toast({ title: current ? 'Marked unverified' : 'Marked verified' });
   };
@@ -706,7 +706,7 @@ export default function ProjectDetail() {
 
               const grouped: Record<string, typeof contacts> = {};
               contacts.forEach(c => {
-                const t = (c as any).contact_type || 'general';
+                const t = c.contact_type || 'general';
                 if (!grouped[t]) grouped[t] = [];
                 grouped[t].push(c);
               });

@@ -148,7 +148,7 @@ export default function DashboardOverview() {
       { name: 'Description', check: (p: typeof projects[0]) => !!p.description && p.description.length > 10 },
       { name: 'Coordinates', check: (p: typeof projects[0]) => p.lat !== 0 && p.lng !== 0 },
       { name: 'Value', check: (p: typeof projects[0]) => p.valueUsd > 0 },
-      { name: 'Source URL', check: (p: typeof projects[0]) => !!(p as any).sourceUrl },
+      { name: 'Source URL', check: (p: typeof projects[0]) => !!p.sourceUrl },
       { name: 'Evidence', check: (p: typeof projects[0]) => p.evidence.length > 0 },
       { name: 'Contacts', check: (p: typeof projects[0]) => p.contacts?.length > 0 },
       { name: 'Milestones', check: (p: typeof projects[0]) => p.milestones?.length > 0 },

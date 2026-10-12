@@ -81,7 +81,7 @@ export default function Tenders() {
     queryKey: ['tender-events'],
     queryFn: async () => {
       // Read from the structured tender_events table; fall back to parsing alerts if empty
-      const { data: teData, error: teError } = await (supabase as any)
+      const { data: teData, error: teError } = await supabase
         .from('tender_events')
         .select('id, project_id, project_name, event_type, severity, summary, source_url, country, award_value_usd, contractor_name, deadline, created_at')
         .order('created_at', { ascending: false })
@@ -131,7 +131,7 @@ export default function Tenders() {
       const since = monthStart.toISOString();
 
       // Try structured table first
-      const { data: teData } = await (supabase as any)
+      const { data: teData } = await supabase
         .from('tender_events')
         .select('event_type')
         .gte('created_at', since);

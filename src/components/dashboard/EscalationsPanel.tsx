@@ -40,7 +40,7 @@ export function EscalationsPanel() {
     queryKey: ['agent-escalations', page],
     queryFn: async () => {
       const from = page * PAGE_SIZE;
-      const { data: rows, error, count } = await (supabase as any)
+      const { data: rows, error, count } = await supabase
         .from('agent_escalations')
         .select('*', { count: 'exact' })
         .in('status', ['open', 'acknowledged'])
@@ -54,7 +54,7 @@ export function EscalationsPanel() {
 
   const resolveMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: 'resolved' | 'dismissed' }) => {
-      const { error } = await (supabase as any).rpc('resolve_escalation', {
+      const { error } = await supabase.rpc('resolve_escalation', {
         p_id: id,
         p_status: status,
         p_note: status === 'resolved' ? 'Handled by reviewer' : 'Dismissed by reviewer',

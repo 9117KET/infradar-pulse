@@ -56,7 +56,7 @@ export default function Reports() {
   const { data: runs, isLoading, refetch } = useQuery({
     queryKey: ['report-runs'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('report_runs')
+      const { data, error } = await supabase.from('report_runs')
         .select('id,report_type,status,title,markdown,citations,parameters,created_at,completed_at')
         .order('created_at', { ascending: false }).limit(25);
       if (error) throw error;
@@ -68,7 +68,7 @@ export default function Reports() {
   const { data: schedules, refetch: refetchSchedules } = useQuery({
     queryKey: ['report-schedules'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from('report_schedules').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('report_schedules').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as Schedule[];
     },
@@ -94,7 +94,7 @@ export default function Reports() {
   };
 
   const saveSchedule = async () => {
-    const { error } = await (supabase as any).from('report_schedules').insert({
+    const { error } = await supabase.from('report_schedules').insert({
       user_id: user?.id, name: `${REPORT_TYPES.find(([id]) => id === reportType)?.[1] ?? 'Intelligence brief'} · ${scheduleCadence}`,
       report_type: reportType, parameters: buildOptions(), cadence: scheduleCadence,
       next_run_at: new Date(Date.now() + (scheduleCadence === 'weekly' ? 7 : 30) * 86400000).toISOString(),
@@ -103,7 +103,7 @@ export default function Reports() {
   };
 
   const deleteSchedule = async (id: string) => {
-    const { error } = await (supabase as any).from('report_schedules').delete().eq('id', id);
+    const { error } = await supabase.from('report_schedules').delete().eq('id', id);
     if (error) toast.error(error.message); else await refetchSchedules();
   };
 
