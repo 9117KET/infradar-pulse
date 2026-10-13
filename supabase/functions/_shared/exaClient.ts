@@ -13,7 +13,7 @@ export function isExaConfigured(): boolean {
 export async function exaSearch(query: string, opts: {
   limit?: number;
   recency?: "day" | "week" | "month" | "year";
-  category?: "company" | "news" | "pdf" | "linkedin profile";
+  category?: "company" | "news" | "people";
 } = {}): Promise<ExaResult[]> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];

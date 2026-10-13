@@ -60,3 +60,41 @@ export async function callPerplexity(params: {
     return null;
   }
 }
+
+/**
+ * Perplexity Search API — raw ranked web results (no LLM answer).
+ * POST https://api.perplexity.ai/search ; results[] {title,url,snippet,date?,last_updated?}
+ * `query` may be up to 5 strings; results are deduped by URL.
+ */
+export type PerplexitySearchResult = { title: string; url: string; snippet: string; date?: string };
+
+export async function perplexitySearch(query: string | string[], opts: { maxResults?: number; country?: string } = {}): Promise<PerplexitySearchResult[]> {
+  const apiKey = Deno.env.get("PERPLEXITY_API_KEY");
+  if (!apiKey) return [];
+  try {
+    const res = await fetch("https://api.perplexity.ai/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: Array.isArray(query) ? query.slice(0, 5) : query,
+        max_results: Math.min(Math.max(opts.maxResults ?? 10, 1), 20),
+        ...(opts.country ? { country: opts.country } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      if (res.status === 401 && body.includes("insufficient_quota")) console.error("perplexity search: API credits exhausted");
+      else console.error(`perplexity search ${res.status}: ${body.slice(0, 200)}`);
+      return [];
+    }
+    const data = await res.json();
+    // Multi-query responses return one result list per query.
+    const raw = data?.results ?? [];
+    const flat: PerplexitySearchResult[] = Array.isArray(raw[0]) ? raw.flat() : raw;
+    const seen = new Set<string>();
+    return flat.filter((r) => r?.url && !seen.has(r.url) && seen.add(r.url));
+  } catch (e) {
+    console.error("perplexity search error", e);
+    return [];
+  }
+}
