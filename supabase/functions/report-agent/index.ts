@@ -12,6 +12,8 @@ import { getEntitlementForUser, requireVerifiedEmail } from "../_shared/entitlem
 import { planMeetsMinimum } from "../_shared/billing.ts";
 import { isCronRequest } from "../_shared/cronAuth.ts";
 import { finishAgentRun, failAgentTask, isAgentEnabled, pausedResponse } from "../_shared/agentGate.ts";
+import { getUserFromBearer } from "../_shared/auth.ts";
+import { research } from "../_shared/researchRouter.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +56,27 @@ const DEPTH_PROFILES: Record<string, { label: string; projects: number; alerts: 
   deep:     { label: "Deep dive", projects: 300, alerts: 400, words: "4,000-6,000 words", minPlan: "pro" },
 };
 
+/** Sections a user can pick; order here is the order in the report. */
+const REPORT_SECTIONS: Record<string, string> = {
+  executive_summary: "Executive summary",
+  market_overview: "Market and pipeline overview",
+  pipeline_table: "Project pipeline table (name, country, sector, stage, value, confidence, source)",
+  top_projects: "Top project deep-dives",
+  key_players: "Key players, sponsors and contractors",
+  tender_outlook: "Tender and award outlook",
+  risks: "Risk and alert signals",
+  outlook: "Outlook and recommended actions",
+  data_quality: "Data quality and confidence notes",
+};
+const DEFAULT_SECTIONS = Object.keys(REPORT_SECTIONS);
+/** Live web research: number of searches per run (each one costs provider credits). */
+const LIVE_RESEARCH_QUERIES = 3;
+
+function parseSections(value: unknown): string[] {
+  if (!Array.isArray(value)) return DEFAULT_SECTIONS;
+  const picked = value.filter((v): v is string => typeof v === "string" && v in REPORT_SECTIONS);
+  return picked.length ? DEFAULT_SECTIONS.filter((k) => picked.includes(k)) : DEFAULT_SECTIONS;
+}
 
 function cleanText(value: unknown, max = 120): string | null {
   if (typeof value !== "string") return null;
@@ -107,7 +130,7 @@ function uniqueCitations(items: Array<{ label?: string | null; url?: string | nu
       seen.add(url);
       return true;
     })
-    .slice(0, 30)
+    .slice(0, 60)
     .map((item, index) => ({ label: item.label || `Source ${index + 1}`, url: String(item.url) }));
 }
 
@@ -115,7 +138,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Parse once before entitlement checks so invalid requests do not consume quota.
-  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+  const body = req.method === "POST" ? await req.clone().json().catch(() => ({})) : {};
   const depthKey = typeof body?.depth === "string" && DEPTH_PROFILES[body.depth] ? body.depth : "standard";
   const depth = DEPTH_PROFILES[depthKey];
   const requestedReportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
@@ -126,10 +149,48 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "A custom intelligence brief requires a question." }), { status: 400, headers: corsHeaders });
   }
 
+  const sections = parseSections(body?.sections);
+  const liveResearch = body?.live_research === true;
+  const valueMinRaw = Number(body?.value_min);
+  const valueMin = Number.isFinite(valueMinRaw) && valueMinRaw > 0 ? valueMinRaw : null;
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return new Response(JSON.stringify({ error: "Server configuration error" }), { status: 500, headers: corsHeaders });
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Cost preview: signed-in users only, consumes no quota and calls no AI.
+  if (body?.preview === true) {
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const user = await getUserFromBearer(req, supabaseUrl, anonKey);
+    if (!user) return new Response(JSON.stringify({ error: "Sign in required" }), { status: 401, headers: corsHeaders });
+    const entitlement = await getEntitlementForUser(supabase, user.id, "live");
+    let q = supabase.from("projects").select("id", { count: "exact", head: true }).eq("approved", true);
+    const c = cleanText(body?.country), r = cleanText(body?.region), se = cleanText(body?.sector), st = cleanText(body?.stage);
+    if (c) q = q.ilike("country", c);
+    if (r) q = q.eq("region", r);
+    if (se) q = q.eq("sector", se);
+    if (st) q = q.eq("stage", st);
+    if (valueMin) q = q.gte("value_usd", valueMin);
+    const { count } = await q;
+    const matched = count ?? 0;
+    const depthAllowed = entitlement.bypass || planMeetsMinimum(entitlement.plan, depth.minPlan);
+    const liveAllowed = entitlement.bypass || planMeetsMinimum(entitlement.plan, "starter");
+    return new Response(JSON.stringify({
+      preview: true,
+      matched_projects: matched,
+      projects_used: Math.min(matched, depth.projects),
+      ai_reports: 1,
+      live_searches: liveResearch && liveAllowed ? LIVE_RESEARCH_QUERIES : 0,
+      sections: sections.map((k) => REPORT_SECTIONS[k]),
+      depth: depth.label,
+      words: depth.words,
+      depth_allowed: depthAllowed,
+      live_allowed: liveAllowed,
+      est_minutes: depthKey === "deep" ? 3 : liveResearch ? 2 : 1,
+      warning: matched === 0 ? "No published projects match these filters; the report will be thin." : null,
+    }), { headers: corsHeaders });
+  }
 
   // Scheduled runs are dispatched by report-scheduler for a specific owner.
   // Interactive runs must pass the normal user entitlement and quota gate.
@@ -224,6 +285,9 @@ serve(async (req) => {
       depth_label: depth.label,
       scope_label: scopeLabel,
       template: template.label,
+      sections,
+      live_research: liveResearch,
+      value_min: valueMin,
     };
 
     const updateTask = async (patch: Record<string, unknown>) => {
@@ -259,6 +323,7 @@ serve(async (req) => {
     if (effRegion) projectsQuery = projectsQuery.eq("region", effRegion);
     if (effSector) projectsQuery = projectsQuery.eq("sector", effSector);
     if (effStage) projectsQuery = projectsQuery.eq("stage", effStage);
+    if (valueMin) projectsQuery = projectsQuery.gte("value_usd", valueMin);
     if (trackedOnly) projectsQuery = projectsQuery.in("id", trackedIds.length ? trackedIds : ["00000000-0000-0000-0000-000000000000"]);
 
     let alertsQuery = supabase
@@ -327,6 +392,40 @@ serve(async (req) => {
       ...insightRows.map((i) => ({ label: i.title, url: i.source_url })),
     ]);
 
+    // Optional fresh web research (Perplexity → Exa → Firecrawl). Bounded to
+    // LIVE_RESEARCH_QUERIES searches and only for paid plans.
+    let liveResearchText = "";
+    let liveUsed = 0;
+    if (liveResearch) {
+      const ent = await getEntitlementForUser(supabase, gate.userId, "live");
+      if (ent.bypass || planMeetsMinimum(ent.plan, "starter")) {
+        await updateTask({ step: "researching", report_run_id: reportRunId, message: "Running fresh web research..." });
+        const topic = [effSector ?? "infrastructure", "projects", effCountry ?? effRegion ?? ""].join(" ").trim();
+        const queries = [
+          question ? `${question} ${effCountry ?? effRegion ?? ""}` : `${topic} announced under construction investment`,
+          `${topic} contract awarded contractor tender`,
+          `${topic} financing final investment decision delays`,
+        ].slice(0, LIVE_RESEARCH_QUERIES);
+        const results = await Promise.all(queries.map((q) => research({
+          systemPrompt: "Infrastructure market researcher. Report named projects, sponsors, contractors, values and dates with sources.",
+          userPrompt: q,
+          mode: "monitoring",
+          recency: "month",
+        }).catch(() => null)));
+        const liveCites: Array<{ label: string; url: string }> = [];
+        for (const r of results) {
+          if (!r || r.degraded || !r.citations.length) continue;
+          liveUsed++;
+          liveResearchText += `\n[provider=${r.provider}]\n${r.text.slice(0, 6000)}\n`;
+          for (const url of r.citations) {
+            try { liveCites.push({ label: `Web: ${new URL(url).hostname.replace(/^www\./, "")}`, url }); } catch { /* skip */ }
+          }
+        }
+        seedCitations.unshift(...uniqueCitations(liveCites).filter((c) => !seedCitations.some((s) => s.url === c.url)));
+      }
+    }
+    const sectionList = sections.map((k, i) => `${i + 1}. ${REPORT_SECTIONS[k]}`).join("\n");
+
     await updateTask({ step: "synthesizing", message: "Generating decision-grade report with AI...", metrics });
 
     const aiRes = await chatCompletions({
@@ -334,17 +433,18 @@ serve(async (req) => {
         {
           role: "system",
           content:
-            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Every report must include: Executive summary, market/pipeline overview, sector or stage breakdown, key projects/stakeholders, tender or award outlook if relevant, risk and alert signals, recommended actions, data quality/confidence notes, and source citations. For a custom brief, answer the user's question first and organize the report around the decision it supports. Never invent facts, contacts, citations, or project details. If data is sparse, say so and explain what can still be inferred.",
+            "You are InfraRadarAI's senior infrastructure intelligence editor. Produce original, decision-grade market reports using only the supplied platform data. Do not imitate or mention competitors. Use concise Markdown with clear H2/H3 sections, tables where useful, and bullet recommendations. Be explicit about uncertainty, confidence, and source limitations. Include exactly the sections the user selected, in that order, then a Sources list. Fresh web research, when supplied, may add projects or facts not in platform data, but only with its listed URLs; label such items as 'web-sourced, not yet verified'. For a custom brief, answer the user's question first and organize the report around the decision it supports. Never invent facts, contacts, citations, or project details. If data is sparse, say so and explain what can still be inferred.",
         },
         {
           role: "user",
           content:
-            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\nDepth: ${depth.label} (${depth.words})\nTracked only: ${trackedOnly}\nSaved search: ${savedSearchId ?? "none"}\nUser question: ${question ?? "none"}\n\n` +
+            `Report template: ${template.label}\nFocus: ${template.focus}\nScope: ${scopeLabel}\nWindow: last ${days} days\nDepth: ${depth.label} (${depth.words})\nMinimum project value (USD): ${valueMin ?? "none"}\nSections (in order):\n${sectionList}\nTracked only: ${trackedOnly}\nSaved search: ${savedSearchId ?? "none"}\nUser question: ${question ?? "none"}\n\n` +
             `Aggregate metrics:\n${JSON.stringify(metrics)}\n\n` +
             `Recent alerts:\n${JSON.stringify(alertRows.slice(0, 120))}\n\n` +
             `Project updates:\n${JSON.stringify(updateRows.slice(0, 120))}\n\n` +
             `Matching projects:\n${JSON.stringify(projectRows.slice(0, 80))}\n\n` +
             `Recent internal insights:\n${JSON.stringify(insightRows)}\n\n` +
+            (liveResearchText ? `Fresh web research:\n${liveResearchText}\n\n` : "") +
             `Known citations (use only these URLs):\n${JSON.stringify(seedCitations)}\n`,
         },
       ],
@@ -411,7 +511,7 @@ serve(async (req) => {
         title,
         markdown,
         citations,
-        parameters: { ...parameters, metrics, summary, citation_count: citations.length },
+        parameters: { ...parameters, metrics, summary, citation_count: citations.length, live_searches_used: liveUsed },
         completed_at: new Date().toISOString(),
       })
       .eq("id", reportRunId);
