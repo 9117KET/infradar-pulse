@@ -18,7 +18,8 @@
 - [x] Sector focus weights (table + weighted theme picking in frontier agent), new power-for-AI / cooling / chip-supply / construction themes
 - [x] Optional Exa provider in research router; default router mode `auto` (Perplexity → Exa → Firecrawl → Lovable AI)
 - [x] Contact finder targets decision-maker roles
-- [ ] Perplexity + Exa keys — blocked: waiting on user to add keys
+- [ ] Perplexity: key linked, Search API wired — blocked: account has no API credits (console.perplexity.ai billing)
+- [ ] Exa key — blocked: waiting on user to add EXA_API_KEY
 - [ ] Sector focus editor + coverage chart in Agents Hub
 - [ ] Company watch-list agent, interconnection-queue and subsidy-award sources
 - [ ] Contact email_status (verified / guessed / provider-verified)
