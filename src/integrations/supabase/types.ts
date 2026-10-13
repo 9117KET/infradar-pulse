@@ -2658,6 +2658,30 @@ export type Database = {
         }
         Relationships: []
       }
+      sector_focus: {
+        Row: {
+          label: string
+          theme: string
+          updated_at: string
+          updated_by: string | null
+          weight: number
+        }
+        Insert: {
+          label: string
+          theme: string
+          updated_at?: string
+          updated_by?: string | null
+          weight?: number
+        }
+        Update: {
+          label?: string
+          theme?: string
+          updated_at?: string
+          updated_by?: string | null
+          weight?: number
+        }
+        Relationships: []
+      }
       source_link_checks: {
         Row: {
           checked_at: string
