@@ -17,18 +17,19 @@ export async function exaSearch(query: string, opts: {
 } = {}): Promise<ExaResult[]> {
   const key = Deno.env.get("EXA_API_KEY");
   if (!key) return [];
-  const days = { day: 1, week: 7, month: 31, year: 365 }[opts.recency ?? "year"];
+  // Exa guidance: express recency in the query rather than hard date filters,
+  // which drop undated/misdated pages.
+  const recencyHint = opts.recency === "day" || opts.recency === "week" ? "latest " : opts.recency === "month" ? "recent " : "";
   try {
     const res = await fetch(EXA_URL, {
       method: "POST",
       headers: { "x-api-key": key, "Content-Type": "application/json" },
       body: JSON.stringify({
-        query,
-        numResults: opts.limit ?? 6,
+        query: `${recencyHint}${query}`,
         type: "auto",
-        category: opts.category,
-        startPublishedDate: new Date(Date.now() - days * 86400000).toISOString(),
-        contents: { highlights: { numSentences: 4, highlightsPerUrl: 3 } },
+        ...(opts.limit ? { numResults: opts.limit } : {}),
+        ...(opts.category ? { category: opts.category } : {}),
+        contents: { highlights: true },
       }),
     });
     if (!res.ok) {
