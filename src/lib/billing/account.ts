@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 // Account data export and permanent deletion. Provider-agnostic.
 import { supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 
@@ -24,7 +25,7 @@ export async function exportAccountData(): Promise<void> {
 }
 
 export async function deleteAccount(): Promise<void> {
-  const { error } = await supabase.functions.invoke('account-delete', { body: {} });
+  const { error } = await callFunction('account-delete', { body: {} });
   if (error) throw new Error(error.message);
   await supabase.auth.signOut();
   window.location.href = '/';

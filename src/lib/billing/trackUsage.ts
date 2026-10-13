@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 /**
  * Server-gated usage tracking. Calls the `usage-track` edge function which
  * enforces plan limits and atomically increments the counter (daily + hourly).
@@ -27,7 +28,7 @@ type ErrorCtx = {
 };
 
 export async function trackUsage(action: TrackAction): Promise<TrackResult> {
-  const { data, error } = await supabase.functions.invoke('usage-track', {
+  const { data, error } = await callFunction('usage-track', {
     body: { action, environment: getAppEnvironment() },
   });
   if (error) {

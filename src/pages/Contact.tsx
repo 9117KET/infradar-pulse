@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Mail, MessageSquare, FileText, Loader2, CheckCircle2 } from 'lucide-react';
@@ -91,7 +92,7 @@ export default function Contact() {
       // Fire both emails in parallel; failures here shouldn't block the user
       // (the submission is already saved).
       const [confirmation, notification] = await Promise.allSettled([
-        supabase.functions.invoke('send-transactional-email', {
+        callFunction('send-transactional-email', {
           body: {
             templateName: 'contact-confirmation',
             recipientEmail: parsed.data.email,
@@ -103,7 +104,7 @@ export default function Contact() {
             },
           },
         }),
-        supabase.functions.invoke('send-transactional-email', {
+        callFunction('send-transactional-email', {
           body: {
             templateName: 'contact-notification',
             recipientEmail: 'hello@infradarai.com',

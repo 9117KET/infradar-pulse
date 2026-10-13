@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAppEnvironment } from '@/lib/billing/environment';
@@ -9,7 +10,7 @@ export function useNoCardTrial() {
   const startTrial = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('start-no-card-trial', {
+      const { data, error } = await callFunction('start-no-card-trial', {
         body: { environment: getAppEnvironment() },
       });
       if (error) throw new Error(error.message || 'Could not start trial.');

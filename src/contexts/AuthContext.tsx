@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const data = raw as { granted?: boolean; reason?: string; seat_number?: number; ends_at?: string; duration_days?: number } | null;
     if (data?.granted && data?.reason === 'created') {
       void trackEvent('pilot_access_granted', { seat_number: data.seat_number, ends_at: data.ends_at }, 'monetization');
-      void supabase.functions.invoke('send-transactional-email', {
+      void callFunction('send-transactional-email', {
         body: {
           templateName: 'pilot-access-granted',
           recipientEmail: currentUser.email,

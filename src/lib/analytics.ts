@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { supabase } from '@/integrations/supabase/client';
 import { getStoredUtmParams } from '@/lib/utm';
 
@@ -37,7 +38,7 @@ export async function trackEvent(
     const { anonymousId, sessionId } = getAnalyticsIds();
     const { data: { session } } = await supabase.auth.getSession();
     const utm = getStoredUtmParams();
-    await supabase.functions.invoke('track-event', {
+    await callFunction('track-event', {
       body: {
         event_name: eventName,
         event_category: eventCategory,

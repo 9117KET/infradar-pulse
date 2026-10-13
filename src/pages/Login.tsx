@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -64,7 +65,7 @@ export default function Login() {
       //    check already ran, and Supabase Auth still enforces email format.
       //    Only block when the function explicitly returns ok: false.
       try {
-        const { data: validation, error: validationError } = await supabase.functions.invoke(
+        const { data: validation, error: validationError } = await callFunction(
           'validate-signup-email',
           { body: { email } },
         );

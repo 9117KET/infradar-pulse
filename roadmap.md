@@ -8,6 +8,6 @@
 - [x] Step 3: start/finish logging for digest, source-ingest, report, health-monitor agents
 - [x] Step 4: "load more" for capped lists (Stakeholders, Outreach, Feedback)
 - [ ] Step 5: remove type-check bypasses — 115→58; remainder target tables/functions missing from generated types (digests, agent_health_alerts, agent_health, pipeline summary, BDPipeline) or untyped research JSON — fix after types regenerate
-- [ ] Step 6: route all server calls through shared API helper
+- [x] Step 6: route all server calls through shared API helper (callFunction in src/lib/api/agents.ts; raw fetch kept only for file download + GET unsubscribe)
 - [ ] Step 7: split oversized dashboard pages
 - [x] Legal pages (Terms/Privacy/Refund) updated to Lemon Squeezy as Merchant of Record
