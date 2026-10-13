@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { PublicProjectLocation } from '@/hooks/use-public-project-locations';
+import { BASEMAP_ATTRIBUTION, BASEMAP_URL } from '@/lib/mapTiles';
 
 const RISK_COLORS: Record<string, string> = {
   low: '#6bd8cb',
@@ -65,9 +66,11 @@ export function HeroMap({
         touchZoom: true,
         worldCopyJump: true,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      L.tileLayer(BASEMAP_URL, {
         maxZoom: 12,
+        attribution: BASEMAP_ATTRIBUTION,
       }).addTo(map);
+      L.control.attribution({ prefix: false }).addTo(map);
 
       layerRef.current = L.layerGroup().addTo(map);
       pulseLayerRef.current = L.layerGroup().addTo(map);
@@ -168,7 +171,7 @@ export function HeroMap({
         background: 'linear-gradient(to bottom, hsl(var(--background) / 0.6) 0%, transparent 8%, transparent 92%, hsl(var(--background) / 0.6) 100%)',
       }} />
       {zoomDisplay < 4 && (
-        <div className="pointer-events-none absolute bottom-3 right-16 z-[400] text-[10px] text-muted-foreground bg-background/70 backdrop-blur-sm rounded px-2 py-1 font-mono border border-border/50">
+        <div className="pointer-events-none absolute bottom-7 right-3 z-[400] text-[10px] text-muted-foreground bg-background/70 backdrop-blur-sm rounded px-2 py-1 font-mono border border-border/50">
           Scroll or pinch to zoom in
         </div>
       )}
@@ -191,6 +194,12 @@ export function HeroMap({
         .leaflet-control-zoom a:hover {
           background: rgba(107,216,203,0.15) !important;
         }
+        .leaflet-control-attribution {
+          background: rgba(10,15,20,0.7) !important;
+          color: #6b7280 !important;
+          font-size: 9px;
+        }
+        .leaflet-control-attribution a { color: #9ca3af !important; }
         .infradar-pulse-icon { background: transparent; border: none; }
         .infradar-pulse {
           display: block;
