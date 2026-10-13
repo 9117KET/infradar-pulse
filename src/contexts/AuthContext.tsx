@@ -93,10 +93,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!currentUser.email_confirmed_at) return;
     if (claimedPilotFor.current === currentUser.id) return;
     claimedPilotFor.current = currentUser.id;
-    const { data } = await supabase.rpc('claim_own_pilot_access', {
+    const { data: raw } = await supabase.rpc('claim_own_pilot_access', {
       p_email: currentUser.email ?? null,
       p_environment: 'live',
     });
+    const data = raw as { granted?: boolean; reason?: string; seat_number?: number; ends_at?: string; duration_days?: number } | null;
     if (data?.granted && data?.reason === 'created') {
       void trackEvent('pilot_access_granted', { seat_number: data.seat_number, ends_at: data.ends_at }, 'monetization');
       void supabase.functions.invoke('send-transactional-email', {
