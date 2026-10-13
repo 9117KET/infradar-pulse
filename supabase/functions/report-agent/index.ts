@@ -138,7 +138,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   // Parse once before entitlement checks so invalid requests do not consume quota.
-  const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+  const body = req.method === "POST" ? await req.clone().json().catch(() => ({})) : {};
   const depthKey = typeof body?.depth === "string" && DEPTH_PROFILES[body.depth] ? body.depth : "standard";
   const depth = DEPTH_PROFILES[depthKey];
   const requestedReportType = typeof body?.report_type === "string" && REPORT_TEMPLATES[body.report_type]
