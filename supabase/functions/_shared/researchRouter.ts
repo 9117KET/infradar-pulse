@@ -18,7 +18,7 @@
  * (re-enabling it later is a single env-var change, no code edit).
  */
 
-import { callPerplexity, isPerplexityConfigured } from "./perplexityClient.ts";
+import { callPerplexity, isPerplexityConfigured, perplexitySearch } from "./perplexityClient.ts";
 import { exaSearch, isExaConfigured } from "./exaClient.ts";
 import { isWebSearchAvailable, webSearch } from "./scrapeRouter.ts";
 import { runResearchPrompt } from "./webResearch.ts";
@@ -60,6 +60,19 @@ export async function research(params: {
   const tryFirecrawl = pref !== "lovable";
 
   // 1. Perplexity (grounded citations in a single call) — opt-in only
+  // 1a. Perplexity Search API: raw ranked results; our own LLM extracts later.
+  if (tryPerplexity && isPerplexityConfigured() && mode !== "deep") {
+    const hits = await perplexitySearch(params.userPrompt, { maxResults: 10 });
+    if (hits.length > 0) {
+      return {
+        text: hits.map((h, i) => `[${i + 1}] ${h.title}${h.date ? ` (${h.date})` : ""}\n${h.snippet}`).join("\n\n"),
+        citations: filterPlausibleUrls(hits.map((h) => h.url)),
+        provider: "perplexity",
+        degraded: false,
+      };
+    }
+  }
+  // 1b. Deep mode: Sonar Pro grounded answer with citations.
   if (tryPerplexity && isPerplexityConfigured()) {
     const model = mode === "deep" ? "sonar-pro" : "sonar";
     const r = await callPerplexity({
