@@ -2159,7 +2159,7 @@ export type Database = {
       quality_scores: {
         Row: {
           calculated_at: string
-          candidate_id: string
+          candidate_id: string | null
           completeness_score: number
           confidence_score: number
           contradiction_penalty: number
@@ -2177,7 +2177,7 @@ export type Database = {
         }
         Insert: {
           calculated_at?: string
-          candidate_id: string
+          candidate_id?: string | null
           completeness_score?: number
           confidence_score?: number
           contradiction_penalty?: number
@@ -2195,7 +2195,7 @@ export type Database = {
         }
         Update: {
           calculated_at?: string
-          candidate_id?: string
+          candidate_id?: string | null
           completeness_score?: number
           confidence_score?: number
           contradiction_penalty?: number
