@@ -73,6 +73,47 @@ export const FRONTIER_QUERIES: { theme: string; query: string }[] = [
   { theme: "subsea-digital", query: `subsea cable landing station fiber backbone project ${YEAR} announced consortium route investment` },
   { theme: "critical-minerals", query: `lithium refinery rare earth processing plant critical minerals ${YEAR} construction awarded investment` },
   { theme: "defence", query: `defence industrial infrastructure munitions plant shipyard expansion ${YEAR} contract awarded investment` },
+  { theme: "ai-power", query: `substation transmission line grid interconnection for data center campus ${YEAR} utility approved gigawatt` },
+  { theme: "ai-power", query: `utility new gas plant or nuclear restart to supply AI data centers ${YEAR} power purchase agreement hyperscaler` },
+  { theme: "dc-cooling", query: `data center liquid cooling water recycling plant ${YEAR} campus construction contractor awarded` },
+  { theme: "chip-supply", query: `semiconductor equipment materials plant ${YEAR} ASML Applied Materials Tokyo Electron specialty gas wafer substrate new factory` },
+  { theme: "construction", query: `large mixed-use development megaproject construction contract awarded ${YEAR} general contractor value` },
+  { theme: "construction", query: `hospital airport terminal stadium construction tender awarded ${YEAR} main contractor project director` },
+];
+
+/**
+ * Pick `count` distinct themes, weighted by staff-set sector focus weights
+ * (0 = never, 10 = most often). Themes missing from `weights` get 5.
+ * `rand` is injectable for tests.
+ */
+export function pickWeightedThemes(
+  themes: string[],
+  weights: Record<string, number>,
+  count: number,
+  rand: () => number = Math.random,
+): string[] {
+  const pool = themes.map((t) => ({ t, w: Math.max(0, weights[t] ?? 5) })).filter((x) => x.w > 0);
+  const out: string[] = [];
+  while (out.length < count && pool.length > 0) {
+    const total = pool.reduce((s, x) => s + x.w, 0);
+    let r = rand() * total;
+    let idx = pool.findIndex((x) => (r -= x.w) < 0);
+    if (idx < 0) idx = pool.length - 1;
+    out.push(pool[idx].t);
+    pool.splice(idx, 1);
+  }
+  return out;
+}
+
+/** Decision-maker roles customers want for each project. */
+export const TARGET_CONTACT_ROLES = [
+  "project director",
+  "project manager",
+  "procurement or supply chain lead",
+  "head of construction",
+  "EPC or general contractor project lead",
+  "site or plant manager",
+  "business development or investor relations lead",
 ];
 
 /** Regional slants used to spread frontier coverage beyond the US/EU. */
