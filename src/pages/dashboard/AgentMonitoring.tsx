@@ -154,7 +154,7 @@ export default function AgentMonitoring() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_agent_monitoring_summary', { p_recent_limit: 150 });
       if (error) throw error;
-      return data as AgentMonitoringSummary;
+      return data as unknown as AgentMonitoringSummary;
     },
     enabled: staffReady,
     refetchInterval: staffReady ? 15000 : false,
