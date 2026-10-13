@@ -152,9 +152,9 @@ export default function AgentMonitoring() {
   const { data: monitoringSummary, refetch: refetchSummary } = useQuery({
     queryKey: ['agent-monitoring-summary', staffBypass],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('get_agent_monitoring_summary', { p_recent_limit: 150 });
+      const { data, error } = await supabase.rpc('get_agent_monitoring_summary', { p_recent_limit: 150 });
       if (error) throw error;
-      return data as AgentMonitoringSummary;
+      return data as unknown as AgentMonitoringSummary;
     },
     enabled: staffReady,
     refetchInterval: staffReady ? 15000 : false,
@@ -175,7 +175,7 @@ export default function AgentMonitoring() {
   const { data: schedulerActivity } = useQuery({
     queryKey: ['agent-scheduler-activity', staffBypass],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('get_agent_scheduler_activity');
+      const { data, error } = await supabase.rpc('get_agent_scheduler_activity');
       if (error) throw error;
       return ((data ?? []) as SchedulerActivity[]).reduce<Record<string, SchedulerActivity>>((acc, row) => {
         acc[row.task_type] = row;
@@ -324,7 +324,7 @@ export default function AgentMonitoring() {
       const data = await agentApi.runSyncServiceRoleToVault();
       toast({
         title: 'Service role key synced',
-        description: `Vault updated (${(data as any)?.key_fingerprint ?? 'ok'}). Re-running health check…`,
+        description: `Vault updated (${(data as { key_fingerprint?: string } | null)?.key_fingerprint ?? 'ok'}). Re-running health check…`,
       });
       await agentApi.runAgentHealthMonitor();
       refetchAuthAlerts();
@@ -377,7 +377,7 @@ export default function AgentMonitoring() {
     }
     setResettingAgent(agentType);
     try {
-      const { data, error } = await supabase.rpc('reset_stuck_agent_task' as never, { p_agent_type: agentType } as never);
+      const { data, error } = await supabase.rpc('reset_stuck_agent_task', { p_agent_type: agentType });
       if (error) throw error;
       const count = (data as { reset_count?: number } | null)?.reset_count ?? 0;
       toast({
