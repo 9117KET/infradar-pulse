@@ -60,7 +60,7 @@ export default function AgentHealth() {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['agent-health-dashboard'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc('get_agent_monitoring_summary', { p_recent_limit: 400 });
+      const { data, error } = await supabase.rpc('get_agent_monitoring_summary', { p_recent_limit: 400 });
       if (error) throw error;
       return data as MonitoringSummary;
     },
