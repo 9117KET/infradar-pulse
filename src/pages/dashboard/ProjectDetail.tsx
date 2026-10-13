@@ -7,18 +7,12 @@ import { useTrackedProjects } from '@/hooks/use-tracked-projects';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Calendar, MapPin, Users, ExternalLink, ShieldCheck, TrendingUp, Edit, Trash2, Plus, Globe, X, Check, Phone, Mail, ShieldAlert, History, HardHat, Building2, Landmark, Briefcase, UserCheck, Star, Bot, Loader2, Activity, Download, Clock, Heart } from 'lucide-react';
-import { HealthScoreBadge } from '@/components/dashboard/HealthScoreBadge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Globe, Star, Clock, Download, ShieldAlert, ShieldCheck, Edit, Bot, Loader2, Trash2 } from 'lucide-react';
 import { ProvenanceBadge } from '@/components/dashboard/ProvenanceBadge';
 import { formatDistanceToNow } from 'date-fns';
-import jsPDF from 'jspdf';
-import { applyPdfWatermark, buildWatermarkLabel } from '@/lib/billing/exportCaps';
 import { UpgradeDialog } from '@/components/billing/UpgradeDialog';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, CartesianGrid } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -37,7 +31,17 @@ import { useEntitlements } from '@/hooks/useEntitlements';
 import { useCopyProtection } from '@/hooks/useCopyProtection';
 import { trackUsage } from '@/lib/billing/trackUsage';
 
-const EVIDENCE_TYPES = ['Satellite', 'Filing', 'News', 'Registry', 'Partner'] as const;
+
+import { OverviewTab } from './project-detail/OverviewTab';
+import { AnalysisTab } from './project-detail/AnalysisTab';
+import { ContactsTab } from './project-detail/ContactsTab';
+import { EvidenceTab } from './project-detail/EvidenceTab';
+import { TimelineTab } from './project-detail/TimelineTab';
+import { VerificationTab } from './project-detail/VerificationTab';
+import { ChangelogTab } from './project-detail/ChangelogTab';
+import { RiskHistoryTab } from './project-detail/RiskHistoryTab';
+import { ProjectScores } from './project-detail/ProjectScores';
+import { exportTearsheet } from './project-detail/exportTearsheet';
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -286,153 +290,10 @@ export default function ProjectDetail() {
     toast({ title: current ? 'Milestone uncompleted' : 'Milestone completed' });
   };
 
-  const AnalysisSection = ({ title, content }: { title: string; content?: string }) => {
-    if (!content) return null;
-    return (
-      <div className="mb-4">
-        <h4 className="text-sm font-semibold text-primary mb-1">{title}</h4>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content}</p>
-      </div>
-    );
-  };
 
   const downloadTearsheet = async () => {
     if (!canExportPdf) { setTearsheetUpgradeOpen(true); return; }
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const margin = 15;
-    const colRight = pageW / 2 + 5;
-    let y = 15;
-
-    // Header bar
-    doc.setFillColor(30, 30, 45);
-    doc.rect(0, 0, pageW, 28, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(255, 255, 255);
-    doc.text(project.name, margin, 13);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(180, 180, 200);
-    doc.text(`${project.country} · ${project.region} · ${project.sector}`, margin, 22);
-    doc.text('InfradarAI Intelligence', pageW - margin, 22, { align: 'right' });
-    y = 36;
-
-    // Key metrics row
-    const metrics = [
-      { label: 'Stage', value: project.stage },
-      { label: 'Status', value: project.status },
-      { label: 'Value', value: project.valueLabel || 'N/A' },
-      { label: 'Confidence', value: `${project.confidence}%` },
-      { label: 'Risk Score', value: String(project.riskScore ?? 'N/A') },
-    ];
-    const boxW = (pageW - margin * 2 - 4 * 4) / 5;
-    metrics.forEach((m, i) => {
-      const bx = margin + i * (boxW + 4);
-      doc.setFillColor(40, 40, 58);
-      doc.roundedRect(bx, y, boxW, 18, 2, 2, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(200, 235, 255);
-      doc.text(m.value, bx + boxW / 2, y + 9, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(130, 140, 160);
-      doc.text(m.label, bx + boxW / 2, y + 15, { align: 'center' });
-    });
-    y += 26;
-
-    // Description
-    if (project.description) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(220, 220, 235);
-      doc.text('Project Overview', margin, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(160, 165, 180);
-      const descLines = doc.splitTextToSize(project.description, pageW - margin * 2);
-      doc.text(descLines.slice(0, 6), margin, y);
-      y += Math.min(descLines.length, 6) * 4.5 + 6;
-    }
-
-    // Two-column: Contacts (left) + Key facts (right)
-    const colStart = y;
-    const halfW = (pageW - margin * 2 - 8) / 2;
-
-    // Left: contacts
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(220, 220, 235);
-    doc.text('Key Contacts', margin, colStart);
-    let leftY = colStart + 6;
-    const contactList = (project.contacts || []).slice(0, 5);
-    if (contactList.length === 0) {
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(8);
-      doc.setTextColor(120, 125, 140);
-      doc.text('No contacts recorded', margin, leftY);
-      leftY += 5;
-    } else {
-      contactList.forEach(c => {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8.5);
-        doc.setTextColor(200, 210, 230);
-        doc.text(c.name || 'Unknown', margin, leftY);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7.5);
-        doc.setTextColor(130, 140, 155);
-        doc.text(`${c.role || ''} · ${c.organization || ''}`, margin, leftY + 4);
-        leftY += 10;
-      });
-    }
-
-    // Right: Key facts
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(220, 220, 235);
-    doc.text('Project Details', colRight, colStart);
-    let rightY = colStart + 6;
-    const facts = [
-      ['Country', project.country],
-      ['Region', project.region],
-      ['Sector', project.sector],
-      ['Stage', project.stage],
-      ['Last Updated', project.lastUpdated || 'N/A'],
-      ...(project.sourceUrl ? [['Source', project.sourceUrl.slice(0, 40)]] : []),
-    ] as [string, string][];
-    facts.forEach(([k, v]) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(140, 150, 165);
-      doc.text(k + ':', colRight, rightY);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(200, 210, 225);
-      doc.text(v, colRight + 28, rightY);
-      rightY += 5.5;
-    });
-
-    y = Math.max(leftY, rightY) + 6;
-
-    // AI Analysis excerpt (if available)
-    if (project.detailedAnalysis) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(220, 220, 235);
-      doc.text('AI Analysis (excerpt)', margin, y);
-      y += 5;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(150, 160, 175);
-      const analysisLines = doc.splitTextToSize(project.detailedAnalysis, pageW - margin * 2);
-      doc.text(analysisLines.slice(0, 8), margin, y);
-    }
-
-    const watermark = buildWatermarkLabel(user?.email);
-    applyPdfWatermark(doc, watermark);
-    const slug = project.name.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-    doc.save(`infradar_tearsheet_${slug}.pdf`);
+    exportTearsheet(project, user?.email);
 
     const trackResult = await trackUsage('export_pdf');
     if (!trackResult.ok) {
@@ -475,7 +336,7 @@ export default function ProjectDetail() {
           )}
           {/* Track/bookmark button (all roles) */}
           {project.dbId && (
-            <Button size="sm" variant="outline" onClick={() => toggleTrack(project.dbId!)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>
+            <Button size="sm" variant="outline" onClick={() => project.dbId && toggleTrack(project.dbId)} className={isTracked(project.dbId) ? 'text-amber-400 border-amber-400/30' : ''}>
               <Star className={`h-3 w-3 mr-1 ${isTracked(project.dbId) ? 'fill-amber-400' : ''}`} />
               {isTracked(project.dbId) ? 'Tracked' : 'Track'}
             </Button>
@@ -565,42 +426,7 @@ export default function ProjectDetail() {
       </Dialog>
 
       {/* Score badges */}
-      <div className="grid gap-4 sm:grid-cols-5">
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <TrendingUp className="h-5 w-5 mx-auto mb-1 text-primary" />
-          <div className="text-2xl font-bold">{project.confidence}%</div>
-          <div className="text-xs text-muted-foreground">Confidence</div>
-        </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <ShieldCheck className="h-5 w-5 mx-auto mb-1 text-amber-500" />
-          <div className="text-2xl font-bold">{project.riskScore}</div>
-          <div className="text-xs text-muted-foreground">Risk Score</div>
-        </div>
-        <div className="glass-panel rounded-xl p-4 text-center flex flex-col items-center justify-center gap-1">
-          <Heart className="h-5 w-5 text-emerald-400" />
-          <HealthScoreBadge
-            healthScore={project.healthScore}
-            delayProbability={project.delayProbability}
-            signals={project.healthSignals}
-            size="sm"
-            showDelay={false}
-          />
-          {project.delayProbability != null && (
-            <div className="text-[11px] text-muted-foreground">{Math.round(project.delayProbability * 100)}% delay risk</div>
-          )}
-          <div className="text-xs text-muted-foreground">Health</div>
-        </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <Calendar className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-          <div className="text-sm font-bold mt-1">{project.timeline}</div>
-          <div className="text-xs text-muted-foreground">Timeline</div>
-        </div>
-        <div className="glass-panel rounded-xl p-4 text-center">
-          <MapPin className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-          <div className="text-sm font-bold mt-1">{project.country}</div>
-          <div className="text-xs text-muted-foreground">{project.region}</div>
-        </div>
-      </div>
+      <ProjectScores project={project} />
 
       {/* Tabbed content */}
       <Tabs defaultValue="overview" className="space-y-4">
@@ -619,363 +445,46 @@ export default function ProjectDetail() {
 
         {/* Overview */}
         <TabsContent value="overview" className="space-y-4">
-          <div className="glass-panel rounded-xl p-5">
-            <p className="text-muted-foreground">{project.description}</p>
-          </div>
-          <div className="glass-panel rounded-xl p-5">
-            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4" />Stakeholders</h3>
-            <div className="flex flex-wrap gap-2">
-              {project.stakeholders.map(s => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
-              {project.stakeholders.length === 0 && <p className="text-sm text-muted-foreground">No stakeholders listed.</p>}
-            </div>
-          </div>
-        </TabsContent>
+        <OverviewTab project={project} />
 
         {/* Analysis */}
         <TabsContent value="analysis">
-          <div
-            {...analysisCopyProps}
-            className={`glass-panel rounded-xl p-5 space-y-2 ${analysisCopyProps.className}`}
-          >
-            {!project.detailedAnalysis && !project.keyRisks && !project.fundingSources && !project.environmentalImpact && !project.politicalContext ? (
-              <p className="text-sm text-muted-foreground">
-                No analysis content yet.
-                {canEditMetadata && (
-                  <> <Link to={`/dashboard/projects/${project.id}/edit`} className="text-primary hover:underline">Add analysis →</Link></>
-                )}
-              </p>
-            ) : (
-              <>
-                <AnalysisSection title="Detailed Analysis" content={project.detailedAnalysis} />
-                <AnalysisSection title="Key Risks" content={project.keyRisks} />
-                <AnalysisSection title="Funding Sources" content={project.fundingSources} />
-                <AnalysisSection title="Environmental Impact" content={project.environmentalImpact} />
-                <AnalysisSection title="Political Context" content={project.politicalContext} />
-              </>
-            )}
-          </div>
-        </TabsContent>
+        <AnalysisTab project={project} analysisCopyProps={analysisCopyProps} canEditMetadata={canEditMetadata} />
 
         {/* Contacts */}
-        <TabsContent value="contacts" className="space-y-4">
-          <div className="glass-panel rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-serif text-lg font-semibold flex items-center gap-2"><Phone className="h-4 w-4" />Verification Contacts</h3>
-              {canModerate && (
-                <Button size="sm" variant="outline" onClick={() => setShowAddContact(!showAddContact)}>
-                  {showAddContact ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                  {showAddContact ? 'Cancel' : 'Add Contact'}
-                </Button>
-              )}
-            </div>
-
-            {showAddContact && (
-              <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Input value={ctName} onChange={e => setCtName(e.target.value)} placeholder="Name *" className="bg-black/20" />
-                  <Input value={ctRole} onChange={e => setCtRole(e.target.value)} placeholder="Role / Title" className="bg-black/20" />
-                  <Input value={ctOrg} onChange={e => setCtOrg(e.target.value)} placeholder="Organization" className="bg-black/20" />
-                </div>
-                <Input value={ctSourceUrl} onChange={e => setCtSourceUrl(e.target.value)} placeholder="Source URL (https://...) *" className="bg-black/20" />
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Input value={ctPhone} onChange={e => setCtPhone(e.target.value)} placeholder="Phone number" className="bg-black/20" />
-                  <Input value={ctEmail} onChange={e => setCtEmail(e.target.value)} placeholder="Email" className="bg-black/20" />
-                  <Select value={ctType} onValueChange={setCtType}>
-                    <SelectTrigger className="bg-black/20" aria-label="Contact type"><SelectValue placeholder="Contact Type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="contractor">Contractor</SelectItem>
-                      <SelectItem value="government">Government</SelectItem>
-                      <SelectItem value="financier">Financier</SelectItem>
-                      <SelectItem value="consultant">Consultant</SelectItem>
-                      <SelectItem value="owner">Project Owner</SelectItem>
-                      <SelectItem value="general">General</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button size="sm" onClick={handleAddContact}>Add Contact</Button>
-              </div>
-            )}
-
-            {contacts.length === 0 && <p className="text-sm text-muted-foreground">No contacts found yet. The Contact Finder agent will discover contacts automatically.</p>}
-
-            {/* Group contacts by type (contractors first) */}
-            {(() => {
-              const typeOrder = ['contractor', 'government', 'owner', 'financier', 'consultant', 'general'];
-              const typeLabels: Record<string, string> = { contractor: 'Contractors', government: 'Government', owner: 'Project Owners', financier: 'Financiers', consultant: 'Consultants', general: 'Other' };
-              const typeIcons: Record<string, any> = { contractor: HardHat, government: Landmark, owner: Building2, financier: Briefcase, consultant: UserCheck, general: Users };
-
-              const grouped: Record<string, typeof contacts> = {};
-              contacts.forEach(c => {
-                const t = c.contact_type || 'general';
-                if (!grouped[t]) grouped[t] = [];
-                grouped[t].push(c);
-              });
-
-              return typeOrder.filter(t => grouped[t]?.length).map(t => {
-                const Icon = typeIcons[t] || Users;
-                return (
-                  <div key={t} className="space-y-2 mt-4">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                      <Icon className="h-3 w-3" />{typeLabels[t] || t} ({grouped[t].length})
-                    </h4>
-                    {grouped[t].map(c => (
-                      <div key={c.id} className={`flex items-center justify-between p-3 rounded-lg border ${t === 'contractor' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/[0.02] border-white/5'}`}>
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{c.name}</span>
-                            {t === 'contractor' && <Badge className="text-[9px] bg-amber-500/20 text-amber-400">Contractor</Badge>}
-                            {c.added_by === 'human' && <Badge className="text-[9px] bg-blue-500/20 text-blue-400">Human</Badge>}
-                            {c.added_by === 'ai' && <Badge className="text-[9px] bg-purple-500/20 text-purple-400">AI</Badge>}
-                          </div>
-                          {(c.role || c.organization) && (
-                            <p className="text-xs text-muted-foreground">
-                              {c.role}{c.role && c.organization ? ' · ' : ''}{c.organization}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 mt-1">
-                            {c.phone && (
-                              <a href={`tel:${c.phone}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                                <Phone className="h-3 w-3" />{c.phone}
-                              </a>
-                            )}
-                            {c.email && (
-                              <a href={`mailto:${c.email}`} className="text-xs text-primary hover:underline flex items-center gap-1">
-                                <Mail className="h-3 w-3" />{c.email}
-                              </a>
-                            )}
-                          </div>
-                          {c.source && <p className="text-[10px] text-muted-foreground">Source: {c.source}</p>}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {canModerate && (
-                            <>
-                              <button type="button" onClick={() => toggleContactVerified(c.id, c.verified)}>
-                                {c.verified
-                                  ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
-                                  : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
-                              </button>
-                              <button type="button" onClick={() => deleteContact(c.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              });
-            })()}
-          </div>
-        </TabsContent>
+        <ContactsTab contacts={contacts} canModerate={canModerate}
+          showAddContact={showAddContact} setShowAddContact={setShowAddContact}
+          ctName={ctName} setCtName={setCtName}
+          ctRole={ctRole} setCtRole={setCtRole}
+          ctOrg={ctOrg} setCtOrg={setCtOrg}
+          ctPhone={ctPhone} setCtPhone={setCtPhone}
+          ctEmail={ctEmail} setCtEmail={setCtEmail}
+          ctSourceUrl={ctSourceUrl} setCtSourceUrl={setCtSourceUrl}
+          ctType={ctType} setCtType={setCtType}
+          handleAddContact={handleAddContact} toggleContactVerified={toggleContactVerified} deleteContact={deleteContact} />
 
         {/* Evidence */}
         <TabsContent value="evidence" className="space-y-4">
-          <div className="glass-panel rounded-xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-serif text-lg font-semibold">Evidence Sources</h3>
-              {canModerate && (
-                <Button size="sm" variant="outline" onClick={() => setShowAddEvidence(!showAddEvidence)}>
-                  {showAddEvidence ? <X className="h-3 w-3 mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                  {showAddEvidence ? 'Cancel' : 'Add Source'}
-                </Button>
-              )}
-            </div>
-
-            {showAddEvidence && (
-              <div className="mb-4 p-4 rounded-lg border border-primary/20 bg-primary/5 space-y-3">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Input value={evSource} onChange={e => setEvSource(e.target.value)} placeholder="Source name *" className="bg-black/20" />
-                  <Input value={evUrl} onChange={e => setEvUrl(e.target.value)} placeholder="URL (https://...)" className="bg-black/20" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <Select value={evType} onValueChange={setEvType}>
-                    <SelectTrigger className="bg-black/20" aria-label="Evidence type"><SelectValue /></SelectTrigger>
-                    <SelectContent>{EVIDENCE_TYPES.map(t => <SelectItem key={t} value={t}>{t === 'Satellite' ? 'Multi-Source' : t}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <Input value={evDate} onChange={e => setEvDate(e.target.value)} placeholder="Date" className="bg-black/20" />
-                  <Input value={evDesc} onChange={e => setEvDesc(e.target.value)} placeholder="Description" className="bg-black/20" />
-                </div>
-                <Button size="sm" onClick={handleAddEvidence}>Add Evidence</Button>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              {project.evidence.length === 0 && <p className="text-sm text-muted-foreground">No evidence sources yet.</p>}
-              {project.evidence.map(e => (
-                <div key={e.id} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Badge variant="outline" className="text-[10px] shrink-0">{e.type === 'Satellite' ? 'Multi-Source' : e.type}</Badge>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{e.source}</span>
-                        {e.added_by === 'human' && <Badge className="text-[9px] bg-blue-500/20 text-blue-400">Human</Badge>}
-                        {e.added_by === 'ai' && <Badge className="text-[9px] bg-purple-500/20 text-purple-400">AI</Badge>}
-                      </div>
-                      {e.description && <p className="text-xs text-muted-foreground truncate">{e.description}</p>}
-                      <span className="text-xs text-muted-foreground">{e.date}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {canModerate && (
-                      <>
-                        <button type="button" onClick={() => toggleVerified(e.id, e.verified)}>
-                          {e.verified
-                            ? <Badge className="bg-emerald-500/20 text-emerald-500 text-[10px] cursor-pointer hover:bg-emerald-500/30"><Check className="h-2 w-2 mr-0.5" />Verified</Badge>
-                            : <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30 cursor-pointer hover:bg-amber-500/10">Unverified</Badge>}
-                        </button>
-                        <button type="button" onClick={() => deleteEvidence(e.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                      </>
-                    )}
-                    {e.url && e.url !== '#' && (
-                      <a href={e.url} target="_blank" rel="noopener"><ExternalLink className="h-3 w-3 text-muted-foreground hover:text-primary" /></a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
+        <EvidenceTab project={project} canModerate={canModerate}
+          showAddEvidence={showAddEvidence} setShowAddEvidence={setShowAddEvidence}
+          evSource={evSource} setEvSource={setEvSource}
+          evUrl={evUrl} setEvUrl={setEvUrl}
+          evType={evType} setEvType={setEvType}
+          evDesc={evDesc} setEvDesc={setEvDesc}
+          evDate={evDate} setEvDate={setEvDate}
+          handleAddEvidence={handleAddEvidence} toggleVerified={toggleVerified} deleteEvidence={deleteEvidence} />
 
         {/* Timeline */}
-        <TabsContent value="timeline">
-          <div className="glass-panel rounded-xl p-5">
-            <h3 className="font-serif text-lg font-semibold mb-3">Milestones</h3>
-            <div className="space-y-3">
-              {project.milestones.length === 0 && <p className="text-sm text-muted-foreground">No milestones yet.</p>}
-              {project.milestones.map(m => (
-                <div key={m.id} className="flex items-center gap-3">
-                  {canModerate ? (
-                    <button type="button" onClick={() => toggleMilestone(m.id, m.completed)} className={`h-4 w-4 rounded-full shrink-0 border-2 cursor-pointer ${m.completed ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground hover:border-primary'}`} />
-                  ) : (
-                    <span className={`h-4 w-4 rounded-full shrink-0 border-2 ${m.completed ? 'bg-emerald-500 border-emerald-500' : 'border-muted-foreground'}`} />
-                  )}
-                  <div className="flex-1">
-                    <span className="text-sm">{m.title}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{m.date}</span>
-                  </div>
-                  {m.completed && <Badge variant="outline" className="text-[10px] text-emerald-500 border-emerald-500/30">Complete</Badge>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
+        <TimelineTab project={project} canModerate={canModerate} toggleMilestone={toggleMilestone} />
 
         {/* Verification History */}
-        <TabsContent value="verification">
-          <div className="glass-panel rounded-xl p-5">
-            <h3 className="font-serif text-lg font-semibold mb-3 flex items-center gap-2"><History className="h-4 w-4" />Verification History</h3>
-            <div className="space-y-3">
-              {verificationLog.length === 0 && <p className="text-sm text-muted-foreground">No verification changes recorded yet.</p>}
-              {verificationLog.map((entry: any) => (
-                <div key={entry.id} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                  <div className={`mt-0.5 h-2 w-2 rounded-full shrink-0 ${entry.action === 'verified' ? 'bg-emerald-500' : 'bg-destructive'}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={`text-[10px] ${entry.action === 'verified' ? 'text-emerald-500 border-emerald-500/30' : 'text-destructive border-destructive/30'}`}>
-                        {entry.action === 'verified' ? 'Verified' : 'Unverified'}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleDateString()} {new Date(entry.created_at).toLocaleTimeString()}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{entry.reason}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
+        <VerificationTab verificationLog={verificationLog} />
 
         {/* Changelog */}
-        <TabsContent value="changelog">
-          <div className="glass-panel rounded-xl p-5">
-            <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-              <History className="h-4 w-4" /> Project Changelog
-            </h3>
-            {changelog.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No changes recorded yet. Changes are tracked automatically when project data is updated.</p>
-            ) : (
-              <div className="space-y-1">
-                {changelog.reduce((acc: { date: string; entries: typeof changelog }[], entry: any) => {
-                  const date = new Date(entry.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                  const last = acc[acc.length - 1];
-                  if (last?.date === date) { last.entries.push(entry); }
-                  else { acc.push({ date, entries: [entry] }); }
-                  return acc;
-                }, []).map((group: any) => (
-                  <div key={group.date}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground py-2 border-b border-border/40 mb-2">{group.date}</p>
-                    <div className="space-y-2 mb-4">
-                      {group.entries.map((entry: any) => {
-                        const fieldLabel = entry.field_changed
-                          .replace(/_/g, ' ')
-                          .replace(/\b\w/g, (c: string) => c.toUpperCase());
-                        const timeStr = new Date(entry.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                        return (
-                          <div key={entry.id} className="flex items-start gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
-                            <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline" className="text-[9px]">{fieldLabel}</Badge>
-                                {entry.old_value && (
-                                  <span className="text-[11px] text-muted-foreground line-through">{String(entry.old_value).substring(0, 60)}</span>
-                                )}
-                                {entry.old_value && entry.new_value && <span className="text-[11px] text-muted-foreground">→</span>}
-                                {entry.new_value && (
-                                  <span className="text-[11px] text-emerald-400">{String(entry.new_value).substring(0, 60)}</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {entry.source && (
-                                  <Badge variant="secondary" className="text-[9px]">{entry.source}</Badge>
-                                )}
-                                <span className="text-[10px] text-muted-foreground">{timeStr}</span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </TabsContent>
+        <ChangelogTab changelog={changelog} />
 
         {/* Risk History */}
-        <TabsContent value="risk-history">
-          <div className="glass-panel rounded-xl p-5">
-            <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-              <Activity className="h-4 w-4" /> Risk Score History
-            </h3>
-            {riskHistory.length < 2 ? (
-              <div className="text-center py-10">
-                <Activity className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-                <p className="text-sm text-muted-foreground">Not enough data yet.</p>
-                <p className="text-xs text-muted-foreground mt-1">Risk score changes are recorded automatically when the project is re-scored.</p>
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground">
-                  <span>Current: <strong className={`${project.riskScore >= 70 ? 'text-red-400' : project.riskScore >= 40 ? 'text-amber-400' : 'text-emerald-400'}`}>{project.riskScore}</strong></span>
-                  <span>Changes recorded: <strong className="text-foreground">{riskHistory.length}</strong></span>
-                </div>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={riskHistory} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={30} />
-                    <Tooltip
-                      contentStyle={{ background: 'hsl(210 12% 9%)', border: '1px solid hsl(210 10% 18%)', borderRadius: 8, fontSize: 12 }}
-                      formatter={(v: number) => [v, 'Risk Score']}
-                    />
-                    <ReferenceLine y={70} stroke="hsl(0 72% 51% / 0.4)" strokeDasharray="4 2" label={{ value: 'High', fontSize: 10, fill: 'hsl(0 72% 51% / 0.6)' }} />
-                    <ReferenceLine y={40} stroke="hsl(38 92% 50% / 0.4)" strokeDasharray="4 2" label={{ value: 'Med', fontSize: 10, fill: 'hsl(38 92% 50% / 0.6)' }} />
-                    <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3, fill: 'hsl(var(--primary))' }} activeDot={{ r: 5 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        </TabsContent>
+        <RiskHistoryTab project={project} riskHistory={riskHistory} />
       </Tabs>
     </div>
   );
