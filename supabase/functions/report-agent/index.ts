@@ -130,7 +130,7 @@ function uniqueCitations(items: Array<{ label?: string | null; url?: string | nu
       seen.add(url);
       return true;
     })
-    .slice(0, 30)
+    .slice(0, 60)
     .map((item, index) => ({ label: item.label || `Source ${index + 1}`, url: String(item.url) }));
 }
 
