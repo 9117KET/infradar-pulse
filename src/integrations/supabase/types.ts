@@ -2534,6 +2534,33 @@ export type Database = {
           },
         ]
       }
+      report_templates: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parameters: Json
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parameters?: Json
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parameters?: Json
+          report_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       research_tasks: {
         Row: {
           completed_at: string | null

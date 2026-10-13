@@ -15,6 +15,13 @@
       "when": 1791868302099,
       "tag": "0001_sector_focus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791869933764,
+      "tag": "0002_report_templates",
+      "breakpoints": true
     }
   ]
 }
