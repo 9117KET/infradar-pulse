@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Layers, Filter, Info } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
+import { BASEMAP_ATTRIBUTION, BASEMAP_URL } from '@/lib/mapTiles';
 
 const RISK_COLORS: Record<string, string> = {
   low: '#22c55e',
@@ -89,7 +90,8 @@ export default function GeoIntelligence() {
         zoomControl: true,
         attributionControl: false,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+      L.tileLayer(BASEMAP_URL, { attribution: BASEMAP_ATTRIBUTION }).addTo(map);
+      L.control.attribution({ prefix: false }).addTo(map);
       mapRef.current = map;
       setMapReady(true);
       setTimeout(() => map.invalidateSize(), 100);

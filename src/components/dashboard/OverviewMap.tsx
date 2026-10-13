@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { BASEMAP_ATTRIBUTION, BASEMAP_URL } from '@/lib/mapTiles';
 
 interface MapProject {
   lat: number;
@@ -36,7 +37,8 @@ export default function OverviewMap({ projects }: { projects: MapProject[] }) {
         doubleClickZoom: false,
         touchZoom: false,
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+      L.tileLayer(BASEMAP_URL, { attribution: BASEMAP_ATTRIBUTION }).addTo(map);
+      L.control.attribution({ prefix: false }).addTo(map);
       mapRef.current = map;
       setReady(true);
       setTimeout(() => {
