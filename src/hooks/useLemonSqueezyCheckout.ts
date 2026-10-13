@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useState } from 'react';
 import { initializeLemonSqueezy, openLemonSqueezyCheckout, isLemonSqueezyConfigured } from '@/lib/lemonSqueezy';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +43,7 @@ export function useLemonSqueezyCheckout() {
 
       void trackEvent('checkout_started', { price_id: priceId, trial_eligible: trialEligible }, 'monetization');
 
-      const { data, error } = await supabase.functions.invoke('lemonsqueezy-create-checkout', {
+      const { data, error } = await callFunction('lemonsqueezy-create-checkout', {
         body: {
           planKey: priceId,
           referralCode: referralCode ?? undefined,

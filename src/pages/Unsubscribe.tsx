@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -60,7 +61,7 @@ export default function Unsubscribe() {
     if (!token) return;
     setState({ status: 'submitting' });
     try {
-      const { data, error } = await supabase.functions.invoke(
+      const { data, error } = await callFunction(
         'handle-email-unsubscribe',
         { body: { token } },
       );

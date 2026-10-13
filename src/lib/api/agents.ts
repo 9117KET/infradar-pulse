@@ -123,3 +123,11 @@ export const agentApi = {
   runOutreachSend: () => invokeAgent('outreach-send-agent'),
   runWeeklySignal: () => invokeAgent('weekly-signal-agent'),
 };
+
+/**
+ * Shared entry point for every non-agent server function call (billing,
+ * email, analytics, public search). Same signature/return as
+ * supabase.functions.invoke so callers keep their own error handling.
+ */
+export const callFunction: typeof supabase.functions.invoke = (name, options) =>
+  supabase.functions.invoke(name, options);

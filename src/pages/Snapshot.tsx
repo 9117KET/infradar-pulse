@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 /**
  * /snapshot — Public weekly intelligence snapshot.
  * No auth required. Shows teaser data to drive signups.
@@ -48,7 +49,7 @@ export default function Snapshot() {
       // Fetch live stats via the configured Supabase project (works in every
       // environment; the function sets permissive CORS). Non-fatal if it fails.
       try {
-        const { data, error } = await supabase.functions.invoke('public-stats');
+        const { data, error } = await callFunction('public-stats');
         if (!error && data) setStats(data as Stats);
       } catch { /* non-fatal */ }
 

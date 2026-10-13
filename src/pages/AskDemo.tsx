@@ -1,3 +1,4 @@
+import { callFunction } from '@/lib/api/agents';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Sparkles, Search, Loader2, Info, MapPin, TrendingUp, AlertTriangle, ArrowRight, Lock } from 'lucide-react';
@@ -107,7 +108,7 @@ export default function AskDemo() {
     let active = true;
     (async () => {
       try {
-        const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
+        const { data, error: fnError } = await callFunction('nl-search-public', {
           body: { mode: 'examples', visitor_token: readVisitorToken() },
         });
         if (!active || fnError) return;
@@ -143,7 +144,7 @@ export default function AskDemo() {
     setResult(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('nl-search-public', {
+      const { data, error: fnError } = await callFunction('nl-search-public', {
         body: {
           ...(usePreset ? { filters: opts.filters } : { query: typed }),
           visitor_token: readVisitorToken(),
