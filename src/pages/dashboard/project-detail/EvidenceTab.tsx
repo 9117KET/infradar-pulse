@@ -29,6 +29,7 @@ interface EvidenceTabProps {
 
 export function EvidenceTab({ project, canModerate, showAddEvidence, setShowAddEvidence, evSource, setEvSource, evUrl, setEvUrl, evType, setEvType, evDesc, setEvDesc, evDate, setEvDate, handleAddEvidence, toggleVerified, deleteEvidence }: EvidenceTabProps) {
   return (
+        <TabsContent value="evidence" className="space-y-4">
           <div className="glass-panel rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-serif text-lg font-semibold">Evidence Sources</h3>

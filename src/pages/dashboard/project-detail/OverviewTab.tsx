@@ -6,6 +6,7 @@ import { Users } from 'lucide-react';
 
 export function OverviewTab({ project }: { project: Project }) {
   return (
+        <TabsContent value="overview" className="space-y-4">
           <div className="glass-panel rounded-xl p-5">
             <p className="text-muted-foreground">{project.description}</p>
           </div>

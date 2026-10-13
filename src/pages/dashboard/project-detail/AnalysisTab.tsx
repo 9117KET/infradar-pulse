@@ -15,6 +15,7 @@ export function AnalysisTab({ project, analysisCopyProps, canEditMetadata }: { p
     );
   };
   return (
+        <TabsContent value="analysis">
           <div
             {...analysisCopyProps}
             className={`glass-panel rounded-xl p-5 space-y-2 ${analysisCopyProps.className}`}

@@ -444,11 +444,9 @@ export default function ProjectDetail() {
         </div>
 
         {/* Overview */}
-        <TabsContent value="overview" className="space-y-4">
         <OverviewTab project={project} />
 
         {/* Analysis */}
-        <TabsContent value="analysis">
         <AnalysisTab project={project} analysisCopyProps={analysisCopyProps} canEditMetadata={canEditMetadata} />
 
         {/* Contacts */}
@@ -464,7 +462,6 @@ export default function ProjectDetail() {
           handleAddContact={handleAddContact} toggleContactVerified={toggleContactVerified} deleteContact={deleteContact} />
 
         {/* Evidence */}
-        <TabsContent value="evidence" className="space-y-4">
         <EvidenceTab project={project} canModerate={canModerate}
           showAddEvidence={showAddEvidence} setShowAddEvidence={setShowAddEvidence}
           evSource={evSource} setEvSource={setEvSource}

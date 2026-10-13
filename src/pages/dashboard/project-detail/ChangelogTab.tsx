@@ -15,7 +15,7 @@ export function ChangelogTab({ changelog }: { changelog: ChangelogEntry[] }) {
               <p className="text-sm text-muted-foreground">No changes recorded yet. Changes are tracked automatically when project data is updated.</p>
             ) : (
               <div className="space-y-1">
-                {changelog.reduce((acc: { date: string; entries: typeof changelog }[], entry: any) => {
+                {changelog.reduce((acc: { date: string; entries: typeof changelog }[], entry) => {
                   const date = new Date(entry.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
                   const last = acc[acc.length - 1];
                   if (last?.date === date) { last.entries.push(entry); }
