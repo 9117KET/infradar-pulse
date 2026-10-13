@@ -23,5 +23,6 @@
 - [ ] Sector focus editor + coverage chart in Agents Hub
 - [ ] Company watch-list agent, interconnection-queue and subsidy-award sources
 - [ ] Contact email_status (verified / guessed / provider-verified)
-- [ ] Report Studio: scope/sections/depth, templates, Excel export, credit preview, end-to-end test reports
+
 - [ ] Re-tag existing "Infrastructure" rows into frontier/construction sectors
+- [x] Report Studio: sections, min value, fresh web research, cost preview, templates, Excel export (fixed pre-existing crash on every on-page report)

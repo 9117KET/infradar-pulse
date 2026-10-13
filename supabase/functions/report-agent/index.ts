@@ -421,7 +421,7 @@ serve(async (req) => {
             try { liveCites.push({ label: `Web: ${new URL(url).hostname.replace(/^www\./, "")}`, url }); } catch { /* skip */ }
           }
         }
-        seedCitations.push(...uniqueCitations(liveCites).filter((c) => !seedCitations.some((s) => s.url === c.url)));
+        seedCitations.unshift(...uniqueCitations(liveCites).filter((c) => !seedCitations.some((s) => s.url === c.url)));
       }
     }
     const sectionList = sections.map((k, i) => `${i + 1}. ${REPORT_SECTIONS[k]}`).join("\n");
