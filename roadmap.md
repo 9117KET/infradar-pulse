@@ -9,5 +9,5 @@
 - [x] Step 4: "load more" for capped lists (Stakeholders, Outreach, Feedback)
 - [ ] Step 5: remove type-check bypasses — 115→58; remainder target tables/functions missing from generated types (digests, agent_health_alerts, agent_health, pipeline summary, BDPipeline) or untyped research JSON — fix after types regenerate
 - [x] Step 6: route all server calls through shared API helper (callFunction in src/lib/api/agents.ts; raw fetch kept only for file download + GET unsubscribe)
-- [ ] Step 7: split oversized dashboard pages — AgentMonitoring config extracted (1128→1015); next: ReviewQueue, ProjectDetail, Projects, Settings
+- [ ] Step 7: split oversized dashboard pages — AgentMonitoring config extracted (1128→1015); ReviewQueue helpers extracted (1009→959); next: ProjectDetail, Projects, Settings
 - [x] Legal pages (Terms/Privacy/Refund) updated to Lemon Squeezy as Merchant of Record

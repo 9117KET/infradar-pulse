@@ -38,3 +38,15 @@ export interface ContactRow {
   verified: boolean;
 }
 
+
+export function stageBadgeColor(stage: string) {
+  const map: Record<string, string> = {
+    Construction: 'bg-emerald-500/20 text-emerald-400',
+    Planned: 'bg-blue-500/20 text-blue-400',
+    Financing: 'bg-amber-500/20 text-amber-400',
+    Tender: 'bg-purple-500/20 text-purple-400',
+    Awarded: 'bg-cyan-500/20 text-cyan-400',
+    Completed: 'bg-green-500/20 text-green-400',
+  };
+  return map[stage] || 'bg-muted text-muted-foreground';
+}
