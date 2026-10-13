@@ -13,3 +13,14 @@
 - [x] Step 6: route all server calls through shared API helper (callFunction in src/lib/api/agents.ts; raw fetch kept only for file download + GET unsubscribe)
 - [ ] Step 7: split oversized dashboard pages — AgentMonitoring config extracted (1128→1015); ReviewQueue split into per-tab files (1009→520); ProjectDetail tabs, scores and PDF extracted (982→488); remaining: Projects, Settings
 - [x] Legal pages (Terms/Privacy/Refund) updated to Lemon Squeezy as Merchant of Record
+
+## Frontier-first discovery plan (2026-10-13)
+- [x] Sector focus weights (table + weighted theme picking in frontier agent), new power-for-AI / cooling / chip-supply / construction themes
+- [x] Optional Exa provider in research router; default router mode `auto` (Perplexity → Exa → Firecrawl → Lovable AI)
+- [x] Contact finder targets decision-maker roles
+- [ ] Perplexity + Exa keys — blocked: waiting on user to add keys
+- [ ] Sector focus editor + coverage chart in Agents Hub
+- [ ] Company watch-list agent, interconnection-queue and subsidy-award sources
+- [ ] Contact email_status (verified / guessed / provider-verified)
+- [ ] Report Studio: scope/sections/depth, templates, Excel export, credit preview, end-to-end test reports
+- [ ] Re-tag existing "Infrastructure" rows into frontier/construction sectors

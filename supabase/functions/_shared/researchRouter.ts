@@ -19,6 +19,7 @@
  */
 
 import { callPerplexity, isPerplexityConfigured } from "./perplexityClient.ts";
+import { exaSearch, isExaConfigured } from "./exaClient.ts";
 import { isWebSearchAvailable, webSearch } from "./scrapeRouter.ts";
 import { runResearchPrompt } from "./webResearch.ts";
 import { filterPlausibleUrls } from "./urlHygiene.ts";
@@ -28,11 +29,13 @@ export type ResearchMode = "monitoring" | "deep" | "extraction";
 export type ResearchResult = {
   text: string;
   citations: string[];
-  provider: "perplexity" | "firecrawl" | "searxng" | "lovable";
+  provider: "perplexity" | "exa" | "firecrawl" | "searxng" | "lovable";
   degraded: boolean;
 };
 
-const DEFAULT_PROVIDER = "firecrawl";
+// "auto" = Perplexity → Exa → Firecrawl/SearXNG → Lovable AI; each step is
+// skipped when its key is missing, so this is safe without new keys.
+const DEFAULT_PROVIDER = "auto";
 
 function preferredProvider(): "auto" | "perplexity" | "firecrawl" | "lovable" {
   const v = (Deno.env.get("RESEARCH_PROVIDER") ?? DEFAULT_PROVIDER).toLowerCase();
@@ -75,7 +78,20 @@ export async function research(params: {
     }
   }
 
-  // 2. Web search (+ scrape for deep research): Firecrawl, then SearXNG
+  // 2. Exa semantic search (optional, only when EXA_API_KEY is set)
+  if (pref !== "lovable" && isExaConfigured()) {
+    const ex = await exaSearch(params.userPrompt, { limit: mode === "deep" ? 8 : 5, recency: params.recency });
+    if (ex.length > 0) {
+      return {
+        text: ex.map((r, i) => `[${i + 1}] ${r.title ?? r.url}${r.publishedDate ? ` (${r.publishedDate.slice(0, 10)})` : ""}\n${r.text ?? ""}`).join("\n\n"),
+        citations: filterPlausibleUrls(ex.map((r) => r.url)),
+        provider: "exa",
+        degraded: false,
+      };
+    }
+  }
+
+  // 3. Web search (+ scrape for deep research): Firecrawl, then SearXNG
   if (tryFirecrawl && isWebSearchAvailable()) {
     const results = await webSearch(params.userPrompt, {
       limit: mode === "deep" ? 6 : 4,

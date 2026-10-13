@@ -31,6 +31,7 @@ import {
   PROJECT_SECTORS,
   FRONTIER_QUERIES,
   FRONTIER_REGION_SLANTS,
+  pickWeightedThemes,
 } from "../_shared/sectors.ts";
 
 const corsHeaders = {
@@ -96,15 +97,18 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const themeCount = Math.min(Math.max(Number(body?.themes) || 4, 1), 8);
 
-    const themes = [...new Set(FRONTIER_QUERIES.map((q) => q.theme))];
-    const offset = Math.floor(Date.now() / 60000) % themes.length;
+    const allThemes = [...new Set(FRONTIER_QUERIES.map((q) => q.theme))];
+    const { data: focusRows } = await supabase.from("sector_focus").select("theme, weight");
+    const weights: Record<string, number> = {};
+    for (const r of focusRows ?? []) weights[r.theme] = r.weight;
+    const themes = pickWeightedThemes(allThemes, weights, themeCount);
     const regionOffset = Math.floor(Date.now() / 60000) % FRONTIER_REGION_SLANTS.length;
 
     const rawContent: string[] = [];
     const citations = new Set<string>();
 
-    for (let i = 0; i < themeCount; i++) {
-      const theme = themes[(offset + i) % themes.length];
+    for (let i = 0; i < themes.length; i++) {
+      const theme = themes[i];
       const slant = FRONTIER_REGION_SLANTS[(regionOffset + i) % FRONTIER_REGION_SLANTS.length];
       const pool = FRONTIER_QUERIES.filter((q) => q.theme === theme);
       const base = pool[Math.floor(Math.random() * pool.length)].query;
