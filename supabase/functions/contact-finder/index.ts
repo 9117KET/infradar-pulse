@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAgentResearch } from "../_shared/agentResearch.ts";
+import { TARGET_CONTACT_ROLES } from "../_shared/sectors.ts";
 import { getLastFirecrawlFailure, isFirecrawlConfigured } from "../_shared/firecrawlClient.ts";
 import { isScrapingAvailable, scrapeUrl } from "../_shared/scrapeRouter.ts";
 import { escalateToHuman } from "../_shared/escalate.ts";
@@ -337,6 +338,7 @@ async function researchContacts(supabase: any, project: Project, taskId: string)
       `Find publicly listed contact details for organizations and named people involved in the infrastructure project "${project.name}".`,
       `Country: ${project.country ?? "unknown"}. Sector: ${project.sector ?? "unknown"}.`,
       `Known stakeholders: ${stakeholders.join(", ") || "none"}.`,
+      `Prioritise named decision-makers: ${TARGET_CONTACT_ROLES.join(", ")}.`,
       "Return only contacts with a public email address or phone number and a URL that directly supports that contact.",
     ].join(" "),
     searchRecencyFilter: "year",
