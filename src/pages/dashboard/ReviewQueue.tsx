@@ -453,7 +453,7 @@ export default function ReviewQueue() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-8 bg-muted/60">
+        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 min-[480px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 bg-muted/60 [&>button]:min-w-0 [&>button]:whitespace-normal [&>button]:min-h-10">
           <TabsTrigger value="escalations">Needs a human ({escalationCount})</TabsTrigger>
           <TabsTrigger value="candidates">Legacy Queue ({pendingPageResult.total})</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline Candidates ({candidatePageResult.total})</TabsTrigger>
