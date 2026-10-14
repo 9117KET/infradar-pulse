@@ -13,8 +13,28 @@ export type PerplexityResult = {
   citations: string[];
 };
 
+// Quota circuit-breaker: when Perplexity returns 401 insufficient_quota the
+// account is out of credits and EVERY call will fail the same way. Remember
+// that for a cooldown window so researchRouter falls through to Exa/Firecrawl
+// instead of hammering a dead provider and silently skipping research.
+const QUOTA_COOLDOWN_MS = 6 * 60 * 60 * 1000; // 6 hours
+let quotaExhaustedUntil = 0;
+
+function markQuotaExhausted(): void {
+  if (Date.now() < quotaExhaustedUntil) return; // already tripped, don't re-log
+  quotaExhaustedUntil = Date.now() + QUOTA_COOLDOWN_MS;
+  console.error(
+    "perplexity QUOTA EXHAUSTED — skipping Perplexity for 6h and falling back to Exa/Firecrawl. " +
+    "Add credits at https://console.perplexity.ai/project/billing to restore.",
+  );
+}
+
+function isQuotaExhausted(): boolean {
+  return Date.now() < quotaExhaustedUntil;
+}
+
 export function isPerplexityConfigured(): boolean {
-  return Boolean(Deno.env.get("PERPLEXITY_API_KEY"));
+  return Boolean(Deno.env.get("PERPLEXITY_API_KEY")) && !isQuotaExhausted();
 }
 
 export async function callPerplexity(params: {
