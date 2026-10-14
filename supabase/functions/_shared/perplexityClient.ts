@@ -67,7 +67,11 @@ export async function callPerplexity(params: {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      console.error(`perplexity ${res.status}: ${body.slice(0, 200)}`);
+      if (res.status === 401 && body.includes("insufficient_quota")) {
+        markQuotaExhausted();
+      } else {
+        console.error(`perplexity ${res.status}: ${body.slice(0, 200)}`);
+      }
       return null;
     }
     const data = await res.json();
@@ -103,7 +107,7 @@ export async function perplexitySearch(query: string | string[], opts: { maxResu
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      if (res.status === 401 && body.includes("insufficient_quota")) console.error("perplexity search: API credits exhausted");
+      if (res.status === 401 && body.includes("insufficient_quota")) markQuotaExhausted();
       else console.error(`perplexity search ${res.status}: ${body.slice(0, 200)}`);
       return [];
     }
